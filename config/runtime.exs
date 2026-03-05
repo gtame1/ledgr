@@ -33,6 +33,11 @@ if System.get_env("PHX_SERVER") do
   config :ledgr, LedgrWeb.Endpoint, server: true
 end
 
+if volume = System.get_env("UPLOAD_VOLUME") do
+  config :ledgr, :upload_dir, "#{volume}/uploads/products"
+  config :ledgr, :upload_serve_dir, volume
+end
+
 if config_env() == :prod do
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||

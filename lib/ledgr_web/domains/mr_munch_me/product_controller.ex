@@ -24,7 +24,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
     product_params = MoneyHelper.convert_params_pesos_to_cents(product_params, [:price_cents])
 
     # Handle thumbnail upload if provided
-    product_params = handle_thumbnail_upload(product_params, params)
+    {product_params, upload_error} = handle_thumbnail_upload(product_params, params)
+    conn = if upload_error, do: put_flash(conn, :error, upload_error), else: conn
 
     case Orders.create_product(product_params) do
       {:ok, _product} ->
@@ -61,7 +62,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
     product_params = MoneyHelper.convert_params_pesos_to_cents(product_params, [:price_cents])
 
     # Handle thumbnail upload if provided
-    product_params = handle_thumbnail_upload(product_params, params)
+    {product_params, upload_error} = handle_thumbnail_upload(product_params, params)
+    conn = if upload_error, do: put_flash(conn, :error, upload_error), else: conn
 
     case Orders.update_product(product, product_params) do
       {:ok, _product} ->
@@ -149,14 +151,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
         old_url = product_params["image_url"]
         if old_url, do: Uploads.delete(old_url)
 
-        Map.put(product_params, "image_url", url_path)
+        {Map.put(product_params, "image_url", url_path), nil}
 
       {:error, _reason} ->
-        product_params
+        {product_params, "Failed to upload image. Please try again."}
     end
   end
 
-  defp handle_thumbnail_upload(product_params, _params), do: product_params
+  defp handle_thumbnail_upload(product_params, _params), do: {product_params, nil}
 end
 
 defmodule LedgrWeb.Domains.MrMunchMe.ProductHTML do

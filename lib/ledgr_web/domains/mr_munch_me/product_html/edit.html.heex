@@ -96,8 +96,17 @@
       </div>
 
       <script>
+        const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
         function handleThumbnailSelect(input) {
           if (!input.files || input.files.length === 0) return;
+
+          const file = input.files[0];
+          if (file.size > MAX_IMAGE_BYTES) {
+            alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
+            input.value = "";
+            return;
+          }
 
           // Show instant preview
           const reader = new FileReader();
@@ -105,14 +114,27 @@
             const area = document.querySelector('.sidebar-thumbnail-area');
             area.innerHTML = '<div class="sidebar-thumbnail-preview"><img src="' + e.target.result + '" alt="New thumbnail preview" /></div>';
           };
-          reader.readAsDataURL(input.files[0]);
+          reader.readAsDataURL(file);
 
           // Copy file to the hidden form input and submit
           const formInput = document.getElementById('thumbnail-file-input');
           const dt = new DataTransfer();
-          for (const file of input.files) dt.items.add(file);
+          for (const f of input.files) dt.items.add(f);
           formInput.files = dt.files;
           document.querySelector('.product-edit-main form').submit();
+        }
+
+        function handleGallerySelect(input) {
+          if (!input.files || input.files.length === 0) return;
+
+          const file = input.files[0];
+          if (file.size > MAX_IMAGE_BYTES) {
+            alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
+            input.value = "";
+            return;
+          }
+
+          input.closest('form').submit();
         }
       </script>
     </section>
@@ -155,7 +177,7 @@
           name="gallery_image"
           accept="image/*"
           style="display: none;"
-          onchange="if (this.files.length > 0) this.closest('form').submit();"
+          onchange="handleGallerySelect(this)"
         />
       </form>
     </section>

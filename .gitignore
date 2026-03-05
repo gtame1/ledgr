@@ -35,3 +35,6 @@ mr_munch_me_accounting_app-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# User-uploaded product images (stored on Render persistent disk in prod)
+/priv/static/uploads/
+

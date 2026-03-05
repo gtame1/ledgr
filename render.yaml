@@ -17,6 +17,11 @@ services:
     plan: starter        # change to 'free' if testing, 'standard' for production
     region: oregon       # choose region closest to your users
 
+    disk:
+      name: uploads-disk
+      mountPath: /var/data
+      sizeGB: 1
+
     buildCommand: >
       mix deps.get --only prod &&
       MIX_ENV=prod mix compile &&
@@ -52,6 +57,10 @@ services:
         sync: false                 # set manually in Render dashboard
       - key: ADMIN_PASSWORD
         sync: false                 # set manually in Render dashboard
+
+      # Persistent disk — images survive redeploys
+      - key: UPLOAD_VOLUME
+        value: /var/data
 
       # Database URLs — automatically injected from the databases below.
       - key: MR_MUNCH_ME_DATABASE_URL
