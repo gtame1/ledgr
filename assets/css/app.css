@@ -2840,13 +2840,40 @@
     color: var(--text-main, #3d2318);
   }
 
-  .qty-input {
-    width: 60px;
-    padding: 0.4rem 0.5rem;
-    border: 1px solid var(--border-subtle, #e5e7eb);
-    border-radius: var(--radius-md, 0.5rem);
-    text-align: center;
+  /* Cart quantity +/− controls */
+  .qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .qty-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong, #e2cdbd);
+    background: var(--btn-secondary-bg, #f3e4d8);
+    color: var(--text-main, #3d2318);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .qty-btn:hover {
+    background: var(--btn-secondary-hover, #ead4c4);
+  }
+
+  .qty-value {
     font-size: 0.95rem;
+    font-weight: 600;
+    min-width: 1.5rem;
+    text-align: center;
+    color: var(--text-main, #3d2318);
   }
 
   .btn-add-to-cart-lg {

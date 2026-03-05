@@ -365,6 +365,28 @@ function initCartAnimations() {
 
 document.addEventListener('DOMContentLoaded', initCartAnimations)
 
+// ==============================
+// Cart Quantity +/− Controls
+// ==============================
+
+function initQtyControls() {
+  document.querySelectorAll('.qty-dec, .qty-inc').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const productId = this.dataset.productId
+      const input = document.getElementById('qty-' + productId)
+      const display = document.getElementById('qty-display-' + productId)
+      if (!input) return
+      const delta = this.classList.contains('qty-dec') ? -1 : 1
+      const newVal = Math.max(0, parseInt(input.value, 10) + delta)
+      input.value = newVal
+      if (display) display.textContent = newVal
+      input.closest('form').submit()
+    })
+  })
+}
+
+document.addEventListener('DOMContentLoaded', initQtyControls)
+
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session

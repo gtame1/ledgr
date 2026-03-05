@@ -20,7 +20,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
       conn
       |> assign(:storefront, true)
       |> assign(:page_title, "Checkout")
-      |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: %{})
+      |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: %{}, form_values: %{})
     end
   end
 
@@ -60,7 +60,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         |> assign(:storefront, true)
         |> assign(:page_title, "Checkout")
         |> put_flash(:error, "Por favor corrige los errores a continuación.")
-        |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: errors)
+        |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: errors, form_values: checkout_params)
       else
         # Find or create customer
         customer_attrs = %{
@@ -81,7 +81,8 @@ defmodule LedgrWeb.Storefront.CheckoutController do
             |> render(:new,
               cart_items: cart_items,
               cart_total: cart_total,
-              errors: %{customer_phone: "Número de teléfono inválido"}
+              errors: %{customer_phone: "Número de teléfono inválido"},
+              form_values: checkout_params
             )
         end
       end
@@ -138,7 +139,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
       |> assign(:storefront, true)
       |> assign(:page_title, "Checkout")
       |> put_flash(:error, "Hubo un problema al realizar tu pedido. Por favor intenta de nuevo.")
-      |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: %{})
+      |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: %{}, form_values: %{})
     end
   end
 

@@ -18,6 +18,7 @@
             name="checkout[customer_name]"
             required
             placeholder="Tu nombre completo"
+            value={@form_values["customer_name"]}
           />
           <%= if @errors[:customer_name] do %>
             <span class="checkout-error"><%= @errors[:customer_name] %></span>
@@ -32,6 +33,7 @@
             name="checkout[customer_phone]"
             required
             placeholder="+52 55 1234 5678"
+            value={@form_values["customer_phone"]}
           />
           <%= if @errors[:customer_phone] do %>
             <span class="checkout-error"><%= @errors[:customer_phone] %></span>
@@ -45,6 +47,7 @@
             id="customer_email"
             name="checkout[customer_email]"
             placeholder="you@example.com"
+            value={@form_values["customer_email"]}
           />
         </div>
 
@@ -54,7 +57,8 @@
           <label>Tipo de entrega *</label>
           <div class="checkout-radio-group">
             <label class="checkout-radio">
-              <input type="radio" name="checkout[delivery_type]" value="pickup" required />
+              <input type="radio" name="checkout[delivery_type]" value="pickup" required
+                checked={@form_values["delivery_type"] == "pickup"} />
               <span>Recoger (coordinar por WhatsApp)</span>
             </label>
             <label class="checkout-radio">
@@ -62,6 +66,7 @@
                 type="radio"
                 name="checkout[delivery_type]"
                 value="delivery"
+                checked={@form_values["delivery_type"] == "delivery"}
               />
               <span>Envío a domicilio</span>
             </label>
@@ -69,26 +74,31 @@
           <%= if @errors[:delivery_type] do %>
             <span class="checkout-error"><%= @errors[:delivery_type] %></span>
           <% end %>
-          <p id="delivery-note" class="checkout-delivery-note" style="display:none;">
+          <p id="delivery-note" class="checkout-delivery-note"
+             style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}>
             ⚠️ Solo hacemos envíos dentro de la Ciudad de México. Zonas alejadas de Bosques de las Lomas pueden tener un costo adicional — te avisaremos al confirmarlo por WhatsApp.
           </p>
         </div>
 
         <div class="checkout-field">
           <label for="delivery_date">Fecha de entrega *</label>
-          <input type="date" id="delivery_date" name="checkout[delivery_date]" required />
+          <input type="date" id="delivery_date" name="checkout[delivery_date]" required
+            min={Date.utc_today() |> Date.to_string()}
+            value={@form_values["delivery_date"]} />
           <%= if @errors[:delivery_date] do %>
             <span class="checkout-error"><%= @errors[:delivery_date] %></span>
           <% end %>
         </div>
 
-        <div class="checkout-field" id="delivery-address-field" style="display:none;">
+        <div class="checkout-field" id="delivery-address-field"
+             style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}>
           <label for="delivery_address">Dirección de entrega</label>
           <input
             type="text"
             id="delivery_address"
             name="checkout[delivery_address]"
             placeholder="Tu dirección de entrega"
+            value={@form_values["delivery_address"]}
           />
         </div>
 
@@ -130,4 +140,16 @@
       deliveryNote.style.display = isDelivery ? 'block' : 'none';
     });
   });
+
+  // Disable submit button on form submission to prevent duplicate orders
+  var checkoutForm = document.querySelector('.checkout-form');
+  if (checkoutForm) {
+    checkoutForm.addEventListener('submit', function() {
+      var btn = checkoutForm.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Procesando...';
+      }
+    });
+  }
 </script>
