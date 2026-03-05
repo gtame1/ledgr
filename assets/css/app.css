@@ -2451,6 +2451,27 @@
     opacity: 0.85;
   }
 
+  /* Social links in storefront footer */
+  .storefront-social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 0.5rem 0 0.2rem;
+  }
+
+  .storefront-social-link {
+    color: var(--text-muted, #8c6b63);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.15s, color 0.15s;
+  }
+
+  .storefront-social-link:hover {
+    opacity: 0.75;
+    color: var(--primary, #6b2d2d);
+  }
+
   /* Menu Page */
 
   .menu-hero {
