@@ -2438,6 +2438,19 @@
     border-top: 1px solid var(--border-subtle, #f0ddd8);
   }
 
+  .storefront-admin-link {
+    opacity: 0.35;
+    font-size: 1rem;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 0.25rem;
+    transition: opacity 0.2s;
+  }
+
+  .storefront-admin-link:hover {
+    opacity: 0.85;
+  }
+
   /* Menu Page */
 
   .menu-hero {
