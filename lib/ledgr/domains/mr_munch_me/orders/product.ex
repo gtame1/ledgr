@@ -3,6 +3,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders.Product do
   import Ecto.Changeset
 
   alias Ledgr.Domains.MrMunchMe.Orders.ProductImage
+  alias Ledgr.Domains.MrMunchMe.Orders.ProductVariant
 
   schema "products" do
     field :name, :string
@@ -14,6 +15,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders.Product do
 
     has_many :orders, Ledgr.Domains.MrMunchMe.Orders.Order
     has_many :images, ProductImage, preload_order: [asc: :position]
+    has_many :variants, ProductVariant, preload_order: [asc: :inserted_at]
 
     timestamps()
   end
