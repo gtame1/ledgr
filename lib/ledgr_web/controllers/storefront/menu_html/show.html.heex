@@ -12,7 +12,7 @@
     <div class="product-detail-gallery">
       <div class="product-detail-main-image" id="main-image-container">
         <%= if Enum.any?(all_images) do %>
-          <img src={List.first(all_images)} alt={@product.name} id="main-product-image" />
+          <img src={List.first(all_images)} alt={@product.name} id="main-product-image" onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png';this.className='placeholder-logo'" />
         <% else %>
           <div class="product-detail-placeholder">
             <img src="/images/mr-munchme-logos/mr-munchme-icon.png" alt="MrMunchMe" class="placeholder-logo" />
@@ -28,7 +28,7 @@
               onclick={"selectThumb(this, '#{url}')"}
               type="button"
             >
-              <img src={url} alt={"#{@product.name} - imagen #{idx + 1}"} />
+              <img src={url} alt={"#{@product.name} - imagen #{idx + 1}"} onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'" />
             </button>
           <% end %>
         </div>
@@ -55,9 +55,9 @@
         <%= if first_variant, do: format_price(first_variant.price_cents) %>
       </div>
 
-      <%= if @product.description do %>
+      <%= if @product.description && @product.description != "" do %>
         <div class="product-detail-description">
-          <p><%= @product.description %></p>
+          <%= raw(Earmark.as_html!(@product.description, compact_output: true)) %>
         </div>
       <% end %>
 

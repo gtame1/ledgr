@@ -83,11 +83,24 @@
         <div class="checkout-field">
           <label for="delivery_date">Fecha de entrega *</label>
           <input type="date" id="delivery_date" name="checkout[delivery_date]" required
-            min={Date.utc_today() |> Date.to_string()}
+            min={Date.utc_today() |> Date.add(1) |> Date.to_string()}
             value={@form_values["delivery_date"]} />
           <%= if @errors[:delivery_date] do %>
             <span class="checkout-error"><%= @errors[:delivery_date] %></span>
           <% end %>
+        </div>
+
+        <div class="checkout-field">
+          <label for="delivery_time">Hora preferida (opcional)</label>
+          <input
+            type="time"
+            id="delivery_time"
+            name="checkout[delivery_time]"
+            value={@form_values["delivery_time"]}
+          />
+          <p style="font-size: 0.8125rem; color: #6b7280; margin-top: 0.25rem; margin-bottom: 0;">
+            Si no la indicas, coordinaremos la hora por WhatsApp.
+          </p>
         </div>
 
         <div class="checkout-field" id="delivery-address-field"

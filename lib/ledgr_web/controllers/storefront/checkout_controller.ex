@@ -95,10 +95,17 @@ defmodule LedgrWeb.Storefront.CheckoutController do
 
     results =
       Enum.map(cart, fn {variant_id_str, quantity} ->
+        delivery_time =
+          case checkout_params["delivery_time"] do
+            t when is_binary(t) and t != "" -> t
+            _ -> nil
+          end
+
         order_attrs = %{
           "customer_id" => customer.id,
           "delivery_type" => checkout_params["delivery_type"],
           "delivery_date" => checkout_params["delivery_date"],
+          "delivery_time" => delivery_time,
           "delivery_address" => checkout_params["delivery_address"],
           "variant_id" => variant_id_str,
           "prep_location_id" => to_string(default_location.id),
@@ -170,6 +177,12 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         _ -> "N/A"
       end
 
+    delivery_time_text =
+      case checkout_params["delivery_time"] do
+        t when is_binary(t) and t != "" -> "\nHora preferida: #{t}"
+        _ -> ""
+      end
+
     """
     ¡Hola! Acabo de realizar un pedido en la tienda MrMunchMe.
 
@@ -180,7 +193,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
     #{items_text}
 
     Total: #{total_text}
-    #{delivery_type}: #{checkout_params["delivery_date"]}
+    #{delivery_type}: #{checkout_params["delivery_date"]}#{delivery_time_text}
     #{if checkout_params["delivery_type"] == "delivery", do: "Dirección: #{checkout_params["delivery_address"]}", else: ""}
     """
     |> String.trim()
