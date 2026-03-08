@@ -31,17 +31,7 @@
         </th>
         <th>Order</th>
         <th>Variants</th>
-        <th>
-          <.link
-            navigate={dp(@domain_path_prefix, "/products") <> "?sort=active&order=" <> (if @sort == "active" and @order == "asc", do: "desc", else: "asc")}
-            style="display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none; color: inherit;"
-          >
-            Active
-            <span style={"font-size: 0.75rem; opacity: #{if @sort == "active", do: "1", else: "0.3"};"}>
-              <%= if @sort == "active" and @order == "desc", do: "↓", else: "↑" %>
-            </span>
-          </.link>
-        </th>
+        <th>Active</th>
         <th>Actions</th>
       </tr>
     </thead>

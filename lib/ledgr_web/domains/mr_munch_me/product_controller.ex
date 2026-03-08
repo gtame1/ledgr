@@ -159,12 +159,6 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
 
   defp sort_products(products, "position", _), do: products
 
-  defp sort_products(products, "active", "asc"),
-    do: Enum.sort_by(products, &{&1.active, String.downcase(&1.name)}, :asc)
-
-  defp sort_products(products, "active", _desc),
-    do: Enum.sort_by(products, &{!&1.active, String.downcase(&1.name)}, :asc)
-
   defp sort_products(products, _name, "desc"),
     do: Enum.sort_by(products, &String.downcase(&1.name), :desc)
 
