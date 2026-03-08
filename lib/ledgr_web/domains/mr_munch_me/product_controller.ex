@@ -6,7 +6,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
   alias Ledgr.Uploads
 
   def index(conn, params) do
-    sort  = params["sort"]  || "name"
+    sort  = params["sort"]  || "position"
     order = params["order"] || "asc"
 
     products =
@@ -156,6 +156,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
   end
 
   # Private helpers
+
+  defp sort_products(products, "position", _), do: products
 
   defp sort_products(products, "active", "asc"),
     do: Enum.sort_by(products, &{&1.active, String.downcase(&1.name)}, :asc)
