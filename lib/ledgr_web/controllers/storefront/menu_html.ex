@@ -33,7 +33,8 @@ defmodule LedgrWeb.Storefront.MenuHTML do
   def render_markdown(""), do: Phoenix.HTML.raw("")
 
   def render_markdown(text) do
-    {:ok, html, _} = Earmark.as_html(text, compact_output: true)
-    Phoenix.HTML.raw(html)
+    text
+    |> Earmark.as_html!(%Earmark.Options{compact_output: true})
+    |> Phoenix.HTML.raw()
   end
 end
