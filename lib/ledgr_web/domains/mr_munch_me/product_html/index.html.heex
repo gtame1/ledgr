@@ -55,19 +55,22 @@
             <% end %>
           </td>
           <td>
-            <div style="display: flex; gap: 0.25rem;">
-              <.link
-                href={dp(@domain_path_prefix, "/products/#{product.id}/move_up")}
-                method="patch"
-                class="btn btn-sm"
-                style="padding: 0.2rem 0.45rem; line-height: 1;"
-              >▲</.link>
-              <.link
-                href={dp(@domain_path_prefix, "/products/#{product.id}/move_down")}
-                method="patch"
-                class="btn btn-sm"
-                style="padding: 0.2rem 0.45rem; line-height: 1;"
-              >▼</.link>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
+              <span style="font-size: 0.7rem; color: #9ca3af; font-weight: 600; line-height: 1;">#<%= product.position + 1 %></span>
+              <div style="display: flex; gap: 0.25rem;">
+                <.link
+                  href={dp(@domain_path_prefix, "/products/#{product.id}/move_up")}
+                  method="patch"
+                  class="btn btn-sm"
+                  style="padding: 0.2rem 0.45rem; line-height: 1;"
+                >▲</.link>
+                <.link
+                  href={dp(@domain_path_prefix, "/products/#{product.id}/move_down")}
+                  method="patch"
+                  class="btn btn-sm"
+                  style="padding: 0.2rem 0.45rem; line-height: 1;"
+                >▼</.link>
+              </div>
             </div>
           </td>
           <td><%= Enum.count(product.variants) %> variant(s)</td>
