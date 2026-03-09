@@ -188,7 +188,34 @@
                 field={f[:customer_paid_shipping]}
                 type="checkbox"
                 label="Customer paid shipping"
+                id="shipping_checkbox"
               />
+            </div>
+            <div class="field" id="shipping-fee-field" style="display: none;">
+              <label class="label" for="shipping_fee_input">Shipping Fee (MXN)</label>
+              <input
+                type="number"
+                name="order[shipping_fee]"
+                id="shipping_fee_input"
+                value={@default_shipping_fee_pesos}
+                step="0.01"
+                min="0"
+                class="input"
+                style="max-width: 12rem;"
+              />
+            </div>
+          </div>
+
+          <div class="form-block" style="width: 100%;">
+            <div class="field" style="width: 100%;">
+              <.input
+                field={f[:special_instructions]}
+                type="textarea"
+                label="Special Instructions"
+                rows="3"
+                placeholder="e.g. allergen notes, packaging requests, message for recipient..."
+              />
+              <p class="field-help"><i>* Optional — any notes for preparation or delivery</i></p>
             </div>
           </div>
         </div>
@@ -508,12 +535,27 @@
 
     // ── Price Preview ──
     const variantPrices = <%= Phoenix.HTML.raw(Jason.encode!(@variant_prices)) %>;
-    const shippingFeeCents = <%= @shipping_fee_cents %>;
     const variantSelect = document.getElementById("variant_id_select");
     const quantityInput = document.querySelector('input[name="order[quantity]"]');
-    const shippingCheckbox = document.querySelector('input[name="order[customer_paid_shipping]"]');
+    const shippingCheckbox = document.getElementById("shipping_checkbox");
+    const shippingFeeInput = document.getElementById("shipping_fee_input");
+    const shippingFeeField = document.getElementById("shipping-fee-field");
     const discountTypeSelect = document.querySelector('select[name="order[discount_type]"]');
     const discountValueInput = document.querySelector('input[name="order[discount_value]"]');
+
+    // Show/hide shipping fee input based on checkbox state
+    function toggleShippingFeeField() {
+      if (shippingFeeField) {
+        shippingFeeField.style.display = shippingCheckbox && shippingCheckbox.checked ? "" : "none";
+      }
+    }
+    if (shippingCheckbox) {
+      shippingCheckbox.addEventListener("change", function() {
+        toggleShippingFeeField();
+        updatePricePreview();
+      });
+    }
+    toggleShippingFeeField();
 
     const previewSection = document.getElementById("price-preview-section");
     const previewUnitLine = document.getElementById("preview-unit-line");
@@ -578,7 +620,8 @@
 
       // Shipping
       const hasShipping = shippingCheckbox && shippingCheckbox.checked;
-      const shipCents = hasShipping ? shippingFeeCents : 0;
+      const shipFeePesos = shippingFeeInput ? parseFloat(shippingFeeInput.value) || 0 : 0;
+      const shipCents = hasShipping ? Math.round(shipFeePesos * 100) : 0;
       if (hasShipping) {
         previewShippingLine.style.display = "flex";
         previewShippingValue.textContent = formatMoney(shipCents);
@@ -593,7 +636,7 @@
     }
 
     // Listen to all relevant inputs
-    [variantSelect, quantityInput, shippingCheckbox, discountTypeSelect, discountValueInput].forEach(function(el) {
+    [variantSelect, quantityInput, shippingCheckbox, shippingFeeInput, discountTypeSelect, discountValueInput].forEach(function(el) {
       if (el) {
         el.addEventListener("change", updatePricePreview);
         el.addEventListener("input", updatePricePreview);

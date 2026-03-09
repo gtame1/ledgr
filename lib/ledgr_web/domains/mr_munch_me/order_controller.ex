@@ -108,19 +108,23 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
 
   def new(conn, _params) do
     changeset = Orders.change_order(%Order{})
+    default_fee_cents = OrderAccounting.shipping_fee_cents()
 
     render(conn, :new,
       changeset: changeset,
       action: dp(conn, "/orders"),
       variant_options: Orders.variant_select_options(),
       variant_prices: variant_price_map(),
-      shipping_fee_cents: OrderAccounting.shipping_fee_cents(),
+      shipping_fee_cents: default_fee_cents,
+      default_shipping_fee_pesos: format_pesos(default_fee_cents),
       location_options: Inventory.list_locations() |> Enum.map(&{&1.name, &1.id}),
       customer_options: Customers.customer_select_options()
     )
   end
 
   def create(conn, %{"order" => params}) do
+    params = parse_shipping_fee(params)
+
     case Orders.create_order(params) do
       {:ok, order} ->
         conn
@@ -129,13 +133,15 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         changeset = Map.put(changeset, :action, :insert)
+        default_fee_cents = OrderAccounting.shipping_fee_cents()
 
         render(conn, :new,
           changeset: changeset,
           action: dp(conn, "/orders"),
           variant_options: Orders.variant_select_options(),
           variant_prices: variant_price_map(),
-          shipping_fee_cents: OrderAccounting.shipping_fee_cents(),
+          shipping_fee_cents: default_fee_cents,
+          default_shipping_fee_pesos: format_pesos(default_fee_cents),
           location_options: Inventory.list_locations() |> Enum.map(&{&1.name, &1.id}),
           customer_options: Customers.customer_select_options()
         )
@@ -146,6 +152,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
           |> Order.changeset(params)
           |> Map.put(:action, :insert)
 
+        default_fee_cents = OrderAccounting.shipping_fee_cents()
+
         conn
         |> put_flash(:error, "There was a problem creating this order. Please check the form and try again.")
         |> render(:new,
@@ -153,7 +161,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
           action: dp(conn, "/orders"),
           variant_options: Orders.variant_select_options(),
           variant_prices: variant_price_map(),
-          shipping_fee_cents: OrderAccounting.shipping_fee_cents(),
+          shipping_fee_cents: default_fee_cents,
+          default_shipping_fee_pesos: format_pesos(default_fee_cents),
           location_options: Inventory.list_locations() |> Enum.map(&{&1.name, &1.id}),
           customer_options: Customers.customer_select_options()
         )
@@ -202,18 +211,22 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
   def edit(conn, %{"id" => id}) do
     order = Orders.get_order!(id)
     changeset = Orders.change_order(order)
+    default_fee_cents = OrderAccounting.shipping_fee_cents()
+    current_fee_pesos = format_pesos(order.shipping_fee_cents || default_fee_cents)
 
     render(conn, :edit,
       order: order,
       changeset: changeset,
       variant_options: Orders.variant_select_options(),
       location_options: Inventory.list_locations() |> Enum.map(&{&1.name, &1.id}),
-      customer_options: Customers.customer_select_options()
+      customer_options: Customers.customer_select_options(),
+      default_shipping_fee_pesos: current_fee_pesos
     )
   end
 
   def update(conn, %{"id" => id, "order" => order_params}) do
     order = Orders.get_order!(id) |> Repo.preload([:prep_location])
+    order_params = parse_shipping_fee(order_params)
 
     case Orders.update_order(order, order_params) do
       {:ok, order} ->
@@ -222,12 +235,16 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
         |> redirect(to: dp(conn, "/orders/#{order.id}"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
+        default_fee_cents = OrderAccounting.shipping_fee_cents()
+        current_fee_pesos = format_pesos(order.shipping_fee_cents || default_fee_cents)
+
         render(conn, :edit,
           order: order,
           changeset: changeset,
           variant_options: Orders.variant_select_options(),
           location_options: Inventory.list_locations() |> Enum.map(&{&1.name, &1.id}),
-          customer_options: Customers.customer_select_options()
+          customer_options: Customers.customer_select_options(),
+          default_shipping_fee_pesos: current_fee_pesos
         )
     end
   end
@@ -466,6 +483,24 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
     Orders.list_active_variants()
     |> Map.new(fn v -> {v.id, v.price_cents || 0} end)
   end
+
+  # Convert a "shipping_fee" pesos param to shipping_fee_cents before passing to domain.
+  defp parse_shipping_fee(params) do
+    case Map.pop(params, "shipping_fee") do
+      {val, rest} when val not in [nil, ""] ->
+        case Float.parse(to_string(val)) do
+          {pesos, _} -> Map.put(rest, "shipping_fee_cents", round(pesos * 100))
+          :error -> rest
+        end
+
+      {_, rest} ->
+        rest
+    end
+  end
+
+  # Format cents as a pesos string for form default values (e.g. 5000 -> "50.00")
+  defp format_pesos(nil), do: "0.00"
+  defp format_pesos(cents), do: :erlang.float_to_binary(cents / 100, decimals: 2)
 end
 
 
@@ -490,5 +525,4 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderHTML do
       %{year: year, month: month + 1}
     end
   end
-
 end
