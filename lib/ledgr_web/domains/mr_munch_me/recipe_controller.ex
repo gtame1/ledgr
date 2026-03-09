@@ -54,7 +54,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
 
   def new(conn, _params) do
     # Initialize with at least one empty recipe line, defaulting to today
-    attrs = %{"effective_date" => Date.utc_today(), "recipe_lines" => [%{}]}
+    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+    attrs = %{"effective_date" => Date.to_iso8601(today_mx), "recipe_lines" => [%{}]}
     changeset = Recepies.change_recipe(%Recipe{}, attrs)
     form = Phoenix.Component.to_form(changeset)
 
@@ -109,17 +110,19 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
 
     # Pre-fill with existing recipe data but create a new recipe
     # Default effective_date to today (or day after original if original is today/future)
+    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+
     new_effective_date =
-      if original_recipe.effective_date >= Date.utc_today() do
+      if original_recipe.effective_date >= today_mx do
         Date.add(original_recipe.effective_date, 1)
       else
-        Date.utc_today()
+        today_mx
       end
 
     # Build attrs from existing recipe for pre-filling
     attrs = %{
       "variant_id" => original_recipe.variant_id,
-      "effective_date" => new_effective_date,
+      "effective_date" => Date.to_iso8601(new_effective_date),
       "name" => original_recipe.name,
       "description" => original_recipe.description,
       "recipe_lines" =>

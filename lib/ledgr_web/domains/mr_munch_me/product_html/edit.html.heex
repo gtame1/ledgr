@@ -1,3 +1,27 @@
+<%!-- Cropper.js CDN --%>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+
+<%!-- Crop Modal (thumbnail only) --%>
+<div id="crop-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; padding:1rem;">
+  <div style="background:#fff; border-radius:0.75rem; padding:1.25rem; max-width:640px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.875rem;">
+      <h3 style="margin:0; font-size:1rem; font-weight:600; color:#111827;">Crop Image</h3>
+      <div style="display:flex; align-items:center; gap:0.625rem;">
+        <button id="crop-zoom-fit" class="btn btn-sm" type="button" style="font-size:0.75rem; padding:0.25rem 0.625rem;">Zoom to fit</button>
+        <span style="font-size:0.75rem; color:#6b7280;">4:3 ratio</span>
+      </div>
+    </div>
+    <div id="crop-cropper-container" style="max-height:420px; overflow:hidden; border-radius:0.5rem; background:#f3f4f6;">
+      <img id="crop-image" style="display:block; max-width:100%;" />
+    </div>
+    <div style="display:flex; gap:0.625rem; justify-content:flex-end; margin-top:1rem;">
+      <button id="crop-cancel" class="btn btn-sm" type="button">Cancel</button>
+      <button id="crop-confirm" class="btn btn-sm primary" type="button">Use this crop</button>
+    </div>
+  </div>
+</div>
+
 <div class="product-edit-layout">
   <%!-- Left Column: Main form --%>
   <div class="product-edit-main">
@@ -217,43 +241,150 @@
 
       <script>
         const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+        const CROP_ASPECT = 4 / 3;
+
+        let _cropper = null;
+        let _cropSourceInput = null;
+        let _originalSrc = null;
+
+        function initCropper(viewMode) {
+          const img = document.getElementById('crop-image');
+          if (_cropper) { _cropper.destroy(); _cropper = null; }
+          _cropper = new Cropper(img, {
+            aspectRatio: CROP_ASPECT,
+            viewMode: viewMode,
+            dragMode: 'move',
+            autoCropArea: 1,
+            responsive: true,
+            checkOrientation: false,
+            background: viewMode === 0, // show checkered only when crop can go outside image
+          });
+          return _cropper;
+        }
+
+        function openCropModal(file, sourceInput) {
+          _cropSourceInput = sourceInput;
+          _originalSrc = null;
+
+          const img = document.getElementById('crop-image');
+          if (_cropper) { _cropper.destroy(); _cropper = null; }
+
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            _originalSrc = e.target.result;
+            img.src = _originalSrc;
+            document.getElementById('crop-modal').style.display = 'flex';
+            img.onload = function() { initCropper(1); };
+          };
+          reader.readAsDataURL(file);
+        }
+
+        function closeCropModal() {
+          document.getElementById('crop-modal').style.display = 'none';
+          if (_cropper) { _cropper.destroy(); _cropper = null; }
+          if (_cropSourceInput) { _cropSourceInput.value = ''; }
+          _cropSourceInput = null;
+          _originalSrc = null;
+        }
+
+        function submitCroppedBlob(blob) {
+          const name = (_cropSourceInput.files[0] && _cropSourceInput.files[0].name) || 'image.jpg';
+          const file = new File([blob], name, { type: 'image/jpeg' });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+
+          const area = document.querySelector('.sidebar-thumbnail-area');
+          area.innerHTML = '<div class="sidebar-thumbnail-preview"><img src="' + URL.createObjectURL(blob) + '" alt="New thumbnail preview" /></div>';
+
+          document.getElementById('thumbnail-file-input').files = dt.files;
+          document.getElementById('crop-modal').style.display = 'none';
+          if (_cropper) { _cropper.destroy(); _cropper = null; }
+          document.querySelector('.product-edit-main form').submit();
+        }
+
+        document.getElementById('crop-cancel').addEventListener('click', closeCropModal);
+
+        // "Zoom to fit": expand the crop box to contain the full image within 4:3,
+        // allowing it to extend outside the image bounds (filled with blurred bg on output).
+        document.getElementById('crop-zoom-fit').addEventListener('click', function() {
+          if (!_cropper) return;
+          const imgData = _cropper.getImageData();
+          const nw = imgData.naturalWidth, nh = imgData.naturalHeight;
+
+          // Recreate with viewMode: 0 so crop box can extend outside image bounds
+          const c = initCropper(0);
+          c.options.ready = null; // clear any prior ready
+          c.element.addEventListener('ready', function handler() {
+            c.element.removeEventListener('ready', handler);
+            let cropX, cropY, cropW, cropH;
+            if (nw / nh < CROP_ASPECT) {
+              // Portrait / near-square: fit height, expand width
+              cropH = nh;
+              cropW = Math.round(nh * CROP_ASPECT);
+              cropX = -Math.round((cropW - nw) / 2);
+              cropY = 0;
+            } else {
+              // Landscape wider than 4:3: fit width, expand height
+              cropW = nw;
+              cropH = Math.round(nw / CROP_ASPECT);
+              cropX = 0;
+              cropY = -Math.round((cropH - nh) / 2);
+            }
+            c.setData({ x: cropX, y: cropY, width: cropW, height: cropH, rotate: 0, scaleX: 1, scaleY: 1 });
+          }, { once: true });
+        });
+
+        document.getElementById('crop-confirm').addEventListener('click', function() {
+          if (!_cropper) return;
+
+          // Get the cropped canvas (may contain transparent areas if crop extends outside image)
+          const croppedCanvas = _cropper.getCroppedCanvas({ width: 1200, height: 900 });
+
+          // Composite over blurred background:
+          // - Normal crop: image fills canvas entirely, background is invisible
+          // - After "Zoom to fit": transparent areas show blurred background through
+          const finalCanvas = document.createElement('canvas');
+          finalCanvas.width = 1200;
+          finalCanvas.height = 900;
+          const ctx = finalCanvas.getContext('2d');
+          const tmp = new Image();
+          tmp.onload = function() {
+            const iw = tmp.naturalWidth, ih = tmp.naturalHeight;
+            // 1. Blurred cover background
+            const coverScale = Math.max(1200 / iw, 900 / ih) * 1.12;
+            const bgW = iw * coverScale, bgH = ih * coverScale;
+            ctx.filter = 'blur(24px)';
+            ctx.drawImage(tmp, (1200 - bgW) / 2, (900 - bgH) / 2, bgW, bgH);
+            // 2. Dark overlay
+            ctx.filter = 'none';
+            ctx.fillStyle = 'rgba(0,0,0,0.28)';
+            ctx.fillRect(0, 0, 1200, 900);
+            // 3. Composite crop (transparent areas reveal the blurred background)
+            ctx.drawImage(croppedCanvas, 0, 0);
+            finalCanvas.toBlob(function(blob) { submitCroppedBlob(blob); }, 'image/jpeg', 0.92);
+          };
+          tmp.src = _originalSrc;
+        });
 
         function handleThumbnailSelect(input) {
           if (!input.files || input.files.length === 0) return;
-
           const file = input.files[0];
           if (file.size > MAX_IMAGE_BYTES) {
             alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
             input.value = "";
             return;
           }
-
-          // Show instant preview
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const area = document.querySelector('.sidebar-thumbnail-area');
-            area.innerHTML = '<div class="sidebar-thumbnail-preview"><img src="' + e.target.result + '" alt="New thumbnail preview" /></div>';
-          };
-          reader.readAsDataURL(file);
-
-          // Copy file to the hidden form input and submit
-          const formInput = document.getElementById('thumbnail-file-input');
-          const dt = new DataTransfer();
-          for (const f of input.files) dt.items.add(f);
-          formInput.files = dt.files;
-          document.querySelector('.product-edit-main form').submit();
+          openCropModal(file, input);
         }
 
         function handleGallerySelect(input) {
           if (!input.files || input.files.length === 0) return;
-
           const file = input.files[0];
           if (file.size > MAX_IMAGE_BYTES) {
             alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
             input.value = "";
             return;
           }
-
           input.closest('form').submit();
         }
       </script>

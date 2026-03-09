@@ -38,6 +38,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
   end
 
   def edit(conn, %{"product_id" => product_id, "id" => id} = params) do
+    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
     variant = Orders.get_variant!(id)
     changeset = ProductVariant.changeset(variant, %{})
 
@@ -59,14 +60,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
 
           case Recepies.get_active_recipe(source_variant) do
             nil ->
-              {%{"effective_date" => Date.utc_today(), "recipe_lines" => [%{}]}, nil}
+              {%{"effective_date" => Date.to_iso8601(today_mx), "recipe_lines" => [%{}]}, nil}
 
             source_recipe ->
               source_recipe = Recepies.get_recipe!(source_recipe.id)
 
               attrs = %{
                 "variant_id" => id,
-                "effective_date" => Date.utc_today(),
+                "effective_date" => Date.to_iso8601(today_mx),
                 "recipe_lines" =>
                   Enum.map(source_recipe.recipe_lines || [], fn line ->
                     %{
@@ -82,15 +83,15 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
 
         current_recipe != nil ->
           new_effective_date =
-            if current_recipe.effective_date >= Date.utc_today() do
+            if current_recipe.effective_date >= today_mx do
               Date.add(current_recipe.effective_date, 1)
             else
-              Date.utc_today()
+              today_mx
             end
 
           attrs = %{
             "variant_id" => id,
-            "effective_date" => new_effective_date,
+            "effective_date" => Date.to_iso8601(new_effective_date),
             "name" => current_recipe.name,
             "description" => current_recipe.description,
             "recipe_lines" =>
@@ -106,7 +107,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
           {attrs, nil}
 
         true ->
-          {%{"effective_date" => Date.utc_today(), "recipe_lines" => [%{}]}, nil}
+          {%{"effective_date" => Date.to_iso8601(today_mx), "recipe_lines" => [%{}]}, nil}
       end
 
     recipe_changeset = Recepies.change_recipe(%Recipe{}, recipe_attrs)
@@ -224,6 +225,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
   # Build default recipe assigns for error re-renders (update/2 failure).
   # Uses current recipe if available; otherwise empty form with one blank line.
   defp build_default_recipe_assigns(conn, variant, product_id) do
+    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+
     current_recipe =
       case Recepies.get_active_recipe(variant) do
         nil -> nil
@@ -233,14 +236,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
     recipe_attrs =
       if current_recipe != nil do
         new_effective_date =
-          if current_recipe.effective_date >= Date.utc_today() do
+          if current_recipe.effective_date >= today_mx do
             Date.add(current_recipe.effective_date, 1)
           else
-            Date.utc_today()
+            today_mx
           end
 
         %{
-          "effective_date" => new_effective_date,
+          "effective_date" => Date.to_iso8601(new_effective_date),
           "recipe_lines" =>
             Enum.map(current_recipe.recipe_lines || [], fn line ->
               %{

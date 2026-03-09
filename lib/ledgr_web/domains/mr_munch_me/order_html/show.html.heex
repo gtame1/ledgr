@@ -148,7 +148,7 @@
       </div>
       <div>
         <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Created</span>
-        <div style="font-size: 0.9rem;"><%= Calendar.strftime(@order.inserted_at, "%b %d, %Y") %></div>
+        <div style="font-size: 0.9rem;"><%= Calendar.strftime(to_mx_time(@order.inserted_at), "%b %d, %Y") %></div>
       </div>
     </div>
   </section>

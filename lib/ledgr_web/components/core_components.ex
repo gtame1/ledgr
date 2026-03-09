@@ -637,6 +637,10 @@ defmodule LedgrWeb.CoreComponents do
     end
   end
 
+  @doc "Converts a UTC NaiveDateTime to Mexico City time (UTC-6)."
+  def to_mx_time(%NaiveDateTime{} = dt), do: NaiveDateTime.add(dt, -6 * 3600, :second)
+  def to_mx_time(other), do: other
+
   def filters_active?(filters) do
     # filters is a map like %{status: "...", delivery_type: "...", product_id: "...", ...}
     Enum.any?([:status, :delivery_type, :product_id, :prep_location_id], fn key ->
