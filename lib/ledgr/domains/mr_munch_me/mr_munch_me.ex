@@ -77,8 +77,7 @@ defmodule Ledgr.Domains.MrMunchMe do
       packaging_cogs: "5010",
       inventory_waste: "6060",
       samples_gifts: "6070",
-      other_expenses: "6099",
-      shipping_product_sku: "ENVIO"
+      other_expenses: "6099"
     }
   end
 

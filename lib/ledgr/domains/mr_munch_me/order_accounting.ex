@@ -29,7 +29,6 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
   @packing_cogs_code "5010"
   @samples_gifts_code "6070"
 
-  @shipping_product_sku "ENVIO"
   @production_location_code "CASA_AG"
 
   # ── Order status change dispatcher ────────────────────────────────────
@@ -285,11 +284,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
   # ── Revenue & COGS breakdowns ─────────────────────────────────────────
 
   def shipping_fee_cents do
-    alias Ledgr.Domains.MrMunchMe.Orders.ProductVariant
-    case Repo.get_by(ProductVariant, sku: @shipping_product_sku) do
-      nil -> 0
-      %ProductVariant{price_cents: cents} -> cents || 0
-    end
+    Application.get_env(:ledgr, :default_shipping_fee_cents) || 0
   end
 
   # Get revenue breakdown by product — aggregates all variants into one product P&L line

@@ -647,14 +647,9 @@ defmodule Ledgr.Core.AccountingTest do
   end
 
   describe "shipping_fee_cents/0" do
-    test "returns 0 when no shipping product exists" do
-      assert OrderAccounting.shipping_fee_cents() == 0
-    end
-
-    test "returns price when shipping product exists" do
-      envio_product = product_fixture(%{name: "Shipping"})
-      _shipping = variant_fixture(%{product: envio_product, sku: "ENVIO", price_cents: 5500})
-      assert OrderAccounting.shipping_fee_cents() == 5500
+    test "returns the value from application config" do
+      assert OrderAccounting.shipping_fee_cents() ==
+               Application.get_env(:ledgr, :default_shipping_fee_cents)
     end
   end
 
