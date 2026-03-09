@@ -38,7 +38,7 @@
               <div class="product-card-price">
                 <%= if min_price do %>
                   <%= if length(active_variants) > 1 do %>
-                    Desde <%= format_price(min_price) %>
+                    <span class="product-price-desde">Desde</span> <%= format_price(min_price) %>
                   <% else %>
                     <%= format_price(min_price) %>
                   <% end %>

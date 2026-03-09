@@ -19,6 +19,12 @@
 
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 
+// Prevent browser from restoring the previous scroll position on navigation,
+// which causes a visible "bounce" before the page settles at the top.
+if ("scrollRestoration" in history) {
+  history.scrollRestoration = "manual"
+}
+
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
@@ -469,8 +475,9 @@ const initializeDropdowns = () => {
   })
 }
 
-// Initialize dropdowns on page load
-window.addEventListener('load', initializeDropdowns)
+// Initialize dropdowns as early as possible (DOMContentLoaded fires before images load,
+// preventing the visible "collapsed then expanded" flash on page load).
+document.addEventListener('DOMContentLoaded', initializeDropdowns)
 
 // Re-initialize dropdowns after LiveView navigation (without animation)
 window.addEventListener('phx:page-loading-stop', initializeDropdowns)
@@ -518,8 +525,8 @@ const initHamburgerMenu = () => {
   })
 }
 
-// Initialize hamburger menu on page load
-window.addEventListener('load', initHamburgerMenu)
+// Initialize hamburger menu as early as possible
+document.addEventListener('DOMContentLoaded', initHamburgerMenu)
 
 // Re-initialize after LiveView navigation
 window.addEventListener('phx:page-loading-stop', initHamburgerMenu)

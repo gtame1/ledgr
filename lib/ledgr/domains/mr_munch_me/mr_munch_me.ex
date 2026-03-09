@@ -50,7 +50,7 @@ defmodule Ledgr.Domains.MrMunchMe do
       gradient_start: "#f5dbd3",
       gradient_mid: "#fdf6f4",
       gradient_end: "#fef9f7",
-      sidebar_logo: "/images/mr-munchme-logos/mr-munchme-logo-alt-colors.png",
+      sidebar_logo: "/images/mr-munchme-logos/mr-munchme-white-logo.jpeg",
       card_logo: "/images/mr-munchme-logos/mr-munchme-logo.jpg",
       tab_title: "MrMunchMe App",
       favicon: "/images/mr-munchme-logos/mr-munchme-icon.png",

@@ -49,6 +49,10 @@
     padding: 0;
   }
 
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
       "Segoe UI", sans-serif;
@@ -2584,6 +2588,12 @@
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--primary, #6b2d2d);
+  }
+
+  .product-price-desde {
+    font-size: 0.7em;
+    font-weight: 400;
+    opacity: 0.75;
   }
 
   /* Product Detail Page — Two-column layout */
