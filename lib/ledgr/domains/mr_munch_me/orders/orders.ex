@@ -645,16 +645,24 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         %{status: new_status}
       end
 
-    Repo.transaction(fn ->
-      {:ok, updated} =
-        order
-        |> Order.changeset(attrs)
-        |> Repo.update()
+    result =
+      Repo.transaction(fn ->
+        {:ok, updated} =
+          order
+          |> Order.changeset(attrs)
+          |> Repo.update()
 
-      OrderAccounting.handle_order_status_change(updated, new_status)
+        OrderAccounting.handle_order_status_change(updated, new_status)
 
-      updated
-    end)
+        updated
+      end)
+
+    # Issue Stripe refund after the transaction commits (never inside a DB transaction)
+    with {:ok, updated} <- result, true <- new_status == "canceled" do
+      OrderAccounting.maybe_issue_stripe_refund(updated)
+    end
+
+    result
   end
 
   def update_order_status(%Order{} = _order, _bad_status) do

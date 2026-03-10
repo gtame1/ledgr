@@ -9,6 +9,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
   """
 
   import Ecto.Query, warn: false
+  require Logger
 
   alias Ledgr.Repo
   alias Ledgr.Domains.MrMunchMe.Orders.{Order, OrderPayment, ProductVariant}
@@ -203,6 +204,32 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
         Inventory.reverse_order_consumption(order.id)
 
         Accounting.create_journal_entry_with_lines(entry_attrs, reversal_lines)
+    end
+  end
+
+  @doc """
+  Issues a Stripe refund for a canceled order if it was paid via Stripe.
+  Must be called *outside* of a DB transaction. Logs the outcome but never raises.
+  """
+  def maybe_issue_stripe_refund(%Order{stripe_checkout_session_id: nil}), do: :ok
+
+  def maybe_issue_stripe_refund(%Order{} = order) do
+    with {:ok, session} <- Stripe.Checkout.Session.retrieve(order.stripe_checkout_session_id),
+         payment_intent_id when is_binary(payment_intent_id) <- session.payment_intent,
+         {:ok, refund} <- Stripe.Refund.create(%{
+           payment_intent: payment_intent_id,
+           reason: :requested_by_customer
+         }) do
+      Logger.info("Stripe refund #{refund.id} issued for canceled order ##{order.id}")
+      :ok
+    else
+      nil ->
+        Logger.warning("Stripe refund skipped for order ##{order.id}: no payment intent on session #{order.stripe_checkout_session_id}")
+        :ok
+
+      {:error, reason} ->
+        Logger.error("Stripe refund failed for order ##{order.id}: #{inspect(reason)}")
+        :ok
     end
   end
 
