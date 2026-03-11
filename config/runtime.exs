@@ -28,7 +28,7 @@ if viaxe_url = System.get_env("VIAXE_DATABASE_URL") || System.get_env("DATABASE_
     priv: "priv/repos/viaxe"
 end
 
-if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") do
+if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") || System.get_env("DATABASE_URL") do
   db_uri = URI.parse(volume_studio_url)
 
   config :ledgr, Ledgr.Repos.VolumeStudio,
