@@ -97,7 +97,33 @@
                 <% end %>
               <% end %>
               <tr>
-                <td><strong>Revenue</strong></td>
+                <td><strong>Gross Sales</strong></td>
+                <td class="numeric"><%= format_currency(@unit_economics.gross_sales_cents) %></td>
+                <td class="numeric"><%= format_currency(@unit_economics.gross_sales_per_unit_cents) %></td>
+                <td class="numeric">
+                  <%= if @unit_economics.revenue_cents > 0 do %>
+                    <%= Float.round(@unit_economics.gross_sales_cents / @unit_economics.revenue_cents * 100, 2) %>%
+                  <% else %>—<% end %>
+                </td>
+              </tr>
+              <%= if @unit_economics.shipping_revenue_cents > 0 do %>
+                <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
+                  <td style="padding-left: 2rem;">+ Shipping Revenue</td>
+                  <td class="numeric"><%= format_currency(@unit_economics.shipping_revenue_cents) %></td>
+                  <td class="numeric"><%= format_currency(@unit_economics.shipping_per_unit_cents) %></td>
+                  <td class="numeric">—</td>
+                </tr>
+              <% end %>
+              <%= if @unit_economics.total_discounts_cents > 0 do %>
+                <tr style="font-size: 0.85rem; color: #b91c1c; background-color: #f9fafb;">
+                  <td style="padding-left: 2rem;">− Discounts</td>
+                  <td class="numeric">(<%= format_currency(@unit_economics.total_discounts_cents) %>)</td>
+                  <td class="numeric">(<%= format_currency(@unit_economics.discounts_per_unit_cents) %>)</td>
+                  <td class="numeric">—</td>
+                </tr>
+              <% end %>
+              <tr style="font-weight: 600; border-top: 1px solid #e5e7eb;">
+                <td><strong>Net Revenue</strong></td>
                 <td class="numeric"><%= format_currency(@unit_economics.revenue_cents) %></td>
                 <td class="numeric"><%= format_currency(@unit_economics.revenue_per_unit_cents) %></td>
                 <td class="numeric">100.00%</td>

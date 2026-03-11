@@ -305,13 +305,13 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
       )
       |> Repo.all()
 
-    # Calculate revenue from orders
-    revenue_cents =
-      Enum.reduce(orders, 0, fn order, acc ->
+    # Calculate revenue components from orders
+    {gross_sales_cents, shipping_revenue_cents} =
+      Enum.reduce(orders, {0, 0}, fn order, {sales_acc, ship_acc} ->
         quantity = order.quantity || 1
-        base_revenue = (order.variant.price_cents || 0) * quantity
-        shipping_cents = if order.customer_paid_shipping, do: order.shipping_fee_cents || OrderAccounting.shipping_fee_cents(), else: 0
-        acc + base_revenue + shipping_cents
+        base = (order.variant.price_cents || 0) * quantity
+        ship = if order.customer_paid_shipping, do: order.shipping_fee_cents || OrderAccounting.shipping_fee_cents(), else: 0
+        {sales_acc + base, ship_acc + ship}
       end)
 
     order_ids = Enum.map(orders, & &1.id)
@@ -380,8 +380,8 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
 
     total_discounts_cents = discounts_map |> Map.values() |> Enum.sum()
 
-    # Adjust revenue for discounts so it matches the P&L (gross price − discounts = net revenue)
-    revenue_cents = revenue_cents - total_discounts_cents
+    # Net revenue = gross sales + shipping - discounts (matches P&L accounting)
+    revenue_cents = gross_sales_cents + shipping_revenue_cents - total_discounts_cents
 
     # Only use order IDs that actually have a COGS journal entry, so ingredient
     # breakdown totals are consistent with the COGS figure above.
@@ -418,6 +418,9 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
     units_sold = Enum.reduce(orders, 0, fn order, acc -> acc + (order.quantity || 1) end)
 
     # Calculate per-unit metrics
+    gross_sales_per_unit_cents = if units_sold > 0, do: div(gross_sales_cents, units_sold), else: 0
+    shipping_per_unit_cents = if units_sold > 0, do: div(shipping_revenue_cents, units_sold), else: 0
+    discounts_per_unit_cents = if units_sold > 0, do: div(total_discounts_cents, units_sold), else: 0
     revenue_per_unit_cents = if units_sold > 0, do: div(revenue_cents, units_sold), else: 0
     cogs_per_unit_cents = if units_sold > 0, do: div(cogs_cents, units_sold), else: 0
     gross_margin_per_unit_cents = if units_sold > 0, do: div(gross_margin_cents, units_sold), else: 0
@@ -514,6 +517,12 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
       product: product,
       period: %{start_date: start_date, end_date: end_date},
       units_sold: units_sold,
+      gross_sales_cents: gross_sales_cents,
+      gross_sales_per_unit_cents: gross_sales_per_unit_cents,
+      shipping_revenue_cents: shipping_revenue_cents,
+      shipping_per_unit_cents: shipping_per_unit_cents,
+      total_discounts_cents: total_discounts_cents,
+      discounts_per_unit_cents: discounts_per_unit_cents,
       revenue_cents: revenue_cents,
       revenue_per_unit_cents: revenue_per_unit_cents,
       cogs_cents: cogs_cents,

@@ -56,8 +56,8 @@ defmodule Ledgr.Domains.VolumeStudio do
       gradient_start: "#EDF0F4",
       gradient_mid: "#F5F1EB",
       gradient_end: "#F8F3EA",
-      sidebar_logo: "/images/volume-studio-logos/main-logo.png",
-      card_logo: "/images/volume-studio-logos/main-logo.png",
+      sidebar_logo: "/images/volume-studio-logos/logo/main-logo.png",
+      card_logo: "/images/volume-studio-logos/logo/main-logo.png",
       tab_title: "Volume Studio",
       favicon: "/images/favicon-volume-studio.png"
     }

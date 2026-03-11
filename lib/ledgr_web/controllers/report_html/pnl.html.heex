@@ -84,6 +84,33 @@
               <% end %>
             <% end %>
 
+            <%
+              shipping_account = Enum.find(@summary.revenue_accounts, &(&1.code == "4020"))
+              discounts_account = Enum.find(@summary.revenue_accounts, &(&1.code == "4010"))
+            %>
+            <%= if shipping_account && shipping_account.net_cents > 0 do %>
+              <tr>
+                <td style="padding-left: 2rem;">Shipping Revenue</td>
+                <td class="numeric"><%= format_currency(shipping_account.net_cents) %></td>
+                <td class="numeric">
+                  <%= if @summary.total_revenue_cents > 0 do %>
+                    <%= Float.round(shipping_account.net_cents / @summary.total_revenue_cents * 100, 1) %>%
+                  <% else %>—<% end %>
+                </td>
+              </tr>
+            <% end %>
+            <%= if discounts_account && discounts_account.net_cents > 0 do %>
+              <tr style="color: #991b1b;">
+                <td style="padding-left: 2rem;">Sales Discounts</td>
+                <td class="numeric">(<%= format_currency(discounts_account.net_cents) %>)</td>
+                <td class="numeric">
+                  <%= if @summary.total_revenue_cents > 0 do %>
+                    <%= Float.round(discounts_account.net_cents / @summary.total_revenue_cents * 100, 1) %>%
+                  <% else %>—<% end %>
+                </td>
+              </tr>
+            <% end %>
+
             <tr style="font-weight: 600; border-top: 1px solid #e5e7eb;">
               <td>Total Revenue</td>
               <td class="numeric"><%= format_currency(@summary.total_revenue_cents) %></td>
