@@ -1,8 +1,13 @@
 defmodule LedgrWeb.Plugs.DomainPlug do
   @moduledoc """
-  Plug that sets the active domain and repo based on the URL path prefix.
+  Plug that sets the active domain and repo based on the request hostname or URL path prefix.
 
-  Reads the domain slug from the URL (e.g., `/app/mr-munch-me/...`) and sets:
+  Detection order:
+  1. Hostname match — checked against `Application.get_env(:ledgr, :domain_hosts, %{})`,
+     a map of `"hostname" => "slug"` pairs configured in runtime.exs for production.
+  2. Path prefix — reads the slug from `/app/<slug>/...` or `/<slug>/...` (dev/localhost).
+
+  Sets:
   - `Process.put(:ledgr_active_domain, domain_module)` for `Ledgr.Domain.current()`
   - `Process.put(:ledgr_repo, repo_module)` for `Ledgr.Repo` delegation
   - `conn.assigns[:current_domain]` for use in templates
@@ -13,26 +18,38 @@ defmodule LedgrWeb.Plugs.DomainPlug do
 
   @domain_slugs %{
     "mr-munch-me" => Ledgr.Domains.MrMunchMe,
-    "viaxe" => Ledgr.Domains.Viaxe
+    "viaxe" => Ledgr.Domains.Viaxe,
+    "volume-studio" => Ledgr.Domains.VolumeStudio
   }
 
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    case conn.path_info do
-      ["app", slug | _rest] ->
-        set_domain_context(conn, slug)
+    host_slug = conn.host |> String.downcase() |> resolve_host_slug()
 
-      # Public storefront routes: /<domain-slug>/menu/...
-      [slug | _rest] ->
-        case Map.get(@domain_slugs, slug) do
-          nil -> conn
-          _domain_module -> set_domain_context(conn, slug)
-        end
+    if host_slug do
+      set_domain_context(conn, host_slug)
+    else
+      case conn.path_info do
+        ["app", slug | _rest] ->
+          set_domain_context(conn, slug)
 
-      _ ->
-        conn
+        # Public storefront routes: /<domain-slug>/menu/...
+        [slug | _rest] ->
+          case Map.get(@domain_slugs, slug) do
+            nil -> conn
+            _domain_module -> set_domain_context(conn, slug)
+          end
+
+        _ ->
+          conn
+      end
     end
+  end
+
+  defp resolve_host_slug(host) do
+    hosts = Application.get_env(:ledgr, :domain_hosts, %{})
+    Map.get(hosts, host)
   end
 
   defp set_domain_context(conn, slug) do

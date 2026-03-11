@@ -19,6 +19,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
 
   # ── MrMunchMe-specific account codes ──────────────────────────────────
   @ar_code "1100"
+  @owed_change_ap_code "2300"
   @ingredients_inventory_code "1200"
   @packing_inventory_code "1210"
   @wip_inventory_code "1220"
@@ -260,6 +261,55 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
       customer_amount,
       partner_amount
     )
+
+    Accounting.create_journal_entry_with_lines(entry_attrs, lines)
+  end
+
+  @doc """
+  Records an "owed change" AP entry when the customer overpays.
+
+  When payment exceeds the outstanding balance, this reclassifies the over-credited AR
+  as an explicit liability:
+
+    Dr AR (1100)                  change_cents  — restores over-credited AR to zero
+    Cr Owed Change Payable (2300) change_cents  — records liability to return change
+  """
+  def record_owed_change_ap(%Order{} = order, change_cents, date \\ nil, is_deposit \\ false) do
+    date = date || Date.utc_today()
+    reference = "Order ##{order.id}"
+
+    # For delivered orders, overpayment over-credited AR (1100) — reverse AR.
+    # For pre-delivery (deposit) orders, overpayment over-credited Customer Deposits (2200) — reverse deposits.
+    {debit_account, debit_label} =
+      if is_deposit do
+        {Accounting.get_account_by_code!(@customer_deposits_code), "Customer Deposits"}
+      else
+        {Accounting.get_account_by_code!(@ar_code), "AR"}
+      end
+
+    owed_change_ap = Accounting.get_account_by_code!(@owed_change_ap_code)
+
+    entry_attrs = %{
+      date: date,
+      entry_type: "owed_change_ap",
+      reference: reference,
+      description: "Owed change to #{order.customer_name} for Order ##{order.id}"
+    }
+
+    lines = [
+      %{
+        account_id: debit_account.id,
+        debit_cents: change_cents,
+        credit_cents: 0,
+        description: "Reverse over-credited #{debit_label} — owed change for Order ##{order.id}"
+      },
+      %{
+        account_id: owed_change_ap.id,
+        debit_cents: 0,
+        credit_cents: change_cents,
+        description: "Owed change payable to #{order.customer_name}"
+      }
+    ]
 
     Accounting.create_journal_entry_with_lines(entry_attrs, lines)
   end

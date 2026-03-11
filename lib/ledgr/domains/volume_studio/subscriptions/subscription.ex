@@ -1,0 +1,56 @@
+defmodule Ledgr.Domains.VolumeStudio.Subscriptions.Subscription do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  alias Ledgr.Core.Customers.Customer
+  alias Ledgr.Domains.VolumeStudio.SubscriptionPlans.SubscriptionPlan
+
+  schema "subscriptions" do
+    belongs_to :customer, Customer
+    belongs_to :subscription_plan, SubscriptionPlan
+
+    field :starts_on, :date
+    field :ends_on, :date
+    field :status, :string, default: "active"
+    field :classes_used, :integer, default: 0
+    field :deferred_revenue_cents, :integer, default: 0
+    field :recognized_revenue_cents, :integer, default: 0
+    field :notes, :string
+
+    timestamps(type: :utc_datetime)
+  end
+
+  @required_fields [:customer_id, :subscription_plan_id, :starts_on, :ends_on]
+  @optional_fields [:status, :classes_used, :deferred_revenue_cents, :recognized_revenue_cents, :notes]
+
+  @valid_statuses ~w(active paused cancelled expired)
+
+  def changeset(subscription, attrs) do
+    subscription
+    |> cast(attrs, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
+    |> validate_inclusion(:status, @valid_statuses)
+    |> foreign_key_constraint(:customer_id)
+    |> foreign_key_constraint(:subscription_plan_id)
+  end
+
+  @doc "Total amount paid into this subscription (deferred + recognized)"
+  def total_paid_cents(%__MODULE__{} = sub) do
+    sub.deferred_revenue_cents + sub.recognized_revenue_cents
+  end
+
+  @doc "Remaining deferred revenue not yet recognized"
+  def remaining_deferred(%__MODULE__{} = sub) do
+    max(sub.deferred_revenue_cents, 0)
+  end
+
+  @doc "Monthly recognition amount based on plan duration"
+  def monthly_recognition_amount(%__MODULE__{} = sub) do
+    plan = sub.subscription_plan
+    if plan && plan.duration_months > 0 do
+      div(plan.price_cents, plan.duration_months)
+    else
+      0
+    end
+  end
+end

@@ -1,0 +1,76 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">New Space Rental</h2>
+  </div>
+
+  <.form for={@changeset} action={@action} as={:space_rental} :let={f}>
+    <div class="form-grid">
+      <div class="form-block">
+        <div class="field">
+          <label>Space *</label>
+          <.input type="select" field={f[:space_id]} options={[{"Select space...", ""} | Enum.map(@spaces, &{&1.name, &1.id})]} />
+        </div>
+
+        <div class="field">
+          <label>Renter Name *</label>
+          <.input type="text" field={f[:renter_name]} />
+        </div>
+
+        <div class="field">
+          <label>Renter Phone</label>
+          <.input type="text" field={f[:renter_phone]} />
+        </div>
+
+        <div class="field">
+          <label>Renter Email</label>
+          <.input type="email" field={f[:renter_email]} />
+        </div>
+
+        <div class="field">
+          <label>Member <small style="font-weight:normal;">(optional, if renter is a member)</small></label>
+          <.input type="select" field={f[:customer_id]} options={@customers} />
+        </div>
+
+        <div class="field">
+          <label>Start Date &amp; Time</label>
+          <.input type="datetime-local" field={f[:starts_at]} />
+        </div>
+
+        <div class="field">
+          <label>End Date &amp; Time</label>
+          <.input type="datetime-local" field={f[:ends_at]} />
+        </div>
+
+        <div class="field">
+          <label>Amount (MXN) *</label>
+          <.input type="number" field={f[:amount_cents]} step="0.01" min="0" />
+        </div>
+
+        <div class="field">
+          <label>IVA (MXN)</label>
+          <.input type="number" field={f[:iva_cents]} step="0.01" min="0" />
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <.input type="select" field={f[:status]} options={[
+            {"Confirmed", "confirmed"},
+            {"Active", "active"},
+            {"Completed", "completed"},
+            {"Cancelled", "cancelled"}
+          ]} />
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Notes</label>
+          <.input type="textarea" field={f[:notes]} />
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 1rem;">
+      <button type="submit" class="btn primary">Create Space Rental</button>
+      <.link navigate={dp(@domain_path_prefix, "/space-rentals")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

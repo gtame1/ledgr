@@ -88,7 +88,9 @@ defmodule Ledgr.Domains.MrMunchMe do
       {"Order Created", "order_created"},
       {"Order in Prep", "order_in_prep"},
       {"Order Delivered", "order_delivered"},
-      {"Order Payment", "order_payment"}
+      {"Order Canceled", "order_canceled"},
+      {"Order Payment", "order_payment"},
+      {"Owed Change AP", "owed_change_ap"}
     ]
   end
 

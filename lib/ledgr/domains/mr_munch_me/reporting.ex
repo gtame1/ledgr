@@ -13,6 +13,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
   alias Ledgr.Core.Accounting.JournalEntry
   alias Ledgr.Domains.MrMunchMe.OrderAccounting
   alias Ledgr.Domains.MrMunchMe.Inventory
+  alias Ledgr.Domains.MrMunchMe.Inventory.InventoryMovement
 
   @doc """
   Returns metrics for the dashboard for a date range.
@@ -274,7 +275,8 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
 
   @doc """
   Calculate unit economics for a specific product.
-  Returns revenue, COGS, gross margin, expenses, and net profit.
+  Returns revenue, COGS, gross margin, expenses, net profit, per-variant breakdown,
+  and per-ingredient COGS detail.
   """
   def unit_economics(product_id, start_date \\ nil, end_date \\ nil) do
     product =
@@ -312,44 +314,78 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
         acc + base_revenue + shipping_cents
       end)
 
-    # Calculate COGS from journal entries (ingredients used)
-    # Sum COGS for all delivered orders of this product in the period
     order_ids = Enum.map(orders, & &1.id)
 
-    cogs_cents =
+    # Build per-order COGS map from journal entries (includes ingredients + packing)
+    cogs_map =
       if Enum.empty?(order_ids) do
-        0
+        %{}
       else
-        # Build OR conditions for order references
         reference_patterns = Enum.map(order_ids, fn id -> "Order ##{id}" end)
 
-        # Start with base query
-        query =
-          from(je in JournalEntry,
-            join: jl in assoc(je, :journal_lines),
-            join: acc in assoc(jl, :account),
-            where:
-              je.entry_type == "order_delivered" and
-                acc.code == "5000" and
-                je.date >= ^start_date and
-                je.date <= ^end_date
-          )
-
-        # Use exact matching with IN clause instead of ilike patterns
-        # ilike("Order #1") would wrongly match "Order #10", "Order #11", etc.
-        query =
-          query
-          |> where([je], je.reference in ^reference_patterns)
-
-        from([je, jl, acc] in query,
-          select: sum(jl.debit_cents)
+        from(je in JournalEntry,
+          join: jl in assoc(je, :journal_lines),
+          join: acc in assoc(jl, :account),
+          where:
+            je.entry_type == "order_delivered" and
+              acc.code in ["5000", "5010"] and
+              je.date >= ^start_date and
+              je.date <= ^end_date and
+              je.reference in ^reference_patterns,
+          group_by: je.reference,
+          select: {je.reference, sum(jl.debit_cents)}
         )
-        |> Repo.one()
-        |> case do
-          nil -> 0
-          total -> total
-        end
+        |> Repo.all()
+        |> Enum.into(%{}, fn {ref, cogs} ->
+          order_id =
+            case Regex.run(~r/#(\d+)/, ref) do
+              [_, id_str] -> String.to_integer(id_str)
+              _ -> nil
+            end
+          {order_id, cogs || 0}
+        end)
       end
+
+    cogs_cents = cogs_map |> Map.values() |> Enum.sum()
+
+    # Build per-order discounts map from journal entries (account 4010 = Sales Discounts)
+    discounts_map =
+      if Enum.empty?(order_ids) do
+        %{}
+      else
+        reference_patterns = Enum.map(order_ids, fn id -> "Order ##{id}" end)
+
+        from(je in JournalEntry,
+          join: jl in assoc(je, :journal_lines),
+          join: acc in assoc(jl, :account),
+          where:
+            je.entry_type == "order_delivered" and
+              acc.code == "4010" and
+              je.date >= ^start_date and
+              je.date <= ^end_date and
+              je.reference in ^reference_patterns,
+          group_by: je.reference,
+          select: {je.reference, sum(jl.debit_cents)}
+        )
+        |> Repo.all()
+        |> Enum.into(%{}, fn {ref, discount} ->
+          order_id =
+            case Regex.run(~r/#(\d+)/, ref) do
+              [_, id_str] -> String.to_integer(id_str)
+              _ -> nil
+            end
+          {order_id, discount || 0}
+        end)
+      end
+
+    total_discounts_cents = discounts_map |> Map.values() |> Enum.sum()
+
+    # Adjust revenue for discounts so it matches the P&L (gross price − discounts = net revenue)
+    revenue_cents = revenue_cents - total_discounts_cents
+
+    # Only use order IDs that actually have a COGS journal entry, so ingredient
+    # breakdown totals are consistent with the COGS figure above.
+    journalized_order_ids = cogs_map |> Map.keys() |> Enum.reject(&is_nil/1)
 
     # Calculate gross margin
     gross_margin_cents = revenue_cents - cogs_cents
@@ -385,9 +421,6 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
     revenue_per_unit_cents = if units_sold > 0, do: div(revenue_cents, units_sold), else: 0
     cogs_per_unit_cents = if units_sold > 0, do: div(cogs_cents, units_sold), else: 0
     gross_margin_per_unit_cents = if units_sold > 0, do: div(gross_margin_cents, units_sold), else: 0
-
-    # Allocate expenses proportionally based on revenue (optional - could be total or per unit)
-    # For now, we'll show total expenses separately
     expenses_per_unit_cents = if units_sold > 0, do: div(total_expenses_cents, units_sold), else: 0
 
     # Net profit (revenue - COGS - expenses)
@@ -398,6 +431,83 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
         Float.round(net_profit_cents / revenue_cents * 100, 2)
       else
         0.0
+      end
+
+    # Per-variant breakdown
+    variants =
+      orders
+      |> Enum.group_by(fn order -> order.variant.id end)
+      |> Enum.map(fn {_variant_id, variant_orders} ->
+        variant = hd(variant_orders).variant
+        v_units = Enum.reduce(variant_orders, 0, fn o, acc -> acc + (o.quantity || 1) end)
+        v_revenue =
+          Enum.reduce(variant_orders, 0, fn o, acc ->
+            qty = o.quantity || 1
+            base = (o.variant.price_cents || 0) * qty
+            shipping = if o.customer_paid_shipping, do: o.shipping_fee_cents || OrderAccounting.shipping_fee_cents(), else: 0
+            acc + base + shipping
+          end)
+        v_cogs = Enum.reduce(variant_orders, 0, fn o, acc -> acc + Map.get(cogs_map, o.id, 0) end)
+        # Note: only orders in cogs_map contribute to v_cogs, consistent with top-level COGS.
+        v_discount = Enum.reduce(variant_orders, 0, fn o, acc -> acc + Map.get(discounts_map, o.id, 0) end)
+        v_revenue = v_revenue - v_discount
+        v_gross_margin = v_revenue - v_cogs
+        v_gross_margin_percent = if v_revenue > 0, do: Float.round(v_gross_margin / v_revenue * 100, 2), else: 0.0
+
+        %{
+          variant_name: variant.name,
+          units_sold: v_units,
+          revenue_cents: v_revenue,
+          revenue_per_unit_cents: if(v_units > 0, do: div(v_revenue, v_units), else: 0),
+          cogs_cents: v_cogs,
+          cogs_per_unit_cents: if(v_units > 0, do: div(v_cogs, v_units), else: 0),
+          gross_margin_cents: v_gross_margin,
+          gross_margin_percent: v_gross_margin_percent
+        }
+      end)
+      |> Enum.sort_by(& &1.variant_name)
+
+    # Per-ingredient COGS from inventory movements.
+    # Uses journalized_order_ids (orders with actual COGS journal entries) so
+    # that ingredient totals sum to the same figure as the COGS row above.
+    cogs_by_ingredient =
+      if Enum.empty?(journalized_order_ids) do
+        []
+      else
+        from(m in InventoryMovement,
+          join: i in assoc(m, :ingredient),
+          where:
+            m.source_type == "order" and
+              m.source_id in ^journalized_order_ids and
+              m.movement_type == "usage",
+          group_by: [i.id, i.name],
+          select: %{
+            ingredient_id: i.id,
+            ingredient_name: i.name,
+            total_cost_cents: sum(m.total_cost_cents)
+          }
+        )
+        |> Repo.all()
+        |> then(fn rows ->
+          # If consume_for_order was called multiple times for the same order (e.g.
+          # the order was re-set to in_prep), inventory movements are duplicated while
+          # the COGS journal entry is only created once. Normalise proportionally so
+          # ingredient totals always sum to the authoritative cogs_cents figure.
+          raw_total = Enum.reduce(rows, 0, fn r, acc -> acc + (r.total_cost_cents || 0) end)
+          scale = if raw_total > 0 and cogs_cents > 0, do: cogs_cents / raw_total, else: 1.0
+
+          Enum.map(rows, fn row ->
+            raw = row.total_cost_cents || 0
+            total = round(raw * scale)
+            percent = if cogs_cents > 0, do: Float.round(total / cogs_cents * 100, 2), else: 0.0
+            cost_per_unit = if units_sold > 0, do: div(total, units_sold), else: 0
+            row
+            |> Map.put(:total_cost_cents, total)
+            |> Map.put(:percent_of_cogs, percent)
+            |> Map.put(:cost_per_unit_cents, cost_per_unit)
+          end)
+        end)
+        |> Enum.sort_by(&(-(&1.total_cost_cents || 0)))
       end
 
     %{
@@ -415,7 +525,9 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
       expenses_per_unit_cents: expenses_per_unit_cents,
       net_profit_cents: net_profit_cents,
       net_profit_per_unit_cents: net_profit_per_unit_cents,
-      net_margin_percent: net_margin_percent
+      net_margin_percent: net_margin_percent,
+      variants: variants,
+      cogs_by_ingredient: cogs_by_ingredient
     }
   end
 

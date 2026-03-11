@@ -310,7 +310,25 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   """
   @production_location_code "CASA_AG"
   def consume_for_order(%Order{} = order) do
-    order = Repo.preload(order, [:variant, :order_ingredients])
+    # Idempotency guard: if movements already exist for this order, re-aggregate and return them
+    existing_movements =
+      from(m in InventoryMovement,
+        join: i in assoc(m, :ingredient),
+        where: m.source_type == "order" and m.source_id == ^order.id and m.movement_type == "usage",
+        preload: [ingredient: i]
+      )
+      |> Repo.all()
+
+    if existing_movements != [] do
+      Enum.reduce(existing_movements, %{ingredients: 0, packing: 0, kitchen: 0, total: 0}, fn m, acc ->
+        inv_type = inventory_type(m.ingredient.code)
+        cost = m.total_cost_cents || 0
+        acc
+        |> Map.update!(inv_type, &(&1 + cost))
+        |> Map.update!(:total, &(&1 + cost))
+      end)
+    else
+      order = Repo.preload(order, [:variant, :order_ingredients])
 
     location_code =
       case order.prep_location do
@@ -367,6 +385,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         |> Map.update!(inv_type, &(&1 + cost_cents))
         |> Map.update!(:total, &(&1 + cost_cents))
       end)
+    end
     end
   end
 

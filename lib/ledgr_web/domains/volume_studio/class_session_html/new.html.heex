@@ -1,0 +1,55 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">New Class Session</h2>
+  </div>
+
+  <.form for={@changeset} action={@action} as={:class_session} :let={f}>
+    <div class="form-grid">
+      <div class="form-block">
+        <div class="field">
+          <label>Name *</label>
+          <.input type="text" field={f[:name]} />
+        </div>
+
+        <div class="field">
+          <label>Instructor *</label>
+          <.input type="select" field={f[:instructor_id]} options={[{"Select instructor...", ""} | Enum.map(@instructors, &{&1.name, &1.id})]} />
+        </div>
+
+        <div class="field">
+          <label>Date &amp; Time *</label>
+          <.input type="datetime-local" field={f[:scheduled_at]} />
+        </div>
+
+        <div class="field">
+          <label>Duration (minutes)</label>
+          <.input type="number" field={f[:duration_minutes]} min="1" />
+        </div>
+
+        <div class="field">
+          <label>Capacity <small style="font-weight:normal;">(leave blank for unlimited)</small></label>
+          <.input type="number" field={f[:capacity]} min="1" />
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <.input type="select" field={f[:status]} options={[
+            {"Scheduled", "scheduled"},
+            {"Completed", "completed"},
+            {"Cancelled", "cancelled"}
+          ]} />
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Notes</label>
+          <.input type="textarea" field={f[:notes]} />
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 1rem;">
+      <button type="submit" class="btn primary">Create Class Session</button>
+      <.link navigate={dp(@domain_path_prefix, "/class-sessions")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

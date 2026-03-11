@@ -84,11 +84,31 @@
       />
     </div>
 
+    <%!-- Overpayment section --%>
+    <input type="hidden" name="order_payment[owed_change_choice]" id="owed_change_choice_input" value="keep" />
+    <div id="overpayment-section" style="display: none; padding: 1rem; background: #fefce8; border: 1px solid #fde047; border-radius: var(--radius-md);">
+      <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; color: #92400e;">
+        Customer paid <strong id="overpayment-amount-display">$0.00</strong> more than owed — how should we handle it?
+      </p>
+      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; margin-bottom: 0.4rem;">
+        <input type="radio" name="owed_change_radio" value="keep" checked style="cursor: pointer;" />
+        Keep the extra (accept the overpayment)
+      </label>
+      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; margin-bottom: 0.4rem;">
+        <input type="radio" name="owed_change_radio" value="record" style="cursor: pointer;" />
+        Record as owed change (create AP entry for <em><%= @order.customer_name %></em>)
+      </label>
+      <label id="partner-change-option" style="display: none; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+        <input type="radio" name="owed_change_radio" value="partner_gave_change" style="cursor: pointer;" />
+        Partner already gave the customer their change (no AP entry needed)
+      </label>
+    </div>
+
     <%!-- Split payment toggle --%>
     <div class="field">
       <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; color: var(--text-muted);">
         <input type="checkbox" id="split_payment_checkbox" style="cursor: pointer;" />
-        Split payment (partner paid part)
+        Partner gave change or paid for part of it
       </label>
     </div>
 
@@ -159,18 +179,43 @@
     const partnerSelect = document.getElementById("partner_select");
     const partnerPayableAccountSelect = document.getElementById("partner_payable_account_select");
 
+    const overpaymentSection = document.getElementById("overpayment-section");
+    const owedChoiceInput = document.getElementById("owed_change_choice_input");
+    const overpaymentDisplay = document.getElementById("overpayment-amount-display");
+    const owedChangeRadios = document.querySelectorAll("input[name='owed_change_radio']");
+    const partnerChangeOption = document.getElementById("partner-change-option");
+    const outstandingCents = <%= @payment_summary.outstanding_cents %>;
+
+    // When split payment is active, overpayment is relative to the customer's share only
+    // (the partner handles their own change separately)
+    function getEffectiveAmountCents() {
+      if (splitPaymentCheckbox.checked) {
+        const customerPesos = parseFloat(customerAmountInput ? customerAmountInput.value : 0) || 0;
+        return Math.round(customerPesos * 100);
+      }
+      return Math.round((parseFloat(totalAmountInput.value) || 0) * 100);
+    }
+
     function toggleSplitPaymentSection() {
       if (splitPaymentCheckbox.checked) {
         splitPaymentSection.style.display = "block";
         if (partnerSelect) partnerSelect.required = true;
         if (partnerPayableAccountSelect) partnerPayableAccountSelect.required = true;
+        if (partnerChangeOption) partnerChangeOption.style.display = "flex";
       } else {
         splitPaymentSection.style.display = "none";
         if (customerAmountInput) customerAmountInput.value = "";
         if (partnerAmountInput) partnerAmountInput.value = "";
         if (partnerSelect) { partnerSelect.value = ""; partnerSelect.required = false; }
         if (partnerPayableAccountSelect) { partnerPayableAccountSelect.value = ""; partnerPayableAccountSelect.required = false; }
+        if (partnerChangeOption) partnerChangeOption.style.display = "none";
+        // Fall back to "keep" if the now-hidden partner option was selected
+        if (owedChoiceInput && owedChoiceInput.value === "partner_gave_change") {
+          owedChoiceInput.value = "keep";
+          owedChangeRadios.forEach(r => { if (r.value === "keep") r.checked = true; });
+        }
       }
+      checkOverpayment();
     }
 
     function calculateCustomerAmount() {
@@ -181,6 +226,7 @@
       if (customerAmountInput && customer >= 0) {
         customerAmountInput.value = customer.toFixed(2);
       }
+      checkOverpayment();
     }
 
     function validateSplitAmounts() {
@@ -191,11 +237,46 @@
       return Math.abs(total - (customer + partner)) < 0.02;
     }
 
+    function checkOverpayment() {
+      if (!overpaymentSection || !owedChoiceInput) return;
+      const amountCents = getEffectiveAmountCents();
+      const changeCents = amountCents - outstandingCents;
+
+      if (changeCents > 0) {
+        const changePesos = (changeCents / 100).toFixed(2);
+        if (overpaymentDisplay) overpaymentDisplay.textContent = "$" + changePesos;
+        overpaymentSection.style.display = "block";
+        // Auto-suggest "partner gave change" when split is active and the choice hasn't been changed
+        if (splitPaymentCheckbox.checked && owedChoiceInput.value === "keep") {
+          owedChoiceInput.value = "partner_gave_change";
+          owedChangeRadios.forEach(r => { if (r.value === "partner_gave_change") r.checked = true; });
+        }
+      } else {
+        overpaymentSection.style.display = "none";
+        owedChoiceInput.value = "keep";
+        owedChangeRadios.forEach(r => { if (r.value === "keep") r.checked = true; });
+      }
+    }
+
+    // Sync radio selection to hidden input
+    owedChangeRadios.forEach(function(radio) {
+      radio.addEventListener("change", function() {
+        if (owedChoiceInput) owedChoiceInput.value = this.value;
+      });
+    });
+
     toggleSplitPaymentSection();
 
     if (splitPaymentCheckbox) splitPaymentCheckbox.addEventListener("change", toggleSplitPaymentSection);
-    if (totalAmountInput) totalAmountInput.addEventListener("input", calculateCustomerAmount);
+    if (totalAmountInput) {
+      totalAmountInput.addEventListener("input", calculateCustomerAmount);
+      totalAmountInput.addEventListener("input", checkOverpayment);
+    }
     if (partnerAmountInput) partnerAmountInput.addEventListener("input", calculateCustomerAmount);
+    if (customerAmountInput) customerAmountInput.addEventListener("input", checkOverpayment);
+
+    // Run once on load in case the form was re-rendered with a value
+    checkOverpayment();
 
     const form = document.querySelector("form");
     if (form) {

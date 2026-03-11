@@ -1,0 +1,73 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Subscriptions</h2>
+    <p class="card-subtitle">Member subscription management</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/subscriptions/new")} class="btn primary">
+      + New Subscription
+    </.link>
+  </div>
+
+  <div class="tab-bar" style="margin-bottom: 1rem;">
+    <%= for {label, value} <- [{"All", nil}, {"Active", "active"}, {"Paused", "paused"}, {"Cancelled", "cancelled"}, {"Expired", "expired"}] do %>
+      <.link
+        navigate={dp(@domain_path_prefix, if(value, do: "/subscriptions?status=#{value}", else: "/subscriptions"))}
+        class={"tab-item#{if @current_status == value, do: " active", else: ""}"}
+      >
+        <%= label %>
+      </.link>
+    <% end %>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Plan</th>
+          <th>Period</th>
+          <th>Classes Used</th>
+          <th>Deferred</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@subscriptions) do %>
+          <tr>
+            <td colspan="7">No subscriptions found.</td>
+          </tr>
+        <% else %>
+          <%= for sub <- @subscriptions do %>
+            <tr>
+              <td><%= sub.customer.name %></td>
+              <td><%= sub.subscription_plan.name %></td>
+              <td style="white-space: nowrap;">
+                <%= sub.starts_on %> → <%= sub.ends_on %>
+              </td>
+              <td>
+                <%= sub.classes_used %>
+                <%= if sub.subscription_plan.class_limit do %>
+                  / <%= sub.subscription_plan.class_limit %>
+                <% end %>
+              </td>
+              <td><%= format_currency(sub.deferred_revenue_cents) %></td>
+              <td>
+                <span class={"status-badge #{status_class(sub.status)}"}>
+                  <%= String.capitalize(sub.status) %>
+                </span>
+              </td>
+              <td>
+                <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")} class="btn btn-sm">
+                  View
+                </.link>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

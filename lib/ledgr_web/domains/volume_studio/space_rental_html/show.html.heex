@@ -1,0 +1,90 @@
+<section class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title"><%= @rental.space.name %></h2>
+      <p class="card-subtitle">
+        <%= @rental.renter_name %> ·
+        <span class={"status-badge #{status_class(@rental.status)}"}>
+          <%= String.capitalize(@rental.status) %>
+        </span>
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <%= if is_nil(@rental.paid_at) && @rental.status != "cancelled" do %>
+        <.link
+          href={dp(@domain_path_prefix, "/space-rentals/#{@rental.id}/payment")}
+          method="post"
+          data-confirm="Record payment for this rental?"
+          class="btn primary"
+        >
+          Record Payment
+        </.link>
+      <% end %>
+      <.link navigate={dp(@domain_path_prefix, "/space-rentals/#{@rental.id}/edit")} class="btn">
+        Edit
+      </.link>
+      <.link navigate={dp(@domain_path_prefix, "/space-rentals")} class="btn">
+        ← Back
+      </.link>
+    </div>
+  </div>
+
+  <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+    <div class="detail-item">
+      <span class="label">Period</span>
+      <span style="white-space: nowrap;"><%= @rental.starts_at %> → <%= @rental.ends_at %></span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Amount</span>
+      <span><%= format_currency(@rental.amount_cents) %></span>
+    </div>
+    <%= if @rental.iva_cents && @rental.iva_cents > 0 do %>
+      <div class="detail-item">
+        <span class="label">IVA</span>
+        <span><%= format_currency(@rental.iva_cents) %></span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Total</span>
+        <span><%= format_currency(@rental.amount_cents + @rental.iva_cents) %></span>
+      </div>
+    <% end %>
+    <%= if @rental.renter_phone do %>
+      <div class="detail-item">
+        <span class="label">Phone</span>
+        <span><%= @rental.renter_phone %></span>
+      </div>
+    <% end %>
+    <%= if @rental.renter_email do %>
+      <div class="detail-item">
+        <span class="label">Email</span>
+        <span><%= @rental.renter_email %></span>
+      </div>
+    <% end %>
+    <%= if @rental.customer do %>
+      <div class="detail-item">
+        <span class="label">Member</span>
+        <span><%= @rental.customer.name %></span>
+      </div>
+    <% end %>
+    <div class="detail-item">
+      <span class="label">Paid</span>
+      <span>
+        <%= if @rental.paid_at do %>
+          <span class="status-badge status-paid"><%= @rental.paid_at %></span>
+        <% else %>
+          <span class="status-badge status-unpaid">Unpaid</span>
+        <% end %>
+      </span>
+    </div>
+  </div>
+</section>
+
+<%= if @rental.notes do %>
+  <section class="card">
+    <div class="card-header">
+      <h3 class="card-title" style="font-size: 1rem;">Notes</h3>
+    </div>
+    <p style="margin-top: 0.5rem; color: var(--text-muted);"><%= @rental.notes %></p>
+  </section>
+<% end %>

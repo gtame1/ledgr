@@ -1,0 +1,72 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Space Rentals</h2>
+    <p class="card-subtitle">Space and room rental management</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/space-rentals/new")} class="btn primary">
+      + New Space Rental
+    </.link>
+  </div>
+
+  <div class="tab-bar" style="margin-bottom: 1rem;">
+    <%= for {label, value} <- [{"All", nil}, {"Confirmed", "confirmed"}, {"Active", "active"}, {"Completed", "completed"}, {"Cancelled", "cancelled"}] do %>
+      <.link
+        navigate={dp(@domain_path_prefix, if(value, do: "/space-rentals?status=#{value}", else: "/space-rentals"))}
+        class={"tab-item#{if @current_status == value, do: " active", else: ""}"}
+      >
+        <%= label %>
+      </.link>
+    <% end %>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Space</th>
+          <th>Renter</th>
+          <th>Period</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Paid</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@rentals) do %>
+          <tr>
+            <td colspan="7">No space rentals found.</td>
+          </tr>
+        <% else %>
+          <%= for r <- @rentals do %>
+            <tr>
+              <td><%= r.space.name %></td>
+              <td><%= r.renter_name %></td>
+              <td style="white-space: nowrap;"><%= r.starts_at %> → <%= r.ends_at %></td>
+              <td><%= format_currency(r.amount_cents) %></td>
+              <td>
+                <span class={"status-badge #{status_class(r.status)}"}>
+                  <%= String.capitalize(r.status) %>
+                </span>
+              </td>
+              <td>
+                <%= if r.paid_at do %>
+                  <span class="status-badge status-paid">Paid</span>
+                <% else %>
+                  <span class="status-badge status-unpaid">Unpaid</span>
+                <% end %>
+              </td>
+              <td>
+                <.link navigate={dp(@domain_path_prefix, "/space-rentals/#{r.id}")} class="btn btn-sm">
+                  View
+                </.link>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

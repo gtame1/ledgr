@@ -21,6 +21,16 @@ config :ledgr, Ledgr.Repos.Viaxe,
   pool_size: 10,
   priv: "priv/repos/viaxe"
 
+config :ledgr, Ledgr.Repos.VolumeStudio,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_volume_studio_dev",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10,
+  priv: "priv/repos/volume_studio"
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

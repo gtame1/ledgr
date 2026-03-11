@@ -1,0 +1,81 @@
+<section class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title"><%= @subscription.customer.name %></h2>
+      <p class="card-subtitle">
+        <%= @subscription.subscription_plan.name %> ·
+        <span class={"status-badge #{status_class(@subscription.status)}"}>
+          <%= String.capitalize(@subscription.status) %>
+        </span>
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <%= if @subscription.status != "cancelled" && @subscription.status != "expired" do %>
+        <.link href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/payment")} method="post" data-confirm="Record a subscription payment?" class="btn primary">
+          Record Payment
+        </.link>
+        <.link href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/cancel")} method="post" data-confirm="Cancel this subscription?" class="btn danger">
+          Cancel Subscription
+        </.link>
+      <% end %>
+      <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/edit")} class="btn">
+        Edit
+      </.link>
+      <.link navigate={dp(@domain_path_prefix, "/subscriptions")} class="btn">
+        ← Back
+      </.link>
+    </div>
+  </div>
+
+  <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+    <div class="detail-item">
+      <span class="label">Period</span>
+      <span><%= @subscription.starts_on %> → <%= @subscription.ends_on %></span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Classes Used</span>
+      <span>
+        <%= @subscription.classes_used %>
+        <%= if @subscription.subscription_plan.class_limit do %>
+          / <%= @subscription.subscription_plan.class_limit %>
+        <% else %>
+          (unlimited)
+        <% end %>
+      </span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Plan Price</span>
+      <span><%= format_currency(@subscription.subscription_plan.price_cents) %></span>
+    </div>
+  </div>
+</section>
+
+<section class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <h3 class="card-title" style="font-size: 1rem;">Revenue Summary</h3>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-top: 0.5rem;">
+    <div class="stat-card">
+      <span class="label">Total Paid</span>
+      <span class="value"><%= format_currency(@summary.total_paid) %></span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Deferred Revenue</span>
+      <span class="value"><%= format_currency(@summary.deferred) %></span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Recognized Revenue</span>
+      <span class="value"><%= format_currency(@summary.recognized) %></span>
+    </div>
+  </div>
+</section>
+
+<%= if @subscription.notes do %>
+  <section class="card">
+    <div class="card-header">
+      <h3 class="card-title" style="font-size: 1rem;">Notes</h3>
+    </div>
+    <p style="margin-top: 0.5rem; color: var(--text-muted);"><%= @subscription.notes %></p>
+  </section>
+<% end %>

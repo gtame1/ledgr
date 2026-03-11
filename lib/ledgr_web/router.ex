@@ -155,6 +155,47 @@ defmodule LedgrWeb.Router do
     get "/documents", Domains.Viaxe.DocumentController, :index
   end
 
+  # ── Volume Studio: public auth routes ─────────────────────────────
+  scope "/app/volume-studio", LedgrWeb do
+    pipe_through :browser
+
+    get "/login", SessionController, :new
+    post "/login", SessionController, :create
+    delete "/logout", SessionController, :delete
+  end
+
+  # ── Volume Studio: protected routes ───────────────────────────────
+  scope "/app/volume-studio", LedgrWeb do
+    pipe_through [:browser, :require_auth]
+
+    core_routes_no_customers()
+
+    # Customers (studio members)
+    resources "/customers", CustomerController
+
+    # Class sessions with check-in
+    resources "/class-sessions", Domains.VolumeStudio.ClassSessionController, only: [:index, :show, :new, :create, :edit, :update, :delete]
+    post "/class-sessions/:id/checkin/:booking_id", Domains.VolumeStudio.ClassSessionController, :checkin
+
+    # Instructors
+    resources "/instructors", Domains.VolumeStudio.InstructorController, only: [:index, :new, :create, :edit, :update, :delete]
+
+    # Subscription plans & member subscriptions
+    resources "/subscription-plans", Domains.VolumeStudio.SubscriptionPlanController, only: [:index, :new, :create, :edit, :update, :delete]
+    resources "/subscriptions", Domains.VolumeStudio.SubscriptionController, only: [:index, :show, :new, :create, :edit, :update]
+    post "/subscriptions/:id/payment", Domains.VolumeStudio.SubscriptionController, :record_payment
+    post "/subscriptions/:id/cancel", Domains.VolumeStudio.SubscriptionController, :cancel
+
+    # Diet consultations
+    resources "/consultations", Domains.VolumeStudio.ConsultationController, only: [:index, :show, :new, :create, :edit, :update]
+    post "/consultations/:id/payment", Domains.VolumeStudio.ConsultationController, :record_payment
+
+    # Studio spaces & rental agreements
+    resources "/spaces", Domains.VolumeStudio.SpaceController, only: [:index, :new, :create, :edit, :update, :delete]
+    resources "/space-rentals", Domains.VolumeStudio.SpaceRentalController, only: [:index, :show, :new, :create, :edit, :update]
+    post "/space-rentals/:id/payment", Domains.VolumeStudio.SpaceRentalController, :record_payment
+  end
+
   # ── API endpoints (core) ─────────────────────────────────────────────
   scope "/api", LedgrWeb do
     pipe_through :api

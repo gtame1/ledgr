@@ -1,0 +1,131 @@
+<section class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title"><%= @session.name %></h2>
+      <p class="card-subtitle">
+        <%= @session.instructor.name %> ·
+        <span class={"status-badge #{status_class(@session.status)}"}>
+          <%= String.capitalize(@session.status) %>
+        </span>
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <.link navigate={dp(@domain_path_prefix, "/class-sessions/#{@session.id}/edit")} class="btn">
+        Edit
+      </.link>
+      <.link
+        href={dp(@domain_path_prefix, "/class-sessions/#{@session.id}")}
+        method="delete"
+        data-confirm="Delete this class session?"
+        class="btn danger"
+      >
+        Delete
+      </.link>
+      <.link navigate={dp(@domain_path_prefix, "/class-sessions")} class="btn">
+        ← Back
+      </.link>
+    </div>
+  </div>
+
+  <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+    <div class="detail-item">
+      <span class="label">Date &amp; Time</span>
+      <span><%= @session.scheduled_at %></span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Duration</span>
+      <span><%= @session.duration_minutes %> minutes</span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Capacity</span>
+      <span><%= @session.capacity || "Unlimited" %></span>
+    </div>
+  </div>
+</section>
+
+<section class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <h3 class="card-title" style="font-size: 1rem;">Booking Summary</h3>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; margin-top: 0.5rem;">
+    <div class="stat-card">
+      <span class="label">Booked</span>
+      <span class="value"><%= @summary.booked %></span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Checked In</span>
+      <span class="value"><%= @summary.checked_in %></span>
+    </div>
+    <div class="stat-card">
+      <span class="label">No Show</span>
+      <span class="value"><%= @summary.no_show %></span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Cancelled</span>
+      <span class="value"><%= @summary.cancelled %></span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Available</span>
+      <span class="value"><%= @summary.available || "—" %></span>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h3 class="card-title" style="font-size: 1rem;">Bookings</h3>
+  </div>
+  <div class="table-wrapper" style="margin-top: 0.75rem;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Status</th>
+          <th>Paid</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@session.class_bookings) do %>
+          <tr>
+            <td colspan="4">No bookings yet.</td>
+          </tr>
+        <% else %>
+          <%= for booking <- @session.class_bookings do %>
+            <tr>
+              <td><%= booking.customer.name %></td>
+              <td>
+                <span class={"status-badge #{booking_status_class(booking.status)}"}>
+                  <%= String.capitalize(booking.status) %>
+                </span>
+              </td>
+              <td><%= format_currency(booking.paid_cents) %></td>
+              <td>
+                <%= if booking.status == "booked" do %>
+                  <.link
+                    href={dp(@domain_path_prefix, "/class-sessions/#{@session.id}/checkin/#{booking.id}")}
+                    method="post"
+                    data-confirm={"Check in #{booking.customer.name}?"}
+                    class="btn btn-sm primary"
+                  >
+                    Check In
+                  </.link>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%= if @session.notes do %>
+  <section class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+      <h3 class="card-title" style="font-size: 1rem;">Notes</h3>
+    </div>
+    <p style="margin-top: 0.5rem; color: var(--text-muted);"><%= @session.notes %></p>
+  </section>
+<% end %>

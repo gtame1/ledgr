@@ -399,9 +399,33 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
 
       Logger.debug("Final attrs for payment creation: #{inspect(attrs)}")
 
+      # Capture outstanding balance BEFORE saving, so we can detect overpayment in the success branch
+      outstanding_before_cents = Orders.payment_summary(order).outstanding_cents
+
       case Orders.create_order_payment(attrs) do
         {:ok, payment} ->
           Logger.info("Payment created successfully: payment_id=#{payment.id}, order_id=#{order.id}")
+
+          # Handle overpayment: create AP entry if user chose "record"
+          if params["owed_change_choice"] == "record" && amount_cents != nil do
+            owed_change_cents = max(0, amount_cents - outstanding_before_cents)
+
+            if owed_change_cents > 0 do
+              payment_date =
+                case Date.from_iso8601(params["payment_date"]) do
+                  {:ok, d} -> d
+                  _ -> Date.utc_today()
+                end
+
+              case OrderAccounting.record_owed_change_ap(order, owed_change_cents, payment_date, is_deposit) do
+                {:ok, _} ->
+                  Logger.info("Owed change AP entry recorded: #{owed_change_cents} cents for order #{order.id}")
+                {:error, reason} ->
+                  Logger.error("Failed to record owed change AP for order #{order.id}: #{inspect(reason)}")
+              end
+            end
+          end
+
           conn
           |> put_flash(:info, "Payment recorded successfully.")
           |> redirect(to: dp(conn, "/orders/#{order.id}"))

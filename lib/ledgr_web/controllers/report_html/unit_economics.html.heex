@@ -86,12 +86,32 @@
                 <td class="numeric">—</td>
                 <td class="numeric">—</td>
               </tr>
+              <%= if @unit_economics.variants != [] do %>
+                <%= for v <- @unit_economics.variants do %>
+                  <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
+                    <td style="padding-left: 2rem;">↳ <%= v.variant_name %></td>
+                    <td class="numeric"><%= v.units_sold %></td>
+                    <td class="numeric"><%= format_currency(v.revenue_per_unit_cents) %></td>
+                    <td class="numeric"><%= v.gross_margin_percent %>% GM</td>
+                  </tr>
+                <% end %>
+              <% end %>
               <tr>
                 <td><strong>Revenue</strong></td>
                 <td class="numeric"><%= format_currency(@unit_economics.revenue_cents) %></td>
                 <td class="numeric"><%= format_currency(@unit_economics.revenue_per_unit_cents) %></td>
                 <td class="numeric">100.00%</td>
               </tr>
+              <%= if @unit_economics.variants != [] do %>
+                <%= for v <- @unit_economics.variants do %>
+                  <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
+                    <td style="padding-left: 2rem;">↳ <%= v.variant_name %></td>
+                    <td class="numeric"><%= format_currency(v.revenue_cents) %></td>
+                    <td class="numeric"><%= format_currency(v.revenue_per_unit_cents) %></td>
+                    <td class="numeric">—</td>
+                  </tr>
+                <% end %>
+              <% end %>
               <tr>
                 <td><strong>Cost of Goods Sold (COGS)</strong></td>
                 <td class="numeric"><%= format_currency(@unit_economics.cogs_cents) %></td>
@@ -104,6 +124,26 @@
                   <% end %>
                 </td>
               </tr>
+              <%= if @unit_economics.variants != [] do %>
+                <%= for v <- @unit_economics.variants do %>
+                  <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
+                    <td style="padding-left: 2rem;">↳ <%= v.variant_name %></td>
+                    <td class="numeric"><%= format_currency(v.cogs_cents) %></td>
+                    <td class="numeric"><%= format_currency(v.cogs_per_unit_cents) %></td>
+                    <td class="numeric">—</td>
+                  </tr>
+                <% end %>
+              <% end %>
+              <%= if @unit_economics.cogs_by_ingredient != [] do %>
+                <%= for ing <- @unit_economics.cogs_by_ingredient do %>
+                  <tr style="font-size: 0.85rem; color: #6b7280; background-color: #fffbf0;">
+                    <td style="padding-left: 2rem;">↳ <%= ing.ingredient_name %></td>
+                    <td class="numeric"><%= format_currency(ing.total_cost_cents) %></td>
+                    <td class="numeric"><%= format_currency(ing.cost_per_unit_cents) %></td>
+                    <td class="numeric"><%= ing.percent_of_cogs %>% of COGS</td>
+                  </tr>
+                <% end %>
+              <% end %>
               <tr style="background-color: #f0f9ff; font-weight: 600;">
                 <td><strong>Gross Margin</strong></td>
                 <td class="numeric"><%= format_currency(@unit_economics.gross_margin_cents) %></td>

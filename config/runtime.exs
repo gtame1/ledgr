@@ -28,6 +28,37 @@ if viaxe_url = System.get_env("VIAXE_DATABASE_URL") || System.get_env("DATABASE_
     priv: "priv/repos/viaxe"
 end
 
+if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") do
+  db_uri = URI.parse(volume_studio_url)
+
+  config :ledgr, Ledgr.Repos.VolumeStudio,
+    url: volume_studio_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(db_uri.host || "")
+    ],
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
+    priv: "priv/repos/volume_studio"
+end
+
+# Domain hostname → slug mapping for production routing.
+# DomainPlug uses this to detect the active domain from the request Host header,
+# allowing each business to run on its own domain (e.g. volumestudio.com).
+# Set DOMAIN_HOSTS as a comma-separated list: "hostname:slug,hostname:slug"
+# Example: "mrmunchme.com:mr-munch-me,volumestudio.com:volume-studio,viaxe.com:viaxe"
+if domain_hosts_env = System.get_env("DOMAIN_HOSTS") do
+  hosts =
+    domain_hosts_env
+    |> String.split(",", trim: true)
+    |> Enum.map(fn pair ->
+      [host, slug] = String.split(pair, ":", parts: 2)
+      {String.trim(host), String.trim(slug)}
+    end)
+    |> Map.new()
+
+  config :ledgr, :domain_hosts, hosts
+end
+
 # Only configure server when running the app (not when building)
 if System.get_env("PHX_SERVER") do
   config :ledgr, LedgrWeb.Endpoint, server: true

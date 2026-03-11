@@ -1,0 +1,76 @@
+<section class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title"><%= @consultation.customer.name %></h2>
+      <p class="card-subtitle">
+        <%= @consultation.instructor.name %> ·
+        <span class={"status-badge #{status_class(@consultation.status)}"}>
+          <%= String.capitalize(@consultation.status) %>
+        </span>
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <%= if is_nil(@consultation.paid_at) do %>
+        <.link
+          href={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/payment")}
+          method="post"
+          data-confirm="Record payment for this consultation?"
+          class="btn primary"
+        >
+          Record Payment
+        </.link>
+      <% end %>
+      <.link navigate={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/edit")} class="btn">
+        Edit
+      </.link>
+      <.link navigate={dp(@domain_path_prefix, "/consultations")} class="btn">
+        ← Back
+      </.link>
+    </div>
+  </div>
+
+  <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+    <div class="detail-item">
+      <span class="label">Date &amp; Time</span>
+      <span><%= @consultation.scheduled_at %></span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Duration</span>
+      <span><%= @consultation.duration_minutes %> minutes</span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Amount</span>
+      <span><%= format_currency(@consultation.amount_cents) %></span>
+    </div>
+    <%= if @consultation.iva_cents && @consultation.iva_cents > 0 do %>
+      <div class="detail-item">
+        <span class="label">IVA</span>
+        <span><%= format_currency(@consultation.iva_cents) %></span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Total</span>
+        <span><%= format_currency(@consultation.amount_cents + @consultation.iva_cents) %></span>
+      </div>
+    <% end %>
+    <div class="detail-item">
+      <span class="label">Paid</span>
+      <span>
+        <%= if @consultation.paid_at do %>
+          <span class="status-badge status-paid"><%= @consultation.paid_at %></span>
+        <% else %>
+          <span class="status-badge status-unpaid">Unpaid</span>
+        <% end %>
+      </span>
+    </div>
+  </div>
+</section>
+
+<%= if @consultation.notes do %>
+  <section class="card">
+    <div class="card-header">
+      <h3 class="card-title" style="font-size: 1rem;">Notes</h3>
+    </div>
+    <p style="margin-top: 0.5rem; color: var(--text-muted);"><%= @consultation.notes %></p>
+  </section>
+<% end %>

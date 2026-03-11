@@ -1,0 +1,60 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Instructors</h2>
+    <p class="card-subtitle">Manage your studio instructors</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/instructors/new")} class="btn primary">
+      + New Instructor
+    </.link>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Specialty</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@instructors) do %>
+          <tr>
+            <td colspan="6">No instructors yet.</td>
+          </tr>
+        <% else %>
+          <%= for instructor <- @instructors do %>
+            <tr>
+              <td><strong><%= instructor.name %></strong></td>
+              <td><%= instructor.specialty || "—" %></td>
+              <td><%= instructor.email || "—" %></td>
+              <td><%= instructor.phone || "—" %></td>
+              <td>
+                <%= if instructor.active do %>
+                  <span class="status-badge status-paid">Active</span>
+                <% else %>
+                  <span class="status-badge status-unpaid">Inactive</span>
+                <% end %>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <.link navigate={dp(@domain_path_prefix, "/instructors/#{instructor.id}/edit")} class="btn btn-sm">
+                    Edit
+                  </.link>
+                  <.link href={dp(@domain_path_prefix, "/instructors/#{instructor.id}")} method="delete" data-confirm="Delete this instructor?" class="btn btn-sm danger">
+                    Delete
+                  </.link>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

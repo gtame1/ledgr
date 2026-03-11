@@ -1,0 +1,52 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Edit Subscription</h2>
+    <p class="card-subtitle"><%= @subscription.customer.name %></p>
+  </div>
+
+  <.form for={@changeset} action={@action} as={:subscription} method="put" :let={f}>
+    <div class="form-grid">
+      <div class="form-block">
+        <div class="field">
+          <label>Member *</label>
+          <.input type="select" field={f[:customer_id]} options={[{"Select member...", ""} | @customers]} />
+        </div>
+
+        <div class="field">
+          <label>Plan *</label>
+          <.input type="select" field={f[:subscription_plan_id]} options={[{"Select plan...", ""} | Enum.map(@plans, &{&1.name, &1.id})]} />
+        </div>
+
+        <div class="field">
+          <label>Start Date *</label>
+          <.input type="date" field={f[:starts_on]} />
+        </div>
+
+        <div class="field">
+          <label>End Date *</label>
+          <.input type="date" field={f[:ends_on]} />
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <.input type="select" field={f[:status]} options={[
+            {"Active", "active"},
+            {"Paused", "paused"},
+            {"Cancelled", "cancelled"},
+            {"Expired", "expired"}
+          ]} />
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Notes</label>
+          <.input type="textarea" field={f[:notes]} />
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 1rem;">
+      <button type="submit" class="btn primary">Update Subscription</button>
+      <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

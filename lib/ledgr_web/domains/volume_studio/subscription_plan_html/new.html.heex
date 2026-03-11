@@ -1,0 +1,46 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">New Subscription Plan</h2>
+  </div>
+
+  <.form for={@changeset} action={@action} as={:subscription_plan} :let={f}>
+    <div class="form-grid">
+      <div class="form-block">
+        <div class="field">
+          <label>Plan Name *</label>
+          <.input type="text" field={f[:name]} placeholder="e.g. Monthly Unlimited" />
+        </div>
+
+        <div class="field">
+          <label>Price (MXN) *</label>
+          <.input type="number" field={f[:price_cents]} step="0.01" min="0" />
+        </div>
+
+        <div class="field">
+          <label>Duration (months)</label>
+          <.input type="number" field={f[:duration_months]} min="1" />
+        </div>
+
+        <div class="field">
+          <label>Class Limit <small style="font-weight:normal;">(leave blank for unlimited)</small></label>
+          <.input type="number" field={f[:class_limit]} min="0" />
+        </div>
+
+        <div class="field">
+          <label>Active</label>
+          <.input type="checkbox" field={f[:active]} />
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Description</label>
+          <.input type="textarea" field={f[:description]} />
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 1rem;">
+      <button type="submit" class="btn primary">Save Plan</button>
+      <.link navigate={dp(@domain_path_prefix, "/subscription-plans")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

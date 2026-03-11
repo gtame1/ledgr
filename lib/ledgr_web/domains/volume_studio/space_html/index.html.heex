@@ -1,0 +1,73 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Spaces</h2>
+    <p class="card-subtitle">Studio spaces available for rental</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/spaces/new")} class="btn primary">
+      + New Space
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/space-rentals")} class="btn">
+      View Rentals
+    </.link>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Capacity</th>
+          <th>Hourly Rate</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@spaces) do %>
+          <tr>
+            <td colspan="5">No spaces yet.</td>
+          </tr>
+        <% else %>
+          <%= for space <- @spaces do %>
+            <tr>
+              <td><strong><%= space.name %></strong></td>
+              <td>
+                <%= if space.capacity do %>
+                  <%= space.capacity %> people
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td>
+                <%= if space.hourly_rate_cents do %>
+                  <%= format_currency(space.hourly_rate_cents) %>/hr
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td>
+                <%= if space.active do %>
+                  <span class="status-badge status-paid">Available</span>
+                <% else %>
+                  <span class="status-badge status-unpaid">Unavailable</span>
+                <% end %>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <.link navigate={dp(@domain_path_prefix, "/spaces/#{space.id}/edit")} class="btn btn-sm">
+                    Edit
+                  </.link>
+                  <.link href={dp(@domain_path_prefix, "/spaces/#{space.id}")} method="delete" data-confirm="Delete this space?" class="btn btn-sm danger">
+                    Delete
+                  </.link>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>
