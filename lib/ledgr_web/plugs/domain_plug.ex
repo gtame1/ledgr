@@ -51,7 +51,8 @@ defmodule LedgrWeb.Plugs.DomainPlug do
 
   defp resolve_host_slug(host) do
     hosts = Application.get_env(:ledgr, :domain_hosts, %{})
-    Map.get(hosts, host)
+    # Try exact match first, then strip leading "www." for bare-domain entries
+    Map.get(hosts, host) || Map.get(hosts, String.replace_prefix(host, "www.", ""))
   end
 
   defp set_domain_context(conn, slug) do
