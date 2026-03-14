@@ -1,46 +1,44 @@
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">New Instructor</h2>
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">New Instructor</h1>
+  </header>
+
+  <div class="content-body">
+    <section class="card">
+      <.form for={@changeset} action={@action} as={:instructor} :let={f}>
+        <div class="form-grid">
+          <div class="form-block">
+            <div class="field">
+              <.input type="text" field={f[:name]} label="Name *" />
+            </div>
+
+            <div class="field">
+              <.input type="text" field={f[:specialty]} label="Specialty" placeholder="e.g. Yoga, Pilates, Strength" />
+            </div>
+
+            <div class="field">
+              <.input type="email" field={f[:email]} label="Email" />
+            </div>
+
+            <div class="field">
+              <.input type="text" field={f[:phone]} label="Phone" />
+            </div>
+
+            <div class="field">
+              <.input type="checkbox" field={f[:active]} label="Active" />
+            </div>
+
+            <div class="field full">
+              <.input type="textarea" field={f[:bio]} label="Bio" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn primary">Save Instructor</button>
+          <.link navigate={dp(@domain_path_prefix, "/instructors")} class="btn">Cancel</.link>
+        </div>
+      </.form>
+    </section>
   </div>
-
-  <.form for={@changeset} action={@action} as={:instructor} :let={f}>
-    <div class="form-grid">
-      <div class="form-block">
-        <div class="field">
-          <label>Name *</label>
-          <.input type="text" field={f[:name]} />
-        </div>
-
-        <div class="field">
-          <label>Specialty</label>
-          <.input type="text" field={f[:specialty]} placeholder="e.g. Yoga, Pilates, Strength" />
-        </div>
-
-        <div class="field">
-          <label>Email</label>
-          <.input type="email" field={f[:email]} />
-        </div>
-
-        <div class="field">
-          <label>Phone</label>
-          <.input type="text" field={f[:phone]} />
-        </div>
-
-        <div class="field">
-          <label>Active</label>
-          <.input type="checkbox" field={f[:active]} />
-        </div>
-
-        <div class="field" style="grid-column: 1 / -1;">
-          <label>Bio</label>
-          <.input type="textarea" field={f[:bio]} />
-        </div>
-      </div>
-    </div>
-
-    <div class="actions" style="margin-top: 1rem;">
-      <button type="submit" class="btn primary">Save Instructor</button>
-      <.link navigate={dp(@domain_path_prefix, "/instructors")} class="btn">Cancel</.link>
-    </div>
-  </.form>
 </section>

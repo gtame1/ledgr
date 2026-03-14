@@ -1,0 +1,82 @@
+<div class="new-subscription-card">
+
+  <%!-- Header --%>
+  <section class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Add Booking</h2>
+        <p class="card-subtitle">
+          <%= @subscription.customer.name %> ·
+          <%= @subscription.subscription_plan.name %>
+        </p>
+      </div>
+      <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}")} class="btn">
+        ← Back
+      </.link>
+    </div>
+  </section>
+
+  <%!-- Form --%>
+  <section class="card">
+    <h3 class="card-title" style="font-size: 1rem; margin-bottom: 1.25rem;">Booking Details</h3>
+
+    <form action={@action} method="post">
+      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+
+        <%!-- Class session select --%>
+        <div class="field">
+          <label for="booking_class_session_id">Class Session *</label>
+          <%= if @sessions == [] do %>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+              No scheduled sessions available.
+            </p>
+          <% else %>
+            <select id="booking_class_session_id" name="booking[class_session_id]" required class="form-input">
+              <option value="">Select a session…</option>
+              <%= for session <- @sessions do %>
+                <option value={session.id}>
+                  <%= Calendar.strftime(session.scheduled_at, "%b %d, %Y %H:%M") %> — <%= session.name %>
+                  <%= if session.instructor, do: "· #{session.instructor.name}", else: "" %>
+                </option>
+              <% end %>
+            </select>
+          <% end %>
+        </div>
+
+        <%!-- Drop-in fee (optional) --%>
+        <div class="field">
+          <label for="booking_paid_cents">Drop-in Fee (MXN, optional)</label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">$</span>
+            <input
+              id="booking_paid_cents"
+              type="number"
+              name="booking[paid_cents]"
+              step="0.01"
+              min="0"
+              value="0"
+              style="padding-left: 1.75rem;"
+              class="form-input"
+            />
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">
+            Leave at 0 if the class is covered by the subscription.
+          </span>
+        </div>
+
+      </div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <button type="submit" class="btn primary" disabled={@sessions == []}>
+          Book Member
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </form>
+  </section>
+
+</div>

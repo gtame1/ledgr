@@ -1,42 +1,41 @@
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">Edit Space</h2>
-    <p class="card-subtitle"><%= @space.name %></p>
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">Edit Space</h1>
+    <p class="page-subtitle"><%= @space.name %></p>
+  </header>
+
+  <div class="content-body">
+    <section class="card">
+      <.form for={@changeset} action={@action} as={:space} method="put" :let={f}>
+        <div class="form-grid">
+          <div class="form-block">
+            <div class="field">
+              <.input type="text" field={f[:name]} label="Space Name *" />
+            </div>
+
+            <div class="field">
+              <.input type="number" field={f[:capacity]} label="Capacity" min="1" />
+            </div>
+
+            <div class="field">
+              <.input type="number" field={f[:hourly_rate_cents]} label="Hourly Rate (MXN)" step="0.01" min="0" />
+            </div>
+
+            <div class="field">
+              <.input type="checkbox" field={f[:active]} label="Available for rental" />
+            </div>
+
+            <div class="field full">
+              <.input type="textarea" field={f[:description]} label="Description" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn primary">Update Space</button>
+          <.link navigate={dp(@domain_path_prefix, "/spaces")} class="btn">Cancel</.link>
+        </div>
+      </.form>
+    </section>
   </div>
-
-  <.form for={@changeset} action={@action} as={:space} method="put" :let={f}>
-    <div class="form-grid">
-      <div class="form-block">
-        <div class="field">
-          <label>Space Name *</label>
-          <.input type="text" field={f[:name]} />
-        </div>
-
-        <div class="field">
-          <label>Capacity</label>
-          <.input type="number" field={f[:capacity]} min="1" />
-        </div>
-
-        <div class="field">
-          <label>Hourly Rate (MXN)</label>
-          <.input type="number" field={f[:hourly_rate_cents]} step="0.01" min="0" />
-        </div>
-
-        <div class="field">
-          <label>Available for rental</label>
-          <.input type="checkbox" field={f[:active]} />
-        </div>
-
-        <div class="field" style="grid-column: 1 / -1;">
-          <label>Description</label>
-          <.input type="textarea" field={f[:description]} />
-        </div>
-      </div>
-    </div>
-
-    <div class="actions" style="margin-top: 1rem;">
-      <button type="submit" class="btn primary">Update Space</button>
-      <.link navigate={dp(@domain_path_prefix, "/spaces")} class="btn">Cancel</.link>
-    </div>
-  </.form>
 </section>

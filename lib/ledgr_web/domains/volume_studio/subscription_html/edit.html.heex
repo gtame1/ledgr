@@ -41,6 +41,27 @@
           <label>Notes</label>
           <.input type="textarea" field={f[:notes]} />
         </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Discount <small style="font-weight: normal;">(optional)</small></label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <select id="discount_type_select" class="form-input" style="width: auto;">
+              <option value="fixed">$ Fixed</option>
+              <option value="percent">% Percent</option>
+            </select>
+            <input
+              id="discount_value_input"
+              type="number" step="0.01" min="0"
+              value={Float.round(@subscription.discount_cents / 100, 2)}
+              class="form-input"
+              style="width: 120px;"
+            />
+            <input type="hidden" id="discount_cents_hidden"
+                   name="subscription[discount_cents]"
+                   value={@subscription.discount_cents} />
+          </div>
+          <span id="discount_preview" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;"></span>
+        </div>
       </div>
     </div>
 
@@ -50,3 +71,40 @@
     </div>
   </.form>
 </section>
+
+<script>
+  (function () {
+    var planPriceCents = <%= @subscription.subscription_plan.price_cents %>;
+
+    function resolveDiscount() {
+      var typeEl  = document.getElementById("discount_type_select");
+      var valueEl = document.getElementById("discount_value_input");
+      var hidden  = document.getElementById("discount_cents_hidden");
+      var preview = document.getElementById("discount_preview");
+      if (!typeEl || !valueEl || !hidden) return;
+
+      var type  = typeEl.value;
+      var value = parseFloat(valueEl.value) || 0;
+      var cents;
+      if (type === "fixed") {
+        cents = Math.round(value * 100);
+      } else {
+        cents = Math.round(planPriceCents * value / 100);
+      }
+      cents = Math.min(Math.max(cents, 0), planPriceCents);
+      hidden.value = cents;
+      if (preview) {
+        var effectiveCents = planPriceCents - cents;
+        var whole = Math.floor(effectiveCents / 100);
+        var frac  = effectiveCents % 100;
+        preview.textContent = cents > 0
+          ? "Effective price: $" + whole.toLocaleString("es-MX") + "." + String(frac).padStart(2, "0") + " MXN"
+          : "";
+      }
+    }
+
+    document.getElementById("discount_type_select").addEventListener("change", resolveDiscount);
+    document.getElementById("discount_value_input").addEventListener("input",  resolveDiscount);
+    resolveDiscount();
+  })();
+</script>

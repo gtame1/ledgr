@@ -126,6 +126,24 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
     end
   end
 
+  @doc """
+  Reduces the revenue balances on a subscription to reflect an issued refund.
+
+  Deducts from `deferred_revenue_cents` first; if the refund exceeds the deferred balance,
+  the remainder is deducted from `recognized_revenue_cents`.
+  """
+  def apply_refund(%Subscription{} = sub, refund_cents) do
+    deferred_portion   = min(refund_cents, sub.deferred_revenue_cents)
+    recognized_portion = refund_cents - deferred_portion
+
+    sub
+    |> Subscription.changeset(%{
+      deferred_revenue_cents:   sub.deferred_revenue_cents   - deferred_portion,
+      recognized_revenue_cents: sub.recognized_revenue_cents - recognized_portion
+    })
+    |> Repo.update()
+  end
+
   @doc "Cancels a subscription by updating its status and setting ends_on to today."
   def cancel(%Subscription{} = sub) do
     sub
@@ -139,17 +157,21 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   @doc """
   Returns a payment summary map for a subscription.
 
-  Keys: :deferred, :recognized, :total_paid, :remaining, :outstanding_cents
+  Keys: :deferred, :recognized, :total_paid, :remaining, :discount_cents, :effective_price, :outstanding_cents
   """
   def payment_summary(%Subscription{subscription_plan: plan} = sub) when not is_nil(plan) do
-    total_paid = Subscription.total_paid_cents(sub)
+    total_paid      = Subscription.total_paid_cents(sub)
+    discount        = sub.discount_cents || 0
+    effective_price = max(plan.price_cents - discount, 0)
 
     %{
       deferred:          sub.deferred_revenue_cents,
       recognized:        sub.recognized_revenue_cents,
       total_paid:        total_paid,
       remaining:         Subscription.remaining_deferred(sub),
-      outstanding_cents: max(plan.price_cents - total_paid, 0)
+      discount_cents:    discount,
+      effective_price:   effective_price,
+      outstanding_cents: max(effective_price - total_paid, 0)
     }
   end
 

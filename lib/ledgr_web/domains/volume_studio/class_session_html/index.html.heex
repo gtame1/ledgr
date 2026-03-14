@@ -43,7 +43,7 @@
             <tr>
               <td><%= s.name %></td>
               <td><%= s.instructor.name %></td>
-              <td style="white-space: nowrap;"><%= s.scheduled_at %></td>
+              <td style="white-space: nowrap;"><%= format_datetime(s.scheduled_at) %></td>
               <td><%= s.duration_minutes %> min</td>
               <td>
                 <span class={"status-badge #{status_class(s.status)}"}>

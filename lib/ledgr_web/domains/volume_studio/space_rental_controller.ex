@@ -129,4 +129,24 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalHTML do
   def status_class("completed"), do: "status-paid"
   def status_class("cancelled"), do: "status-unpaid"
   def status_class(_), do: ""
+
+  # Full datetime: "Mar 13, 2026 · 7:57 PM"
+  def format_datetime(%DateTime{} = dt),
+    do: Calendar.strftime(dt, "%b %-d, %Y · %-I:%M %p")
+
+  def format_datetime(%NaiveDateTime{} = ndt),
+    do: Calendar.strftime(ndt, "%b %-d, %Y · %-I:%M %p")
+
+  def format_datetime(nil), do: "—"
+  def format_datetime(other), do: to_string(other)
+
+  # Date only: "Mar 13, 2026" — for compact table displays
+  def format_date(%DateTime{} = dt),
+    do: Calendar.strftime(dt, "%b %-d, %Y")
+
+  def format_date(%NaiveDateTime{} = ndt),
+    do: Calendar.strftime(ndt, "%b %-d, %Y")
+
+  def format_date(nil), do: "—"
+  def format_date(other), do: to_string(other)
 end

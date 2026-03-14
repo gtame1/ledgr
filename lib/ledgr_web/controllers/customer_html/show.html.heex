@@ -1,20 +1,23 @@
 <section class="content">
   <header class="content-header">
-    <h1 class="page-title">Customer Details</h1>
+    <h1 class="page-title">Customer</h1>
   </header>
 
   <div class="content-body">
     <section class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
-        <div>
-          <h2 class="card-title"><%= @customer.name %></h2>
-          <p class="card-subtitle">
-            Customer #<%= @customer.id %>
-          </p>
+      <div class="card-header">
+        <div class="customer-profile">
+          <div class="customer-avatar">
+            <%= String.first(@customer.name) %>
+          </div>
+          <div>
+            <h2 class="card-title"><%= @customer.name %></h2>
+            <p class="card-subtitle">Customer #<%= @customer.id %></p>
+          </div>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div class="actions">
           <.link navigate={dp(@domain_path_prefix, "/customers")} class="btn">
-            ← Back to Customers
+            ← Back
           </.link>
           <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}/edit")} class="btn primary">
             Edit
@@ -23,22 +26,101 @@
             href={dp(@domain_path_prefix, "/customers/#{@customer.id}")}
             method="delete"
             data-confirm="Are you sure you want to delete this customer?"
-            class="btn"
-            style="background-color: #dc2626; color: white;"
+            class="btn danger"
           >
             Delete
           </.link>
         </div>
       </div>
 
-      <ul class="nice-list" style="margin-top: 1rem;">
-        <li><strong>Name:</strong> <%= @customer.name %></li>
-        <li><strong>Phone:</strong> <%= @customer.phone %></li>
-        <li><strong>Email:</strong> <%= @customer.email || "—" %></li>
-        <li><strong>Delivery Address:</strong> <%= @customer.delivery_address || "—" %></li>
-        <li><strong>Created:</strong> <%= Calendar.strftime(to_mx_time(@customer.inserted_at), "%B %d, %Y") %></li>
-      </ul>
+      <dl class="detail-grid">
+        <div class="detail-row">
+          <dt class="detail-label">Phone</dt>
+          <dd class="detail-value"><%= @customer.phone %></dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Email</dt>
+          <dd class="detail-value"><%= @customer.email || "—" %></dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Delivery Address</dt>
+          <dd class="detail-value"><%= @customer.delivery_address || "—" %></dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Member Since</dt>
+          <dd class="detail-value"><%= Calendar.strftime(to_mx_time(@customer.inserted_at), "%B %d, %Y") %></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="card" style="margin-top: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title" style="font-size: 1rem;">Subscriptions</h3>
+        <.link navigate={dp(@domain_path_prefix, "/subscriptions/new")} class="btn primary" style="font-size: 0.85rem;">
+          + New Subscription
+        </.link>
+      </div>
+
+      <%= if Enum.empty?(@subscriptions) do %>
+        <p style="color: var(--text-muted); font-size: 0.9rem; padding: 0.5rem 0;">No subscriptions yet.</p>
+      <% else %>
+        <div style="overflow-x: auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Period</th>
+                <th style="text-align: right;">Price</th>
+                <th style="text-align: right;">Paid</th>
+                <th style="text-align: right;">Outstanding</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for sub <- @subscriptions do %>
+                <% plan = sub.subscription_plan
+                   effective_price = max(plan.price_cents - (sub.discount_cents || 0), 0)
+                   total_paid      = sub.deferred_revenue_cents + sub.recognized_revenue_cents
+                   outstanding     = max(effective_price - total_paid, 0)
+                   status_css      = case sub.status do
+                     "active" -> "status-paid"
+                     "paused" -> "status-partial"
+                     _        -> "status-unpaid"
+                   end %>
+                <tr>
+                  <td><%= plan.name %></td>
+                  <td>
+                    <span class={"status-badge #{status_css}"}>
+                      <%= String.capitalize(sub.status) %>
+                    </span>
+                  </td>
+                  <td style="font-size: 0.85rem; white-space: nowrap;">
+                    <%= sub.starts_on %> → <%= sub.ends_on %>
+                  </td>
+                  <td style="text-align: right;">
+                    <%= format_currency(effective_price) %>
+                    <%= if sub.discount_cents > 0 do %>
+                      <br /><small style="color: var(--text-muted); font-size: 0.75rem;">
+                        (−<%= format_currency(sub.discount_cents) %>)
+                      </small>
+                    <% end %>
+                  </td>
+                  <td style="text-align: right;"><%= format_currency(total_paid) %></td>
+                  <td style={"text-align: right; #{if outstanding > 0, do: "color: var(--red, #dc2626); font-weight: 600;", else: ""}"}>
+                    <%= format_currency(outstanding) %>
+                  </td>
+                  <td>
+                    <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")} class="btn" style="font-size: 0.8rem; padding: 0.25rem 0.6rem;">
+                      View
+                    </.link>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
     </section>
   </div>
 </section>
-

@@ -102,16 +102,14 @@ defmodule Ledgr.Domains.VolumeStudio do
 
     [
       %{group: "Main Menu", items: [
-        %{label: "Dashboard", path: prefix, icon: :dashboard}
-      ]},
-      %{group: "Members", items: [
-        %{label: "Customers", path: "#{prefix}/customers", icon: :customers},
-        %{label: "Subscriptions", path: "#{prefix}/subscriptions", icon: :subscriptions}
+        %{label: "Dashboard",      path: prefix,                         icon: :dashboard},
+        %{label: "Customers",      path: "#{prefix}/customers",          icon: :customers},
+        %{label: "Subscriptions",  path: "#{prefix}/subscriptions",      icon: :subscriptions},
+        %{label: "Class Sessions", path: "#{prefix}/class-sessions",     icon: :bookings}
       ]},
       %{group: "Studio", items: [
-        %{label: "Class Sessions", path: "#{prefix}/class-sessions", icon: :bookings},
-        %{label: "Instructors", path: "#{prefix}/instructors", icon: :users},
-        %{label: "Consultations", path: "#{prefix}/consultations", icon: :documents}
+        %{label: "Instructors",    path: "#{prefix}/instructors",        icon: :users},
+        %{label: "Consultations",  path: "#{prefix}/consultations",      icon: :documents}
       ]},
       %{group: "Spaces", items: [
         %{label: "Spaces & Rentals", path: "#{prefix}/spaces", icon: :services}

@@ -1,19 +1,15 @@
 <section class="content">
   <header class="content-header">
     <h1 class="page-title">Edit Customer</h1>
+    <p class="page-subtitle"><%= @customer.name %></p>
   </header>
 
   <div class="content-body">
     <section class="card">
-      <h2 class="card-title">Edit Customer</h2>
-      <p class="card-subtitle">
-        Update customer information.
-      </p>
-
-      <.form :let={f} for={@changeset} as={:customer} action={@action} method="patch" class="form-grid">
+      <.form :let={f} for={@changeset} as={:customer} action={@action} method="patch">
         <%= if @changeset.action do %>
           <div class="alert alert-error">
-            <p>There were problems with your customer. Please review the fields below.</p>
+            <p>Please review the fields below.</p>
             <ul>
               <%= for {field, {message, _}} <- @changeset.errors do %>
                 <li><strong><%= field %>:</strong> <%= message %></li>
@@ -22,41 +18,31 @@
           </div>
         <% end %>
 
-        <div class="form-block">
-          <div class="field">
-            <.input field={f[:name]} type="text" label="Customer Name" />
-          </div>
+        <div class="form-grid">
+          <div class="form-block">
+            <div class="field">
+              <.input field={f[:name]} type="text" label="Customer Name *" />
+            </div>
 
-          <div class="field">
-            <.input field={f[:phone]} type="tel" label="Phone" />
-          </div>
+            <div class="field">
+              <.input field={f[:phone]} type="tel" label="Phone *" />
+            </div>
 
-          <div class="field">
-            <.input field={f[:email]} type="email" label="Email (optional)" />
-          </div>
-        </div>
+            <div class="field">
+              <.input field={f[:email]} type="email" label="Email" />
+            </div>
 
-        <div class="form-block">
-          <div class="field" style="width: 100%;">
-            <.input
-              field={f[:delivery_address]}
-              type="textarea"
-              label="Delivery Address (optional)"
-              rows="3"
-            />
+            <div class="field full">
+              <.input field={f[:delivery_address]} type="textarea" label="Delivery Address" rows="3" />
+            </div>
           </div>
         </div>
 
-        <div class="actions">
-          <button class="btn primary" type="submit">
-            Update Customer
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">
-            Cancel
-          </.link>
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Update Customer</button>
+          <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">Cancel</.link>
         </div>
       </.form>
     </section>
   </div>
 </section>
-

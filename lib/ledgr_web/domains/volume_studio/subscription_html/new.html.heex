@@ -93,6 +93,26 @@
           </div>
         </div>
       </div>
+
+      <%!-- Discount widget --%>
+      <div class="field" style="margin-top: 0.75rem;">
+        <label>Discount <small style="font-weight: normal;">(optional)</small></label>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <select id="discount_type_select" class="form-input" style="width: auto;">
+            <option value="fixed">$ Fixed</option>
+            <option value="percent">% Percent</option>
+          </select>
+          <input
+            id="discount_value_input"
+            type="number" step="0.01" min="0" value="0"
+            class="form-input"
+            style="width: 120px;"
+          />
+          <input type="hidden" id="discount_cents_hidden"
+                 name="subscription[discount_cents]" value="0" />
+        </div>
+        <span id="discount_preview" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;"></span>
+      </div>
     </div>
 
     <%!-- ── Period & Status ──────────────────────────────── --%>
@@ -196,6 +216,7 @@
 
     preview.style.display = '';
     recalcEndDate();
+    resolveDiscount();
   }
 
   function recalcEndDate() {
@@ -212,7 +233,7 @@
       start.setMonth(start.getMonth() + selectedPlan.duration_months);
       start.setDate(start.getDate() - 1);
     } else {
-      return; // extras — no auto end date
+      // No duration (e.g. extras) — end date = start date (single-day validity)
     }
 
     endInput.value = start.toISOString().slice(0, 10);
@@ -226,6 +247,34 @@
 
   function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
+  function resolveDiscount() {
+    const typeEl  = document.getElementById("discount_type_select");
+    const valueEl = document.getElementById("discount_value_input");
+    const hidden  = document.getElementById("discount_cents_hidden");
+    const preview = document.getElementById("discount_preview");
+    if (!typeEl || !valueEl || !hidden) return;
+
+    const planPriceCents = selectedPlan ? selectedPlan.price_cents : 0;
+    const type  = typeEl.value;
+    const value = parseFloat(valueEl.value) || 0;
+    let cents;
+    if (type === "fixed") {
+      cents = Math.round(value * 100);
+    } else {
+      cents = Math.round(planPriceCents * value / 100);
+    }
+    cents = Math.min(Math.max(cents, 0), planPriceCents);
+    hidden.value = cents;
+    if (preview) {
+      const effectiveCents = planPriceCents - cents;
+      const whole = Math.floor(effectiveCents / 100);
+      const frac  = effectiveCents % 100;
+      preview.textContent = cents > 0
+        ? "Effective price: $" + whole.toLocaleString("es-MX") + "." + String(frac).padStart(2, "0") + " MXN"
+        : "";
+    }
+  }
+
   // Recalculate when start date changes
   document.addEventListener('DOMContentLoaded', () => {
     const startInput = document.querySelector('input[name="subscription[starts_on]"]');
@@ -237,5 +286,10 @@
     // Trigger preview if plan already selected (e.g. on error re-render)
     const sel = document.querySelector('select[name="subscription[subscription_plan_id]"]');
     if (sel && sel.value) updatePlanPreview(sel.value);
+
+    const discountType  = document.getElementById("discount_type_select");
+    const discountValue = document.getElementById("discount_value_input");
+    if (discountType)  discountType.addEventListener("change", resolveDiscount);
+    if (discountValue) discountValue.addEventListener("input",  resolveDiscount);
   });
 </script>

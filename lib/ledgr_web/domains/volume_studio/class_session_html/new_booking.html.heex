@@ -1,0 +1,104 @@
+<div class="new-subscription-card">
+
+  <%!-- Header --%>
+  <section class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Add Booking</h2>
+        <p class="card-subtitle">
+          <%= @session.name %> ·
+          <%= Calendar.strftime(@session.scheduled_at, "%b %d, %Y %H:%M") %>
+        </p>
+      </div>
+      <.link navigate={dp(@domain_path_prefix, "/class-sessions/#{@session.id}")} class="btn">
+        ← Back
+      </.link>
+    </div>
+  </section>
+
+  <%!-- Form --%>
+  <section class="card">
+    <h3 class="card-title" style="font-size: 1rem; margin-bottom: 1.25rem;">Booking Details</h3>
+
+    <form action={@action} method="post">
+      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+
+        <%!-- Member select --%>
+        <div class="field">
+          <label for="booking_customer_id">Member *</label>
+          <select id="booking_customer_id" name="booking[customer_id]" required class="form-input">
+            <option value="">Select member…</option>
+            <%= for {label, id} <- @customers do %>
+              <option value={id}><%= label %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <%!-- Subscription select (filtered by JS on customer change) --%>
+        <div class="field">
+          <label for="booking_subscription_id">Subscription (optional)</label>
+          <select id="booking_subscription_id" name="booking[subscription_id]" class="form-input">
+            <option value="">— None / drop-in —</option>
+          </select>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">
+            Select a member first to see their active subscriptions.
+          </span>
+        </div>
+
+        <%!-- Drop-in fee --%>
+        <div class="field">
+          <label for="booking_paid_cents">Drop-in Fee (MXN, optional)</label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">$</span>
+            <input
+              id="booking_paid_cents"
+              type="number"
+              name="booking[paid_cents]"
+              step="0.01"
+              min="0"
+              value="0"
+              style="padding-left: 1.75rem;"
+              class="form-input"
+            />
+          </div>
+        </div>
+
+      </div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <button type="submit" class="btn primary">Book Member</button>
+        <.link navigate={dp(@domain_path_prefix, "/class-sessions/#{@session.id}")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </form>
+  </section>
+
+</div>
+
+<%!-- Subscription filtering JS --%>
+<script>
+  (function() {
+    const subsByCustomer = <%= Jason.encode!(@subs_by_customer) |> raw() %>;
+    const customerSelect = document.getElementById("booking_customer_id");
+    const subSelect      = document.getElementById("booking_subscription_id");
+
+    function updateSubs() {
+      const customerId = customerSelect.value;
+      const subs = subsByCustomer[customerId] || [];
+
+      subSelect.innerHTML = '<option value="">— None / drop-in —</option>';
+
+      subs.forEach(function(sub) {
+        const opt = document.createElement("option");
+        opt.value = sub.id;
+        opt.textContent = sub.name;
+        subSelect.appendChild(opt);
+      });
+    }
+
+    customerSelect.addEventListener("change", updateSubs);
+  })();
+</script>

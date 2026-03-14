@@ -15,13 +15,14 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions.Subscription do
     field :classes_used, :integer, default: 0
     field :deferred_revenue_cents, :integer, default: 0
     field :recognized_revenue_cents, :integer, default: 0
+    field :discount_cents, :integer, default: 0
     field :notes, :string
 
     timestamps(type: :utc_datetime)
   end
 
   @required_fields [:customer_id, :subscription_plan_id, :starts_on, :ends_on]
-  @optional_fields [:status, :classes_used, :deferred_revenue_cents, :recognized_revenue_cents, :notes]
+  @optional_fields [:status, :classes_used, :deferred_revenue_cents, :recognized_revenue_cents, :discount_cents, :notes]
 
   @valid_statuses ~w(active paused cancelled expired)
 
@@ -30,6 +31,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions.Subscription do
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> validate_inclusion(:status, @valid_statuses)
+    |> validate_number(:discount_cents, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:customer_id)
     |> foreign_key_constraint(:subscription_plan_id)
   end
@@ -44,11 +46,12 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions.Subscription do
     max(sub.deferred_revenue_cents, 0)
   end
 
-  @doc "Monthly recognition amount based on plan duration"
+  @doc "Monthly recognition amount based on plan duration and any discount applied"
   def monthly_recognition_amount(%__MODULE__{} = sub) do
     plan = sub.subscription_plan
     if plan && plan.duration_months > 0 do
-      div(plan.price_cents, plan.duration_months)
+      effective = max(plan.price_cents - (sub.discount_cents || 0), 0)
+      div(effective, plan.duration_months)
     else
       0
     end

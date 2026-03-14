@@ -17,10 +17,7 @@
 
     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
       <%= if @subscription.status != "cancelled" && @subscription.status != "expired" do %>
-        <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/payment/new")} class="btn primary">
-          Record Payment
-        </.link>
-        <.link href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/cancel")} method="post" data-confirm="Cancel this subscription?" class="btn danger">
+        <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/cancel")} class="btn danger">
           Cancel Subscription
         </.link>
       <% end %>
@@ -55,6 +52,18 @@
       <span class="metric-label">Plan Price</span>
       <span class="metric-value"><%= format_currency(@subscription.subscription_plan.price_cents) %></span>
     </div>
+    <%= if @subscription.discount_cents > 0 do %>
+      <div class="metric-card">
+        <span class="metric-label">Discount</span>
+        <span class="metric-value" style="color: var(--green, #16a34a);">
+          − <%= format_currency(@subscription.discount_cents) %>
+        </span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Effective Price</span>
+        <span class="metric-value"><%= format_currency(@summary.effective_price) %></span>
+      </div>
+    <% end %>
     <div class="metric-card">
       <span class="metric-label">Outstanding</span>
       <span class={"metric-value #{if @summary.outstanding_cents > 0, do: "text-danger", else: ""}"}>
@@ -68,10 +77,17 @@
 <section class="card" style="margin-bottom: 1.5rem;">
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Classes Taken</h3>
-    <span class="status-badge" style="font-size: 0.75rem;">
-      <%= @subscription.classes_used %> used
-      <%= if @subscription.subscription_plan.class_limit, do: "/ #{@subscription.subscription_plan.class_limit}", else: "" %>
-    </span>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <span class="status-badge" style="font-size: 0.75rem;">
+        <%= @subscription.classes_used %> used
+        <%= if @subscription.subscription_plan.class_limit, do: "/ #{@subscription.subscription_plan.class_limit}", else: "" %>
+      </span>
+      <%= if @subscription.status != "cancelled" && @subscription.status != "expired" do %>
+        <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/bookings/new")} class="btn primary" style="font-size: 0.8rem;">
+          + Add Booking
+        </.link>
+      <% end %>
+    </div>
   </div>
 
   <%= if @bookings == [] do %>
@@ -90,7 +106,7 @@
         </thead>
         <tbody>
           <%= for booking <- @bookings do %>
-            <tr>
+            <tr style={if booking.status in ["cancelled", "no_show"], do: "opacity: 0.45;", else: ""}>
               <td style="white-space: nowrap; font-size: 0.875rem;">
                 <%= if booking.class_session do %>
                   <%= Calendar.strftime(booking.class_session.scheduled_at, "%b %d, %Y %H:%M") %>

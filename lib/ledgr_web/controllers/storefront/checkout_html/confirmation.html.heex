@@ -6,9 +6,9 @@
   <div class="confirmation-details">
     <div class="confirmation-info">
       <span class="confirmation-label">
-        <%= if @delivery_type == "delivery", do: "Envío", else: "Recoger (coordinar por WhatsApp)" %>:
+        <%= if @delivery_type == "delivery", do: "Envío a domicilio", else: "Recoger en local" %>:
       </span>
-      <span><%= @delivery_date %></span>
+      <span><%= format_delivery_date(@delivery_date) %></span>
     </div>
     <div class="confirmation-info">
       <span class="confirmation-label">Referencia:</span>

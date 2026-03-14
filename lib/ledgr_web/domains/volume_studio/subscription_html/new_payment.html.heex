@@ -24,6 +24,20 @@
         <span class="summary-label">Plan Price</span>
         <span class="summary-value"><%= format_currency(@subscription.subscription_plan.price_cents) %></span>
       </div>
+      <%= if @subscription.discount_cents > 0 do %>
+        <div class="summary-item">
+          <span class="summary-label">Discount</span>
+          <span class="summary-value" style="color: var(--green, #16a34a);">
+            − <%= format_currency(@subscription.discount_cents) %>
+          </span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Effective Price</span>
+          <span class="summary-value">
+            <%= format_currency(max(@subscription.subscription_plan.price_cents - @subscription.discount_cents, 0)) %>
+          </span>
+        </div>
+      <% end %>
       <div class="summary-item">
         <span class="summary-label">Already Paid</span>
         <span class="summary-value"><%= format_currency(@subscription.deferred_revenue_cents + @subscription.recognized_revenue_cents) %></span>

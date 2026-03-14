@@ -355,6 +355,57 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     end)
   end
 
+  # ── Subscription Refund ──────────────────────────────────────────────
+
+  @doc """
+  Records a refund issued on cancellation of a subscription.
+
+  Debits from Deferred Sub Revenue (2200) first; if the refund exceeds the deferred
+  balance, the remainder is debited from Subscription Revenue (4000) (reversing
+  already-recognized revenue). Credits the selected cash/bank account.
+
+    DR  Deferred Sub Revenue (2200)   [min(refund_cents, sub.deferred_revenue_cents)]
+    DR  Subscription Revenue (4000)   [remaining, if any]
+    CR  Cash/Bank (from_account_id)   [refund_cents]
+  """
+  def record_subscription_refund(sub, refund_cents, from_account_id, date, note) do
+    plan            = sub.subscription_plan
+    description     = "Subscription refund — #{sub.customer.name} (#{plan.name})"
+    seq             = :erlang.unique_integer([:positive, :monotonic])
+    reference       = "vs_sub_refund_#{sub.id}_#{seq}"
+
+    deferred_portion   = min(refund_cents, sub.deferred_revenue_cents)
+    recognized_portion = refund_cents - deferred_portion
+
+    deferred = Accounting.get_account_by_code!(@deferred_sub_rev_code)
+    revenue  = Accounting.get_account_by_code!(@sub_revenue_code)
+
+    dr_lines =
+      (if deferred_portion > 0 do
+        [%{account_id: deferred.id, debit_cents: deferred_portion, credit_cents: 0,
+           description: "Reverse deferred revenue — sub ##{sub.id}"}]
+      else [] end) ++
+      (if recognized_portion > 0 do
+        [%{account_id: revenue.id, debit_cents: recognized_portion, credit_cents: 0,
+           description: "Reverse recognized revenue — sub ##{sub.id}"}]
+      else [] end)
+
+    lines =
+      dr_lines ++
+      [%{account_id: from_account_id, debit_cents: 0, credit_cents: refund_cents,
+         description: note || "Refund issued — sub ##{sub.id}"}]
+
+    Accounting.create_journal_entry_with_lines(
+      %{
+        date:        date,
+        description: description,
+        reference:   reference,
+        entry_type:  "subscription_refund"
+      },
+      lines
+    )
+  end
+
   # ── Private helpers ──────────────────────────────────────────────────
 
   defp idempotent(reference, entry_type, fun) do

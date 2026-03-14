@@ -44,7 +44,7 @@
             <tr>
               <td><%= r.space.name %></td>
               <td><%= r.renter_name %></td>
-              <td style="white-space: nowrap;"><%= r.starts_at %> → <%= r.ends_at %></td>
+              <td style="white-space: nowrap;"><%= format_date(r.starts_at) %> → <%= format_date(r.ends_at) %></td>
               <td><%= format_currency(r.amount_cents) %></td>
               <td>
                 <span class={"status-badge #{status_class(r.status)}"}>

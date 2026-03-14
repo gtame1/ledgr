@@ -180,6 +180,9 @@ defmodule LedgrWeb.Router do
     # Class sessions with check-in
     resources "/class-sessions", Domains.VolumeStudio.ClassSessionController, only: [:index, :show, :new, :create, :edit, :update, :delete]
     post "/class-sessions/:id/checkin/:booking_id", Domains.VolumeStudio.ClassSessionController, :checkin
+    get  "/class-sessions/:id/bookings/new",        Domains.VolumeStudio.ClassSessionController, :new_booking
+    post "/class-sessions/:id/bookings",            Domains.VolumeStudio.ClassSessionController, :create_booking
+    post "/class-sessions/:id/bookings/:booking_id/cancel", Domains.VolumeStudio.ClassSessionController, :cancel_booking
 
     # Instructors
     resources "/instructors", Domains.VolumeStudio.InstructorController, only: [:index, :new, :create, :edit, :update, :delete]
@@ -187,11 +190,14 @@ defmodule LedgrWeb.Router do
     # Subscription plans & member subscriptions
     resources "/subscription-plans", Domains.VolumeStudio.SubscriptionPlanController, only: [:index, :new, :create, :edit, :update, :delete]
     resources "/subscriptions", Domains.VolumeStudio.SubscriptionController, only: [:index, :show, :new, :create, :edit, :update]
+    get  "/subscriptions/:id/bookings/new", Domains.VolumeStudio.SubscriptionController, :new_booking
+    post "/subscriptions/:id/bookings",     Domains.VolumeStudio.SubscriptionController, :create_booking
     get  "/subscriptions/:id/payment/new", Domains.VolumeStudio.SubscriptionController, :new_payment
     post "/subscriptions/:id/payment", Domains.VolumeStudio.SubscriptionController, :record_payment
     get  "/subscriptions/:id/payment/:entry_id/edit", Domains.VolumeStudio.SubscriptionController, :edit_payment
     put  "/subscriptions/:id/payment/:entry_id", Domains.VolumeStudio.SubscriptionController, :update_payment
     delete "/subscriptions/:id/payment/:entry_id", Domains.VolumeStudio.SubscriptionController, :delete_payment
+    get  "/subscriptions/:id/cancel", Domains.VolumeStudio.SubscriptionController, :new_cancel
     post "/subscriptions/:id/cancel", Domains.VolumeStudio.SubscriptionController, :cancel
 
     # Diet consultations

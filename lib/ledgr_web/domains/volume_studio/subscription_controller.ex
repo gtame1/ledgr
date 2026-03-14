@@ -4,6 +4,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
   alias Ledgr.Domains.VolumeStudio.Subscriptions
   alias Ledgr.Domains.VolumeStudio.Subscriptions.Subscription
   alias Ledgr.Domains.VolumeStudio.SubscriptionPlans
+  alias Ledgr.Domains.VolumeStudio.ClassSessions
   alias Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Customers
@@ -126,6 +127,48 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
           plans: plans,
           action: dp(conn, "/subscriptions/#{id}")
         )
+    end
+  end
+
+  def new_booking(conn, %{"id" => id}) do
+    subscription = Subscriptions.get_subscription!(id)
+    sessions =
+      ClassSessions.list_class_sessions(status: "scheduled")
+      |> Enum.reverse()
+    render(conn, :new_booking,
+      subscription: subscription,
+      sessions:     sessions,
+      action:       dp(conn, "/subscriptions/#{id}/bookings")
+    )
+  end
+
+  def create_booking(conn, %{"id" => id, "booking" => params}) do
+    subscription = Subscriptions.get_subscription!(id)
+
+    paid_cents =
+      case Float.parse(params["paid_cents"] || "0") do
+        {v, _} -> round(v * 100)
+        :error  -> 0
+      end
+
+    attrs = %{
+      class_session_id: params["class_session_id"],
+      customer_id:      subscription.customer_id,
+      subscription_id:  subscription.id,
+      paid_cents:       max(0, paid_cents),
+      status:           "booked"
+    }
+
+    case ClassSessions.create_booking(attrs) do
+      {:ok, _booking} ->
+        conn
+        |> put_flash(:info, "Booking created successfully.")
+        |> redirect(to: dp(conn, "/subscriptions/#{id}"))
+
+      {:error, _changeset} ->
+        conn
+        |> put_flash(:error, "Could not create booking. The member may already be booked for this session.")
+        |> redirect(to: dp(conn, "/subscriptions/#{id}/bookings/new"))
     end
   end
 
@@ -282,19 +325,63 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
     end
   end
 
-  def cancel(conn, %{"id" => id}) do
+  def new_cancel(conn, %{"id" => id}) do
     subscription = Subscriptions.get_subscription!(id)
+    summary      = Subscriptions.payment_summary(subscription)
+    accounts     = Accounting.cash_or_bank_account_options()
 
-    case Subscriptions.cancel(subscription) do
-      {:ok, _} ->
+    render(conn, :cancel,
+      subscription: subscription,
+      summary:      summary,
+      accounts:     accounts,
+      action:       dp(conn, "/subscriptions/#{id}/cancel")
+    )
+  end
+
+  def cancel(conn, %{"id" => id} = params) do
+    subscription = Subscriptions.get_subscription!(id)
+    summary      = Subscriptions.payment_summary(subscription)
+
+    refund_params = params["refund"] || %{}
+    raw_amount    = refund_params["amount"] || "0"
+    refund_cents  =
+      case Float.parse(raw_amount) do
+        {v, _} -> round(v * 100)
+        :error  -> 0
+      end
+    account_id = refund_params["account_id"]
+    note       = refund_params["note"]
+
+    with :ok <- validate_refund(refund_cents, summary.total_paid),
+         {:ok, _} <- maybe_record_refund(subscription, refund_cents, account_id, note),
+         {:ok, _} <- Subscriptions.cancel(subscription) do
+      msg = if refund_cents > 0, do: "Subscription cancelled and refund recorded.", else: "Subscription cancelled."
+      conn
+      |> put_flash(:info, msg)
+      |> redirect(to: dp(conn, "/subscriptions/#{id}"))
+    else
+      {:error, :invalid_refund} ->
         conn
-        |> put_flash(:info, "Subscription cancelled.")
-        |> redirect(to: dp(conn, "/subscriptions/#{id}"))
+        |> put_flash(:error, "Refund amount exceeds total paid ($#{:erlang.float_to_binary(summary.total_paid / 100, [{:decimals, 2}])} MXN).")
+        |> redirect(to: dp(conn, "/subscriptions/#{id}/cancel"))
 
-      {:error, _changeset} ->
+      {:error, _} ->
         conn
         |> put_flash(:error, "Could not cancel subscription.")
         |> redirect(to: dp(conn, "/subscriptions/#{id}"))
+    end
+  end
+
+  defp validate_refund(cents, total_paid) when cents <= total_paid, do: :ok
+  defp validate_refund(_, _), do: {:error, :invalid_refund}
+
+  defp maybe_record_refund(_sub, 0, _account_id, _note), do: {:ok, nil}
+  defp maybe_record_refund(_sub, _cents, nil, _note), do: {:ok, nil}
+  defp maybe_record_refund(_sub, _cents, "", _note), do: {:ok, nil}
+  defp maybe_record_refund(sub, refund_cents, account_id, note) do
+    case VolumeStudioAccounting.record_subscription_refund(sub, refund_cents, account_id, Date.utc_today(), note) do
+      {:ok, _entry} -> Subscriptions.apply_refund(sub, refund_cents)
+      err           -> err
     end
   end
 

@@ -120,11 +120,29 @@ defmodule Ledgr.Domains.VolumeStudio.ClassSessions do
     end)
   end
 
-  @doc "Cancels a booking by updating its status."
+  @doc """
+  Cancels a booking by updating its status.
+
+  If the booking was already checked in, decrements `classes_used` on the linked
+  subscription so the counter stays accurate.
+  """
   def cancel_booking(%ClassBooking{} = booking) do
-    booking
-    |> ClassBooking.changeset(%{status: "cancelled"})
-    |> Repo.update()
+    Repo.transaction(fn ->
+      updated =
+        booking
+        |> ClassBooking.changeset(%{status: "cancelled"})
+        |> Repo.update!()
+
+      if booking.status == "checked_in" && booking.subscription_id do
+        sub = Repo.get!(Subscription, booking.subscription_id)
+
+        sub
+        |> Ecto.Changeset.change(classes_used: max(sub.classes_used - 1, 0))
+        |> Repo.update!()
+      end
+
+      updated
+    end)
   end
 
   @doc """

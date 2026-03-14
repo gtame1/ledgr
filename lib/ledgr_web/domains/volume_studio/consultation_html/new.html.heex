@@ -1,61 +1,59 @@
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">New Consultation</h2>
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">New Consultation</h1>
+  </header>
+
+  <div class="content-body">
+    <section class="card">
+      <.form for={@changeset} action={@action} as={:consultation} :let={f}>
+        <div class="form-grid">
+          <div class="form-block">
+            <div class="field">
+              <.input type="select" field={f[:customer_id]} label="Member *"
+                options={[{"Select member...", ""} | @customers]} />
+            </div>
+
+            <div class="field">
+              <.input type="select" field={f[:instructor_id]} label="Instructor *"
+                options={[{"Select instructor...", ""} | Enum.map(@instructors, &{&1.name, &1.id})]} />
+            </div>
+
+            <div class="field">
+              <.input type="datetime-local" field={f[:scheduled_at]} label="Date & Time *" />
+            </div>
+
+            <div class="field">
+              <.input type="number" field={f[:duration_minutes]} label="Duration (minutes)" min="1" />
+            </div>
+
+            <div class="field">
+              <.input type="number" field={f[:amount_cents]} label="Amount (MXN) *" step="0.01" min="0" />
+            </div>
+
+            <div class="field">
+              <.input type="number" field={f[:iva_cents]} label="IVA (MXN)" step="0.01" min="0" />
+            </div>
+
+            <div class="field">
+              <.input type="select" field={f[:status]} label="Status" options={[
+                {"Scheduled", "scheduled"},
+                {"Completed", "completed"},
+                {"Cancelled", "cancelled"},
+                {"No Show", "no_show"}
+              ]} />
+            </div>
+
+            <div class="field full">
+              <.input type="textarea" field={f[:notes]} label="Notes" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn primary">Create Consultation</button>
+          <.link navigate={dp(@domain_path_prefix, "/consultations")} class="btn">Cancel</.link>
+        </div>
+      </.form>
+    </section>
   </div>
-
-  <.form for={@changeset} action={@action} as={:consultation} :let={f}>
-    <div class="form-grid">
-      <div class="form-block">
-        <div class="field">
-          <label>Member *</label>
-          <.input type="select" field={f[:customer_id]} options={[{"Select member...", ""} | @customers]} />
-        </div>
-
-        <div class="field">
-          <label>Instructor *</label>
-          <.input type="select" field={f[:instructor_id]} options={[{"Select instructor...", ""} | Enum.map(@instructors, &{&1.name, &1.id})]} />
-        </div>
-
-        <div class="field">
-          <label>Date &amp; Time *</label>
-          <.input type="datetime-local" field={f[:scheduled_at]} />
-        </div>
-
-        <div class="field">
-          <label>Duration (minutes)</label>
-          <.input type="number" field={f[:duration_minutes]} min="1" />
-        </div>
-
-        <div class="field">
-          <label>Amount (MXN) *</label>
-          <.input type="number" field={f[:amount_cents]} step="0.01" min="0" />
-        </div>
-
-        <div class="field">
-          <label>IVA (MXN)</label>
-          <.input type="number" field={f[:iva_cents]} step="0.01" min="0" />
-        </div>
-
-        <div class="field">
-          <label>Status</label>
-          <.input type="select" field={f[:status]} options={[
-            {"Scheduled", "scheduled"},
-            {"Completed", "completed"},
-            {"Cancelled", "cancelled"},
-            {"No Show", "no_show"}
-          ]} />
-        </div>
-
-        <div class="field" style="grid-column: 1 / -1;">
-          <label>Notes</label>
-          <.input type="textarea" field={f[:notes]} />
-        </div>
-      </div>
-    </div>
-
-    <div class="actions" style="margin-top: 1rem;">
-      <button type="submit" class="btn primary">Create Consultation</button>
-      <.link navigate={dp(@domain_path_prefix, "/consultations")} class="btn">Cancel</.link>
-    </div>
-  </.form>
 </section>
