@@ -29,22 +29,49 @@ defmodule Ledgr.Release do
 
   Called on every deploy via Render's preDeployCommand. Safe to run
   repeatedly — Ecto skips already-applied migrations.
+
+  Resilience behaviour:
+  - Repos with no database URL in config are skipped gracefully.
+  - Repos whose URL is set but whose database is unreachable (expired,
+    wrong credentials, network issue) are caught and logged as warnings;
+    the remaining repos still migrate normally.
+  - All per-repo outcomes are summarised at the end.
   """
   def migrate do
     IO.puts("==> Running migrations...")
     load_app()
 
-    for repo <- repos() do
-      if repo_configured?(repo) do
-        IO.puts("    Migrating #{inspect(repo)}...")
-        {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
-        IO.puts("    #{inspect(repo)} — done.")
-      else
-        IO.puts("    Skipping #{inspect(repo)} — no database URL configured.")
-      end
-    end
+    results =
+      Enum.map(repos(), fn repo ->
+        if repo_configured?(repo) do
+          IO.puts("    Migrating #{inspect(repo)}...")
 
-    IO.puts("==> Migrations complete.")
+          try do
+            {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+            IO.puts("    #{inspect(repo)} — done.")
+            {:ok, repo}
+          rescue
+            e ->
+              IO.puts("    ⚠  #{inspect(repo)} FAILED: #{Exception.message(e)}")
+              IO.puts("       Skipping this repo — other repos will still migrate.")
+              {:error, repo, e}
+          end
+        else
+          IO.puts("    Skipping #{inspect(repo)} — no database URL configured.")
+          {:skipped, repo}
+        end
+      end)
+
+    failed = for {:error, repo, _} <- results, do: repo
+
+    if failed == [] do
+      IO.puts("==> Migrations complete.")
+    else
+      IO.puts("")
+      IO.puts("==> Migrations finished with warnings. The following repos could not be migrated:")
+      Enum.each(failed, fn repo -> IO.puts("      • #{inspect(repo)}") end)
+      IO.puts("    Check the database URL and connectivity for these repos.")
+    end
   end
 
   @doc """
