@@ -35,8 +35,13 @@ defmodule Ledgr.Release do
     load_app()
 
     for repo <- repos() do
-      IO.puts("    Migrating #{inspect(repo)}...")
-      {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+      if repo_configured?(repo) do
+        IO.puts("    Migrating #{inspect(repo)}...")
+        {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+        IO.puts("    #{inspect(repo)} — done.")
+      else
+        IO.puts("    Skipping #{inspect(repo)} — no database URL configured.")
+      end
     end
 
     IO.puts("==> Migrations complete.")
@@ -143,6 +148,16 @@ defmodule Ledgr.Release do
 
   defp repos do
     Application.fetch_env!(@app, :ecto_repos)
+  end
+
+  # Returns true only if the repo has a :url key in its runtime config.
+  # Repos with no database URL configured (e.g. an expired Render DB whose
+  # env var was removed) are skipped gracefully rather than timing out.
+  defp repo_configured?(repo) do
+    case Application.fetch_env(@app, repo) do
+      {:ok, config} -> Keyword.has_key?(config, :url)
+      :error        -> false
+    end
   end
 
   # Loads the app's module tree and runtime config without starting any
