@@ -178,6 +178,7 @@ defmodule LedgrWeb.Router do
     resources "/customers", CustomerController
 
     # Class sessions with check-in
+    get "/class-sessions/calendar", Domains.VolumeStudio.ClassSessionController, :calendar
     resources "/class-sessions", Domains.VolumeStudio.ClassSessionController, only: [:index, :show, :new, :create, :edit, :update, :delete]
     post "/class-sessions/:id/checkin/:booking_id", Domains.VolumeStudio.ClassSessionController, :checkin
     get  "/class-sessions/:id/bookings/new",        Domains.VolumeStudio.ClassSessionController, :new_booking

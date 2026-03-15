@@ -3222,6 +3222,7 @@
   .product-detail-gallery {
     display: flex;
     flex-direction: column;
+    min-width: 0; /* prevent grid item from expanding beyond its track */
     gap: 0.75rem;
   }
 

@@ -181,6 +181,24 @@ defmodule Ledgr.Domains.VolumeStudio.ClassSessions do
     }
   end
 
+  @doc """
+  Returns a map of %Date{} => [ClassSession] for all sessions in the given year/month.
+  Sessions are ordered by scheduled_at ascending within each date bucket.
+  """
+  def list_class_sessions_for_calendar_month(year, month) do
+    first_day = Date.new!(year, month, 1)
+    last_day  = Date.end_of_month(first_day)
+    from_dt   = first_day |> NaiveDateTime.new!(~T[00:00:00]) |> DateTime.from_naive!("Etc/UTC")
+    to_dt     = last_day |> Date.add(1) |> NaiveDateTime.new!(~T[00:00:00]) |> DateTime.from_naive!("Etc/UTC")
+
+    ClassSession
+    |> where([s], s.scheduled_at >= ^from_dt and s.scheduled_at < ^to_dt)
+    |> order_by(asc: :scheduled_at)
+    |> preload(:instructor)
+    |> Repo.all()
+    |> Enum.group_by(fn s -> DateTime.to_date(s.scheduled_at) end)
+  end
+
   # ── Private helpers ──────────────────────────────────────────────────
 
   defp maybe_filter_status(query, nil), do: query

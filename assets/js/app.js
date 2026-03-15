@@ -540,7 +540,10 @@ const statusLabels = {
   in_prep: 'In Prep',
   ready: 'Ready',
   delivered: 'Delivered',
-  canceled: 'Canceled'
+  canceled: 'Canceled',
+  scheduled: 'Scheduled',
+  completed: 'Completed',
+  cancelled: 'Cancelled'
 }
 
 const statusColors = {
@@ -548,7 +551,10 @@ const statusColors = {
   in_prep: '#f59e0b',
   ready: '#10b981',
   delivered: '#6b7280',
-  canceled: '#ef4444'
+  canceled: '#ef4444',
+  scheduled: '#3b82f6',
+  completed: '#10b981',
+  cancelled: '#ef4444'
 }
 
 function escapeHtml(str) {

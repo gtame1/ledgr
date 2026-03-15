@@ -171,6 +171,47 @@ defmodule LedgrWeb.Domains.VolumeStudio.ClassSessionController do
     end
   end
 
+  def calendar(conn, params) do
+    today = Date.utc_today()
+
+    year = case params["year"] do
+      nil -> today.year
+      y   -> String.to_integer(y)
+    end
+
+    month = case params["month"] do
+      nil -> today.month
+      m   -> String.to_integer(m)
+    end
+
+    month = cond do
+      month < 1  -> 1
+      month > 12 -> 12
+      true       -> month
+    end
+
+    sessions_by_date = ClassSessions.list_class_sessions_for_calendar_month(year, month)
+
+    first_day = Date.new!(year, month, 1)
+    last_day  = Date.end_of_month(first_day)
+
+    weekday         = Date.day_of_week(first_day)
+    days_from_sunday = if weekday == 7, do: 0, else: weekday
+    calendar_start  = Date.add(first_day, -days_from_sunday)
+    calendar_end    = Date.add(calendar_start, 41)
+
+    render(conn, :calendar,
+      year:             year,
+      month:            month,
+      first_day:        first_day,
+      last_day:         last_day,
+      calendar_start:   calendar_start,
+      calendar_end:     calendar_end,
+      sessions_by_date: sessions_by_date,
+      today:            today
+    )
+  end
+
   def checkin(conn, %{"id" => session_id, "booking_id" => booking_id}) do
     session = ClassSessions.get_class_session!(session_id)
     booking = Enum.find(session.class_bookings, &(to_string(&1.id) == booking_id))
@@ -210,6 +251,19 @@ defmodule LedgrWeb.Domains.VolumeStudio.ClassSessionHTML do
   def booking_status_class("no_show"), do: "status-unpaid"
   def booking_status_class("cancelled"), do: "status-unpaid"
   def booking_status_class(_), do: ""
+
+  def prev_month(year, month) do
+    if month == 1, do: %{year: year - 1, month: 12}, else: %{year: year, month: month - 1}
+  end
+
+  def next_month(year, month) do
+    if month == 12, do: %{year: year + 1, month: 1}, else: %{year: year, month: month + 1}
+  end
+
+  def format_time(%DateTime{} = dt),      do: Calendar.strftime(dt, "%-I:%M %p")
+  def format_time(%NaiveDateTime{} = ndt), do: Calendar.strftime(ndt, "%-I:%M %p")
+  def format_time(nil),                    do: ""
+  def format_time(_),                      do: ""
 
   def format_datetime(%DateTime{} = dt),
     do: Calendar.strftime(dt, "%b %-d, %Y · %-I:%M %p")
