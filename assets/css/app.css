@@ -4524,10 +4524,6 @@
       transform: scale(1.25);
     }
 
-    .product-detail-thumbstrip {
-      display: none;
-    }
-
     .product-detail-thumb {
       width: 60px;
       height: 60px;
