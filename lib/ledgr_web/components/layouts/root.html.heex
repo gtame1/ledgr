@@ -243,15 +243,8 @@
               </div>
             </div>
 
-            <%
-              domain_items = domain.menu_items() |> Enum.flat_map(& &1.items)
-              domain_has_customers    = Enum.any?(domain_items, & &1.path == "#{prefix}/customers")
-              domain_has_transactions = Enum.any?(domain_items, & &1.path == "#{prefix}/transactions")
-              other_active = String.starts_with?(req_path, "#{prefix}/investments") or
-                             String.starts_with?(req_path, "#{prefix}/transfers") or
-                             (not domain_has_transactions and String.starts_with?(req_path, "#{prefix}/transactions") and not String.contains?(req_path, "account-transactions")) or
-                             (not domain_has_customers and String.starts_with?(req_path, "#{prefix}/customers"))
-            %>
+            <% domain_has_customers = domain.menu_items() |> Enum.flat_map(& &1.items) |> Enum.any?(& &1.path == "#{prefix}/customers") %>
+            <% other_active = String.starts_with?(req_path, "#{prefix}/investments") or String.starts_with?(req_path, "#{prefix}/transfers") or (String.starts_with?(req_path, "#{prefix}/transactions") and not String.contains?(req_path, "account-transactions")) or (not domain_has_customers and String.starts_with?(req_path, "#{prefix}/customers")) %>
             <div class="nav-dropdown" data-default-open={if other_active, do: "true"}>
               <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
                 <span>Other</span>
@@ -263,9 +256,7 @@
                 <% end %>
                 <.link navigate={"#{prefix}/investments"} class="nav-link">Investments</.link>
                 <.link navigate={"#{prefix}/transfers"} class="nav-link">Money Transfers</.link>
-                <%= unless domain_has_transactions do %>
-                  <.link navigate={"#{prefix}/transactions"} class="nav-link">All Transactions</.link>
-                <% end %>
+                <.link navigate={"#{prefix}/transactions"} class="nav-link">All Transactions</.link>
               </div>
             </div>
 

@@ -138,8 +138,7 @@ defmodule Ledgr.Domains.VolumeStudio do
         %{label: "Rentals",             path: "#{prefix}/space-rentals",       icon: :receipt}
       ]},
       %{group: "Finance", items: [
-        %{label: "Expenses",     path: "#{prefix}/expenses",     icon: :expenses},
-        %{label: "Transactions", path: "#{prefix}/transactions", icon: :transactions}
+        %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
       ]}
     ]
   end
