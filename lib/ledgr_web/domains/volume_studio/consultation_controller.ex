@@ -128,6 +128,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
       outstanding_cents:    summary.outstanding_cents,
       default_amount_cents: summary.outstanding_cents,
       change_accounts:      Accounting.cash_or_bank_account_options(),
+      paid_to_accounts:     Ledgr.Domains.VolumeStudio.paid_to_account_options(),
       action:               dp(conn, "/consultations/#{id}/payment"),
       back_path:            dp(conn, "/consultations/#{id}")
     )
@@ -142,6 +143,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
     note               = Map.get(payment_params, "note")
     date_str           = Map.get(payment_params, "payment_date", "")
     owed_change_choice = Map.get(payment_params, "owed_change_choice", "keep")
+    paid_to_account_code = Map.get(payment_params, "paid_to_account_code", "1000")
 
     with {amount_float, _} <- Float.parse(amount_str),
          amount_cents = round(amount_float * 100),
@@ -151,7 +153,8 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
       case Consultations.record_payment(consultation, amount_cents,
              payment_date: payment_date,
              method: method,
-             note: note
+             note: note,
+             paid_to_account_code: paid_to_account_code
            ) do
         {:ok, _} ->
           overpayment = max(0, amount_cents - outstanding_before)

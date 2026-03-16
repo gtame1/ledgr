@@ -114,12 +114,13 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
         {amount_cents, 0}
       end
 
-    cash     = Accounting.get_account_by_code!(@cash_code)
+    paid_to_code = Keyword.get(opts, :paid_to_account_code, @cash_code)
+    paid_to  = Accounting.get_account_by_code!(paid_to_code)
     deferred = Accounting.get_account_by_code!(@deferred_sub_rev_code)
 
     base_lines = [
-      %{account_id: cash.id,     debit_cents: amount_cents,  credit_cents: 0,
-        description: note || "Cash received — subscription ##{subscription.id}"},
+      %{account_id: paid_to.id,  debit_cents: amount_cents,  credit_cents: 0,
+        description: note || "Payment received — subscription ##{subscription.id}"},
       %{account_id: deferred.id, debit_cents: 0, credit_cents: base_portion,
         description: "Deferred subscription revenue — sub ##{subscription.id}"}
     ]
@@ -370,13 +371,15 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     reference    = "vs_consult_payment_#{consultation.id}"
     entry_type   = "consultation_payment"
 
+    paid_to_code = Map.get(attrs, :paid_to_account_code, @cash_code)
+
     idempotent(reference, entry_type, fn ->
-      cash    = Accounting.get_account_by_code!(@cash_code)
+      paid_to = Accounting.get_account_by_code!(paid_to_code)
       revenue = Accounting.get_account_by_code!(@consultation_revenue_code)
 
       base_lines = [
-        %{account_id: cash.id,    debit_cents: total,  credit_cents: 0,
-          description: note || "Cash received — consultation ##{consultation.id}"},
+        %{account_id: paid_to.id, debit_cents: total,  credit_cents: 0,
+          description: note || "Payment received — consultation ##{consultation.id}"},
         %{account_id: revenue.id, debit_cents: 0,      credit_cents: amount,
           description: "Consultation revenue — consultation ##{consultation.id}"}
       ]
@@ -504,16 +507,17 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
         {paid, 0}
       end
 
+    paid_to_code = Map.get(attrs, :paid_to_account_code, @cash_code)
     seq        = :erlang.unique_integer([:positive, :monotonic])
     reference  = "vs_rental_payment_#{rental.id}_#{seq}"
     entry_type = "space_rental_payment"
 
-    cash    = Accounting.get_account_by_code!(@cash_code)
+    paid_to = Accounting.get_account_by_code!(paid_to_code)
     revenue = Accounting.get_account_by_code!(@rental_revenue_code)
 
     base_lines = [
-      %{account_id: cash.id,    debit_cents: paid,             credit_cents: 0,
-        description: note || "Cash received — rental ##{rental.id}"},
+      %{account_id: paid_to.id, debit_cents: paid,             credit_cents: 0,
+        description: note || "Payment received — rental ##{rental.id}"},
       %{account_id: revenue.id, debit_cents: 0, credit_cents: revenue_portion,
         description: "Space rental revenue — rental ##{rental.id}"}
     ]

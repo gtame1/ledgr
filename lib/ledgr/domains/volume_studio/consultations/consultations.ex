@@ -95,8 +95,9 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations do
   def record_payment(consultation, amount_cents, opts \\ [])
 
   def record_payment(%Consultation{paid_at: nil} = consultation, amount_cents, opts) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
-    note         = Keyword.get(opts, :note)
+    payment_date       = Keyword.get(opts, :payment_date, Date.utc_today())
+    note               = Keyword.get(opts, :note)
+    paid_to_account_code = Keyword.get(opts, :paid_to_account_code, "1000")
 
     Repo.transaction(fn ->
       updated =
@@ -105,9 +106,10 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations do
         |> Repo.update!()
 
       VolumeStudioAccounting.record_consultation_payment(updated, %{
-        amount_cents: amount_cents,
-        payment_date: payment_date,
-        note:         note
+        amount_cents:        amount_cents,
+        payment_date:        payment_date,
+        note:                note,
+        paid_to_account_code: paid_to_account_code
       })
 
       updated

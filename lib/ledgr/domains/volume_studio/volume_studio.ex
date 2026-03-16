@@ -69,6 +69,8 @@ defmodule Ledgr.Domains.VolumeStudio do
   def account_codes do
     %{
       cash: "1000",
+      bank_transfer: "1010",
+      card_terminal: "1020",
       accounts_receivable: "1100",
       iva_receivable: "1400",
       iva_payable: "2100",
@@ -82,6 +84,18 @@ defmodule Ledgr.Domains.VolumeStudio do
       rental_revenue: "4030",
       partner_fee_revenue: "4040"
     }
+  end
+
+  @doc """
+  Returns the list of accounts available as "paid to" destinations on payment forms.
+  Format: [{display_label, account_code}]
+  """
+  def paid_to_account_options do
+    [
+      {"Cash (drawer)", "1000"},
+      {"Bank Transfer", "1010"},
+      {"Card Terminal", "1020"}
+    ]
   end
 
   @impl Ledgr.Domain.DomainConfig

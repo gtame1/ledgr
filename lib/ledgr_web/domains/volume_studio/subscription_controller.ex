@@ -26,6 +26,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
 
   def show(conn, %{"id" => id}) do
     subscription = Subscriptions.get_subscription!(id)
+    subscription = maybe_auto_expire(subscription)
     summary      = Subscriptions.payment_summary(subscription)
     payments     = Subscriptions.list_payments_for_subscription(subscription)
     bookings     = Subscriptions.list_bookings_for_subscription(subscription)
@@ -36,6 +37,31 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
       bookings:     bookings
     )
   end
+
+  defp maybe_auto_expire(%{status: status} = sub) when status in ["active", "paused"] do
+    plan      = sub.subscription_plan
+    today     = Date.utc_today()
+    past_due  = sub.ends_on && Date.compare(sub.ends_on, today) == :lt
+    maxed_out = plan.class_limit && sub.classes_used >= plan.class_limit
+
+    new_status =
+      cond do
+        maxed_out -> "completed"
+        past_due  -> "expired"
+        true      -> nil
+      end
+
+    if new_status do
+      case Subscriptions.update_subscription(sub, %{status: new_status}) do
+        {:ok, updated} -> updated
+        _              -> sub
+      end
+    else
+      sub
+    end
+  end
+
+  defp maybe_auto_expire(sub), do: sub
 
   def new(conn, params) do
     mode = Map.get(params, "mode", "existing")
@@ -232,6 +258,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
       outstanding_cents:   summary.outstanding_cents,
       default_amount_cents: summary.outstanding_cents,
       change_accounts:     Accounting.cash_or_bank_account_options(),
+      paid_to_accounts:    Ledgr.Domains.VolumeStudio.paid_to_account_options(),
       action:              dp(conn, "/subscriptions/#{id}/payment"),
       back_path:           dp(conn, "/subscriptions/#{id}")
     )
@@ -246,12 +273,14 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
     note               = Map.get(payment_params, "note")
     date_str           = Map.get(payment_params, "payment_date", "")
     owed_change_choice = Map.get(payment_params, "owed_change_choice", "keep")
+    paid_to_account_code = Map.get(payment_params, "paid_to_account_code", "1000")
 
     with {amount_float, _} <- Float.parse(amount_str),
          amount_cents = round(amount_float * 100),
          true <- amount_cents > 0,
          {:ok, payment_date} <- Date.from_iso8601(date_str) do
-      opts = [method: method, note: note, payment_date: payment_date]
+      opts = [method: method, note: note, payment_date: payment_date,
+              paid_to_account_code: paid_to_account_code]
 
       case Subscriptions.record_payment(subscription, amount_cents, opts) do
         {:ok, _} ->
@@ -487,11 +516,12 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionHTML do
 
   embed_templates "subscription_html/*"
 
-  def status_class("active"), do: "status-paid"
-  def status_class("paused"), do: "status-partial"
+  def status_class("active"),    do: "status-paid"
+  def status_class("paused"),    do: "status-partial"
+  def status_class("completed"), do: "status-extra"
   def status_class("cancelled"), do: "status-unpaid"
-  def status_class("expired"), do: "status-unpaid"
-  def status_class(_), do: ""
+  def status_class("expired"),   do: "status-unpaid"
+  def status_class(_),           do: ""
 
   def plan_label(plan) do
     price =
@@ -503,15 +533,30 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionHTML do
     "#{plan.name} — #{price} MXN"
   end
 
-  def plan_type_badge("package"), do: "status-partial"
-  def plan_type_badge("promo"), do: "status-partial"
+  def plan_type_badge("package"),    do: "status-partial"
+  def plan_type_badge("promo"),      do: "status-promo"
   def plan_type_badge("membership"), do: "status-paid"
-  def plan_type_badge("extra"), do: ""
-  def plan_type_badge(_), do: ""
+  def plan_type_badge("extra"),      do: "status-extra"
+  def plan_type_badge(_),            do: ""
 
   def booking_status_class("checked_in"), do: "status-paid"
   def booking_status_class("booked"), do: "status-partial"
   def booking_status_class("cancelled"), do: "status-unpaid"
   def booking_status_class("no_show"), do: "status-unpaid"
   def booking_status_class(_), do: ""
+
+  @doc "Returns {label, css_class} for the payment status badge shown in the subscriptions list."
+  def payment_status(sub) do
+    plan  = sub.subscription_plan
+    base  = max(plan.price_cents - (sub.discount_cents || 0), 0)
+    total = base + (sub.iva_cents || 0)
+    paid  = sub.paid_cents || 0
+
+    cond do
+      total == 0    -> {"Paid", "status-paid"}
+      paid >= total -> {"Paid", "status-paid"}
+      paid > 0      -> {"Partial", "status-partial"}
+      true          -> {"Unpaid", "status-unpaid"}
+    end
+  end
 end

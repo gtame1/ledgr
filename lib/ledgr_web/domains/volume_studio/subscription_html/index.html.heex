@@ -11,7 +11,7 @@
   </div>
 
   <div class="tab-bar" style="margin-bottom: 1rem;">
-    <%= for {label, value} <- [{"All", nil}, {"Active", "active"}, {"Paused", "paused"}, {"Cancelled", "cancelled"}, {"Expired", "expired"}] do %>
+    <%= for {label, value} <- [{"All", nil}, {"Active", "active"}, {"Paused", "paused"}, {"Completed", "completed"}, {"Cancelled", "cancelled"}, {"Expired", "expired"}] do %>
       <.link
         navigate={dp(@domain_path_prefix, if(value, do: "/subscriptions?status=#{value}", else: "/subscriptions"))}
         class={"tab-item#{if is_nil(@current_plan_type) and @current_status == value, do: " active", else: ""}"}
@@ -40,7 +40,7 @@
           <%= if @current_plan_type != "extra" do %>
             <th>Classes Used</th>
           <% end %>
-          <th>Deferred</th>
+          <th>Payment</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -66,7 +66,10 @@
                   <% end %>
                 </td>
               <% end %>
-              <td><%= format_currency(sub.deferred_revenue_cents) %></td>
+              <td>
+                <% {pay_label, pay_class} = payment_status(sub) %>
+                <span class={"status-badge #{pay_class}"}><%= pay_label %></span>
+              </td>
               <td>
                 <span class={"status-badge #{status_class(sub.status)}"}>
                   <%= String.capitalize(sub.status) %>

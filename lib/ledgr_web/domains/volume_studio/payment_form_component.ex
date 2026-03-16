@@ -27,6 +27,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
   attr :action,              :string,  required: true
   attr :back_path,           :string,  required: true
   attr :change_accounts,     :list,    required: true
+  attr :paid_to_accounts,    :list,    default: []
 
   def payment_form(assigns) do
     ~H"""
@@ -102,6 +103,17 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
               <option value="other">Other</option>
             </select>
           </div>
+
+          <%= if @paid_to_accounts != [] do %>
+            <div class="field">
+              <label for="payment_paid_to_account_code">Paid to *</label>
+              <select id="payment_paid_to_account_code" name="payment[paid_to_account_code]" class="form-input">
+                <%= for {label, code} <- @paid_to_accounts do %>
+                  <option value={code}><%= label %></option>
+                <% end %>
+              </select>
+            </div>
+          <% end %>
 
           <div class="field" style="grid-column: 1 / -1;">
             <label for="payment_note">Note (optional)</label>
