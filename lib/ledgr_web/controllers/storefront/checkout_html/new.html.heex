@@ -83,11 +83,18 @@
         <div class="checkout-field">
           <label for="delivery_date">Fecha de entrega *</label>
           <input type="date" id="delivery_date" name="checkout[delivery_date]" required
-            min={Date.utc_today() |> Date.add(1) |> Date.to_string()}
+            min={Date.to_string(@min_delivery_date)}
             value={@form_values["delivery_date"]} />
           <%= if @errors[:delivery_date] do %>
             <span class="checkout-error"><%= @errors[:delivery_date] %></span>
           <% end %>
+          <p class="checkout-hint">
+            <%= if @same_day_cutoff_passed do %>
+              ⚠️ Las 12pm ya pasaron — la entrega más próxima disponible es mañana.
+            <% else %>
+              Puedes pedir para hoy si son antes de las 12pm (hora CDMX).
+            <% end %>
+          </p>
         </div>
 
         <div class="checkout-field">

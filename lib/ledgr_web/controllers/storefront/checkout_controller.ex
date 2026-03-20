@@ -21,7 +21,14 @@ defmodule LedgrWeb.Storefront.CheckoutController do
       conn
       |> assign(:storefront, true)
       |> assign(:page_title, "Checkout")
-      |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: %{}, form_values: %{})
+      |> render(:new,
+        cart_items: cart_items,
+        cart_total: cart_total,
+        errors: %{},
+        form_values: %{},
+        min_delivery_date: min_delivery_date(),
+        same_day_cutoff_passed: mexico_city_now().hour >= 12
+      )
     end
   end
 
@@ -54,6 +61,11 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           "Por favor selecciona una fecha"
         )
         |> maybe_add_error(
+          same_day_after_cutoff?(checkout_params["delivery_date"]),
+          :delivery_date,
+          "Los pedidos para hoy solo se aceptan antes de las 12pm (hora CDMX)"
+        )
+        |> maybe_add_error(
           String.trim(checkout_params["payment_method"] || "") == "",
           :payment_method,
           "Por favor selecciona un método de pago"
@@ -64,7 +76,14 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         |> assign(:storefront, true)
         |> assign(:page_title, "Checkout")
         |> put_flash(:error, "Por favor corrige los errores a continuación.")
-        |> render(:new, cart_items: cart_items, cart_total: cart_total, errors: errors, form_values: checkout_params)
+        |> render(:new,
+          cart_items: cart_items,
+          cart_total: cart_total,
+          errors: errors,
+          form_values: checkout_params,
+          min_delivery_date: min_delivery_date(),
+          same_day_cutoff_passed: mexico_city_now().hour >= 12
+        )
       else
         customer_attrs = %{
           name: customer_name,
@@ -88,7 +107,9 @@ defmodule LedgrWeb.Storefront.CheckoutController do
               cart_items: cart_items,
               cart_total: cart_total,
               errors: %{customer_phone: "Número de teléfono inválido"},
-              form_values: checkout_params
+              form_values: checkout_params,
+              min_delivery_date: min_delivery_date(),
+              same_day_cutoff_passed: mexico_city_now().hour >= 12
             )
         end
       end
@@ -279,7 +300,9 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           cart_items: cart_items,
           cart_total: cart_total,
           errors: %{},
-          form_values: checkout_params
+          form_values: checkout_params,
+          min_delivery_date: min_delivery_date(),
+          same_day_cutoff_passed: mexico_city_now().hour >= 12
         )
     end
   end
@@ -346,7 +369,9 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           cart_items: cart_items_reload,
           cart_total: cart_total,
           errors: %{},
-          form_values: checkout_params
+          form_values: checkout_params,
+          min_delivery_date: min_delivery_date(),
+          same_day_cutoff_passed: mexico_city_now().hour >= 12
         )
     end
   end
@@ -437,6 +462,26 @@ defmodule LedgrWeb.Storefront.CheckoutController do
 
   defp maybe_add_error(errors, true, field, message), do: Map.put(errors, field, message)
   defp maybe_add_error(errors, false, _field, _message), do: errors
+
+  # Mexico City is permanently UTC-6 (DST abolished in 2023)
+  defp mexico_city_now do
+    DateTime.add(DateTime.utc_now(), -6 * 3600, :second)
+  end
+
+  defp min_delivery_date do
+    mx_now = mexico_city_now()
+    mx_date = DateTime.to_date(mx_now)
+    if mx_now.hour >= 12, do: Date.add(mx_date, 1), else: mx_date
+  end
+
+  defp same_day_after_cutoff?(date_str) do
+    mx_now = mexico_city_now()
+    mx_date = DateTime.to_date(mx_now)
+    case Date.from_iso8601(date_str || "") do
+      {:ok, d} -> d == mx_date && mx_now.hour >= 12
+      _ -> false
+    end
+  end
 
   defp load_cart_items(cart) when map_size(cart) == 0, do: {[], 0}
 
