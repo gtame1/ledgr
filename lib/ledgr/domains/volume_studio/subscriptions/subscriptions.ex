@@ -95,6 +95,12 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   """
   def record_payment(sub, amount_cents, opts \\ [])
 
+  def record_payment(%Subscription{subscription_plan: %Ecto.Association.NotLoaded{}} = sub, amount_cents, opts) do
+    sub
+    |> Repo.preload(:subscription_plan)
+    |> record_payment(amount_cents, opts)
+  end
+
   def record_payment(%Subscription{subscription_plan: plan} = sub, amount_cents, opts)
       when not is_nil(plan) and is_integer(amount_cents) and amount_cents > 0 do
     {base_portion, _iva_portion} = split_base_iva(sub, amount_cents)
@@ -274,6 +280,12 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
 
   Keys: :deferred, :recognized, :total_paid, :remaining, :discount_cents, :effective_price, :outstanding_cents
   """
+  def payment_summary(%Subscription{subscription_plan: %Ecto.Association.NotLoaded{}} = sub) do
+    sub
+    |> Repo.preload(:subscription_plan)
+    |> payment_summary()
+  end
+
   def payment_summary(%Subscription{subscription_plan: plan} = sub) when not is_nil(plan) do
     base     = plan.price_cents
     discount = sub.discount_cents || 0
