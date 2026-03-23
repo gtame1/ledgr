@@ -38,13 +38,15 @@ defmodule Ledgr.DataCase do
   def setup_sandbox(tags) do
     pid1 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.MrMunchMe, shared: not tags[:async])
     pid2 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.Viaxe, shared: not tags[:async])
+    pid3 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.VolumeStudio, shared: not tags[:async])
 
     on_exit(fn ->
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid1)
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid2)
+      Ecto.Adapters.SQL.Sandbox.stop_owner(pid3)
     end)
 
-    # Default to MrMunchMe; Viaxe tests override this in their own setup
+    # Default to MrMunchMe; domain tests override this in their own setup
     Ledgr.Repo.put_active_repo(Ledgr.Repos.MrMunchMe)
   end
 

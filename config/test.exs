@@ -32,6 +32,15 @@ config :ledgr, Ledgr.Repos.VolumeStudio,
   pool_size: System.schedulers_online() * 2,
   priv: "priv/repos/volume_studio"
 
+config :ledgr, Ledgr.Repos.LedgrHQ,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_ledgr_hq_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2,
+  priv: "priv/repos/ledgr_hq"
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :ledgr, LedgrWeb.Endpoint,

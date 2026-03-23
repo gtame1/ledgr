@@ -4,40 +4,7 @@
   </header>
 
   <div class="content-body">
-    <!-- Period selector -->
-    <section class="card">
-      <h2 class="card-title">Period</h2>
-      <p class="card-subtitle">
-        Default is current month. Adjust dates to see another period.
-      </p>
-
-      <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/reports/financial_analysis")} class="form-grid" :let={_f}>
-        <div class="form-block">
-          <div class="field">
-            <label>Start date</label>
-            <input type="date" name="start_date" value={@start_date} />
-          </div>
-
-          <div class="field">
-            <label>End date</label>
-            <input type="date" name="end_date" value={@end_date} />
-          </div>
-
-          <div class="field">
-            <label>&nbsp;</label>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button type="submit" class="btn primary">
-                Update period
-              </button>
-              <.link navigate={dp(@domain_path_prefix, "/reports/financial_analysis?period=last_7_days")} class="btn">Last 7 days</.link>
-              <.link navigate={dp(@domain_path_prefix, "/reports/financial_analysis?period=this_month")} class="btn">This month</.link>
-              <.link navigate={dp(@domain_path_prefix, "/reports/financial_analysis?period=last_90_days")} class="btn">Last 90 days</.link>
-              <.link navigate={dp(@domain_path_prefix, "/reports/financial_analysis?period=all_time")} class="btn">All time</.link>
-            </div>
-          </div>
-        </div>
-      </.form>
-    </section>
+    <.period_selector action={dp(@domain_path_prefix, "/reports/financial_analysis")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
 
     <!-- Key Highlights -->
     <section class="card">

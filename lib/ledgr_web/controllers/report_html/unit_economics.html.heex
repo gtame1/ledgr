@@ -11,17 +11,12 @@
       </.link>
     </div>
     <!-- Product selector and period -->
-    <section class="card">
-      <h2 class="card-title">Product &amp; Period</h2>
-      <p class="card-subtitle">
-        Select a product and date range to view unit economics.
-      </p>
-
-      <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/reports/unit_economics")} class="form-grid" :let={_f}>
-        <div class="form-block">
-          <div class="field">
-            <label>Product</label>
-            <select name="product_id" id="product-select" onchange="this.form.submit()">
+    <section class="period-selector card">
+      <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/reports/unit_economics")} :let={_f}>
+        <div class="period-selector__dates">
+          <div class="period-selector__field">
+            <label class="period-selector__label">Product</label>
+            <select name="product_id" id="product-select" onchange="this.form.submit()" class="period-selector__input" style="height: auto; padding: 0.4rem 0.6rem;">
               <option value="">Select a product</option>
               <%= for {label, id} <- @product_options do %>
                 <option value={to_string(id)} selected={id == @selected_product_id}>
@@ -30,32 +25,25 @@
               <% end %>
             </select>
           </div>
-
-          <div class="field">
-            <label>Start date</label>
-            <input type="date" name="start_date" value={@start_date} />
+          <div class="period-selector__field">
+            <label class="period-selector__label">Start date</label>
+            <input type="date" name="start_date" value={@start_date} class="period-selector__input" />
           </div>
-
-          <div class="field">
-            <label>End date</label>
-            <input type="date" name="end_date" value={@end_date} />
+          <div class="period-selector__sep">→</div>
+          <div class="period-selector__field">
+            <label class="period-selector__label">End date</label>
+            <input type="date" name="end_date" value={@end_date} class="period-selector__input" />
           </div>
-
-          <div class="field">
-            <label>&nbsp;</label>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button type="submit" class="btn primary">
-                Update
-              </button>
-              <%= if @selected_product_id do %>
-                <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=last_7_days&product_id=#{@selected_product_id}")} class="btn">Last 7 days</.link>
-                <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=this_month&product_id=#{@selected_product_id}")} class="btn">This month</.link>
-                <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=last_90_days&product_id=#{@selected_product_id}")} class="btn">Last 90 days</.link>
-                <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=all_time&product_id=#{@selected_product_id}")} class="btn">All time</.link>
-              <% end %>
-            </div>
-          </div>
+          <button type="submit" class="btn primary period-selector__submit">Apply</button>
         </div>
+        <%= if @selected_product_id do %>
+          <div class="period-selector__presets">
+            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=last_7_days&product_id=#{@selected_product_id}")} class="period-selector__preset">Last 7 days</.link>
+            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=this_month&product_id=#{@selected_product_id}")} class="period-selector__preset">This month</.link>
+            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=last_90_days&product_id=#{@selected_product_id}")} class="period-selector__preset">Last 90 days</.link>
+            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=all_time&product_id=#{@selected_product_id}")} class="period-selector__preset">All time</.link>
+          </div>
+        <% end %>
       </.form>
     </section>
 

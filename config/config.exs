@@ -8,10 +8,10 @@
 import Config
 
 config :ledgr,
-  ecto_repos: [Ledgr.Repos.MrMunchMe, Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio],
+  ecto_repos: [Ledgr.Repos.MrMunchMe, Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ],
   generators: [timestamp_type: :utc_datetime],
   domain: Ledgr.Domains.MrMunchMe,
-  domains: [Ledgr.Domains.MrMunchMe, Ledgr.Domains.Viaxe, Ledgr.Domains.VolumeStudio],
+  domains: [Ledgr.Domains.MrMunchMe, Ledgr.Domains.Viaxe, Ledgr.Domains.VolumeStudio, Ledgr.Domains.LedgrHQ],
   default_domain: Ledgr.Domains.MrMunchMe,
   # Default shipping fee in cents (MXN). Override per-order via the admin form.
   default_shipping_fee_cents: 5000

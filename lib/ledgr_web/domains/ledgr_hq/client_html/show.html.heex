@@ -1,0 +1,62 @@
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title"><%= @client.name %></h2>
+      <p class="card-subtitle">
+        <span class={"status-badge #{status_class(@client.status)}"}>
+          <%= String.capitalize(@client.status) %>
+        </span>
+        &nbsp;· Client since <%= @client.started_on %>
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <.link navigate={dp(@domain_path_prefix, "/clients/#{@client.id}/edit")} class="btn">
+        Edit
+      </.link>
+    </div>
+  </div>
+
+  <div class="form-block">
+    <div class="field">
+      <label>Linked App</label>
+      <p>
+        <%= if @client.domain_slug do %>
+          <span style="font-family: monospace;">/app/<%= @client.domain_slug %></span>
+        <% else %>
+          <span style="color: var(--text-muted);">Not linked</span>
+        <% end %>
+      </p>
+    </div>
+
+    <%= if @client.ended_on do %>
+      <div class="field">
+        <label>Ended On</label>
+        <p><%= @client.ended_on %></p>
+      </div>
+    <% end %>
+
+    <%= if @client.notes do %>
+      <div class="field full">
+        <label>Notes</label>
+        <p><%= @client.notes %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+    <p class="card-subtitle" style="margin-bottom: 0.75rem;">Update Status</p>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <%= for status <- ~w(active trial paused churned) do %>
+        <form action={dp(@domain_path_prefix, "/clients/#{@client.id}/status")} method="post"
+              style="display:inline;"
+              onsubmit={if status == "churned", do: "return confirm('Mark this client as churned?')"}>
+          <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+          <input type="hidden" name="status" value={status} />
+          <button type="submit" class={"btn btn-sm#{if @client.status == status, do: " primary", else: ""}"}>
+            <%= String.capitalize(status) %>
+          </button>
+        </form>
+      <% end %>
+    </div>
+  </div>
+</section>

@@ -37,6 +37,7 @@ defmodule Ledgr.Application do
       Ledgr.Repos.MrMunchMe,
       Ledgr.Repos.Viaxe,
       Ledgr.Repos.VolumeStudio,
+      Ledgr.Repos.LedgrHQ,
       {DNSCluster, query: Application.get_env(:ledgr, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Ledgr.PubSub},
       # Start to serve requests, typically the last entry

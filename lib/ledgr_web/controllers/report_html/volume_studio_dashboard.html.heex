@@ -9,21 +9,7 @@
   <div class="content-body">
     <% m = @metrics %>
 
-    <!-- Period selector -->
-    <section class="card">
-      <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/")} :let={_f}>
-        <div class="filter-bar">
-          <input type="date" name="start_date" value={@start_date} class="filter-select" />
-          <input type="date" name="end_date" value={@end_date} class="filter-select" />
-          <button type="submit" class="btn sm primary">Apply</button>
-          <span style="width: 1px; height: 1.5rem; background: var(--border-subtle); margin: 0 0.25rem;"></span>
-          <.link navigate={dp(@domain_path_prefix, "/?period=this_month")} class="btn sm">This month</.link>
-          <.link navigate={dp(@domain_path_prefix, "/?period=last_7_days")} class="btn sm">Last 7 days</.link>
-          <.link navigate={dp(@domain_path_prefix, "/?period=last_90_days")} class="btn sm">Last 90 days</.link>
-          <.link navigate={dp(@domain_path_prefix, "/?period=all_time")} class="btn sm">All time</.link>
-        </div>
-      </.form>
-    </section>
+    <.period_selector action={dp(@domain_path_prefix, "/")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
 
     <!-- Key Metrics -->
     <section class="card">

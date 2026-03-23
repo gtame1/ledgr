@@ -1,0 +1,109 @@
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="card-subtitle">Ledgr SaaS business overview.</p>
+  </header>
+
+  <div class="content-body">
+    <% m = @metrics %>
+
+    <!-- SaaS Key Metrics -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Revenue Overview</h2>
+          <p class="card-subtitle">Based on active client subscriptions.</p>
+        </div>
+        <.link navigate={dp(@domain_path_prefix, "/client-subscriptions?status=active")} class="btn sm">
+          All subscriptions
+        </.link>
+      </div>
+
+      <div class="dashboard-metrics">
+        <div class="metric-card">
+          <div class="metric-label">MRR</div>
+          <div class="metric-value"><%= format_currency(m.mrr_cents) %></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">ARR</div>
+          <div class="metric-value"><%= format_currency(m.arr_cents) %></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Monthly Costs</div>
+          <div class="metric-value"><%= format_currency(m.monthly_costs_cents) %></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Net Margin / mo</div>
+          <div class="metric-value"><%= format_currency(m.net_margin_cents) %></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Client Stats -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Clients</h2>
+          <p class="card-subtitle">Active, churned, and cost efficiency.</p>
+        </div>
+        <.link navigate={dp(@domain_path_prefix, "/clients")} class="btn sm">All clients</.link>
+      </div>
+
+      <div class="dashboard-metrics">
+        <div class="metric-card">
+          <div class="metric-label">Active Clients</div>
+          <div class="metric-value"><%= m.active_clients_count %></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Total Clients</div>
+          <div class="metric-value"><%= m.total_clients_count %></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Churned This Month</div>
+          <div class="metric-value"><%= m.churned_this_month %></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Cost per Client</div>
+          <div class="metric-value"><%= format_currency(m.cost_per_client_cents) %></div>
+        </div>
+      </div>
+
+      <%= if m.recent_clients != [] do %>
+        <div style="margin-top: 1.25rem;">
+          <p class="card-subtitle" style="margin-bottom: 0.5rem;">Recent clients</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <%= for client <- m.recent_clients do %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/clients/#{client.id}")}
+                style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 0.82rem; font-weight: 500; text-decoration: none;"
+              >
+                <%= client.name %>
+                <span style={"display:inline-block;width:6px;height:6px;border-radius:50%;background:#{status_dot_color(client.status)}"}>
+                </span>
+              </.link>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </section>
+
+    <!-- Quick Links -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Quick Actions</h2>
+      </div>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <.link navigate={dp(@domain_path_prefix, "/clients/new")} class="btn primary">+ New Client</.link>
+        <.link navigate={dp(@domain_path_prefix, "/client-subscriptions/new")} class="btn">+ New Subscription</.link>
+        <.link navigate={dp(@domain_path_prefix, "/costs/new")} class="btn">+ Add Cost</.link>
+        <.link navigate={dp(@domain_path_prefix, "/subscription-plans/new")} class="btn">+ New Plan</.link>
+      </div>
+    </section>
+  </div>
+</section>

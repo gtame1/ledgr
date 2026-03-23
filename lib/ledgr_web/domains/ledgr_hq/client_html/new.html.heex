@@ -1,0 +1,42 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">New Client</h2>
+  </div>
+
+  <.form for={@changeset} action={@action} as={:client} :let={f}>
+    <div class="form-block" style="margin-bottom: 1.75rem;">
+      <div class="field">
+        <label>Name</label>
+        <.input type="text" field={f[:name]} placeholder="e.g. MrMunchMe" />
+      </div>
+
+      <div class="field">
+        <label>Linked App <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span></label>
+        <.input type="select" field={f[:domain_slug]}
+          options={[{"None", ""} | Enum.map(@domain_slugs, &{&1, &1})]}
+          prompt="Select app…" />
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <.input type="select" field={f[:status]}
+          options={[{"Active", "active"}, {"Trial", "trial"}, {"Paused", "paused"}, {"Churned", "churned"}]} />
+      </div>
+
+      <div class="field">
+        <label>Client Since</label>
+        <.input type="date" field={f[:started_on]} />
+      </div>
+    </div>
+
+    <div class="field full" style="margin-bottom: 1.75rem;">
+      <label>Notes <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span></label>
+      <.input type="textarea" field={f[:notes]} placeholder="Internal notes…" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn primary">Save Client</button>
+      <.link navigate={dp(@domain_path_prefix, "/clients")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

@@ -12,7 +12,11 @@ defmodule LedgrWeb.ReportController do
 
     metrics = domain.dashboard_metrics(start_date, end_date)
 
-    template = if domain == Ledgr.Domains.VolumeStudio, do: :volume_studio_dashboard, else: :dashboard
+    template = cond do
+      domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
+      domain == Ledgr.Domains.LedgrHQ      -> :ledgr_hq_dashboard
+      true                                  -> :dashboard
+    end
 
     render(conn, template,
       metrics: metrics,
@@ -345,4 +349,10 @@ defmodule LedgrWeb.ReportHTML do
   import LedgrWeb.CoreComponents
 
   embed_templates "report_html/*"
+
+  def status_dot_color("active"),  do: "#16a34a"
+  def status_dot_color("trial"),   do: "#d97706"
+  def status_dot_color("paused"),  do: "#9ca3af"
+  def status_dot_color("churned"), do: "#ef4444"
+  def status_dot_color(_),         do: "#9ca3af"
 end

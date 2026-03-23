@@ -1,0 +1,51 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Edit Cost — <%= @cost.name %></h2>
+  </div>
+
+  <.form for={@changeset} action={@action} method="put" as={:cost} :let={f}>
+    <div class="form-block" style="margin-bottom: 1.75rem;">
+      <div class="field">
+        <label>Name</label>
+        <.input type="text" field={f[:name]} />
+      </div>
+
+      <div class="field">
+        <label>Vendor</label>
+        <.input type="text" field={f[:vendor]} />
+      </div>
+
+      <div class="field">
+        <label>Category</label>
+        <.input type="select" field={f[:category]}
+          options={[{"Cloud & Hosting", "cloud_hosting"}, {"Domains & DNS", "domain_dns"}, {"SaaS & Tools", "saas_tools"}]} />
+      </div>
+
+      <div class="field">
+        <label>Amount</label>
+        <.input type="number" field={f[:amount_cents]} step="0.01" min="0" />
+      </div>
+
+      <div class="field">
+        <label>Billing Period</label>
+        <.input type="select" field={f[:billing_period]}
+          options={[{"Monthly", "monthly"}, {"Annual", "annual"}, {"One-time", "one_time"}]} />
+      </div>
+
+      <div class="field">
+        <label>Active</label>
+        <.input type="checkbox" field={f[:active]} />
+      </div>
+    </div>
+
+    <div class="field full" style="margin-bottom: 1.75rem;">
+      <label>Notes</label>
+      <.input type="textarea" field={f[:notes]} />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn primary">Update Cost</button>
+      <.link navigate={dp(@domain_path_prefix, "/costs")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

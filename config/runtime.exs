@@ -41,6 +41,19 @@ if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") || System.ge
     priv: "priv/repos/volume_studio"
 end
 
+if ledgr_hq_url = System.get_env("LEDGR_HQ_DATABASE_URL") || System.get_env("DATABASE_URL") do
+  db_uri = URI.parse(ledgr_hq_url)
+
+  config :ledgr, Ledgr.Repos.LedgrHQ,
+    url: ledgr_hq_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(db_uri.host || "")
+    ],
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
+    priv: "priv/repos/ledgr_hq"
+end
+
 # Domain hostname → slug mapping for production routing.
 # DomainPlug uses this to detect the active domain from the request Host header,
 # allowing each business to run on its own domain (e.g. volumestudio.com).

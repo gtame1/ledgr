@@ -648,4 +648,36 @@ defmodule LedgrWeb.CoreComponents do
       value not in [nil, ""]
     end)
   end
+
+  attr :action, :string, required: true
+  attr :start_date, :any, required: true
+  attr :end_date, :any, required: true
+  attr :domain_path_prefix, :string, required: true
+
+  def period_selector(assigns) do
+    ~H"""
+    <section class="period-selector card">
+      <.form for={%{}} method="get" action={@action} :let={_f}>
+        <div class="period-selector__dates">
+          <div class="period-selector__field">
+            <label class="period-selector__label">Start date</label>
+            <input type="date" name="start_date" value={@start_date} class="period-selector__input" />
+          </div>
+          <div class="period-selector__sep">→</div>
+          <div class="period-selector__field">
+            <label class="period-selector__label">End date</label>
+            <input type="date" name="end_date" value={@end_date} class="period-selector__input" />
+          </div>
+          <button type="submit" class="btn primary period-selector__submit">Apply</button>
+        </div>
+        <div class="period-selector__presets">
+          <.link navigate={"#{@action}?period=last_7_days"} class="period-selector__preset">Last 7 days</.link>
+          <.link navigate={"#{@action}?period=this_month"} class="period-selector__preset">This month</.link>
+          <.link navigate={"#{@action}?period=last_90_days"} class="period-selector__preset">Last 90 days</.link>
+          <.link navigate={"#{@action}?period=all_time"} class="period-selector__preset">All time</.link>
+        </div>
+      </.form>
+    </section>
+    """
+  end
 end

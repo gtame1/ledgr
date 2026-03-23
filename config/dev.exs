@@ -31,6 +31,16 @@ config :ledgr, Ledgr.Repos.VolumeStudio,
   pool_size: 10,
   priv: "priv/repos/volume_studio"
 
+config :ledgr, Ledgr.Repos.LedgrHQ,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_ledgr_hq_dev",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10,
+  priv: "priv/repos/ledgr_hq"
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

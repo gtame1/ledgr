@@ -1,0 +1,91 @@
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title">Operational Costs</h2>
+      <p class="card-subtitle">Recurring infrastructure and tool expenses</p>
+    </div>
+    <.link navigate={dp(@domain_path_prefix, "/costs/new")} class="btn primary">
+      + Add Cost
+    </.link>
+  </div>
+
+  <%
+    total_monthly_cents = Enum.reduce(@costs, 0, fn c, acc ->
+      if c.active, do: acc + monthly_cents(c), else: acc
+    end)
+  %>
+
+  <div class="dashboard-metrics" style="margin-bottom: 1.25rem;">
+    <div class="metric-card">
+      <div class="metric-label">Total Monthly Costs</div>
+      <div class="metric-value"><%= format_currency(total_monthly_cents) %></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Active Items</div>
+      <div class="metric-value"><%= Enum.count(@costs, & &1.active) %></div>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Vendor</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Billing</th>
+          <th>Monthly</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@costs) do %>
+          <tr><td colspan="8">No costs added yet.</td></tr>
+        <% else %>
+          <%= for cost <- @costs do %>
+            <tr>
+              <td><strong><%= cost.name %></strong></td>
+              <td><%= cost.vendor || "—" %></td>
+              <td>
+                <span style="font-size: 0.82rem; color: var(--text-muted);">
+                  <%= category_label(cost.category) %>
+                </span>
+              </td>
+              <td><%= format_currency(cost.amount_cents) %></td>
+              <td><%= String.capitalize(cost.billing_period) %></td>
+              <td>
+                <%= if cost.billing_period == "one_time" do %>
+                  <span style="color: var(--text-muted);">—</span>
+                <% else %>
+                  <%= format_currency(monthly_cents(cost)) %>
+                <% end %>
+              </td>
+              <td>
+                <%= if cost.active do %>
+                  <span class="status-badge status-paid">Active</span>
+                <% else %>
+                  <span class="status-badge status-unpaid">Inactive</span>
+                <% end %>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <.link navigate={dp(@domain_path_prefix, "/costs/#{cost.id}/edit")} class="btn btn-sm">
+                    Edit
+                  </.link>
+                  <.link href={dp(@domain_path_prefix, "/costs/#{cost.id}/toggle_active")} method="patch" class="btn btn-sm">
+                    <%= if cost.active, do: "Disable", else: "Enable" %>
+                  </.link>
+                  <.link href={dp(@domain_path_prefix, "/costs/#{cost.id}")} method="delete" data-confirm="Delete this cost?" class="btn btn-sm danger">
+                    Delete
+                  </.link>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

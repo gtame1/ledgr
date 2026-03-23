@@ -1,0 +1,76 @@
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title"><%= @sub.client.name %> — <%= @sub.subscription_plan.name %></h2>
+      <p class="card-subtitle">
+        <span class={"status-badge #{status_class(@sub.status)}"}>
+          <%= String.capitalize(@sub.status) %>
+        </span>
+        &nbsp;· Started <%= @sub.starts_on %>
+      </p>
+    </div>
+    <.link navigate={dp(@domain_path_prefix, "/client-subscriptions/#{@sub.id}/edit")} class="btn">
+      Edit
+    </.link>
+  </div>
+
+  <div class="form-block">
+    <div class="field">
+      <label>Client</label>
+      <p>
+        <.link navigate={dp(@domain_path_prefix, "/clients/#{@sub.client_id}")}>
+          <%= @sub.client.name %>
+        </.link>
+      </p>
+    </div>
+
+    <div class="field">
+      <label>Plan</label>
+      <p><%= @sub.subscription_plan.name %> (<%= format_currency(@sub.subscription_plan.price_cents) %>/mo)</p>
+    </div>
+
+    <div class="field">
+      <label>Effective Monthly Price</label>
+      <p>
+        <%= if @sub.price_override_cents do %>
+          <%= format_currency(@sub.price_override_cents) %>
+          <span style="color: var(--text-muted); font-size: 0.82rem;">
+            (override — plan price is <%= format_currency(@sub.subscription_plan.price_cents) %>)
+          </span>
+        <% else %>
+          <%= format_currency(@sub.subscription_plan.price_cents) %>
+        <% end %>
+      </p>
+    </div>
+
+    <%= if @sub.ends_on do %>
+      <div class="field">
+        <label>Ends On</label>
+        <p><%= @sub.ends_on %></p>
+      </div>
+    <% end %>
+
+    <%= if @sub.notes do %>
+      <div class="field full">
+        <label>Notes</label>
+        <p><%= @sub.notes %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+    <p class="card-subtitle" style="margin-bottom: 0.75rem;">Update Status</p>
+    <div style="display: flex; gap: 0.5rem;">
+      <%= for status <- ~w(active trial cancelled) do %>
+        <form action={dp(@domain_path_prefix, "/client-subscriptions/#{@sub.id}/status")} method="post"
+              style="display:inline;">
+          <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+          <input type="hidden" name="status" value={status} />
+          <button type="submit" class={"btn btn-sm#{if @sub.status == status, do: " primary", else: ""}"}>
+            <%= String.capitalize(status) %>
+          </button>
+        </form>
+      <% end %>
+    </div>
+  </div>
+</section>

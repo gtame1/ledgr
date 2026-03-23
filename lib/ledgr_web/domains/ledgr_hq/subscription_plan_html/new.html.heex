@@ -1,0 +1,34 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">New Subscription Plan</h2>
+  </div>
+
+  <.form for={@changeset} action={@action} as={:subscription_plan} :let={f}>
+    <div class="form-block" style="margin-bottom: 1.75rem;">
+      <div class="field">
+        <label>Name</label>
+        <.input type="text" field={f[:name]} placeholder="e.g. Starter" />
+      </div>
+
+      <div class="field">
+        <label>Monthly Price</label>
+        <.input type="number" field={f[:price_cents]} step="0.01" min="0" placeholder="0.00" />
+      </div>
+
+      <div class="field">
+        <label>Active</label>
+        <.input type="checkbox" field={f[:active]} />
+      </div>
+    </div>
+
+    <div class="field full" style="margin-bottom: 1.75rem;">
+      <label>Description <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);margin-left:0.25rem;">— optional</span></label>
+      <.input type="textarea" field={f[:description]} placeholder="Internal notes about this plan…" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn primary">Save Plan</button>
+      <.link navigate={dp(@domain_path_prefix, "/subscription-plans")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>
