@@ -1,0 +1,22 @@
+{
+  "coverage_options": {
+    "minimum_coverage": 60,
+    "treat_no_relevant_lines_as_covered": true
+  },
+  "skip_files": [
+    "lib/mix/",
+    "lib/ledgr.ex",
+    "lib/ledgr/release.ex",
+    "lib/ledgr/uploads.ex",
+
+    "lib/ledgr/domain/domain_config.ex",
+    "lib/ledgr/domain/dashboard_provider.ex",
+    "lib/ledgr/domain/revenue_handler.ex",
+
+    "lib/ledgr/domains/ledgr_hq/",
+
+    "lib/ledgr_web/",
+
+    "test/"
+  ]
+}
