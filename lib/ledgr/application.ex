@@ -5,6 +5,8 @@ defmodule Ledgr.Application do
 
   use Application
 
+  require Logger
+
   # Mix is not available at runtime in compiled releases; capture the env at
   # compile time so the dev-only branch is evaluated as a constant.
   @mix_env Mix.env()
@@ -43,7 +45,18 @@ defmodule Ledgr.Application do
           {"VOLUME_STUDIO_DATABASE_URL", Ledgr.Repos.VolumeStudio},
           {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ}
         ]
-        |> Enum.filter(fn {env_var, _repo} -> System.get_env(env_var) end)
+        |> Enum.filter(fn {env_var, repo} ->
+          case System.get_env(env_var) do
+            nil -> false
+            url ->
+              if db_host_reachable?(url) do
+                true
+              else
+                Logger.warning("[Ledgr] Skipping #{inspect(repo)}: #{env_var} is set but host does not resolve (database may be expired)")
+                false
+              end
+          end
+        end)
         |> Enum.map(fn {_env_var, repo} -> repo end)
       end
 
@@ -72,5 +85,17 @@ defmodule Ledgr.Application do
   def config_change(changed, _new, removed) do
     LedgrWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  # Returns false only on nxdomain — meaning the host genuinely doesn't exist
+  # (deleted/expired database). Any other error (refused, timeout) returns true
+  # so the repo still starts and Postgrex handles reconnection normally.
+  defp db_host_reachable?(url) do
+    host = url |> URI.parse() |> Map.get(:host)
+    case host && :inet.gethostbyname(to_charlist(host)) do
+      {:ok, _} -> true
+      {:error, :nxdomain} -> false
+      _ -> true
+    end
   end
 end

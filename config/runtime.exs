@@ -15,7 +15,7 @@ if mr_munch_me_url = System.get_env("MR_MUNCH_ME_DATABASE_URL") || System.get_en
     priv: "priv/repos/mr_munch_me"
 end
 
-if viaxe_url = System.get_env("VIAXE_DATABASE_URL") || System.get_env("DATABASE_URL") do
+if viaxe_url = System.get_env("VIAXE_DATABASE_URL") do
   db_uri = URI.parse(viaxe_url)
 
   config :ledgr, Ledgr.Repos.Viaxe,
@@ -28,7 +28,7 @@ if viaxe_url = System.get_env("VIAXE_DATABASE_URL") || System.get_env("DATABASE_
     priv: "priv/repos/viaxe"
 end
 
-if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") || System.get_env("DATABASE_URL") do
+if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") do
   db_uri = URI.parse(volume_studio_url)
 
   config :ledgr, Ledgr.Repos.VolumeStudio,
@@ -41,7 +41,7 @@ if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") || System.ge
     priv: "priv/repos/volume_studio"
 end
 
-if ledgr_hq_url = System.get_env("LEDGR_HQ_DATABASE_URL") || System.get_env("DATABASE_URL") do
+if ledgr_hq_url = System.get_env("LEDGR_HQ_DATABASE_URL") do
   db_uri = URI.parse(ledgr_hq_url)
 
   config :ledgr, Ledgr.Repos.LedgrHQ,
