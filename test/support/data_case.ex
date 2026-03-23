@@ -39,11 +39,13 @@ defmodule Ledgr.DataCase do
     pid1 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.MrMunchMe, shared: not tags[:async])
     pid2 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.Viaxe, shared: not tags[:async])
     pid3 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.VolumeStudio, shared: not tags[:async])
+    pid4 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.LedgrHQ, shared: not tags[:async])
 
     on_exit(fn ->
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid1)
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid2)
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid3)
+      Ecto.Adapters.SQL.Sandbox.stop_owner(pid4)
     end)
 
     # Default to MrMunchMe; domain tests override this in their own setup

@@ -486,4 +486,159 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       end)
     end
   end
+
+  # ── Additional coverage ──────────────────────────────────────────────
+
+  describe "list_canceled_orders/2" do
+    test "returns orders with canceled status" do
+      order = order_fixture(%{status: "canceled"})
+      canceled = Orders.list_canceled_orders()
+      assert Enum.any?(canceled, fn o -> o.id == order.id end)
+    end
+
+    test "respects limit parameter" do
+      for _ <- 1..5, do: order_fixture(%{status: "canceled"})
+      assert length(Orders.list_canceled_orders(3)) == 3
+    end
+  end
+
+  describe "count_delivered_and_paid_orders/0" do
+    test "returns integer count" do
+      assert is_integer(Orders.count_delivered_and_paid_orders())
+    end
+  end
+
+  describe "list_orders_for_calendar_month/3" do
+    test "returns orders grouped by date" do
+      today = Date.utc_today()
+      order = order_fixture(%{delivery_date: today})
+
+      result = Orders.list_orders_for_calendar_month(today.year, today.month)
+      assert is_map(result)
+      orders_on_date = Map.get(result, today, [])
+      assert Enum.any?(orders_on_date, fn o -> o.id == order.id end)
+    end
+
+    test "returns empty map when no orders" do
+      result = Orders.list_orders_for_calendar_month(2000, 1)
+      assert result == %{}
+    end
+  end
+
+  describe "update_order/2" do
+    test "updates special instructions" do
+      order = order_fixture()
+      assert {:ok, updated} = Orders.update_order(order, %{special_instructions: "Extra icing"})
+      assert updated.special_instructions == "Extra icing"
+    end
+
+    test "updates quantity" do
+      order = order_fixture(%{quantity: 1})
+      assert {:ok, updated} = Orders.update_order(order, %{quantity: 3})
+      assert updated.quantity == 3
+    end
+  end
+
+  describe "change_order/2" do
+    test "returns a changeset" do
+      order = order_fixture()
+      assert %Ecto.Changeset{} = Orders.change_order(order, %{notes: "test"})
+    end
+  end
+
+  describe "list_variants_for_product/1" do
+    test "returns variants for a product" do
+      product = product_fixture()
+      variant = variant_fixture(%{product: product})
+
+      variants = Orders.list_variants_for_product(product)
+      assert Enum.any?(variants, fn v -> v.id == variant.id end)
+    end
+  end
+
+  describe "list_products_with_variants/0" do
+    test "returns products with variants preloaded" do
+      product = product_fixture()
+      _variant = variant_fixture(%{product: product})
+
+      products = Orders.list_products_with_variants()
+      found = Enum.find(products, fn p -> p.id == product.id end)
+      assert found != nil
+      assert is_list(found.variants)
+      assert length(found.variants) > 0
+    end
+  end
+
+  describe "list_active_variants/0" do
+    test "returns only active variants" do
+      active = variant_fixture(%{active: true})
+      _inactive = variant_fixture(%{active: false})
+
+      variants = Orders.list_active_variants()
+      assert Enum.any?(variants, fn v -> v.id == active.id end)
+      assert Enum.all?(variants, fn v -> v.active == true end)
+    end
+  end
+
+  describe "order payment lifecycle" do
+    setup do
+      accounts = standard_accounts_fixture()
+      variant = variant_fixture()
+      location = location_fixture()
+      order = order_fixture(%{variant: variant, location: location})
+      cash = accounts["1000"]
+
+      {:ok, order: order, cash_account: cash}
+    end
+
+    test "list_payments_for_order/1 returns empty when none", %{order: order} do
+      assert Orders.list_payments_for_order(order.id) == []
+    end
+
+    test "create_order_payment/1 creates a payment", %{order: order, cash_account: cash} do
+      assert {:ok, payment} =
+               Orders.create_order_payment(%{
+                 "order_id" => to_string(order.id),
+                 "paid_to_account_id" => to_string(cash.id),
+                 "amount_cents" => 5000,
+                 "payment_date" => Date.to_iso8601(Date.utc_today()),
+                 "is_deposit" => false
+               })
+
+      assert payment.amount_cents == 5000
+    end
+
+    test "list_payments_for_order/1 returns payments", %{order: order, cash_account: cash} do
+      order_payment_fixture(order, cash)
+      payments = Orders.list_payments_for_order(order.id)
+      assert length(payments) >= 1
+    end
+
+    test "delete_order_payment/1 removes a payment", %{order: order, cash_account: cash} do
+      payment = order_payment_fixture(order, cash)
+      assert {:ok, _} = Orders.delete_order_payment(payment)
+      assert Orders.list_payments_for_order(order.id) == []
+    end
+  end
+
+  describe "update_order_ingredients/2" do
+    test "replaces order ingredients" do
+      order = order_fixture()
+      location = Ledgr.Domains.MrMunchMe.Inventory.Location
+                 |> Ledgr.Repo.one() || elem(Ledgr.Repo.insert!(%Ledgr.Domains.MrMunchMe.Inventory.Location{code: "WH", name: "Warehouse"}), 0)
+
+      {:ok, updated} =
+        Orders.update_order_ingredients(order, [
+          %{"ingredient_code" => "FLOUR_TEST", "ingredient_name" => "Flour", "quantity" => 500, "location_code" => location.code},
+          %{"ingredient_code" => "SUGAR_TEST", "ingredient_name" => "Sugar", "quantity" => 200, "location_code" => location.code}
+        ])
+
+      assert length(updated.order_ingredients) == 2
+    end
+
+    test "returns error with non-list attrs" do
+      order = order_fixture()
+      assert {:error, :invalid_attrs} = Orders.update_order_ingredients(order, "bad")
+    end
+  end
 end

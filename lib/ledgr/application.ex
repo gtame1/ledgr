@@ -32,17 +32,33 @@ defmodule Ledgr.Application do
       )
     end
 
-    children = [
-      LedgrWeb.Telemetry,
-      Ledgr.Repos.MrMunchMe,
-      Ledgr.Repos.Viaxe,
-      Ledgr.Repos.VolumeStudio,
-      Ledgr.Repos.LedgrHQ,
-      {DNSCluster, query: Application.get_env(:ledgr, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Ledgr.PubSub},
-      # Start to serve requests, typically the last entry
-      LedgrWeb.Endpoint
-    ]
+    # Optional repos: in test always start all repos (they're configured in
+    # config/test.exs); in dev/prod only start when their DATABASE_URL is set.
+    optional_repos =
+      if @mix_env == :test do
+        [Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ]
+      else
+        [
+          {"VIAXE_DATABASE_URL", Ledgr.Repos.Viaxe},
+          {"VOLUME_STUDIO_DATABASE_URL", Ledgr.Repos.VolumeStudio},
+          {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ}
+        ]
+        |> Enum.filter(fn {env_var, _repo} -> System.get_env(env_var) end)
+        |> Enum.map(fn {_env_var, repo} -> repo end)
+      end
+
+    children =
+      [
+        LedgrWeb.Telemetry,
+        Ledgr.Repos.MrMunchMe
+      ] ++
+      optional_repos ++
+      [
+        {DNSCluster, query: Application.get_env(:ledgr, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: Ledgr.PubSub},
+        # Start to serve requests, typically the last entry
+        LedgrWeb.Endpoint
+      ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
