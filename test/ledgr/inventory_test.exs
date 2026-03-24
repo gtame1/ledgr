@@ -1,4 +1,4 @@
-defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
+defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   use Ledgr.DataCase, async: true
 
   import Ecto.Query

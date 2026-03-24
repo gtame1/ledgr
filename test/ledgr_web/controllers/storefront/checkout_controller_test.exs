@@ -125,6 +125,9 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
     end
 
     test "clears cart session after successful checkout", %{conn: conn, variant: variant} do
+      # Use tomorrow to avoid the same-day-after-cutoff validation (which fails after 12pm CDMX)
+      tomorrow = Date.to_iso8601(Date.add(Date.utc_today(), 1))
+
       conn =
         conn
         |> init_test_session(%{cart: %{to_string(variant.id) => 1}})
@@ -133,7 +136,7 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Carlos López",
             "customer_phone" => "5551112222",
             "delivery_type" => "pickup",
-            "delivery_date" => Date.to_iso8601(Date.utc_today()),
+            "delivery_date" => tomorrow,
             "delivery_address" => "",
             "payment_method" => "cod"
           }
