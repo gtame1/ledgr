@@ -1,0 +1,121 @@
+<div style="max-width: 600px; margin: 0 auto;">
+  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} style="color: var(--text-muted); text-decoration: none; font-size: 1.1rem;">←</.link>
+    <h2 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Cobrar Envío — Pedido #<%= @order.id %></h2>
+  </div>
+
+  <section class="card">
+    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Resumen</h3>
+    <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem;">
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Cliente</span>
+        <span><%= @order.customer_name %></span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Pedido</span>
+        <span><%= @order.variant.product.name %> — <%= @order.variant.name %></span>
+      </div>
+    </div>
+  </section>
+
+  <%= if @stripe_url do %>
+    <section class="card" style="margin-top: 1rem;">
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Link de pago — Envío</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.5rem 0;">
+        Monto: <strong><%= format_currency(@amount_cents) %></strong>
+      </p>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">
+        Comparte este link con el cliente. Expira una vez usado.
+      </p>
+
+      <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+        <input
+          id="shipping-payment-url"
+          type="text"
+          value={@stripe_url}
+          readonly
+          class="input"
+          style="flex: 1; font-size: 0.8rem; font-family: monospace; cursor: text;"
+        />
+        <button
+          onclick="copyShippingUrl()"
+          id="copy-btn"
+          class="btn"
+          style="flex-shrink: 0; white-space: nowrap;"
+        >
+          Copiar
+        </button>
+      </div>
+    </section>
+
+    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <%= if @order.customer_phone && @order.customer_phone != "" do %>
+        <% wa_phone = String.replace(@order.customer_phone, ~r/\D/, "") %>
+        <% wa_message = "Hola #{@order.customer_name}, aquí está el link de pago para el envío de tu pedido ##{@order.id}: #{@stripe_url}" %>
+        <a
+          href={"https://wa.me/#{wa_phone}?text=#{URI.encode(wa_message)}"}
+          target="_blank"
+          class="btn"
+          style="background: #25D366; color: white; border-color: #25D366;"
+        >
+          Enviar por WhatsApp
+        </a>
+      <% end %>
+      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn btn-secondary">
+        Volver al pedido
+      </.link>
+    </div>
+
+    <script>
+      function copyShippingUrl() {
+        const input = document.getElementById("shipping-payment-url");
+        const btn = document.getElementById("copy-btn");
+        navigator.clipboard.writeText(input.value).then(function() {
+          btn.textContent = "¡Copiado!";
+          setTimeout(function() { btn.textContent = "Copiar"; }, 2000);
+        }).catch(function() {
+          input.select();
+          document.execCommand("copy");
+          btn.textContent = "¡Copiado!";
+          setTimeout(function() { btn.textContent = "Copiar"; }, 2000);
+        });
+      }
+    </script>
+  <% else %>
+    <section class="card" style="margin-top: 1rem;">
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Monto del envío</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">
+        Ingresa el monto personalizado del envío para generar el link de cobro.
+      </p>
+
+      <form method="post" action={dp(@domain_path_prefix, "/orders/#{@order.id}/shipping-link")}>
+        <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+        <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+          <div style="position: relative; flex: 1;">
+            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem;">$</span>
+            <input
+              type="number"
+              name="amount"
+              step="0.01"
+              min="1"
+              value={@suggested_amount}
+              required
+              class="input"
+              style="padding-left: 1.5rem;"
+              placeholder="0.00"
+            />
+          </div>
+          <button type="submit" class="btn" style="flex-shrink: 0; white-space: nowrap;">
+            Generar link
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <div style="margin-top: 1rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn btn-secondary">
+        Cancelar
+      </.link>
+    </div>
+  <% end %>
+</div>

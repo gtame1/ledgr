@@ -12,8 +12,121 @@
     </span>
     <.location_badge location={@order.prep_location} />
   </div>
-  <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/edit")} class="btn">Edit</.link>
+  <div style="display: flex; gap: 0.5rem; align-items: center;">
+    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/edit")} class="btn">Edit</.link>
+    <%!-- Actions dropdown --%>
+    <div style="position: relative;">
+      <button
+        id="actions-toggle"
+        onclick="toggleActionsMenu(event)"
+        class="btn"
+        style="display: flex; align-items: center; gap: 0.35rem;"
+      >
+        Actions
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div
+        id="actions-dropdown"
+        style="display: none; position: absolute; right: 0; top: calc(100% + 0.4rem); min-width: 210px; background: var(--card-bg, white); border: 1px solid var(--border-subtle); border-radius: 0.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06); z-index: 200; overflow: hidden; padding: 0.3rem 0;"
+      >
+        <%= unless @order.is_gift do %>
+          <a
+            href={dp(@domain_path_prefix, "/orders/#{@order.id}/payments/new")}
+            class="actions-menu-item"
+          >
+            Record Payment
+          </a>
+          <%= unless @order.status == "canceled" do %>
+            <div style="height: 1px; background: var(--border-subtle); margin: 0.3rem 0;"></div>
+            <a href={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")} class="actions-menu-item">
+              Payment Link
+            </a>
+            <a href={dp(@domain_path_prefix, "/orders/#{@order.id}/shipping-link")} class="actions-menu-item">
+              Shipping Payment Link
+            </a>
+          <% end %>
+        <% end %>
+        <%= if @order.status not in ["delivered", "canceled", "ready", "in_prep"] do %>
+          <div style="height: 1px; background: var(--border-subtle); margin: 0.3rem 0;"></div>
+          <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
+            <input type="hidden" name="status[status]" value="canceled" />
+            <button type="submit" class="actions-menu-item actions-menu-item--danger" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer;">
+              Cancel Order
+            </button>
+          </.form>
+        <% end %>
+      </div>
+    </div>
+  </div>
 </div>
+
+<%!-- ── Status Banner ── --%>
+<%= if @order.status in ["new_order", "in_prep", "ready"] do %>
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; padding: 0.875rem 1.1rem; background: var(--card-bg); border: 1px solid var(--border-subtle); border-left: 3px solid #4f46e5; border-radius: 0.5rem;">
+    <div>
+      <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Next step</div>
+      <div style="font-size: 0.9rem; font-weight: 500;">
+        <%= case @order.status do %>
+          <% "new_order" -> %>Review ingredients below, then confirm the order.
+          <% "in_prep" -> %>Preparing — mark as ready once done.
+          <% "ready" -> %>Ready — mark as delivered when handed off.
+        <% end %>
+      </div>
+    </div>
+    <%= if @order.status == "new_order" do %>
+      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move this order to In Prep?\n\nMake sure you have reviewed the ingredients. Inventory will be deducted and ingredients will be locked after this step.');">
+        <input type="hidden" name="status[status]" value="in_prep" />
+        <button class="btn primary" type="submit" style="white-space: nowrap;">Confirm & Move to In Prep</button>
+      </.form>
+    <% end %>
+    <%= if @order.status == "in_prep" do %>
+      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
+        <input type="hidden" name="status[status]" value="ready" />
+        <button class="btn primary" type="submit" style="white-space: nowrap;">Mark as Ready</button>
+      </.form>
+    <% end %>
+    <%= if @order.status == "ready" do %>
+      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
+        <input type="hidden" name="status[status]" value="delivered" />
+        <button class="btn primary" type="submit" style="white-space: nowrap;">Mark as Delivered</button>
+      </.form>
+    <% end %>
+  </div>
+<% end %>
+
+<style>
+  .actions-menu-item {
+    display: block;
+    padding: 0.55rem 0.875rem;
+    font-size: 0.875rem;
+    color: var(--text);
+    text-decoration: none;
+    transition: background 0.1s;
+  }
+  .actions-menu-item:hover {
+    background: var(--hover-bg, rgba(0,0,0,0.04));
+  }
+  .actions-menu-item--danger {
+    color: #b91c1c;
+  }
+  .actions-menu-item--danger:hover {
+    background: #fef2f2;
+  }
+</style>
+
+<script>
+  function toggleActionsMenu(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('actions-dropdown');
+    const isOpen = dropdown.style.display !== 'none';
+    dropdown.style.display = isOpen ? 'none' : 'block';
+  }
+
+  document.addEventListener('click', function() {
+    const dropdown = document.getElementById('actions-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+  });
+</script>
 
 <%= if @order.is_gift do %>
   <%!-- ── Gift Summary ── --%>
@@ -35,53 +148,86 @@
   <section class="card">
     <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.6rem 0;">Payment Summary</h3>
     <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem;">
-    <%= if (@order.quantity || 1) > 1 do %>
       <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-        <span><%= format_currency(@order.variant.price_cents) %> x <%= @order.quantity %></span>
-        <span><%= format_currency(@payment_summary.original_price_cents) %></span>
-      </div>
-    <% end %>
-    <%= if @payment_summary.discount_cents > 0 do %>
-      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-        <span>Product Price</span>
-        <span><%= format_currency(@payment_summary.original_price_cents) %></span>
-      </div>
-      <div style="display: flex; justify-content: space-between; color: #059669;">
-        <span>Discount (<%= if @order.discount_type == "flat", do: "flat", else: "#{@order.discount_value}%" %>)</span>
-        <span>-<%= format_currency(@payment_summary.discount_cents) %></span>
-      </div>
-    <% end %>
-    <div style="display: flex; justify-content: space-between;">
-      <span style="color: var(--text-muted);">Shipping</span>
-      <span><%= format_currency(@payment_summary.shipping_cents) %></span>
-    </div>
-    <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
-      <span>Order Total</span>
-      <span><%= format_currency(@payment_summary.order_total_cents) %></span>
-    </div>
-    <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-      <span>Paid</span>
-      <span><%= format_currency(@payment_summary.total_paid_cents) %></span>
-    </div>
-    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 600;">
-      <span>Outstanding</span>
-      <span style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style={if @payment_summary.outstanding_cents > 0, do: "color: #b91c1c;", else: ""}>
-          <%= format_currency(@payment_summary.outstanding_cents) %>
+        <span>
+          Product<%= if (@order.quantity || 1) > 1 do %>
+            <span style="font-size: 0.8rem;"> (<%= format_currency(@order.variant.price_cents) %> × <%= @order.quantity %>)</span>
+          <% end %>
         </span>
-        <%= cond do %>
-          <% @payment_summary.fully_paid? -> %>
-            <span class="status-badge status-paid">Paid</span>
-          <% @payment_summary.partially_paid? -> %>
-            <span class="status-badge status-partial">Partial</span>
-          <% true -> %>
-            <span class="status-badge status-unpaid">Unpaid</span>
-        <% end %>
-      </span>
-    </div>
+        <span><%= format_currency(@payment_summary.original_price_cents) %></span>
+      </div>
+      <div style={"display: flex; justify-content: space-between; color: #{if @payment_summary.discount_cents > 0, do: "#059669", else: "var(--text-muted)"};"}>
+        <span>Discount<%= if @payment_summary.discount_cents > 0 do %> (<%= if @order.discount_type == "flat", do: "flat", else: "#{@order.discount_value}%" %>)<% end %></span>
+        <span>−<%= format_currency(@payment_summary.discount_cents) %></span>
+      </div>
+      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
+        <span>Shipping</span>
+        <span>+<%= format_currency(@payment_summary.shipping_cents) %></span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
+        <span>Order Total</span>
+        <span><%= format_currency(@payment_summary.order_total_cents) %></span>
+      </div>
+      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
+        <span>Product paid</span>
+        <span>−<%= format_currency(@payment_summary.product_paid_cents) %></span>
+      </div>
+      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
+        <span>Shipping paid</span>
+        <span>−<%= format_currency(@payment_summary.shipping_paid_cents) %></span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
+        <span>Outstanding</span>
+        <span style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style={if @payment_summary.outstanding_cents > 0, do: "color: #b91c1c;", else: ""}>
+            <%= format_currency(@payment_summary.outstanding_cents) %>
+          </span>
+          <%= cond do %>
+            <% @payment_summary.fully_paid? -> %>
+              <span class="status-badge status-paid">Paid</span>
+            <% @payment_summary.partially_paid? -> %>
+              <span class="status-badge status-partial">Partial</span>
+            <% true -> %>
+              <span class="status-badge status-unpaid">Unpaid</span>
+          <% end %>
+        </span>
+      </div>
     </div>
   </section>
 <% end %>
+
+<%!-- ── Shipping ── --%>
+<section class="card" style="margin-top: 1rem;">
+  <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Shipping</h3>
+  <form method="post" action={dp(@domain_path_prefix, "/orders/#{@order.id}")}>
+    <input type="hidden" name="_method" value="put" />
+    <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+      <div style="position: relative; flex: 1; max-width: 14rem;">
+        <span style="position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none;">$</span>
+        <input
+          type="number"
+          name="order[shipping_fee]"
+          value={if @order.shipping_fee_cents && @order.shipping_fee_cents > 0, do: @order.shipping_fee_cents / 100, else: ""}
+          step="0.01"
+          min="0"
+          placeholder="0.00"
+          class="input"
+          style="padding-left: 1.4rem;"
+        />
+      </div>
+      <button type="submit" class="btn" style="flex-shrink: 0;">Save</button>
+    </div>
+    <p style="margin: 0.4rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
+      Set to 0 to remove shipping charge.
+    </p>
+  </form>
+  <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
+    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/shipping-link")} style="font-size: 0.875rem; color: var(--text-muted); text-decoration: none;">
+      Shipping Payment Link →
+    </.link>
+  </div>
+</section>
 
 <%!-- ── Customer & Delivery Details (two-column) ── --%>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
@@ -143,10 +289,6 @@
         <div style="font-size: 0.9rem;"><%= @order.quantity || 1 %></div>
       </div>
       <div>
-        <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Customer Paid Shipping</span>
-        <div style="font-size: 0.9rem;"><%= if @order.customer_paid_shipping, do: "Yes", else: "No" %></div>
-      </div>
-      <div>
         <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Created</span>
         <div style="font-size: 0.9rem;"><%= Calendar.strftime(to_mx_time(@order.inserted_at), "%b %d, %Y") %></div>
       </div>
@@ -196,45 +338,6 @@
   </section>
 <% end %>
 
-<%!-- ── Actions ── --%>
-<div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-  <%= if @order.status == "new_order" do %>
-    <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move this order to In Prep?\n\nMake sure you have reviewed the ingredients. Inventory will be deducted and ingredients will be locked after this step.');">
-      <input type="hidden" name="status[status]" value="in_prep" />
-      <button class="btn primary" type="submit">Confirm & Move to In Prep</button>
-    </.form>
-  <% end %>
-  <%= if @order.status == "in_prep" do %>
-    <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
-      <input type="hidden" name="status[status]" value="ready" />
-      <button class="btn primary" type="submit">Mark as Ready</button>
-    </.form>
-  <% end %>
-  <%= if @order.status == "ready" do %>
-    <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
-      <input type="hidden" name="status[status]" value="delivered" />
-      <button class="btn primary" type="submit">Mark as Delivered</button>
-    </.form>
-  <% end %>
-
-  <%= unless @order.is_gift do %>
-    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/payments/new")} class="btn payment">
-      Record Payment
-    </.link>
-    <%= unless @order.status == "canceled" do %>
-      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")} class="btn">
-        💳 Generate Payment Link
-      </.link>
-    <% end %>
-  <% end %>
-
-  <%= if @order.status not in ["delivered", "canceled", "ready", "in_prep"] do %>
-    <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
-      <input type="hidden" name="status[status]" value="canceled" />
-      <button class="btn danger" type="submit">Cancel Order</button>
-    </.form>
-  <% end %>
-</div>
 
 <%!-- ── Order Ingredients ── --%>
 <section class="card" style="margin-top: 1rem;">

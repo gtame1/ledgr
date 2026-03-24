@@ -78,6 +78,8 @@ defmodule LedgrWeb.Router do
     # MrMunchMe-specific routes
     get "/orders/calendar", Domains.MrMunchMe.OrderController, :calendar
     get "/orders/:id/stripe-link", Domains.MrMunchMe.OrderController, :stripe_link
+    get "/orders/:id/shipping-link", Domains.MrMunchMe.OrderController, :shipping_link
+    post "/orders/:id/shipping-link", Domains.MrMunchMe.OrderController, :create_shipping_link
     resources "/orders", Domains.MrMunchMe.OrderController, only: [:index, :show, :new, :create, :edit, :update]
     post "/orders/:id/status", Domains.MrMunchMe.OrderController, :update_status
     post "/orders/:id/ingredients", Domains.MrMunchMe.OrderController, :update_ingredients

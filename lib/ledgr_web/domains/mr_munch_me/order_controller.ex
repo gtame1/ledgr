@@ -494,6 +494,47 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
     end
   end
 
+  def shipping_link(conn, %{"id" => id}) do
+    order = Orders.get_order!(id)
+    summary = Orders.payment_summary(order)
+    render(conn, :shipping_link, order: order, suggested_amount: div(summary.shipping_cents, 100), stripe_url: nil)
+  end
+
+  def create_shipping_link(conn, %{"id" => id, "amount" => amount_str}) do
+    order = Orders.get_order!(id)
+    amount_cents = MoneyHelper.pesos_to_cents(amount_str)
+    base_url = "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
+
+    case Stripe.Checkout.Session.create(%{
+           mode: "payment",
+           currency: "mxn",
+           line_items: [
+             %{
+               price_data: %{
+                 currency: "mxn",
+                 unit_amount: amount_cents,
+                 product_data: %{name: "Envío a domicilio — Pedido ##{order.id}"}
+               },
+               quantity: 1
+             }
+           ],
+           metadata: %{shipping_order_id: to_string(order.id)},
+           success_url: "#{base_url}/mr-munch-me/checkout/success?session_id={CHECKOUT_SESSION_ID}",
+           cancel_url: "#{base_url}/mr-munch-me/checkout/cancel"
+         }) do
+      {:ok, session} ->
+        Logger.info("Shipping link generated for order #{id}: session #{session.id}")
+        render(conn, :shipping_link, order: order, stripe_url: session.url, amount_cents: amount_cents, suggested_amount: nil)
+
+      {:error, reason} ->
+        Logger.error("Failed to generate shipping link for order #{id}: #{inspect(reason)}")
+
+        conn
+        |> put_flash(:error, "No se pudo generar el link. Intenta de nuevo.")
+        |> redirect(to: dp(conn, "/orders/#{id}"))
+    end
+  end
+
   def calendar(conn, params) do
     # Parse year and month from params, default to current month
     today = Date.utc_today()
@@ -553,12 +594,26 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
     case Map.pop(params, "shipping_fee") do
       {val, rest} when val not in [nil, ""] ->
         case Float.parse(to_string(val)) do
-          {pesos, _} -> Map.put(rest, "shipping_fee_cents", round(pesos * 100))
+          {pesos, _} ->
+            cents = round(pesos * 100)
+            rest
+            |> Map.put("shipping_fee_cents", cents)
+            |> derive_customer_paid_shipping(cents)
           :error -> rest
         end
 
       {_, rest} ->
         rest
+    end
+  end
+
+  # If customer_paid_shipping is not explicitly provided (e.g. from the shipping card,
+  # not the full edit form), derive it from whether a shipping fee is set.
+  defp derive_customer_paid_shipping(params, shipping_fee_cents) do
+    if Map.has_key?(params, "customer_paid_shipping") do
+      params
+    else
+      Map.put(params, "customer_paid_shipping", shipping_fee_cents > 0)
     end
   end
 

@@ -795,6 +795,9 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
 
     outstanding_cents = max(order_total_cents - total_paid_cents, 0)
 
+    product_paid_cents = min(total_paid_cents, product_total_cents)
+    shipping_paid_cents = max(0, total_paid_cents - product_total_cents)
+
     if order.is_gift do
       %{
         product_total_cents: product_total_cents,
@@ -803,6 +806,8 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         shipping_cents: shipping_cents,
         order_total_cents: 0,
         total_paid_cents: 0,
+        product_paid_cents: 0,
+        shipping_paid_cents: 0,
         outstanding_cents: 0,
         fully_paid?: true,
         partially_paid?: false
@@ -815,6 +820,8 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         shipping_cents: shipping_cents,
         order_total_cents: order_total_cents,
         total_paid_cents: total_paid_cents,
+        product_paid_cents: product_paid_cents,
+        shipping_paid_cents: shipping_paid_cents,
         outstanding_cents: outstanding_cents,
         fully_paid?: outstanding_cents == 0 and order_total_cents > 0,
         partially_paid?: total_paid_cents > 0 and outstanding_cents > 0
@@ -1008,7 +1015,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
           |> Repo.update!()
 
           summary = payment_summary_from_preloaded(order)
-          amount_cents = summary.order_total_cents
+          amount_cents = summary.product_total_cents
 
           payment_attrs = %{
             "order_id" => order_id,
@@ -1026,6 +1033,26 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         end
       end)
     end)
+  end
+
+  @doc """
+  Records a Stripe payment for the shipping fee on an existing order.
+  Called from the webhook when a shipping-only Stripe session completes.
+  """
+  def create_shipping_payment(order_id, amount_cents) do
+    stripe_account = Accounting.get_account_by_code!("1005")
+    order = Repo.get!(Order, order_id)
+
+    payment_attrs = %{
+      "order_id" => order_id,
+      "amount_cents" => amount_cents,
+      "paid_to_account_id" => stripe_account.id,
+      "method" => "stripe",
+      "payment_date" => Date.utc_today(),
+      "is_deposit" => order.status != "delivered"
+    }
+
+    create_order_payment(payment_attrs)
   end
 
   def create_orders_cod(cart, customer_id, checkout_attrs) do

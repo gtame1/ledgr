@@ -27,8 +27,22 @@ defmodule LedgrWeb.Storefront.StripeWebhookController do
   defp handle_checkout_completed(conn, session) do
     order_ids_str = get_in(session.metadata, ["order_ids"])
     pending_checkout_id = get_in(session.metadata, ["pending_checkout_id"])
+    shipping_order_id_str = get_in(session.metadata, ["shipping_order_id"])
 
     cond do
+      shipping_order_id_str ->
+        order_id = String.to_integer(shipping_order_id_str)
+
+        case Orders.create_shipping_payment(order_id, session.amount_total) do
+          {:ok, _} ->
+            Logger.info("Stripe webhook: recorded shipping payment for order #{order_id}")
+            send_resp(conn, 200, "ok")
+
+          {:error, reason} ->
+            Logger.error("Stripe webhook: failed to record shipping payment for order #{order_id}: #{inspect(reason)}")
+            send_resp(conn, 500, "error")
+        end
+
       order_ids_str ->
         # COD → Stripe conversion path: create payments for existing orders
         order_ids = order_ids_str |> String.split(",") |> Enum.map(&String.to_integer/1)
