@@ -20,14 +20,13 @@
           <th>Date</th>
           <th>Description</th>
           <th>Type</th>
-          <th class="numeric">Amount</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         <%= if Enum.empty?(@entries) do %>
           <tr>
-            <td colspan="5">No transactions yet.</td>
+            <td colspan="4">No transactions yet.</td>
           </tr>
         <% else %>
           <%= for entry <- @entries do %>
@@ -35,7 +34,6 @@
               <td><%= entry.date %></td>
               <td><%= entry.description %></td>
               <td><%= entry.entry_type %></td>
-              <td class="numeric"><%= entry.total_amount_formatted %></td>
               <td class="numeric">
                 <.link navigate={dp(@domain_path_prefix, "/transactions/#{entry.id}")} class="btn">
                   View
