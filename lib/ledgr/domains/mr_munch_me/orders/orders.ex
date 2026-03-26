@@ -794,9 +794,10 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
     order_total_cents = product_total_cents + shipping_cents
 
     outstanding_cents = max(order_total_cents - total_paid_cents, 0)
+    overpaid_cents = max(total_paid_cents - order_total_cents, 0)
 
     product_paid_cents = min(total_paid_cents, product_total_cents)
-    shipping_paid_cents = max(0, total_paid_cents - product_total_cents)
+    shipping_paid_cents = min(max(0, total_paid_cents - product_total_cents), shipping_cents)
 
     if order.is_gift do
       %{
@@ -809,6 +810,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         product_paid_cents: 0,
         shipping_paid_cents: 0,
         outstanding_cents: 0,
+        overpaid_cents: 0,
         fully_paid?: true,
         partially_paid?: false
       }
@@ -823,6 +825,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         product_paid_cents: product_paid_cents,
         shipping_paid_cents: shipping_paid_cents,
         outstanding_cents: outstanding_cents,
+        overpaid_cents: overpaid_cents,
         fully_paid?: outstanding_cents == 0 and order_total_cents > 0,
         partially_paid?: total_paid_cents > 0 and outstanding_cents > 0
       }

@@ -362,6 +362,57 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       assert summary.fully_paid? == true
     end
 
+    test "overpayment: outstanding is 0, overpaid_cents reflects excess, shipping_paid capped at shipping charge", %{order: order, cash_account: cash_account} do
+      # Pay more than the order total (e.g. data entry error or refund scenario)
+      _payment = order_payment_fixture(order, cash_account, %{"amount_cents" => 12000})
+
+      order = Orders.get_order!(order.id)
+      summary = Orders.payment_summary(order)
+
+      assert summary.total_paid_cents == 12000
+      assert summary.order_total_cents == 10000
+      assert summary.outstanding_cents == 0
+      assert summary.overpaid_cents == 2000
+      assert summary.fully_paid? == true
+      # Overpayment does not bleed into shipping_paid when there is no shipping charge
+      assert summary.shipping_paid_cents == 0
+      assert summary.product_paid_cents == 10000
+    end
+
+    test "overpayment with shipping: shipping_paid capped at actual shipping charge", %{cash_account: cash_account} do
+      product = product_fixture()
+      variant = variant_fixture(%{product: product, price_cents: 10000})
+      location = location_fixture()
+
+      {:ok, order} =
+        %Order{}
+        |> Order.changeset(%{
+          customer_name: "Test",
+          customer_phone: "5551234567",
+          variant_id: variant.id,
+          prep_location_id: location.id,
+          delivery_date: Date.utc_today(),
+          delivery_type: "delivery",
+          status: "new_order",
+          customer_paid_shipping: true,
+          shipping_fee_cents: 5000
+        })
+        |> Repo.insert()
+
+      # Pay more than order total (product 10000 + shipping 5000 = 15000), overpay by 3000
+      _payment = order_payment_fixture(order, cash_account, %{"amount_cents" => 18000})
+
+      order = Orders.get_order!(order.id)
+      summary = Orders.payment_summary(order)
+
+      assert summary.order_total_cents == 15000
+      assert summary.outstanding_cents == 0
+      assert summary.overpaid_cents == 3000
+      assert summary.product_paid_cents == 10000
+      # Capped at actual shipping charge, not 8000 (18000 - 10000)
+      assert summary.shipping_paid_cents == 5000
+    end
+
     test "gift order shows order_total_cents of 0, outstanding 0, and fully_paid? true" do
       product = product_fixture()
       variant = variant_fixture(%{product: product, price_cents: 10000})
