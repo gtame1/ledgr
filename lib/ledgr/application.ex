@@ -69,6 +69,7 @@ defmodule Ledgr.Application do
       [
         {DNSCluster, query: Application.get_env(:ledgr, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Ledgr.PubSub},
+        Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery,
         # Start to serve requests, typically the last entry
         LedgrWeb.Endpoint
       ]
