@@ -134,7 +134,9 @@
 
         <div class="checkout-field">
           <button type="button" id="toggle-discount-btn" class="checkout-discount-toggle">
-            ¿Tienes un código de descuento? <span id="toggle-discount-arrow">›</span>
+            <span class="discount-toggle-icon">🏷️</span>
+            ¿Tienes un código de descuento?
+            <span class="discount-toggle-arrow" id="toggle-discount-arrow">›</span>
           </button>
           <div id="discount-section" style={if @discount || @errors[:discount_code], do: "", else: "display:none;"}>
             <div class="checkout-discount-row" style="margin-top: 0.5rem;">
@@ -281,8 +283,7 @@
   toggleBtn.addEventListener('click', function() {
     var isOpen = discountSection.style.display !== 'none';
     discountSection.style.display = isOpen ? 'none' : 'block';
-    toggleArrow.textContent = isOpen ? '›' : '⌄';
-    toggleArrow.style.transform = isOpen ? '' : 'rotate(0deg)';
+    toggleArrow.style.transform = isOpen ? '' : 'rotate(90deg)';
   });
 
   // Discount code AJAX validation
