@@ -132,36 +132,39 @@
           ><%= @form_values["special_instructions"] %></textarea>
         </div>
 
-        <h2 class="checkout-section-title">Código de descuento</h2>
-
         <div class="checkout-field">
-          <div class="checkout-discount-row">
-            <input
-              type="text"
-              id="discount_code_input"
-              placeholder="Ingresa tu código"
-              value={@form_values["discount_code"]}
-              style="text-transform: uppercase;"
-            />
-            <button type="button" id="apply-discount-btn" class="btn">Aplicar</button>
+          <button type="button" id="toggle-discount-btn" class="checkout-discount-toggle">
+            ¿Tienes un código de descuento? <span id="toggle-discount-arrow">›</span>
+          </button>
+          <div id="discount-section" style={if @discount || @errors[:discount_code], do: "", else: "display:none;"}>
+            <div class="checkout-discount-row" style="margin-top: 0.5rem;">
+              <input
+                type="text"
+                id="discount_code_input"
+                placeholder="Ingresa tu código"
+                value={@form_values["discount_code"]}
+                style="text-transform: uppercase;"
+              />
+              <button type="button" id="apply-discount-btn" class="btn">Aplicar</button>
+            </div>
+            <input type="hidden" name="checkout[discount_code]" id="discount_code_hidden" value={@form_values["discount_code"] || ""} />
+            <input type="hidden" name="checkout[discount_type]" id="discount_type_hidden" value={@form_values["discount_type"] || ""} />
+            <input type="hidden" name="checkout[discount_value]" id="discount_value_hidden" value={@form_values["discount_value"] || ""} />
+            <div id="discount-result" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
+            <%= if @errors[:discount_code] do %>
+              <span class="checkout-error"><%= @errors[:discount_code] %></span>
+            <% end %>
+            <%= if @discount do %>
+              <p style="color: var(--color-success); margin-top: 0.25rem; font-size: 0.875rem;">
+                ✓ Descuento aplicado:
+                <%= if @discount.discount_type == "flat" do %>
+                  $<%= @discount.discount_value %> MXN
+                <% else %>
+                  <%= @discount.discount_value %>% off
+                <% end %>
+              </p>
+            <% end %>
           </div>
-          <input type="hidden" name="checkout[discount_code]" id="discount_code_hidden" value={@form_values["discount_code"] || ""} />
-          <input type="hidden" name="checkout[discount_type]" id="discount_type_hidden" value={@form_values["discount_type"] || ""} />
-          <input type="hidden" name="checkout[discount_value]" id="discount_value_hidden" value={@form_values["discount_value"] || ""} />
-          <div id="discount-result" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
-          <%= if @errors[:discount_code] do %>
-            <span class="checkout-error"><%= @errors[:discount_code] %></span>
-          <% end %>
-          <%= if @discount do %>
-            <p style="color: var(--color-success); margin-top: 0.25rem; font-size: 0.875rem;">
-              ✓ Descuento aplicado:
-              <%= if @discount.discount_type == "flat" do %>
-                $<%= @discount.discount_value %> MXN
-              <% else %>
-                <%= @discount.discount_value %>% off
-              <% end %>
-            </p>
-          <% end %>
         </div>
 
         <h2 class="checkout-section-title">Método de pago</h2>
@@ -269,6 +272,18 @@
       }
     });
   }
+
+  // Toggle discount code section
+  var toggleBtn = document.getElementById('toggle-discount-btn');
+  var discountSection = document.getElementById('discount-section');
+  var toggleArrow = document.getElementById('toggle-discount-arrow');
+
+  toggleBtn.addEventListener('click', function() {
+    var isOpen = discountSection.style.display !== 'none';
+    discountSection.style.display = isOpen ? 'none' : 'block';
+    toggleArrow.textContent = isOpen ? '›' : '⌄';
+    toggleArrow.style.transform = isOpen ? '' : 'rotate(0deg)';
+  });
 
   // Discount code AJAX validation
   var cartTotal = <%= @cart_total %>;

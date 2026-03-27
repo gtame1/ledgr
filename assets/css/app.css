@@ -4347,6 +4347,21 @@
     color: #9a3412;
   }
 
+  .checkout-discount-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .checkout-discount-toggle:hover {
+    color: var(--text-primary, #111827);
+  }
+
   .checkout-discount-row {
     display: flex;
     gap: 0.5rem;
