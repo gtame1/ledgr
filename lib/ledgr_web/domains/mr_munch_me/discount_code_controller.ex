@@ -54,6 +54,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.DiscountCodeController do
     end
   end
 
+  def toggle_active(conn, %{"id" => id}) do
+    code = Orders.get_discount_code!(id)
+    {:ok, _} = Orders.update_discount_code(code, %{"active" => !code.active})
+
+    conn
+    |> redirect(to: dp(conn, "/discount-codes"))
+  end
+
   def delete(conn, %{"id" => id}) do
     code = Orders.get_discount_code!(id)
     {:ok, _} = Orders.delete_discount_code(code)

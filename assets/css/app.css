@@ -722,6 +722,39 @@
     color: var(--text-base);
   }
 
+  /* Standalone link toggle (no checkbox needed) */
+  a.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 2.5rem;
+    height: 1.375rem;
+    background: var(--border-subtle, #d1d5db);
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+
+  a.toggle-switch.toggle-switch--on {
+    background: var(--color-primary, #6366f1);
+  }
+
+  a.toggle-switch .toggle-switch-knob {
+    position: absolute;
+    top: 0.1875rem;
+    left: 0.1875rem;
+    width: 1rem;
+    height: 1rem;
+    background: white;
+    border-radius: 9999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+  }
+
+  a.toggle-switch.toggle-switch--on .toggle-switch-knob {
+    transform: translateX(1.125rem);
+  }
+
   /* form footer: submit + cancel row */
   .form-actions {
     display: flex;

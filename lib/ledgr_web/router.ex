@@ -112,6 +112,7 @@ defmodule LedgrWeb.Router do
     resources "/products/:product_id/variants", Domains.MrMunchMe.VariantController, only: [:new, :create, :edit, :update, :delete]
     post "/products/:product_id/variants/:variant_id/recipe", Domains.MrMunchMe.VariantController, :save_recipe
     resources "/discount-codes", Domains.MrMunchMe.DiscountCodeController, only: [:index, :new, :create, :edit, :update, :delete]
+    patch "/discount-codes/:id/toggle-active", Domains.MrMunchMe.DiscountCodeController, :toggle_active
     resources "/ingredients", Domains.MrMunchMe.IngredientController, only: [:index, :new, :create, :edit, :update, :delete]
     resources "/recipes", Domains.MrMunchMe.RecipeController, only: [:index, :new, :create, :show, :edit, :delete]
     post "/recipes/new_version/:id", Domains.MrMunchMe.RecipeController, :create_new_version
