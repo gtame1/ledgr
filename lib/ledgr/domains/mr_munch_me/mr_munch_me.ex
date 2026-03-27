@@ -115,6 +115,9 @@ defmodule Ledgr.Domains.MrMunchMe do
         %{label: "Product List", path: "#{prefix}/products", icon: :products},
         %{label: "Ingredient List", path: "#{prefix}/ingredients", icon: :ingredients},
         %{label: "Recepies", path: "#{prefix}/recipes", icon: :recipes}
+      ]},
+      %{group: "Promotions", items: [
+        %{label: "Discount Codes", path: "#{prefix}/discount-codes", icon: :discount}
       ]}
     ]
   end
