@@ -195,6 +195,33 @@
           <% end %>
         </div>
 
+        <%
+          discount_cents = cond do
+            @discount && @discount.discount_type == "flat" ->
+              min(round(Decimal.to_float(@discount.discount_value) * 100), @cart_total)
+            @discount && @discount.discount_type == "percentage" ->
+              min(round(@cart_total * Decimal.to_float(@discount.discount_value) / 100), @cart_total)
+            true -> 0
+          end
+          final_total = @cart_total - discount_cents
+        %>
+        <div class="checkout-order-recap">
+          <div class="checkout-order-recap-row">
+            <span>Subtotal</span>
+            <span id="recap-subtotal"><%= format_price(@cart_total) %></span>
+          </div>
+          <div id="recap-discount-row" class="checkout-order-recap-row checkout-order-recap-discount" style={if @discount, do: "", else: "display:none;"}>
+            <span id="recap-discount-label">Descuento<%= if @discount, do: " (#{@discount.code})" %></span>
+            <span id="recap-discount-amount">
+              <%= if discount_cents > 0, do: "– #{format_price(discount_cents)}" %>
+            </span>
+          </div>
+          <div class="checkout-order-recap-row checkout-order-recap-total">
+            <span>Total</span>
+            <span id="recap-total"><%= format_price(final_total) %></span>
+          </div>
+        </div>
+
         <button type="submit" id="checkout-submit" class="btn btn-primary checkout-submit">Continuar</button>
       </form>
     </div>
@@ -298,15 +325,31 @@
     var discountLbl = document.getElementById('summary-discount-label');
     var discountAmt = document.getElementById('summary-discount-amount');
     var totalAmt = document.getElementById('summary-total-amount');
+    // recap elements
+    var recapDiscountRow = document.getElementById('recap-discount-row');
+    var recapDiscountLbl = document.getElementById('recap-discount-label');
+    var recapDiscountAmt = document.getElementById('recap-discount-amount');
+    var recapTotal = document.getElementById('recap-total');
 
     if (discountCents > 0) {
+      var finalTotal = formatPrice(Math.max(0, cartTotal - discountCents));
+      var discountFmt = '– ' + formatPrice(discountCents);
+
       discountRow.style.display = '';
       discountLbl.textContent = 'Descuento (' + label + ')';
-      discountAmt.textContent = '– ' + formatPrice(discountCents);
-      totalAmt.textContent = formatPrice(Math.max(0, cartTotal - discountCents));
+      discountAmt.textContent = discountFmt;
+      totalAmt.textContent = finalTotal;
+
+      recapDiscountRow.style.display = '';
+      recapDiscountLbl.textContent = 'Descuento (' + label + ')';
+      recapDiscountAmt.textContent = discountFmt;
+      recapTotal.textContent = finalTotal;
     } else {
       discountRow.style.display = 'none';
       totalAmt.textContent = formatPrice(cartTotal);
+
+      recapDiscountRow.style.display = 'none';
+      recapTotal.textContent = formatPrice(cartTotal);
     }
   }
 

@@ -4433,6 +4433,35 @@
     margin-top: 0.5rem;
   }
 
+  /* Bottom order recap above submit button */
+  .checkout-order-recap {
+    border-top: 1px solid var(--border-subtle, #e5e7eb);
+    border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+    padding: 0.75rem 0;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .checkout-order-recap-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  .checkout-order-recap-discount {
+    color: var(--color-success);
+  }
+
+  .checkout-order-recap-total {
+    color: var(--text-base);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-top: 0.25rem;
+  }
+
   /* Checkout summary sidebar */
   .checkout-summary {
     background: white;
