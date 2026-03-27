@@ -74,10 +74,14 @@
           <%= if @errors[:delivery_type] do %>
             <span class="checkout-error"><%= @errors[:delivery_type] %></span>
           <% end %>
-          <p id="delivery-note" class="checkout-delivery-note"
-             style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}>
-            ⚠️ Solo hacemos envíos dentro de la Ciudad de México. Zonas alejadas de Bosques de las Lomas pueden tener un costo adicional — te avisaremos al confirmarlo por WhatsApp.
-          </p>
+          <div id="delivery-note" class="checkout-delivery-banner"
+               style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}>
+            <span class="checkout-delivery-banner-icon">🚚</span>
+            <div>
+              <strong>Costo de envío adicional</strong>
+              <p>Solo hacemos envíos dentro de la Ciudad de México. El costo de envío se cobra por separado y te lo confirmamos por WhatsApp al procesar tu pedido.</p>
+            </div>
+          </div>
         </div>
 
         <div class="checkout-field">
@@ -89,25 +93,22 @@
             <span class="checkout-error"><%= @errors[:delivery_date] %></span>
           <% end %>
           <p class="checkout-hint">
-            <%= if @same_day_cutoff_passed do %>
-              ⚠️ Las 12pm ya pasaron — la entrega más próxima disponible es mañana.
-            <% else %>
-              Puedes pedir para hoy si son antes de las 12pm (hora CDMX).
-            <% end %>
+            Fecha mínima de entrega: <strong><%= Date.to_string(@min_delivery_date) %></strong> (mínimo 36 horas de anticipación).
           </p>
         </div>
 
         <div class="checkout-field">
-          <label for="delivery_time">Hora preferida (opcional)</label>
+          <label for="delivery_time">Hora preferida *</label>
           <input
             type="time"
             id="delivery_time"
             name="checkout[delivery_time]"
+            required
             value={@form_values["delivery_time"]}
           />
-          <p class="checkout-hint">
-            Si no la indicas, coordinaremos la hora por WhatsApp.
-          </p>
+          <%= if @errors[:delivery_time] do %>
+            <span class="checkout-error"><%= @errors[:delivery_time] %></span>
+          <% end %>
         </div>
 
         <div class="checkout-field" id="delivery-address-field"
@@ -129,6 +130,38 @@
             rows="3"
             placeholder="Alergias, preferencias, instrucciones para entrega..."
           ><%= @form_values["special_instructions"] %></textarea>
+        </div>
+
+        <h2 class="checkout-section-title">Código de descuento</h2>
+
+        <div class="checkout-field">
+          <div class="checkout-discount-row">
+            <input
+              type="text"
+              id="discount_code_input"
+              placeholder="Ingresa tu código"
+              value={@form_values["discount_code"]}
+              style="text-transform: uppercase;"
+            />
+            <button type="button" id="apply-discount-btn" class="btn">Aplicar</button>
+          </div>
+          <input type="hidden" name="checkout[discount_code]" id="discount_code_hidden" value={@form_values["discount_code"] || ""} />
+          <input type="hidden" name="checkout[discount_type]" id="discount_type_hidden" value={@form_values["discount_type"] || ""} />
+          <input type="hidden" name="checkout[discount_value]" id="discount_value_hidden" value={@form_values["discount_value"] || ""} />
+          <div id="discount-result" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
+          <%= if @errors[:discount_code] do %>
+            <span class="checkout-error"><%= @errors[:discount_code] %></span>
+          <% end %>
+          <%= if @discount do %>
+            <p style="color: var(--color-success); margin-top: 0.25rem; font-size: 0.875rem;">
+              ✓ Descuento aplicado:
+              <%= if @discount.discount_type == "flat" do %>
+                $<%= @discount.discount_value %> MXN
+              <% else %>
+                <%= @discount.discount_value %>% off
+              <% end %>
+            </p>
+          <% end %>
         </div>
 
         <h2 class="checkout-section-title">Método de pago</h2>
@@ -175,9 +208,25 @@
             </div>
           <% end %>
         </div>
-        <div class="checkout-summary-total">
-          <span>Total</span>
+        <div class="checkout-summary-total" id="summary-subtotal" style="font-weight: normal; color: var(--text-secondary);">
+          <span>Subtotal</span>
           <span><%= format_price(@cart_total) %></span>
+        </div>
+        <div id="summary-discount-row" style={if @discount, do: "", else: "display:none;"} class="checkout-summary-total" style="color: var(--color-success);">
+          <span id="summary-discount-label">Descuento</span>
+          <span id="summary-discount-amount">
+            <%= if @discount do %>
+              <%= if @discount.discount_type == "flat" do %>
+                – $<%= @discount.discount_value %> MXN
+              <% else %>
+                – <%= @discount.discount_value %>%
+              <% end %>
+            <% end %>
+          </span>
+        </div>
+        <div class="checkout-summary-total" id="summary-total">
+          <span>Total</span>
+          <span id="summary-total-amount"><%= format_price(@cart_total) %></span>
         </div>
       </div>
     </div>
@@ -185,14 +234,14 @@
 </div>
 
 <script>
-  // Show/hide delivery address and warning note based on delivery type selection
+  // Show/hide delivery address and warning banner based on delivery type selection
   document.querySelectorAll('input[name="checkout[delivery_type]"]').forEach(function(radio) {
     radio.addEventListener('change', function() {
       var addressField = document.getElementById('delivery-address-field');
       var deliveryNote = document.getElementById('delivery-note');
       var isDelivery = this.value === 'delivery';
       addressField.style.display = isDelivery ? 'block' : 'none';
-      deliveryNote.style.display = isDelivery ? 'block' : 'none';
+      deliveryNote.style.display = isDelivery ? 'flex' : 'none';
     });
   });
 
@@ -204,7 +253,6 @@
         submitBtn.textContent = this.value === 'stripe' ? 'Continuar al pago →' : 'Confirmar pedido';
       }
     });
-    // Apply on page load if already selected (e.g. after validation error)
     if (radio.checked && submitBtn) {
       submitBtn.textContent = radio.value === 'stripe' ? 'Continuar al pago →' : 'Confirmar pedido';
     }
@@ -221,4 +269,78 @@
       }
     });
   }
+
+  // Discount code AJAX validation
+  var cartTotal = <%= @cart_total %>;
+
+  function formatPrice(cents) {
+    return '$' + (cents / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' MXN';
+  }
+
+  function updateSummary(discountCents, label) {
+    var discountRow = document.getElementById('summary-discount-row');
+    var discountLbl = document.getElementById('summary-discount-label');
+    var discountAmt = document.getElementById('summary-discount-amount');
+    var totalAmt = document.getElementById('summary-total-amount');
+
+    if (discountCents > 0) {
+      discountRow.style.display = '';
+      discountLbl.textContent = 'Descuento (' + label + ')';
+      discountAmt.textContent = '– ' + formatPrice(discountCents);
+      totalAmt.textContent = formatPrice(Math.max(0, cartTotal - discountCents));
+    } else {
+      discountRow.style.display = 'none';
+      totalAmt.textContent = formatPrice(cartTotal);
+    }
+  }
+
+  document.getElementById('apply-discount-btn').addEventListener('click', function() {
+    var code = document.getElementById('discount_code_input').value.trim().toUpperCase();
+    var resultEl = document.getElementById('discount-result');
+
+    if (!code) {
+      resultEl.innerHTML = '<span style="color: var(--color-danger);">Ingresa un código.</span>';
+      return;
+    }
+
+    resultEl.innerHTML = 'Verificando...';
+
+    fetch('/mr-munch-me/checkout/validate-discount?code=' + encodeURIComponent(code))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.valid) {
+          document.getElementById('discount_code_hidden').value = code;
+          document.getElementById('discount_type_hidden').value = data.discount_type;
+          document.getElementById('discount_value_hidden').value = data.discount_value;
+
+          var discountCents;
+          if (data.discount_type === 'flat') {
+            discountCents = Math.round(parseFloat(data.discount_value) * 100);
+          } else {
+            discountCents = Math.round(cartTotal * parseFloat(data.discount_value) / 100);
+          }
+          discountCents = Math.min(discountCents, cartTotal);
+
+          updateSummary(discountCents, data.label);
+          resultEl.innerHTML = '<span style="color: var(--color-success);">✓ Código válido — ' + data.label + ' de descuento aplicado.</span>';
+        } else {
+          document.getElementById('discount_code_hidden').value = '';
+          document.getElementById('discount_type_hidden').value = '';
+          document.getElementById('discount_value_hidden').value = '';
+          updateSummary(0, '');
+          resultEl.innerHTML = '<span style="color: var(--color-danger);">' + data.error + '</span>';
+        }
+      })
+      .catch(function() {
+        resultEl.innerHTML = '<span style="color: var(--color-danger);">Error al verificar el código. Intenta de nuevo.</span>';
+      });
+  });
+
+  // Also allow pressing Enter in the discount code input
+  document.getElementById('discount_code_input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('apply-discount-btn').click();
+    }
+  });
 </script>

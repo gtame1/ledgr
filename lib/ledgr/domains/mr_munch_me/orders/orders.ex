@@ -2,7 +2,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
   import Ecto.Query, warn: false
   alias Ledgr.Repo
 
-  alias Ledgr.Domains.MrMunchMe.Orders.{Order, Product, ProductImage, ProductVariant, OrderPayment, OrderIngredient}
+  alias Ledgr.Domains.MrMunchMe.Orders.{Order, Product, ProductImage, ProductVariant, OrderPayment, OrderIngredient, DiscountCode}
   alias Ledgr.Domains.MrMunchMe.{OrderAccounting, PendingCheckout}
   alias Ledgr.Domains.MrMunchMe.Inventory.Location
   alias Ledgr.Core.{Customers, Accounting}
@@ -967,7 +967,9 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
           "special_instructions" => checkout_attrs["special_instructions"],
           "prep_location_id" => default_location.id,
           "customer_paid_shipping" => customer_paid_shipping,
-          "stripe_checkout_session_id" => stripe_session_id
+          "stripe_checkout_session_id" => stripe_session_id,
+          "discount_type" => checkout_attrs["discount_type"],
+          "discount_value" => checkout_attrs["discount_value"]
         }
 
         order =
@@ -1085,7 +1087,9 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
           "delivery_address" => checkout_attrs["delivery_address"],
           "special_instructions" => checkout_attrs["special_instructions"],
           "prep_location_id" => default_location.id,
-          "customer_paid_shipping" => customer_paid_shipping
+          "customer_paid_shipping" => customer_paid_shipping,
+          "discount_type" => checkout_attrs["discount_type"],
+          "discount_value" => checkout_attrs["discount_value"]
         }
 
         case create_order(order_attrs) do
@@ -1094,6 +1098,71 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         end
       end)
     end)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Discount codes
+  # ---------------------------------------------------------------------------
+
+  def list_discount_codes do
+    Repo.all(from d in DiscountCode, order_by: [desc: d.inserted_at])
+  end
+
+  def get_discount_code!(id), do: Repo.get!(DiscountCode, id)
+
+  def create_discount_code(attrs) do
+    %DiscountCode{}
+    |> DiscountCode.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_discount_code(%DiscountCode{} = code, attrs) do
+    code
+    |> DiscountCode.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_discount_code(%DiscountCode{} = code), do: Repo.delete(code)
+
+  @doc """
+  Validates a discount code string for use at checkout.
+  Returns `{:ok, discount_code}` or `{:error, reason_string}`.
+  """
+  def validate_discount_code(code_str) when is_binary(code_str) do
+    code_str = String.upcase(String.trim(code_str))
+
+    case Repo.get_by(DiscountCode, code: code_str) do
+      nil ->
+        {:error, "Código de descuento inválido"}
+
+      %DiscountCode{active: false} ->
+        {:error, "Este código no está activo"}
+
+      %DiscountCode{expires_at: exp} = code when not is_nil(exp) ->
+        if Date.compare(Date.utc_today(), exp) == :gt do
+          {:error, "Este código ha expirado"}
+        else
+          check_uses(code)
+        end
+
+      code ->
+        check_uses(code)
+    end
+  end
+
+  def validate_discount_code(_), do: {:error, "Código de descuento inválido"}
+
+  defp check_uses(%DiscountCode{max_uses: max, uses_count: used} = code) when not is_nil(max) do
+    if used >= max, do: {:error, "Este código ya no tiene usos disponibles"}, else: {:ok, code}
+  end
+
+  defp check_uses(code), do: {:ok, code}
+
+  def increment_discount_code_uses(%DiscountCode{} = code) do
+    Repo.update_all(
+      from(d in DiscountCode, where: d.id == ^code.id),
+      inc: [uses_count: 1]
+    )
   end
 
   # ---------------------------------------------------------------------------

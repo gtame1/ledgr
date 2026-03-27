@@ -13,6 +13,9 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
     {:ok, product: product, variant: variant, location: location}
   end
 
+  # Minimum order date: 36h from now = at least 2 days out to be safe in tests
+  defp future_date, do: Date.to_iso8601(Date.add(Date.utc_today(), 3))
+
   # ---------------------------------------------------------------------------
   # GET /mr-munch-me/checkout
   # ---------------------------------------------------------------------------
@@ -47,7 +50,7 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Ana",
             "customer_phone" => "5551234567",
             "delivery_type" => "pickup",
-            "delivery_date" => Date.to_iso8601(Date.utc_today())
+            "delivery_date" => future_date()
           }
         })
 
@@ -80,7 +83,7 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "",
             "customer_phone" => "5551234567",
             "delivery_type" => "pickup",
-            "delivery_date" => Date.to_iso8601(Date.utc_today())
+            "delivery_date" => future_date()
           }
         })
 
@@ -96,7 +99,7 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Ana",
             "customer_phone" => "5551234567",
             "delivery_type" => "",
-            "delivery_date" => Date.to_iso8601(Date.utc_today())
+            "delivery_date" => future_date()
           }
         })
 
@@ -113,10 +116,11 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_phone" => "5559876543",
             "customer_email" => "maria@example.com",
             "delivery_type" => "pickup",
-            "delivery_date" => Date.to_iso8601(Date.utc_today()),
+            "delivery_date" => future_date(),
             "delivery_time" => "10:00",
             "delivery_address" => "",
-            "special_instructions" => ""
+            "special_instructions" => "",
+            "payment_method" => "cod"
           }
         })
 
@@ -125,9 +129,6 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
     end
 
     test "clears cart session after successful checkout", %{conn: conn, variant: variant} do
-      # Use tomorrow to avoid the same-day-after-cutoff validation (which fails after 12pm CDMX)
-      tomorrow = Date.to_iso8601(Date.add(Date.utc_today(), 1))
-
       conn =
         conn
         |> init_test_session(%{cart: %{to_string(variant.id) => 1}})
@@ -136,7 +137,8 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Carlos López",
             "customer_phone" => "5551112222",
             "delivery_type" => "pickup",
-            "delivery_date" => tomorrow,
+            "delivery_date" => future_date(),
+            "delivery_time" => "14:00",
             "delivery_address" => "",
             "payment_method" => "cod"
           }
@@ -157,9 +159,11 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Luis Pérez",
             "customer_phone" => "5553334444",
             "delivery_type" => "delivery",
-            "delivery_date" => Date.to_iso8601(Date.utc_today()),
+            "delivery_date" => future_date(),
+            "delivery_time" => "12:00",
             "delivery_address" => "Calle Falsa 123, CDMX",
-            "special_instructions" => "Sin azúcar"
+            "special_instructions" => "Sin azúcar",
+            "payment_method" => "cod"
           }
         })
 
@@ -178,8 +182,10 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Ana Martínez",
             "customer_phone" => "5556667777",
             "delivery_type" => "pickup",
-            "delivery_date" => Date.to_iso8601(Date.utc_today()),
-            "delivery_address" => ""
+            "delivery_date" => future_date(),
+            "delivery_time" => "11:00",
+            "delivery_address" => "",
+            "payment_method" => "cod"
           }
         })
 
@@ -194,8 +200,10 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Ana Martínez",
             "customer_phone" => "5556667777",
             "delivery_type" => "pickup",
-            "delivery_date" => Date.to_iso8601(Date.utc_today()),
-            "delivery_address" => ""
+            "delivery_date" => future_date(),
+            "delivery_time" => "11:00",
+            "delivery_address" => "",
+            "payment_method" => "cod"
           }
         })
 
@@ -211,9 +219,11 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
             "customer_name" => "Pedro Ruiz",
             "customer_phone" => "5558889999",
             "delivery_type" => "pickup",
-            "delivery_date" => Date.to_iso8601(Date.utc_today()),
+            "delivery_date" => future_date(),
+            "delivery_time" => "15:00",
             "delivery_address" => "",
-            "special_instructions" => "Sin gluten por favor"
+            "special_instructions" => "Sin gluten por favor",
+            "payment_method" => "cod"
           }
         })
 

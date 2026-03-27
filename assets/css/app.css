@@ -4316,6 +4316,46 @@
     line-height: 1.4;
   }
 
+  .checkout-delivery-banner {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin-top: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: #fff7ed;
+    border: 1.5px solid #fb923c;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #7c2d12;
+  }
+
+  .checkout-delivery-banner-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
+
+  .checkout-delivery-banner strong {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+
+  .checkout-delivery-banner p {
+    margin: 0;
+    color: #9a3412;
+  }
+
+  .checkout-discount-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .checkout-discount-row input {
+    flex: 1;
+  }
+
   .checkout-hint {
     font-size: 0.8125rem;
     color: var(--text-muted, #6b7280);

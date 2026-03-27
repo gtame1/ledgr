@@ -26,10 +26,29 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         cart_total: cart_total,
         errors: %{},
         form_values: %{},
-        min_delivery_date: min_delivery_date(),
-        same_day_cutoff_passed: mexico_city_now().hour >= 12
+        discount: nil,
+        min_delivery_date: min_delivery_date()
       )
     end
+  end
+
+  def validate_discount(conn, %{"code" => code}) do
+    case Orders.validate_discount_code(code) do
+      {:ok, dc} ->
+        json(conn, %{
+          valid: true,
+          discount_type: dc.discount_type,
+          discount_value: Decimal.to_string(dc.discount_value),
+          label: discount_label(dc)
+        })
+
+      {:error, reason} ->
+        json(conn, %{valid: false, error: reason})
+    end
+  end
+
+  def validate_discount(conn, _params) do
+    json(conn, %{valid: false, error: "Código requerido"})
   end
 
   def create(conn, %{"checkout" => checkout_params}) do
@@ -46,6 +65,18 @@ defmodule LedgrWeb.Storefront.CheckoutController do
       customer_name = String.trim(checkout_params["customer_name"] || "")
       customer_email = String.trim(checkout_params["customer_email"] || "")
 
+      # Validate discount code if provided
+      discount_code_str = String.trim(checkout_params["discount_code"] || "")
+      {discount_result, discount_struct} =
+        if discount_code_str != "" do
+          case Orders.validate_discount_code(discount_code_str) do
+            {:ok, dc} -> {:ok, dc}
+            {:error, _} -> {:error, nil}
+          end
+        else
+          {:skip, nil}
+        end
+
       errors =
         %{}
         |> maybe_add_error(customer_name == "", :customer_name, "El nombre es requerido")
@@ -61,14 +92,24 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           "Por favor selecciona una fecha"
         )
         |> maybe_add_error(
-          same_day_after_cutoff?(checkout_params["delivery_date"]),
+          date_too_soon?(checkout_params["delivery_date"]),
           :delivery_date,
-          "Los pedidos para hoy solo se aceptan antes de las 12pm (hora CDMX)"
+          "La fecha más próxima disponible es #{Date.to_string(min_delivery_date())} (mínimo 36 horas de anticipación)"
+        )
+        |> maybe_add_error(
+          String.trim(checkout_params["delivery_time"] || "") == "",
+          :delivery_time,
+          "Por favor indica una hora preferida"
         )
         |> maybe_add_error(
           String.trim(checkout_params["payment_method"] || "") == "",
           :payment_method,
           "Por favor selecciona un método de pago"
+        )
+        |> maybe_add_error(
+          discount_code_str != "" && discount_result == :error,
+          :discount_code,
+          "Código de descuento inválido o expirado"
         )
 
       if map_size(errors) > 0 do
@@ -81,8 +122,8 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           cart_total: cart_total,
           errors: errors,
           form_values: checkout_params,
-          min_delivery_date: min_delivery_date(),
-          same_day_cutoff_passed: mexico_city_now().hour >= 12
+          discount: discount_struct,
+          min_delivery_date: min_delivery_date()
         )
       else
         customer_attrs = %{
@@ -94,8 +135,8 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         case Customers.find_or_create_by_phone(customer_phone, customer_attrs) do
           {:ok, customer} ->
             case checkout_params["payment_method"] do
-              "stripe" -> redirect_to_stripe(conn, cart, cart_items, customer, checkout_params)
-              "cod" -> create_cod_orders(conn, cart, cart_items, customer, checkout_params)
+              "stripe" -> redirect_to_stripe(conn, cart, cart_items, customer, checkout_params, discount_struct)
+              "cod" -> create_cod_orders(conn, cart, cart_items, customer, checkout_params, discount_struct)
             end
 
           {:error, _} ->
@@ -108,8 +149,8 @@ defmodule LedgrWeb.Storefront.CheckoutController do
               cart_total: cart_total,
               errors: %{customer_phone: "Número de teléfono inválido"},
               form_values: checkout_params,
-              min_delivery_date: min_delivery_date(),
-              same_day_cutoff_passed: mexico_city_now().hour >= 12
+              discount: discount_struct,
+              min_delivery_date: min_delivery_date()
             )
         end
       end
@@ -272,19 +313,22 @@ defmodule LedgrWeb.Storefront.CheckoutController do
     end
   end
 
-  defp redirect_to_stripe(conn, cart, cart_items, customer, checkout_params) do
+  defp redirect_to_stripe(conn, cart, cart_items, customer, checkout_params, discount_struct) do
     checkout_attrs = %{
       "delivery_type" => checkout_params["delivery_type"],
       "delivery_date" => checkout_params["delivery_date"],
       "delivery_time" => checkout_params["delivery_time"],
       "delivery_address" => checkout_params["delivery_address"],
-      "special_instructions" => checkout_params["special_instructions"]
+      "special_instructions" => checkout_params["special_instructions"],
+      "discount_type" => discount_struct && discount_struct.discount_type,
+      "discount_value" => discount_struct && Decimal.to_string(discount_struct.discount_value)
     }
 
     with {:ok, pending} <- PendingCheckouts.create(cart, customer.id, checkout_attrs),
-         line_items = build_stripe_line_items(cart_items),
+         line_items = build_stripe_line_items(cart_items, discount_struct),
          {:ok, session} <- create_stripe_session(pending.id, line_items, conn),
          {:ok, _} <- PendingCheckouts.set_stripe_session(pending, session.id) do
+      if discount_struct, do: Orders.increment_discount_code_uses(discount_struct)
       redirect(conn, external: session.url)
     else
       {:error, reason} ->
@@ -301,20 +345,24 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           cart_total: cart_total,
           errors: %{},
           form_values: checkout_params,
-          min_delivery_date: min_delivery_date(),
-          same_day_cutoff_passed: mexico_city_now().hour >= 12
+          discount: discount_struct,
+          min_delivery_date: min_delivery_date()
         )
     end
   end
 
-  defp create_cod_orders(conn, cart, cart_items, customer, checkout_params) do
+  defp create_cod_orders(conn, cart, cart_items, customer, checkout_params, discount_struct) do
     checkout_attrs = %{
       "delivery_type" => checkout_params["delivery_type"],
       "delivery_date" => checkout_params["delivery_date"],
       "delivery_time" => checkout_params["delivery_time"],
       "delivery_address" => checkout_params["delivery_address"],
-      "special_instructions" => checkout_params["special_instructions"]
+      "special_instructions" => checkout_params["special_instructions"],
+      "discount_type" => discount_struct && discount_struct.discount_type,
+      "discount_value" => discount_struct && Decimal.to_string(discount_struct.discount_value)
     }
+
+    if discount_struct, do: Orders.increment_discount_code_uses(discount_struct)
 
     case Orders.create_orders_cod(cart, customer.id, checkout_attrs) do
       {:ok, orders} ->
@@ -370,25 +418,51 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           cart_total: cart_total,
           errors: %{},
           form_values: checkout_params,
-          min_delivery_date: min_delivery_date(),
-          same_day_cutoff_passed: mexico_city_now().hour >= 12
+          discount: discount_struct,
+          min_delivery_date: min_delivery_date()
         )
     end
   end
 
-  defp build_stripe_line_items(cart_items) do
-    Enum.map(cart_items, fn item ->
-      %{
+  defp build_stripe_line_items(cart_items, discount_struct) do
+    product_items =
+      Enum.map(cart_items, fn item ->
+        %{
+          price_data: %{
+            currency: "mxn",
+            unit_amount: item.variant.price_cents,
+            product_data: %{name: "#{item.product.name} — #{item.variant.name}"}
+          },
+          quantity: item.quantity
+        }
+      end)
+
+    if discount_struct do
+      total_cents = Enum.reduce(cart_items, 0, fn i, acc -> acc + i.variant.price_cents * i.quantity end)
+
+      discount_cents =
+        case discount_struct.discount_type do
+          "flat" -> round(Decimal.to_float(discount_struct.discount_value) * 100)
+          "percentage" ->
+            pct = Decimal.to_float(discount_struct.discount_value) / 100
+            round(total_cents * pct)
+        end
+
+      discount_cents = min(discount_cents, total_cents)
+
+      discount_item = %{
         price_data: %{
           currency: "mxn",
-          unit_amount: item.variant.price_cents,
-          product_data: %{
-            name: "#{item.product.name} — #{item.variant.name}"
-          }
+          unit_amount: -discount_cents,
+          product_data: %{name: "Descuento (#{discount_label(discount_struct)})"}
         },
-        quantity: item.quantity
+        quantity: 1
       }
-    end)
+
+      product_items ++ [discount_item]
+    else
+      product_items
+    end
   end
 
   defp create_stripe_session(pending_checkout_id, line_items, conn) do
@@ -468,20 +542,23 @@ defmodule LedgrWeb.Storefront.CheckoutController do
     DateTime.add(DateTime.utc_now(), -6 * 3600, :second)
   end
 
+  # Minimum delivery date: at least 36 hours from now
   defp min_delivery_date do
-    mx_now = mexico_city_now()
-    mx_date = DateTime.to_date(mx_now)
-    if mx_now.hour >= 12, do: Date.add(mx_date, 1), else: mx_date
+    mexico_city_now()
+    |> DateTime.add(36 * 3600, :second)
+    |> DateTime.to_date()
   end
 
-  defp same_day_after_cutoff?(date_str) do
-    mx_now = mexico_city_now()
-    mx_date = DateTime.to_date(mx_now)
+  defp date_too_soon?(date_str) do
     case Date.from_iso8601(date_str || "") do
-      {:ok, d} -> d == mx_date && mx_now.hour >= 12
+      {:ok, d} -> Date.before?(d, min_delivery_date())
       _ -> false
     end
   end
+
+  defp discount_label(%{discount_type: "flat", discount_value: v}), do: "$#{Decimal.to_string(v)} MXN"
+  defp discount_label(%{discount_type: "percentage", discount_value: v}), do: "#{Decimal.to_string(v)}%"
+  defp discount_label(_), do: ""
 
   defp load_cart_items(cart) when map_size(cart) == 0, do: {[], 0}
 

@@ -51,6 +51,7 @@ defmodule LedgrWeb.Router do
     get "/checkout/success", CheckoutController, :success
     get "/checkout/cancel", CheckoutController, :cancel
     post "/checkout/pay-existing", CheckoutController, :pay_existing_with_stripe
+    get "/checkout/validate-discount", CheckoutController, :validate_discount
   end
 
   # ── Stripe webhooks (no CSRF, no browser session) ───────────────────
@@ -110,6 +111,7 @@ defmodule LedgrWeb.Router do
     delete "/products/:product_id/images/:image_id", Domains.MrMunchMe.ProductController, :delete_gallery_image
     resources "/products/:product_id/variants", Domains.MrMunchMe.VariantController, only: [:new, :create, :edit, :update, :delete]
     post "/products/:product_id/variants/:variant_id/recipe", Domains.MrMunchMe.VariantController, :save_recipe
+    resources "/discount-codes", Domains.MrMunchMe.DiscountCodeController, only: [:index, :new, :create, :edit, :update, :delete]
     resources "/ingredients", Domains.MrMunchMe.IngredientController, only: [:index, :new, :create, :edit, :update, :delete]
     resources "/recipes", Domains.MrMunchMe.RecipeController, only: [:index, :new, :create, :show, :edit, :delete]
     post "/recipes/new_version/:id", Domains.MrMunchMe.RecipeController, :create_new_version

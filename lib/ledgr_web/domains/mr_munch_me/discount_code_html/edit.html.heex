@@ -1,0 +1,55 @@
+<section class="card">
+  <h2 class="card-title">Edit Discount Code</h2>
+  <p class="card-subtitle">Update code: <strong><%= @discount_code.code %></strong> — used <%= @discount_code.uses_count %> time(s).</p>
+
+  <.form :let={f} for={@changeset} as={:discount_code} action={@action} method="put" class="form-grid">
+    <%= if @changeset.action do %>
+      <div class="alert alert-error">
+        <p>Please fix the errors below.</p>
+        <ul>
+          <%= for {field, {message, _}} <- @changeset.errors do %>
+            <li><%= humanize(field) %>: <%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="form-block">
+      <div class="field">
+        <.input field={f[:code]} type="text" label="Code" />
+      </div>
+
+      <div class="field">
+        <.input
+          field={f[:discount_type]}
+          type="select"
+          label="Discount Type"
+          prompt="Select type"
+          options={[{"Fixed amount (MXN)", "flat"}, {"Percentage (%)", "percentage"}]}
+        />
+      </div>
+
+      <div class="field">
+        <.input field={f[:discount_value]} type="number" label="Discount Value" step="0.01" min="0.01" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:max_uses]} type="number" label="Max Uses (optional)" min="1" />
+        <p class="field-help">Leave blank for unlimited uses.</p>
+      </div>
+
+      <div class="field">
+        <.input field={f[:expires_at]} type="date" label="Expiry Date (optional)" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:active]} type="checkbox" label="Active" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Save Changes</button>
+      <.link navigate={dp(@domain_path_prefix, "/discount-codes")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

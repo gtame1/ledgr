@@ -1,0 +1,63 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Discount Codes</h2>
+    <p class="card-subtitle">Manage promo codes for customer checkout.</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/discount-codes/new")} class="btn primary">
+      + New Code
+    </.link>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Type</th>
+        <th>Value</th>
+        <th>Uses</th>
+        <th>Expires</th>
+        <th>Active</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <%= for code <- @discount_codes do %>
+        <tr>
+          <td><strong><%= code.code %></strong></td>
+          <td><%= code.discount_type %></td>
+          <td>
+            <%= if code.discount_type == "flat" do %>
+              $<%= code.discount_value %> MXN
+            <% else %>
+              <%= code.discount_value %>%
+            <% end %>
+          </td>
+          <td>
+            <%= code.uses_count %><%= if code.max_uses, do: " / #{code.max_uses}", else: " / ∞" %>
+          </td>
+          <td><%= code.expires_at || "—" %></td>
+          <td>
+            <span class={if code.active, do: "badge badge-green", else: "badge badge-red"}>
+              <%= if code.active, do: "Active", else: "Inactive" %>
+            </span>
+          </td>
+          <td style="display: flex; gap: 0.5rem;">
+            <.link navigate={dp(@domain_path_prefix, "/discount-codes/#{code.id}/edit")} class="btn sm">
+              Edit
+            </.link>
+            <.link
+              href={dp(@domain_path_prefix, "/discount-codes/#{code.id}")}
+              method="delete"
+              data-confirm="Delete this code?"
+              class="btn sm"
+              style="color: var(--color-danger);">
+              Delete
+            </.link>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
