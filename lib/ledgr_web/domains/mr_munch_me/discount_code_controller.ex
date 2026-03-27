@@ -19,7 +19,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.DiscountCodeController do
 
   def new(conn, _params) do
     changeset = DiscountCode.changeset(%DiscountCode{}, %{})
-    render(conn, :new, changeset: changeset)
+    render(conn, :new, changeset: changeset, action: dp(conn, "/discount-codes"))
   end
 
   def create(conn, %{"discount_code" => attrs}) do
@@ -30,14 +30,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.DiscountCodeController do
         |> redirect(to: dp(conn, "/discount-codes"))
 
       {:error, changeset} ->
-        render(conn, :new, changeset: changeset)
+        render(conn, :new, changeset: changeset, action: dp(conn, "/discount-codes"))
     end
   end
 
   def edit(conn, %{"id" => id}) do
     code = Orders.get_discount_code!(id)
     changeset = DiscountCode.changeset(code, %{})
-    render(conn, :edit, discount_code: code, changeset: changeset)
+    render(conn, :edit, discount_code: code, changeset: changeset, action: dp(conn, "/discount-codes/#{id}"))
   end
 
   def update(conn, %{"id" => id, "discount_code" => attrs}) do
@@ -50,7 +50,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.DiscountCodeController do
         |> redirect(to: dp(conn, "/discount-codes"))
 
       {:error, changeset} ->
-        render(conn, :edit, discount_code: code, changeset: changeset)
+        render(conn, :edit, discount_code: code, changeset: changeset, action: dp(conn, "/discount-codes/#{id}"))
     end
   end
 
