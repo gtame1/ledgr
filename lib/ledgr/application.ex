@@ -37,7 +37,7 @@ defmodule Ledgr.Application do
     # Optional repos: in test always start all repos (they're configured in
     # config/test.exs); in dev/prod only start when their DATABASE_URL is set.
     optional_repos =
-      if @mix_env == :test do
+      if @mix_env != :prod do
         [Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ]
       else
         [

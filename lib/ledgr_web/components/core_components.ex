@@ -580,7 +580,7 @@ defmodule LedgrWeb.CoreComponents do
 
     ~H"""
     <span class={@color_class}>
-      {@sign}${@formatted}
+      {@sign}${@formatted} MXN
     </span>
     """
   end

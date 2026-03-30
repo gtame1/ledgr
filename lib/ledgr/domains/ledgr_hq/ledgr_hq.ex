@@ -80,7 +80,10 @@ defmodule Ledgr.Domains.LedgrHQ do
       hosting_expense: "5100",
       domain_dns_expense: "5110",
       saas_tools_expense: "5120",
-      general_expense: "5200"
+      general_expense: "5200",
+      contractor_expense: "5300",
+      legal_expense: "5400",
+      marketing_expense: "5500"
     }
   end
 
@@ -90,7 +93,10 @@ defmodule Ledgr.Domains.LedgrHQ do
       {"Subscription Payment", "subscription_payment"},
       {"Subscription Refund", "subscription_refund"},
       {"Hosting Payment", "hosting_payment"},
-      {"Tool/Service Payment", "tool_payment"}
+      {"Tool/Service Payment", "tool_payment"},
+      {"Contractor Payment", "contractor_payment"},
+      {"Legal/Compliance", "legal_payment"},
+      {"Marketing Expense", "marketing_expense"}
     ]
   end
 
@@ -139,11 +145,13 @@ defmodule Ledgr.Domains.LedgrHQ do
   @impl Ledgr.Domain.DashboardProvider
   def dashboard_metrics(_start_date, _end_date) do
     alias Ledgr.Domains.LedgrHQ.{Clients, ClientSubscriptions, Costs}
+    alias Ledgr.Core.Expenses
 
     all_clients = Clients.list_clients()
     active_clients = Enum.filter(all_clients, &(&1.status in ["active", "trial"]))
 
     today = Date.utc_today()
+    month_start = %Date{today | day: 1}
 
     churned_this_month =
       Enum.count(all_clients, fn c ->
@@ -155,11 +163,13 @@ defmodule Ledgr.Domains.LedgrHQ do
     mrr_cents = ClientSubscriptions.mrr_cents()
     arr_cents = mrr_cents * 12
     monthly_costs_cents = Costs.total_monthly_cents()
-    net_margin_cents = mrr_cents - monthly_costs_cents
+    total_expenses_cents = Expenses.total_expenses_cents(month_start, today)
+    total_opex_cents = monthly_costs_cents + total_expenses_cents
+    net_margin_cents = mrr_cents - total_opex_cents
     active_count = length(active_clients)
 
     cost_per_client_cents =
-      if active_count > 0, do: div(monthly_costs_cents, active_count), else: 0
+      if active_count > 0, do: div(total_opex_cents, active_count), else: 0
 
     recent_clients =
       all_clients
@@ -173,6 +183,8 @@ defmodule Ledgr.Domains.LedgrHQ do
       total_clients_count: length(all_clients),
       churned_this_month: churned_this_month,
       monthly_costs_cents: monthly_costs_cents,
+      total_expenses_cents: total_expenses_cents,
+      total_opex_cents: total_opex_cents,
       net_margin_cents: net_margin_cents,
       cost_per_client_cents: cost_per_client_cents,
       recent_clients: recent_clients

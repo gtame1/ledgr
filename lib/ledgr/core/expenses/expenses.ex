@@ -12,6 +12,15 @@ defmodule Ledgr.Core.Expenses do
 
   # ---------- PUBLIC API ----------
 
+  @doc "Sum of amount_cents for expenses within the given date range."
+  def total_expenses_cents(start_date, end_date) do
+    from(e in Expense,
+      where: e.date >= ^start_date and e.date <= ^end_date,
+      select: coalesce(sum(e.amount_cents), 0)
+    )
+    |> Repo.one()
+  end
+
   def list_expenses() do
     query =
       from e in Expense,
