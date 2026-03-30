@@ -93,10 +93,15 @@ defmodule Ledgr.Application do
   # so the repo still starts and Postgrex handles reconnection normally.
   defp db_host_reachable?(url) do
     host = url |> URI.parse() |> Map.get(:host)
-    case host && :inet.gethostbyname(to_charlist(host)) do
-      {:ok, _} -> true
-      {:error, :nxdomain} -> false
-      _ -> true
+
+    if is_nil(host) or host == "" do
+      false
+    else
+      case :inet.gethostbyname(to_charlist(host)) do
+        {:ok, _} -> true
+        {:error, :nxdomain} -> false
+        _ -> true
+      end
     end
   end
 end
