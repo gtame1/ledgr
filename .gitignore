@@ -41,6 +41,9 @@ npm-debug.log
 # Local secrets — never commit
 /config/dev.secret.exs
 
+# Internal docs (local only)
+/INTERNAL-README.md
+
 # User-uploaded product images (stored on Render persistent disk in prod)
 /priv/static/uploads/
 

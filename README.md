@@ -1,106 +1,66 @@
-# MrMunchMeAccountingApp
+# Ledgr
 
-## Mix Tasks
+Ledgr is a [Phoenix](https://www.phoenixframework.org/) web application for running day-to-day business operations: storefronts, orders, inventory, accounting, and admin tooling. The codebase supports multiple business domains, each with its own PostgreSQL database and feature set.
 
-### Diagnostic & Fix Tasks
+## Tech stack
 
-#### Fix Withdrawal Accounts
-Fixes historical withdrawal entries that incorrectly debited Owner's Equity (3000) instead of Owner's Drawings (3100).
+- **Elixir** (~> 1.15) and **Phoenix** (~> 1.8) with **LiveView**
+- **Ecto** / **PostgreSQL** for persistence
+- **Tailwind CSS** and **esbuild** for assets
+- **Stripe** for payments where storefront checkout is enabled
 
-```sh
-MIX_ENV=prod mix fix_withdrawal_accounts           # Dry run - shows what would be fixed
-MIX_ENV=prod mix fix_withdrawal_accounts --fix     # Apply the fix
-```
+## Prerequisites
 
-#### Fix Gift Order Accounting
-Fixes accounting entries for orders that were delivered as regular sales but later marked as gifts (`is_gift = true`). Reverses the original sale/COGS entries, records the gift expense (Dr Samples & Gifts 6070, Cr WIP 1220), and reclassifies any payments as gift contributions (Cr Other Income 4100) so AR and Customer Deposits stay clean.
+- Elixir and Erlang/OTP (see `mix.exs` for the supported Elixir version)
+- PostgreSQL
+- Node is not required for routine development; asset tooling is managed via Mix tasks
 
-```sh
-MIX_ENV=prod mix fix_gift_order_accounting           # Dry run - shows what would be fixed
-MIX_ENV=prod mix fix_gift_order_accounting --fix     # Apply the corrections
-```
+## Getting started
 
-#### Diagnose COGS
-Diagnoses and fixes duplicate COGS journal entries caused by pattern matching issues.
+Clone the repository, then from the project root:
 
 ```sh
-MIX_ENV=prod mix diagnose_cogs           # Dry run - shows duplicates
-MIX_ENV=prod mix diagnose_cogs --fix     # Remove duplicates
+mix setup
 ```
 
-#### Backfill Movement Costs
-Backfills costs for inventory movements that have $0 cost (useful when movements were recorded before purchases).
+This fetches dependencies, creates and migrates the default development database (see `mix.exs` aliases), runs seeds for the primary dev repo, and builds front-end assets.
+
+Start the development server:
 
 ```sh
-MIX_ENV=prod mix backfill_movement_costs
+mix phx.server
 ```
 
-#### Repair Inventory Quantities
-Recalculates and repairs inventory quantities from movements.
+Then open the URL printed in the terminal (by default [http://localhost:4000](http://localhost:4000)).
+
+## Configuration
+
+- **Development** database credentials and repo layout live under `config/dev.exs` and `config/test.exs`.
+- **Production** uses runtime configuration in `config/runtime.exs` (for example `DATABASE_URL` and optional URLs per tenant repo). Set only the env vars for the environments and tenants you actually run.
+
+The application may start optional Ecto repos only when their corresponding database URL env vars are present, so local or partial deployments do not need every tenant configured.
+
+## Tests and checks
+
+Run the test suite:
 
 ```sh
-MIX_ENV=prod mix repair_inventory_quantities
+mix test
 ```
 
-#### Verify Inventory Accounting
-Runs comprehensive integrity checks on inventory accounting (WIP balance, COGS consistency, etc.).
+This project defines a `precommit` alias that compiles with warnings as errors, checks for unused deps, formats code, and runs tests:
 
 ```sh
-MIX_ENV=prod mix verify_inventory_accounting
+mix precommit
 ```
 
-### Reset Tasks (⚠️ DESTRUCTIVE)
+Use it before opening a PR or pushing significant changes.
 
-#### Reset Accounting Only
-Deletes ALL journal entries and lines (accounting movements only). Keeps accounts, orders, and inventory.
+## Project layout (brief)
 
-```sh
-MIX_ENV=prod mix reset_accounting_only
-```
+- `lib/ledgr/` — domain contexts and business logic
+- `lib/ledgr_web/` — HTTP layer, LiveViews, controllers, and plugs
+- `priv/repos/<tenant>/` — migrations and seeds per database
+- `assets/` — JavaScript and CSS entrypoints
 
-#### Reset Inventory Only
-Deletes ALL inventory movements and stock levels. Keeps ingredients and locations.
-
-```sh
-MIX_ENV=prod mix reset_inventory_only
-```
-
-#### Reset All Tables
-Deletes data from ALL main tables (accounts, orders, inventory, partners, etc.).
-
-```sh
-MIX_ENV=prod mix reset_all_tables
-```
-
-#### Reset and Seed
-Clears ALL data and reruns the seeds file.
-
-```sh
-MIX_ENV=prod mix reset_and_seed
-```
-
-#### Seed New Tables
-Runs priv/repo/seeds.exs without clearing data (useful for adding new seed data).
-
-```sh
-MIX_ENV=prod mix seed_new_tables
-```
-
-### Creating Users
-
-Registration is disabled in the UI — accounts are created internally via the command line.
-
-Use `--no-start` to avoid conflicting with a running web server:
-
-```sh
-mix run --no-start -e "
-  Application.ensure_all_started(:bcrypt_elixir)
-  Application.ensure_all_started(:ecto_sql)
-  Ledgr.Repos.Viaxe.start_link([])
-  Ledgr.Repo.put_active_repo(Ledgr.Repos.Viaxe)
-  Ledgr.Core.Accounts.create_user(%{email: ~s(super@admin.com), password: ~s(Potato123)})
-  |> IO.inspect()
-"
-```
-
-For MrMunchMe, swap `Ledgr.Repos.Viaxe` with `Ledgr.Repos.MrMunchMe` in both lines.
+Operational mix tasks (data repair, resets, production-oriented utilities) are intended for trusted operators and are not documented in this README.
