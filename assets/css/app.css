@@ -133,6 +133,15 @@
     border-radius: 10px;
   }
 
+  /* App name next to logo — hidden on desktop (logo centered alone), shown on mobile */
+  .sidebar-app-name {
+    display: none;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--sidebar-text);
+  }
+
   .app-logo {
     font-size: 1.4rem;
   }
@@ -445,6 +454,43 @@
     color: var(--text-main);
   }
 
+  /* ── Casa Tame — Quick Actions ─────────────────────────────────── */
+  .ct-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .ct-primary-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .ct-secondary-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .ct-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .ct-primary-actions .ct-action-btn {
+    min-height: 2.75rem;
+  }
+
+  .ct-secondary-actions .ct-action-btn {
+    width: 100%;
+    min-height: 2.25rem;
+  }
+
   .card-header {
     display: flex;
     align-items: flex-start;
@@ -566,7 +612,7 @@
 
   .nice-list li {
     background: var(--bg-surface);
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem 1.25rem;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-subtle);
     font-size: 0.9rem;
@@ -1687,7 +1733,7 @@
 
   .calendar-header-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.35rem;
     flex-wrap: wrap;
   }
 
@@ -1696,7 +1742,8 @@
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-main);
-    padding: 0.15rem 0;
+    padding: 0.25rem 0;
+    margin: 0.25rem 0;
     flex-shrink: 0;
   }
 
@@ -1896,18 +1943,18 @@
   }
 
   .calendar-legend {
-    padding: 0.5rem 0.75rem;
+    padding: 1.25rem 2rem;
     background: var(--bg-card, #ffffff);
     border-radius: var(--radius-md, 10px);
     border: 1px solid var(--border-subtle);
     box-shadow: 0 2px 8px rgba(var(--shadow-color), 0.05);
     flex-shrink: 0;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
   }
 
   .calendar-legend-items {
     display: flex;
-    gap: 1.25rem;
+    gap: 0.6rem 1.5rem;
     flex-wrap: wrap;
     justify-content: center;
   }
@@ -1915,7 +1962,7 @@
   .calendar-legend-item {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
     font-size: 0.75rem;
     color: var(--text-main);
   }
@@ -1965,7 +2012,7 @@
     pointer-events: none;
     background: #3d2318;
     color: #fff;
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem 1.25rem;
     border-radius: 0.5rem;
     font-size: 0.8rem;
     max-width: 240px;
@@ -2170,41 +2217,6 @@
 
   /* Mobile and small tablets (max-width: 768px) */
   @media (max-width: 768px) {
-    /* Layout: Stack sidebar and content vertically */
-    .app-layout {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr;
-    }
-
-    .sidebar {
-      padding: 1rem 0.75rem;
-      max-height: 60vh;
-      overflow-y: auto;
-      border-bottom: 2px solid rgba(253, 245, 238, 0.2);
-    }
-
-    .sidebar-header {
-      padding: 0.5rem 0.75rem;
-    }
-
-    .app-logo {
-      font-size: 1.2rem;
-    }
-
-    .app-title {
-      font-size: 0.85rem;
-    }
-
-    .nav {
-      margin-top: 0.5rem;
-    }
-
-    .nav-link,
-    .nav-dropdown-toggle {
-      font-size: 0.85rem;
-      padding: 0.5rem 0.75rem;
-    }
-
     /* Content */
     .content {
       padding: 1rem;
@@ -2212,6 +2224,8 @@
 
     .content-header {
       margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
 
     .page-title {
@@ -2230,6 +2244,11 @@
 
     .card-subtitle {
       font-size: 0.8rem;
+    }
+
+    .card-header {
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
 
     /* Forms */
@@ -2251,15 +2270,28 @@
       padding: 1rem;
     }
 
-    /* Dashboard metrics */
-    .dashboard-metrics {
+    /* Inputs — prevent iOS auto-zoom on focus */
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="password"],
+    input[type="search"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
+
+    /* All multi-column grids collapse to 1 column on mobile */
+    .dashboard-metrics,
+    .summary-grid,
+    .info-grid {
       grid-template-columns: 1fr;
-      gap: 0.75rem;
+      gap: 0.6rem;
     }
 
     .summary-grid {
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
       padding: 1rem;
     }
 
@@ -2288,7 +2320,7 @@
 
     .table th,
     .table td {
-      padding: 0.5rem 0.75rem;
+      padding: 0.75rem 1.25rem;
       white-space: nowrap;
     }
 
@@ -2296,10 +2328,17 @@
       font-size: 0.7rem;
     }
 
-    /* Buttons */
+    /* Buttons — larger touch targets on mobile */
     .btn {
       padding: 0.5rem 0.9rem;
       font-size: 0.85rem;
+      min-height: 44px;
+    }
+
+    .nav-link,
+    .nav-dropdown-toggle,
+    .app-switcher-link {
+      min-height: 44px;
     }
 
     .actions {
@@ -2320,16 +2359,57 @@
     .purchase-item-row > div {
       flex-wrap: wrap;
     }
-    
+
     .purchase-item-row > div > div:first-child {
       grid-template-columns: 1fr;
       width: 100%;
     }
-    
+
     .purchase-item-row > div > div:last-child {
       width: 100%;
       padding-top: 0.5rem;
       justify-content: flex-end;
+    }
+
+    /* Detail rows — stack label/value on mobile */
+    .detail-row {
+      grid-template-columns: 1fr;
+      gap: 0.15rem;
+      padding: 0.6rem 0;
+    }
+
+    .detail-label {
+      font-size: 0.68rem;
+    }
+
+    /* Casa Tame — Quick Actions: 1 primary button per row on mobile */
+    .ct-quick-actions {
+      padding: 0.75rem 1rem;
+    }
+
+    .ct-primary-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .ct-secondary-actions .ct-action-btn {
+      min-height: 2.5rem;
+    }
+
+    /* Period selector */
+    .period-selector__dates {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+
+    .period-selector__sep {
+      display: none;
+    }
+
+    .period-selector__input,
+    .period-selector__submit {
+      width: 100%;
+      height: 2.75rem;
     }
 
     /* Calendar */
@@ -2345,16 +2425,53 @@
 
     .calendar-header-actions {
       width: 100%;
-      justify-content: flex-start;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .calendar-header-actions .btn {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.6rem;
+    }
+
+    .calendar-legend-items {
+      gap: 0.5rem 0.75rem;
+    }
+
+    .calendar-legend-item {
+      font-size: 0.65rem;
     }
 
     .calendar-grid {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
     }
 
     .calendar-day {
-      min-height: 3rem;
-      padding: 0.3rem;
+      min-height: 2.5rem;
+      padding: 0.2rem;
+    }
+
+    .calendar-day-number {
+      font-size: 0.7rem;
+      margin-bottom: 0.1rem;
+    }
+
+    .calendar-weekday {
+      font-size: 0.65rem;
+      padding: 0.3rem 0.1rem;
+      height: 2rem;
+      min-height: 2rem;
+      max-height: 2rem;
+    }
+
+    /* On mobile, show dots instead of text for bill items */
+    .calendar-day-orders .bill-item-text {
+      display: none;
+    }
+
+    .calendar-day-orders .bill-item-dot {
+      width: 8px;
+      height: 8px;
     }
 
     .calendar-order-item {
@@ -2430,26 +2547,17 @@
       padding: 0.45rem 0.65rem;
     }
 
-    /* Form fields on very small screens */
+    /* Tighter input padding on very small screens */
     input[type="text"],
     input[type="email"],
     input[type="date"],
     input[type="tel"],
     input[type="number"],
+    input[type="password"],
+    input[type="search"],
     select,
     textarea {
-      font-size: 16px; /* Prevents zoom on iOS */
       padding: 0.5rem;
-    }
-
-    /* Ensure buttons and links are touch-friendly */
-    .btn,
-    .nav-link,
-    .link-text {
-      min-height: 44px; /* iOS touch target minimum */
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
     }
   }
 
@@ -2489,8 +2597,8 @@
       align-items: center;
       justify-content: center;
       position: fixed;
-      top: 1rem;
-      left: 1rem;
+      top: max(1rem, env(safe-area-inset-top, 0px));
+      left: max(1rem, env(safe-area-inset-left, 0px));
       z-index: 1001;
       width: 48px;
       height: 48px;
@@ -2560,12 +2668,80 @@
       left: 0;
       width: 280px;
       height: 100vh;
+      height: 100dvh;
       max-height: 100vh;
+      /* Push content down past the hamburger/close button (48px + 1rem top + gap) */
+      padding-top: max(4.75rem, calc(env(safe-area-inset-top, 0px) + 4rem));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
       transform: translateX(-100%);
       transition: transform 0.3s ease;
       z-index: 1000;
       overflow-y: auto;
       border-bottom: none;
+    }
+
+    /* ── Mobile drawer: compact horizontal header ───────────────────── */
+
+    /* [logo-with-bg] [name] side by side */
+    .sidebar-header:has(.sidebar-logo-wrap) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: none;
+      border-radius: 0;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Keep the white box but make it compact */
+    .sidebar-logo-wrap--bg {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 0.3rem 0.5rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Compact logo */
+    .sidebar-logo-img {
+      height: 32px;
+      border-radius: 4px;
+    }
+
+    /* Show app name next to logo on mobile */
+    .sidebar-app-name {
+      display: block;
+    }
+
+    /* ── Tighter nav items ──────────────────────────────────────────── */
+    .nav {
+      gap: 0.1rem;
+    }
+
+    .nav-dropdown {
+      gap: 0;
+    }
+
+    .nav-dropdown-toggle {
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+    }
+
+    .nav-dropdown-menu {
+      gap: 0.05rem;
+      padding-left: 0.5rem;
+      margin-top: 0.1rem;
+    }
+
+    .nav-link {
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    /* Slightly wider drawer so items don't feel cramped */
+    .sidebar {
+      width: min(300px, 88vw);
     }
 
     .sidebar.is-open {
@@ -2588,23 +2764,25 @@
       pointer-events: auto;
     }
 
-    /* Content area adjustments */
+    /* Content area — clear the hamburger button + respect notch */
     .content {
-      padding-top: 5rem;
+      padding-top: max(5rem, calc(3.5rem + env(safe-area-inset-top, 0px)));
+      padding-left: max(1rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1rem, env(safe-area-inset-right, 0px));
     }
   }
 
   /* Adjust hamburger for small mobile */
   @media (max-width: 480px) {
     .hamburger-btn {
-      top: 0.75rem;
-      left: 0.75rem;
+      top: max(0.75rem, env(safe-area-inset-top, 0px));
+      left: max(0.75rem, env(safe-area-inset-left, 0px));
       width: 44px;
       height: 44px;
     }
 
     .content {
-      padding-top: 4.5rem;
+      padding-top: max(4.5rem, calc(3.5rem + env(safe-area-inset-top, 0px)));
     }
   }
 
@@ -5511,7 +5689,7 @@
      Calendar (Trip calendar view)
      ============================== */
 
-  .calendar-legend {
+  .trip-calendar-legend {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem 1rem;
@@ -5673,6 +5851,17 @@
   flex-direction: column;
   gap: 0.5rem;
   pointer-events: none;
+  max-width: min(420px, calc(100vw - 2.5rem));
+}
+
+@media (max-width: 768px) {
+  .flash-container {
+    /* Sit below the hamburger button, full-width with gutters */
+    top: max(5rem, calc(3.5rem + env(safe-area-inset-top, 0px)));
+    right: 0.75rem;
+    left: 0.75rem;
+    max-width: none;
+  }
 }
 
 .flash-toast {

@@ -1,0 +1,106 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+
+  days_until = fn due_date ->
+    Date.diff(due_date, @today)
+  end
+%>
+
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Bills & Payments</h2>
+    <p class="card-subtitle">Recurring and one-time upcoming payments.</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/bills/new")} class="btn primary">+ New Bill</.link>
+    <.link navigate={dp(@domain_path_prefix, "/bills/calendar")} class="btn">Calendar View</.link>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Frequency</th>
+          <th>Category</th>
+          <th class="numeric">Amount</th>
+          <th>Next Due</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for bill <- @bills do %>
+          <%
+            d = days_until.(bill.next_due_date)
+            urgency_style = cond do
+              !bill.is_active -> "color: var(--text-muted);"
+              d < 0 -> "color: #dc2626; font-weight: 700;"
+              d <= 3 -> "color: #ea580c; font-weight: 600;"
+              d <= 7 -> "color: #d97706;"
+              true -> ""
+            end
+          %>
+          <tr style={if !bill.is_active, do: "opacity: 0.5;", else: ""}>
+            <td style="font-weight: 600;"><%= bill.name %></td>
+            <td><%= String.replace(bill.frequency, "_", " ") |> String.capitalize() %></td>
+            <td>
+              <%= if bill.category do %>
+                <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; color: white; background: #{Ledgr.Domains.CasaTame.Bills.RecurringBill.category_color(bill.category)}"}>
+                  <%= String.replace(bill.category, "_", " ") |> String.capitalize() %>
+                </span>
+              <% end %>
+            </td>
+            <td class="numeric">
+              <%= if bill.amount_cents do %>
+                <span style={"display: inline-block; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.7rem; font-weight: 600; margin-right: 0.2rem; #{if bill.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
+                  <%= bill.currency %>
+                </span>
+                <%= fmt.(bill.amount_cents) %>
+              <% else %>
+                <span style="color: var(--text-muted);">Variable</span>
+              <% end %>
+            </td>
+            <td style={urgency_style}>
+              <%= bill.next_due_date %>
+              <%= cond do %>
+                <% !bill.is_active -> %>
+                <% d < 0 -> %> <span style="font-size: 0.8rem;">(<%= abs(d) %>d overdue)</span>
+                <% d == 0 -> %> <span style="font-size: 0.8rem;">(today!)</span>
+                <% d <= 7 -> %> <span style="font-size: 0.8rem;">(in <%= d %>d)</span>
+                <% true -> %>
+              <% end %>
+            </td>
+            <td>
+              <%= if bill.is_active do %>
+                <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline;">
+                  <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                  <button type="submit" class="btn sm" style="background: #059669; color: white; font-size: 0.75rem;">Paid</button>
+                </form>
+              <% else %>
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Completed</span>
+              <% end %>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.5rem;">
+                <.link navigate={dp(@domain_path_prefix, "/bills/#{bill.id}/edit")} class="btn">Edit</.link>
+                <.link href={dp(@domain_path_prefix, "/bills/#{bill.id}")} method="delete" data-confirm="Delete this bill?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+        <%= if @bills == [] do %>
+          <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No bills yet. Add your first recurring bill.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

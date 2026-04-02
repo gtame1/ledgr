@@ -306,7 +306,11 @@ defmodule LedgrWeb.Router do
     get "/debt-accounts/:id", Domains.CasaTame.DebtAccountController, :show
     post "/debt-accounts/:id/movements", Domains.CasaTame.DebtAccountController, :create_movement
 
-    # Domain-specific reports
+    # Bills & recurring payments
+    get "/bills/calendar", Domains.CasaTame.BillController, :calendar
+    resources "/bills", Domains.CasaTame.BillController, only: [:index, :new, :create, :edit, :update, :delete]
+    post "/bills/:id/mark-paid", Domains.CasaTame.BillController, :mark_paid
+
     # FX Transfers (cross-currency)
     get "/fx-transfers/new", Domains.CasaTame.FxTransferController, :new
     post "/fx-transfers", Domains.CasaTame.FxTransferController, :create

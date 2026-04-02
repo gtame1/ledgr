@@ -34,9 +34,15 @@ defmodule LedgrWeb.Domains.CasaTame.DebtAccountController do
       loans_mxn: Enum.filter(accounts_with_balances, & &1.account.code >= "2150" and &1.account.code < "2200")
     }
 
-    total = Enum.reduce(accounts_with_balances, 0, & &1.balance_cents + &2)
+    total_usd =
+      (grouped.credit_cards_usd ++ grouped.ap_usd ++ grouped.loans_usd)
+      |> Enum.reduce(0, & &1.balance_cents + &2)
 
-    render(conn, :index, grouped: grouped, total_cents: total)
+    total_mxn =
+      (grouped.credit_cards_mxn ++ grouped.ap_mxn ++ grouped.loans_mxn)
+      |> Enum.reduce(0, & &1.balance_cents + &2)
+
+    render(conn, :index, grouped: grouped, total_usd_cents: total_usd, total_mxn_cents: total_mxn)
   end
 
   def show(conn, %{"id" => id}) do

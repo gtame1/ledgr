@@ -1,0 +1,55 @@
+<section class="card">
+  <h2 class="card-title">Edit Bill</h2>
+
+  <.form :let={f} for={@changeset} as={:recurring_bill} action={@action} method="put" class="form-grid">
+    <%= if @changeset.action do %>
+      <div class="alert alert-error">
+        <p>Please fix the errors below.</p>
+      </div>
+    <% end %>
+
+    <div class="form-block">
+      <div class="field">
+        <.input field={f[:name]} type="text" label="Name" />
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="field">
+          <.input field={f[:frequency]} type="select" label="Frequency" options={Ledgr.Domains.CasaTame.Bills.RecurringBill.frequency_options()} />
+        </div>
+        <div class="field">
+          <.input field={f[:category]} type="select" label="Category" prompt="Select category" options={Ledgr.Domains.CasaTame.Bills.RecurringBill.category_options()} />
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+        <div class="field">
+          <.input field={f[:amount_cents]} type="number" min="0" step="0.01" label="Amount (optional)" />
+        </div>
+        <div class="field">
+          <.input field={f[:currency]} type="select" label="Currency" options={[{"MXN", "MXN"}, {"USD", "USD"}]} />
+        </div>
+        <div class="field">
+          <.input field={f[:day_of_month]} type="number" min="1" max="31" label="Day of month (optional)" />
+        </div>
+      </div>
+
+      <div class="field">
+        <.input field={f[:next_due_date]} type="date" label="Next due date" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:notes]} type="textarea" label="Notes (optional)" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:is_active]} type="checkbox" label="Active" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Update Bill</button>
+      <.link navigate={dp(@domain_path_prefix, "/bills")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

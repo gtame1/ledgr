@@ -181,6 +181,7 @@
                 <div class={"sidebar-logo-wrap#{if theme[:sidebar_logo_bg], do: " sidebar-logo-wrap--bg", else: ""}"}>
                   <img src={theme[:sidebar_logo]} alt={domain.name()} class="sidebar-logo-img" onerror="this.style.display='none'" />
                 </div>
+                <span class="sidebar-app-name"><%= domain.name() %></span>
               <% else %>
                 <span class="app-logo"><%= domain.logo() %></span>
                 <span class="app-title"><%= domain.name() %></span>

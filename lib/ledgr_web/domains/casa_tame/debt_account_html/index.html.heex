@@ -18,8 +18,18 @@
   <div class="content-body">
     <div class="dashboard-metrics" style="margin-bottom: 1.25rem;">
       <div class="metric-card">
-        <div class="metric-label">Total Outstanding Debt</div>
-        <div class="metric-value" style="color: #dc2626;"><%= fmt.(@total_cents) %></div>
+        <div class="metric-label">
+          <span style="display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.7rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.35rem;">USD</span>
+          Total Outstanding
+        </div>
+        <div class="metric-value" style="color: #dc2626;"><%= fmt.(@total_usd_cents) %></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">
+          <span style="display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.7rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.35rem;">MXN</span>
+          Total Outstanding
+        </div>
+        <div class="metric-value" style="color: #dc2626;"><%= fmt.(@total_mxn_cents) %></div>
       </div>
     </div>
 

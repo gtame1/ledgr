@@ -18,39 +18,108 @@
   <div class="content-body">
     <% m = @metrics %>
 
-    <!-- Quick Actions (top) -->
+    <!-- Quick Actions -->
     <section class="card">
-      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.75rem;">
-        <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="btn primary">+ New Expense</.link>
-        <.link navigate={dp(@domain_path_prefix, "/income/new")} class="btn primary">+ New Income</.link>
-        <.link navigate={dp(@domain_path_prefix, "/transfers/new")} class="btn">Transfer</.link>
-        <.link navigate={dp(@domain_path_prefix, "/reports/pnl")} class="btn">Income & Expenses</.link>
-        <.link navigate={dp(@domain_path_prefix, "/reports/balance_sheet")} class="btn">Balance Sheet</.link>
+      <div class="ct-quick-actions">
+        <div class="ct-primary-actions">
+          <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="btn primary ct-action-btn">+ New Expense</.link>
+          <.link navigate={dp(@domain_path_prefix, "/income/new")} class="btn primary ct-action-btn">+ New Income</.link>
+        </div>
+        <div class="ct-secondary-actions">
+          <.link navigate={dp(@domain_path_prefix, "/transfers/new")} class="btn sm ct-action-btn">Transfer</.link>
+          <.link navigate={dp(@domain_path_prefix, "/reports/pnl")} class="btn sm ct-action-btn">Income & Expenses</.link>
+          <.link navigate={dp(@domain_path_prefix, "/reports/balance_sheet")} class="btn sm ct-action-btn">Balance Sheet</.link>
+        </div>
       </div>
     </section>
 
-    <!-- Period Selector -->
-    <div class="period-selector" style="margin-top: 1rem;">
-      <form method="get" action={dp(@domain_path_prefix, "/")} style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-        <input type="date" name="start_date" value={@start_date} class="input input-sm" />
-        <span style="color: var(--text-muted);">to</span>
-        <input type="date" name="end_date" value={@end_date} class="input input-sm" />
-        <button type="submit" class="btn sm">Apply</button>
+    <!-- Upcoming Bills -->
+    <%= if m.upcoming_bills != [] do %>
+      <%
+        today = Ledgr.Domains.CasaTame.today()
+      %>
+      <section class="card" style="border-left: 4px solid #ea580c;">
+        <div class="card-header">
+          <h2 class="card-title">Upcoming Bills</h2>
+          <.link navigate={dp(@domain_path_prefix, "/bills")} class="btn sm">View All</.link>
+        </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <tbody>
+              <%= for bill <- m.upcoming_bills do %>
+                <%
+                  d = Date.diff(bill.next_due_date, today)
+                  urgency_style = cond do
+                    d < 0 -> "background: #fef2f2; color: #dc2626; font-weight: 700;"
+                    d == 0 -> "background: #fff7ed; color: #ea580c; font-weight: 700;"
+                    d <= 3 -> "background: #fffbeb; color: #d97706;"
+                    true -> ""
+                  end
+                  label = cond do
+                    d < 0 -> "#{abs(d)}d overdue!"
+                    d == 0 -> "Due today!"
+                    d == 1 -> "Tomorrow"
+                    true -> "in #{d} days"
+                  end
+                %>
+                <tr style={urgency_style}>
+                  <td style="font-weight: 600;"><%= bill.name %></td>
+                  <td>
+                    <%= if bill.category do %>
+                      <span style={"display: inline-block; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.65rem; font-weight: 600; color: white; background: #{Ledgr.Domains.CasaTame.Bills.RecurringBill.category_color(bill.category)}"}>
+                        <%= String.replace(bill.category, "_", " ") |> String.capitalize() %>
+                      </span>
+                    <% end %>
+                  </td>
+                  <td class="numeric">
+                    <%= if bill.amount_cents do %>
+                      <%= fmt.(bill.amount_cents) %>
+                    <% end %>
+                  </td>
+                  <td style="text-align: right; font-size: 0.85rem;"><%= bill.next_due_date %> (<%= label %>)</td>
+                  <td style="width: 60px;">
+                    <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline;">
+                      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                      <button type="submit" class="btn sm" style="background: #059669; color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem;">Paid</button>
+                    </form>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    <% end %>
 
-        <div style="display: flex; gap: 0.25rem; margin-left: auto;">
+    <!-- Period Selector -->
+    <div class="period-selector card">
+      <form method="get" action={dp(@domain_path_prefix, "/")}>
+        <div class="period-selector__dates">
+          <div class="period-selector__field">
+            <label class="period-selector__label">From</label>
+            <input type="date" name="start_date" value={@start_date} class="period-selector__input" />
+          </div>
+          <span class="period-selector__sep">→</span>
+          <div class="period-selector__field">
+            <label class="period-selector__label">To</label>
+            <input type="date" name="end_date" value={@end_date} class="period-selector__input" />
+          </div>
+          <button type="submit" class="btn primary period-selector__submit">Apply</button>
+        </div>
+        <div class="period-selector__presets">
           <% today = Ledgr.Domains.CasaTame.today() %>
           <% month_start = Date.beginning_of_month(today) %>
           <% month_end = Date.end_of_month(today) %>
-          <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{month_start}&end_date=#{month_end}"} class="btn sm">This month</a>
-          <% prev_month_start = month_start |> Date.add(-1) |> Date.beginning_of_month() %>
-          <% prev_month_end = Date.end_of_month(prev_month_start) %>
-          <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{prev_month_start}&end_date=#{prev_month_end}"} class="btn sm">Last month</a>
+          <% prev_start = month_start |> Date.add(-1) |> Date.beginning_of_month() %>
+          <% prev_end = Date.end_of_month(prev_start) %>
+          <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{month_start}&end_date=#{month_end}"} class="period-selector__preset">This month</a>
+          <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{prev_start}&end_date=#{prev_end}"} class="period-selector__preset">Last month</a>
         </div>
       </form>
     </div>
 
-    <!-- MXN: Income → Expenses → Net -->
-    <section class="card" style="margin-top: 1rem;">
+    <!-- MXN Period Summary -->
+    <section class="card">
       <div class="card-header">
         <h2 class="card-title">
           <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.5rem;">MXN</span>
@@ -77,8 +146,8 @@
       </div>
     </section>
 
-    <!-- USD: Income → Expenses → Net -->
-    <section class="card" style="margin-top: 1rem;">
+    <!-- USD Period Summary -->
+    <section class="card">
       <div class="card-header">
         <h2 class="card-title">
           <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.5rem;">USD</span>
@@ -106,7 +175,7 @@
     </section>
 
     <!-- Net Worth -->
-    <section class="card" style="margin-top: 1rem;">
+    <section class="card">
       <div class="card-header">
         <h2 class="card-title">Net Worth</h2>
         <.link navigate={dp(@domain_path_prefix, "/reports/net-worth")} class="btn sm">Details</.link>
@@ -127,45 +196,6 @@
       </div>
     </section>
 
-    <!-- Expense Breakdown -->
-    <section class="card" style="margin-top: 1rem;">
-      <div class="card-header">
-        <div>
-          <h2 class="card-title">Expense Breakdown</h2>
-          <p class="card-subtitle">By category for the selected period.</p>
-        </div>
-        <.link navigate={dp(@domain_path_prefix, "/expenses")} class="btn sm">All expenses</.link>
-      </div>
 
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th class="numeric">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for item <- m.pnl.operating_expense_accounts do %>
-              <%= if item.net_cents != 0 do %>
-                <tr>
-                  <td><%= item.name %></td>
-                  <td class="numeric"><%= fmt.(item.net_cents) %></td>
-                </tr>
-              <% end %>
-            <% end %>
-            <%= if m.pnl.operating_expense_accounts == [] do %>
-              <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">No expenses in this period</td></tr>
-            <% end %>
-          </tbody>
-          <tfoot>
-            <tr style="font-weight: 600;">
-              <td>Total</td>
-              <td class="numeric"><%= fmt.(m.pnl.total_opex_cents) %></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </section>
   </div>
 </section>

@@ -1,0 +1,206 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
+<div class="calendar-page">
+  <!-- Desktop header -->
+  <div class="calendar-header cal-desktop-only">
+    <div class="calendar-header-left">
+      <h1 class="calendar-title">Bills Calendar</h1>
+    </div>
+    <div class="calendar-header-actions">
+      <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}")} class="btn btn-sm">&larr; Prev</.link>
+      <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{today_mx().year}&month=#{today_mx().month}")} class="btn btn-sm">Today</.link>
+      <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}")} class="btn btn-sm">Next &rarr;</.link>
+      <.link navigate={dp(@domain_path_prefix, "/bills")} class="btn btn-sm primary">List</.link>
+    </div>
+  </div>
+
+  <!-- Mobile header (just title) -->
+  <div class="cal-mobile-only" style="margin-bottom: 0.5rem;">
+    <h1 class="calendar-title">Bills Calendar</h1>
+  </div>
+
+  <!-- List button (full width on mobile, hidden on desktop) -->
+  <div class="cal-mobile-only" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/bills")} class="btn primary" style="width: 100%; text-align: center;">View Bill List</.link>
+  </div>
+
+  <div class="calendar-month-title"><%= Calendar.strftime(@first_day, "%B %Y") %></div>
+
+  <div class="calendar-grid">
+    <div class="calendar-weekday">S</div>
+    <div class="calendar-weekday">M</div>
+    <div class="calendar-weekday">T</div>
+    <div class="calendar-weekday">W</div>
+    <div class="calendar-weekday">T</div>
+    <div class="calendar-weekday">F</div>
+    <div class="calendar-weekday">S</div>
+
+    <%= for date <- Date.range(@calendar_start, @calendar_end) do %>
+      <%
+        day_bills = Map.get(@bills_by_date, date, [])
+        has_bills = day_bills != []
+      %>
+      <div
+        class={[
+          "calendar-day",
+          if(Date.compare(date, @first_day) == :lt or Date.compare(date, @last_day) == :gt, do: "calendar-day-other-month"),
+          if(Date.compare(date, @today) == :eq, do: "calendar-day-today"),
+          if(has_bills, do: "calendar-day-clickable")
+        ]}
+        {if has_bills, do: [onclick: "showBillPopup(this)"], else: []}
+        data-bill-date={date}
+        data-bill-info={if has_bills, do: Jason.encode!(Enum.map(day_bills, fn b ->
+          %{name: b.name, category: b.category, amount: if(b.amount_cents, do: fmt.(b.amount_cents), else: "Variable"), currency: b.currency}
+        end)), else: "[]"}
+      >
+        <div class="calendar-day-number"><%= date.day %></div>
+        <div class="calendar-day-orders">
+          <%= for bill <- day_bills do %>
+            <div style="display: flex; align-items: center; gap: 0.2rem; margin-bottom: 0.1rem;" title={bill.name}>
+              <span class="bill-item-dot" style={"display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #{Ledgr.Domains.CasaTame.Bills.RecurringBill.category_color(bill.category)}; flex-shrink: 0;"}></span>
+              <span class="bill-item-text" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; font-size: 0.65rem;">
+                <%= bill.name %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Mobile bottom nav (arrows) -->
+  <div class="cal-mobile-only cal-bottom-nav">
+    <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}")} class="cal-nav-arrow">&larr;</.link>
+    <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{today_mx().year}&month=#{today_mx().month}")} class="cal-nav-today">Today</.link>
+    <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}")} class="cal-nav-arrow">&rarr;</.link>
+  </div>
+
+  <!-- Legend -->
+  <div class="calendar-legend">
+    <div class="calendar-legend-items">
+      <div class="calendar-legend-item"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc2626;"></span><span>Credit Card</span></div>
+      <div class="calendar-legend-item"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span><span>Utility</span></div>
+      <div class="calendar-legend-item"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ea580c;"></span><span>Loan</span></div>
+      <div class="calendar-legend-item"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #7c3aed;"></span><span>Insurance</span></div>
+      <div class="calendar-legend-item"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0d9488;"></span><span>Subscription</span></div>
+      <div class="calendar-legend-item"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #6b7280;"></span><span>Other</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bill popup overlay -->
+<div id="bill-popup-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 999;" onclick="closeBillPopup()"></div>
+<div id="bill-popup" style="display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); padding: 1.25rem; min-width: 280px; max-width: 90vw;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <h3 id="bill-popup-title" style="margin: 0; font-size: 1rem; font-weight: 700;"></h3>
+    <button onclick="closeBillPopup()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;">&times;</button>
+  </div>
+  <div id="bill-popup-content"></div>
+</div>
+
+<script>
+  function showBillPopup(el) {
+    const date = el.dataset.billDate;
+    const bills = JSON.parse(el.dataset.billInfo || '[]');
+    if (bills.length === 0) return;
+
+    document.getElementById('bill-popup-title').textContent = date;
+
+    const content = bills.map(b => {
+      const catColors = {
+        credit_card: '#dc2626', utility: '#2563eb', loan: '#ea580c',
+        insurance: '#7c3aed', subscription: '#0d9488', other: '#6b7280'
+      };
+      const color = catColors[b.category] || '#6b7280';
+      const catLabel = (b.category || 'other').replace('_', ' ');
+
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">
+          <div>
+            <div style="font-weight: 600; font-size: 0.9rem;">${b.name}</div>
+            <span style="display: inline-block; padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.65rem; font-weight: 600; color: white; background: ${color}; margin-top: 0.15rem;">
+              ${catLabel}
+            </span>
+          </div>
+          <div style="text-align: right; font-weight: 600;">
+            <span style="font-size: 0.7rem; color: #888;">${b.currency}</span>
+            ${b.amount}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('bill-popup-content').innerHTML = content;
+    document.getElementById('bill-popup').style.display = 'block';
+    document.getElementById('bill-popup-overlay').style.display = 'block';
+  }
+
+  function closeBillPopup() {
+    document.getElementById('bill-popup').style.display = 'none';
+    document.getElementById('bill-popup-overlay').style.display = 'none';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBillPopup(); });
+</script>
+
+<style>
+  .calendar-day-clickable { cursor: pointer; }
+  .calendar-day-clickable:hover { background: #f0fdf4 !important; }
+
+  /* Mobile/desktop toggle */
+  .cal-desktop-only { display: flex; }
+  .cal-mobile-only { display: none !important; }
+
+  /* Mobile bottom nav */
+  .cal-bottom-nav {
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0;
+  }
+
+  .cal-nav-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--btn-secondary-bg);
+    color: var(--text-main);
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .cal-nav-arrow:hover {
+    background: var(--btn-secondary-hover);
+  }
+
+  .cal-nav-today {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm);
+  }
+
+  @media (max-width: 768px) {
+    .cal-desktop-only { display: none !important; }
+    .cal-mobile-only { display: block !important; }
+    .cal-bottom-nav { display: flex !important; }
+  }
+</style>

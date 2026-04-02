@@ -128,7 +128,8 @@ defmodule Ledgr.Domains.CasaTame do
         %{label: "Dashboard",  path: prefix,                    icon: :dashboard},
         %{label: "Expenses",   path: "#{prefix}/expenses",      icon: :expenses},
         %{label: "Income",     path: "#{prefix}/income",        icon: :receipt},
-        %{label: "Transfers",  path: "#{prefix}/transfers",     icon: :transfers}
+        %{label: "Transfers",  path: "#{prefix}/transfers",     icon: :transfers},
+        %{label: "Bills",      path: "#{prefix}/bills",         icon: :documents}
       ]},
       %{group: "Accounts", items: [
         %{label: "Investments", path: "#{prefix}/investment-accounts", icon: :services},
@@ -172,12 +173,13 @@ defmodule Ledgr.Domains.CasaTame do
 
   @impl Ledgr.Domain.DashboardProvider
   def dashboard_metrics(start_date, end_date) do
-    alias Ledgr.Domains.CasaTame.{Expenses, Income, NetWorth}
+    alias Ledgr.Domains.CasaTame.{Expenses, Income, NetWorth, Bills}
 
     pnl = Ledgr.Core.Accounting.profit_and_loss(start_date, end_date)
     expense_totals = Expenses.total_by_currency(start_date, end_date)
     income_totals = Income.total_by_currency(start_date, end_date)
     net_worth = NetWorth.calculate()
+    upcoming_bills = Bills.list_upcoming_bills(14)
 
     %{
       pnl: pnl,
@@ -185,7 +187,8 @@ defmodule Ledgr.Domains.CasaTame do
       income_totals: income_totals,
       net_savings_mxn: income_totals.mxn - expense_totals.mxn,
       net_savings_usd: income_totals.usd - expense_totals.usd,
-      net_worth: net_worth
+      net_worth: net_worth,
+      upcoming_bills: upcoming_bills
     }
   end
 
