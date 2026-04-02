@@ -60,7 +60,7 @@
         <%= for day <- 1..calendar_days_in_month(year, month) do %>
           <% date = Date.new!(year, month, day) %>
           <% day_bookings = Map.get(@events_by_date, date, []) %>
-          <div class={"cal-cell#{if date == Date.utc_today(), do: " cal-today", else: ""}"}>
+          <div class={"cal-cell#{if date == today_mx(), do: " cal-today", else: ""}"}>
             <div class="cal-day-num"><%= day %></div>
 
             <%= for booking <- day_bookings do %>

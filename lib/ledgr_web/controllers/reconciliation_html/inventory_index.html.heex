@@ -69,7 +69,7 @@
                       >
                         <input type="hidden" name="ingredient_id" value={item.ingredient.id} />
                         <input type="hidden" name="location_id" value={item.location.id} />
-                        <input type="hidden" name="adjustment_date" value={Date.utc_today()} />
+                        <input type="hidden" name="adjustment_date" value={today_mx()} />
                         <input type="hidden" name="description" value="" />
                         <input
                           type="number"

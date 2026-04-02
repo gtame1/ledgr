@@ -145,7 +145,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
       location_options: Inventory.location_select_options(),
       ingredient_infos: Inventory.ingredient_quick_infos(),
       paid_from_account_options: Accounting.cash_or_payable_account_options(),
-      purchase_date: Date.utc_today()
+      purchase_date: today_mx()
     )
   end
 
@@ -192,7 +192,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
           location_options: Inventory.location_select_options(),
           ingredient_infos: Inventory.ingredient_quick_infos(),
           paid_from_account_options: Accounting.cash_or_payable_account_options(),
-          purchase_date: purchase_params["purchase_date"] || Date.utc_today()
+          purchase_date: purchase_params["purchase_date"] || today_mx()
         )
     end
   end
@@ -214,7 +214,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
       location_options: Inventory.location_select_options(),
       ingredient_infos: Inventory.ingredient_quick_infos(),
       ingredient_location_stock: Inventory.ingredient_location_stock(),
-      movement_date: Date.utc_today()
+      movement_date: today_mx()
     )
   end
 
@@ -261,7 +261,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
           location_options: Inventory.location_select_options(),
           ingredient_infos: Inventory.ingredient_quick_infos(),
           ingredient_location_stock: Inventory.ingredient_location_stock(),
-          movement_date: movement_params["movement_date"] || Date.utc_today()
+          movement_date: movement_params["movement_date"] || today_mx()
         )
 
       other ->

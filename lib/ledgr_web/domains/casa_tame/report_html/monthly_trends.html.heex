@@ -1,3 +1,14 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
 <section class="content">
   <header class="content-header">
     <h1 class="page-title">Monthly Trends</h1>
@@ -32,12 +43,12 @@
             <%= for row <- Enum.reverse(@data) do %>
               <tr>
                 <td><%= row.label %></td>
-                <td class="numeric" style="color: #059669;"><%= format_currency(row.income_mxn) %></td>
-                <td class="numeric" style="color: #dc2626;"><%= format_currency(row.expense_mxn) %></td>
-                <td class="numeric"><%= format_currency(row.savings_mxn) %></td>
-                <td class="numeric" style="color: #059669;"><%= format_currency(row.income_usd) %></td>
-                <td class="numeric" style="color: #dc2626;"><%= format_currency(row.expense_usd) %></td>
-                <td class="numeric"><%= format_currency(row.savings_usd) %></td>
+                <td class="numeric" style="color: #059669;"><%= fmt.(row.income_mxn) %></td>
+                <td class="numeric" style="color: #dc2626;"><%= fmt.(row.expense_mxn) %></td>
+                <td class="numeric"><%= fmt.(row.savings_mxn) %></td>
+                <td class="numeric" style="color: #059669;"><%= fmt.(row.income_usd) %></td>
+                <td class="numeric" style="color: #dc2626;"><%= fmt.(row.expense_usd) %></td>
+                <td class="numeric"><%= fmt.(row.savings_usd) %></td>
               </tr>
             <% end %>
           </tbody>

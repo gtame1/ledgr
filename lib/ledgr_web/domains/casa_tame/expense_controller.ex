@@ -194,7 +194,6 @@ end
 
 defmodule LedgrWeb.Domains.CasaTame.ExpenseHTML do
   use LedgrWeb, :html
-  import LedgrWeb.CoreComponents
 
   embed_templates "expense_html/*"
 end

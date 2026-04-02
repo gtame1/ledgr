@@ -4,6 +4,7 @@ defmodule LedgrWeb.Domains.CasaTame.DebtAccountController do
   movements (payments, charges, interest, etc.) as journal entries.
   """
   use LedgrWeb, :controller
+  require Logger
 
   import Ecto.Query
   alias Ledgr.Repo
@@ -63,8 +64,14 @@ defmodule LedgrWeb.Domains.CasaTame.DebtAccountController do
     amount = params["amount_cents"] || 0
     movement_type = params["movement_type"]
     source_account_id = params["source_account_id"]
-    description = params["description"] || "#{movement_type} - #{account.name}"
     date = parse_date(params["date"]) || Ledgr.Domains.CasaTame.today()
+
+    description =
+      case params["description"] do
+        nil -> "#{movement_type} - #{account.name}"
+        "" -> "#{movement_type} - #{account.name}"
+        desc -> desc
+      end
 
     lines = case movement_type do
       "payment" ->
@@ -112,16 +119,18 @@ defmodule LedgrWeb.Domains.CasaTame.DebtAccountController do
 
     if lines != [] do
       case Accounting.create_journal_entry_with_lines(
-        %{date: date, entry_type: "debt_movement", description: description},
+        %{date: date, entry_type: "debt_payment", description: description},
         lines
       ) do
         {:ok, _je} ->
           conn |> put_flash(:info, "Movement recorded.") |> redirect(to: dp(conn, "/debt-accounts/#{account.id}"))
 
-        {:error, _} ->
+        {:error, reason} ->
+          Logger.warning("[CasaTame] Debt movement failed: #{inspect(reason)}")
           conn |> put_flash(:error, "Failed to record movement.") |> redirect(to: dp(conn, "/debt-accounts/#{account.id}"))
       end
     else
+      Logger.warning("[CasaTame] Invalid debt movement type '#{movement_type}'")
       conn |> put_flash(:error, "Invalid movement type.") |> redirect(to: dp(conn, "/debt-accounts/#{account.id}"))
     end
   end
@@ -174,7 +183,6 @@ end
 
 defmodule LedgrWeb.Domains.CasaTame.DebtAccountHTML do
   use LedgrWeb, :html
-  import LedgrWeb.CoreComponents
 
   embed_templates "debt_account_html/*"
 end

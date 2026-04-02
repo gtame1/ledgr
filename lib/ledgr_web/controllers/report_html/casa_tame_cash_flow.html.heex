@@ -1,4 +1,15 @@
 <%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
+<%
   cf = @cash_flow
   color = if cf.net_cash_flow_cents >= 0, do: "#059669", else: "#dc2626"
 %>
@@ -19,15 +30,15 @@
       <div class="dashboard-metrics" style="margin-top: 1rem;">
         <div class="metric-card">
           <div class="metric-label">Cash Inflows</div>
-          <div class="metric-value" style="color: #059669;"><%= format_currency(cf.cash_inflows_cents) %></div>
+          <div class="metric-value" style="color: #059669;"><%= fmt.(cf.cash_inflows_cents) %></div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Cash Outflows</div>
-          <div class="metric-value" style="color: #dc2626;"><%= format_currency(cf.cash_outflows_cents) %></div>
+          <div class="metric-value" style="color: #dc2626;"><%= fmt.(cf.cash_outflows_cents) %></div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Net Cash Flow</div>
-          <div class="metric-value" style={"color: #{color}"}><%= format_currency(cf.net_cash_flow_cents) %></div>
+          <div class="metric-value" style={"color: #{color}"}><%= fmt.(cf.net_cash_flow_cents) %></div>
         </div>
       </div>
     </section>
@@ -44,19 +55,19 @@
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Income & Revenue</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(cf.breakdown.sales_inflows_cents) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(cf.breakdown.sales_inflows_cents) %></td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Investment Deposits & Returns</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(cf.breakdown.investment_inflows_cents) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(cf.breakdown.investment_inflows_cents) %></td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Other Inflows</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(cf.breakdown.other_inflows_cents) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(cf.breakdown.other_inflows_cents) %></td>
             </tr>
             <tr style="font-weight: 700; background-color: #dcfce7;">
               <td>Total Inflows</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(cf.cash_inflows_cents) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(cf.cash_inflows_cents) %></td>
             </tr>
 
             <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
@@ -67,19 +78,19 @@
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Expenses & Bills</td>
-              <td class="numeric" style="color: #dc2626;"><%= format_currency(cf.breakdown.expense_outflows_cents) %></td>
+              <td class="numeric" style="color: #dc2626;"><%= fmt.(cf.breakdown.expense_outflows_cents) %></td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Debt Payments & Withdrawals</td>
-              <td class="numeric" style="color: #dc2626;"><%= format_currency(cf.breakdown.withdrawal_outflows_cents) %></td>
+              <td class="numeric" style="color: #dc2626;"><%= fmt.(cf.breakdown.withdrawal_outflows_cents) %></td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Other Outflows</td>
-              <td class="numeric" style="color: #dc2626;"><%= format_currency(cf.breakdown.other_outflows_cents) %></td>
+              <td class="numeric" style="color: #dc2626;"><%= fmt.(cf.breakdown.other_outflows_cents) %></td>
             </tr>
             <tr style="font-weight: 700; background-color: #fee2e2;">
               <td>Total Outflows</td>
-              <td class="numeric" style="color: #dc2626;"><%= format_currency(cf.cash_outflows_cents) %></td>
+              <td class="numeric" style="color: #dc2626;"><%= fmt.(cf.cash_outflows_cents) %></td>
             </tr>
 
             <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
@@ -87,7 +98,7 @@
             <!-- Net -->
             <tr style="font-weight: 700; font-size: 1.05rem; border-top: 2px solid var(--border-strong);">
               <td>Net Cash Flow</td>
-              <td class="numeric" style={"color: #{color}"}><%= format_currency(cf.net_cash_flow_cents) %></td>
+              <td class="numeric" style={"color: #{color}"}><%= fmt.(cf.net_cash_flow_cents) %></td>
             </tr>
           </tbody>
         </table>
@@ -102,15 +113,15 @@
           <tbody>
             <tr>
               <td>Beginning Cash Balance</td>
-              <td class="numeric"><%= format_currency(cf.beginning_balance_cents) %></td>
+              <td class="numeric"><%= fmt.(cf.beginning_balance_cents) %></td>
             </tr>
             <tr>
               <td>+ Net Cash Flow</td>
-              <td class="numeric" style={"color: #{color}"}><%= format_currency(cf.net_cash_flow_cents) %></td>
+              <td class="numeric" style={"color: #{color}"}><%= fmt.(cf.net_cash_flow_cents) %></td>
             </tr>
             <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);">
               <td>Ending Cash Balance</td>
-              <td class="numeric"><%= format_currency(cf.ending_balance_cents) %></td>
+              <td class="numeric"><%= fmt.(cf.ending_balance_cents) %></td>
             </tr>
           </tbody>
         </table>

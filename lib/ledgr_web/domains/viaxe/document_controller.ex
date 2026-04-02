@@ -18,7 +18,7 @@ defmodule LedgrWeb.Domains.Viaxe.DocumentController do
       passport_changeset: TravelDocuments.change_passport(%Passport{}),
       visa_changeset: TravelDocuments.change_visa(%Visa{}),
       loyalty_changeset: TravelDocuments.change_loyalty_program(%LoyaltyProgram{}),
-      today: Date.utc_today()
+      today: today_mx()
     )
   end
 end

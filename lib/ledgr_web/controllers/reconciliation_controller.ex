@@ -13,8 +13,8 @@ defmodule LedgrWeb.ReconciliationController do
   def accounting_index(conn, params) do
     as_of =
       case Map.get(params, "as_of") do
-        nil -> Date.utc_today()
-        "" -> Date.utc_today()
+        nil -> domain_today()
+        "" -> domain_today()
         date_str -> Date.from_iso8601!(date_str)
       end
 
@@ -91,8 +91,8 @@ defmodule LedgrWeb.ReconciliationController do
 
     as_of =
       case date_str do
-        nil -> Date.utc_today()
-        "" -> Date.utc_today()
+        nil -> domain_today()
+        "" -> domain_today()
         d -> Date.from_iso8601!(d)
       end
 
@@ -205,7 +205,7 @@ defmodule LedgrWeb.ReconciliationController do
 
   def inventory_reconcile_all(conn, params) do
     items_params = params["items"] || %{}
-    today = Date.utc_today()
+    today = domain_today()
 
     adjustment_count =
       Enum.reduce(items_params, 0, fn {key, actual_quantity_str}, count ->
@@ -260,7 +260,7 @@ defmodule LedgrWeb.ReconciliationController do
              from_location_code,
              to_location_code,
              quantity,
-             Date.utc_today()
+             domain_today()
            ) do
         {:ok, _result} ->
           conn
@@ -279,6 +279,8 @@ defmodule LedgrWeb.ReconciliationController do
         |> redirect(to: dp(conn, "/reconciliation/inventory"))
     end
   end
+
+  defp domain_today, do: today_mx()
 end
 
 

@@ -177,7 +177,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
     # Get recipe ingredients for editing (only relevant for new_order status)
     recipe_ingredients =
       if order.status == "new_order" do
-        recipe_date = order.delivery_date || Date.utc_today()
+        recipe_date = order.delivery_date || today_mx()
         Inventory.Recepies.recipe_for_variant(order.variant, recipe_date)
       else
         []
@@ -316,7 +316,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
     changeset =
       Orders.change_order_payment(%OrderPayment{
         order_id: order.id,
-        payment_date: Date.utc_today()
+        payment_date: today_mx()
       })
 
     render(conn, :new_payment,
@@ -414,7 +414,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
               payment_date =
                 case Date.from_iso8601(params["payment_date"]) do
                   {:ok, d} -> d
-                  _ -> Date.utc_today()
+                  _ -> today_mx()
                 end
 
               case OrderAccounting.record_owed_change_ap(order, owed_change_cents, payment_date, is_deposit) do
@@ -537,7 +537,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
 
   def calendar(conn, params) do
     # Parse year and month from params, default to current month
-    today = Date.utc_today()
+    today = today_mx()
     year = case params["year"] do
       nil -> today.year
       year_str -> String.to_integer(year_str)

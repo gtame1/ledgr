@@ -68,8 +68,8 @@ defmodule LedgrWeb.ReportController do
   def balance_sheet(conn, params) do
     as_of =
       case Map.get(params, "as_of") do
-        nil -> Date.utc_today()
-        "" -> Date.utc_today()
+        nil -> today_mx()
+        "" -> today_mx()
         date_str -> Date.from_iso8601!(date_str)
       end
 
@@ -90,8 +90,8 @@ defmodule LedgrWeb.ReportController do
   def year_end_close(conn, params) do
     close_date =
       case Map.get(params, "close_date") do
-        nil -> Date.new!(Date.utc_today().year - 1, 12, 31)
-        "" -> Date.new!(Date.utc_today().year - 1, 12, 31)
+        nil -> Date.new!(today_mx().year - 1, 12, 31)
+        "" -> Date.new!(today_mx().year - 1, 12, 31)
         date_str -> Date.from_iso8601!(date_str)
       end
 
@@ -284,18 +284,18 @@ defmodule LedgrWeb.ReportController do
   end
 
   defp resolve_period(%{"period" => "last_7_days"}) do
-    today = Date.utc_today()
+    today = today_mx()
     {Date.add(today, -6), today}
   end
 
   defp resolve_period(%{"period" => "this_month"}) do
-    today = Date.utc_today()
+    today = today_mx()
     start_of_month = %Date{today | day: 1}
     {start_of_month, today}
   end
 
   defp resolve_period(%{"period" => "last_90_days"}) do
-    today = Date.utc_today()
+    today = today_mx()
     {Date.add(today, -89), today}
   end
 
@@ -306,13 +306,13 @@ defmodule LedgrWeb.ReportController do
     case {earliest, latest} do
       {nil, nil} ->
         # No data at all, default to current month
-        today = Date.utc_today()
+        today = today_mx()
         start_of_month = %Date{today | day: 1}
         {start_of_month, today}
       {earliest, latest} ->
         # Start from the 1st of the earliest month
         start_date = %Date{earliest | day: 1}
-        end_date = Enum.max([latest, Date.utc_today()], Date)
+        end_date = Enum.max([latest, today_mx()], Date)
         {start_date, end_date}
     end
   end
@@ -327,7 +327,7 @@ defmodule LedgrWeb.ReportController do
   end
 
   defp resolve_period(_params) do
-    today = Date.utc_today()
+    today = today_mx()
     start_of_month = %Date{today | day: 1}
     {start_of_month, today}
   end

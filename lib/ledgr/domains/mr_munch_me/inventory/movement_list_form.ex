@@ -30,7 +30,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.MovementListForm do
 
   defp put_default_movement_date(changeset) do
     case get_field(changeset, :movement_date) do
-      nil -> put_change(changeset, :movement_date, Date.utc_today())
+      nil -> put_change(changeset, :movement_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
       _ -> changeset
     end
   end

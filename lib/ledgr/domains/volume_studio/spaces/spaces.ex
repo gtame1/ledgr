@@ -162,7 +162,7 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces do
     amount  = Map.fetch!(attrs, :amount_cents)
     summary = payment_summary(rental)
     new_paid = rental.paid_cents + amount
-    paid_at  = if new_paid >= summary.total_cents, do: Map.get(attrs, :payment_date, Date.utc_today()), else: nil
+    paid_at  = if new_paid >= summary.total_cents, do: Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx()), else: nil
 
     Repo.transaction(fn ->
       updated =
@@ -174,7 +174,7 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces do
       |> SpaceRentalPayment.changeset(%{
         space_rental_id: rental.id,
         amount_cents:    amount,
-        payment_date:    Map.get(attrs, :payment_date, Date.utc_today()),
+        payment_date:    Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx()),
         method:          Map.get(attrs, :method),
         note:            Map.get(attrs, :note)
       })

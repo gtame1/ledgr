@@ -86,7 +86,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
       wip = Accounting.get_account_by_code!(@wip_inventory_code)
 
       entry_attrs = %{
-        date: order.delivery_date || Date.utc_today(),
+        date: order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx(),
         entry_type: "order_in_prep",
         reference: reference,
         description: "Move ingredients to WIP for order ##{order.id}"
@@ -195,7 +195,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
           end)
 
         entry_attrs = %{
-          date: Date.utc_today(),
+          date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
           entry_type: "order_canceled",
           reference: reference,
           description: "Reverse WIP for canceled order ##{order.id}"
@@ -275,7 +275,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     Cr Owed Change Payable (2300) change_cents  — records liability to return change
   """
   def record_owed_change_ap(%Order{} = order, change_cents, date \\ nil, is_deposit \\ false) do
-    date = date || Date.utc_today()
+    date = date || LedgrWeb.Helpers.DomainHelpers.today_mx()
     reference = "Order ##{order.id}"
 
     # For delivered orders, overpayment over-credited AR (1100) — reverse AR.
@@ -486,7 +486,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     wip = Accounting.get_account_by_code!(@wip_inventory_code)
     samples_gifts = Accounting.get_account_by_code!(@samples_gifts_code)
     cost_cents = get_order_production_cost(order.id, wip.id) || 0
-    date = order.actual_delivery_date || order.delivery_date || Date.utc_today()
+    date = order.actual_delivery_date || order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
 
     entry_attrs = %{
       date: date,
@@ -552,7 +552,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     ingredients_cogs = Accounting.get_account_by_code!(@ingredients_cogs_code)
     packing_cogs = Accounting.get_account_by_code!(@packing_cogs_code)
 
-    date = order.actual_delivery_date || order.delivery_date || Date.utc_today()
+    date = order.actual_delivery_date || order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
 
     entry_attrs = %{
       date: date,
@@ -563,7 +563,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
 
     # Collect deposits received on or before delivery date — these created a 2200 liability
     # that must be cleared at delivery (Dr 2200 / Cr AR via deposit_transfer_lines below).
-    delivery_date = order.actual_delivery_date || order.delivery_date || Date.utc_today()
+    delivery_date = order.actual_delivery_date || order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
 
     # Use customer_amount_cents for split payments (partner portion doesn't touch AR/2200)
     deposit_total_cents =
@@ -865,7 +865,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
       if order.order_ingredients != [] do
         Enum.map(order.order_ingredients, & &1.ingredient_code)
       else
-        recipe_date = order.delivery_date || Date.utc_today()
+        recipe_date = order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
         recipe = Inventory.Recepies.recipe_for_variant(order.variant, recipe_date)
         Enum.map(recipe, & &1.ingredient_code)
       end

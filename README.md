@@ -96,9 +96,9 @@ Use `--no-start` to avoid conflicting with a running web server:
 mix run --no-start -e "
   Application.ensure_all_started(:bcrypt_elixir)
   Application.ensure_all_started(:ecto_sql)
-  Ledgr.Repos.VolumeStudio.start_link([])
-  Ledgr.Repo.put_active_repo(Ledgr.Repos.VolumeStudio)
-  Ledgr.Core.Accounts.create_user(%{email: ~s(admin@volumestudio.com), password: ~s(V0lum3123)})
+  Ledgr.Repos.Viaxe.start_link([])
+  Ledgr.Repo.put_active_repo(Ledgr.Repos.Viaxe)
+  Ledgr.Core.Accounts.create_user(%{email: ~s(super@admin.com), password: ~s(Potato123)})
   |> IO.inspect()
 "
 ```

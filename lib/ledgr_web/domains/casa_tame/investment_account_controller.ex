@@ -4,6 +4,7 @@ defmodule LedgrWeb.Domains.CasaTame.InvestmentAccountController do
   movements (deposits, withdrawals, dividends, etc.) as journal entries.
   """
   use LedgrWeb, :controller
+  require Logger
 
   import Ecto.Query
   alias Ledgr.Repo
@@ -58,8 +59,14 @@ defmodule LedgrWeb.Domains.CasaTame.InvestmentAccountController do
     amount = params["amount_cents"] || 0
     movement_type = params["movement_type"]
     source_account_id = params["source_account_id"]
-    description = params["description"] || "#{movement_type} - #{account.name}"
     date = parse_date(params["date"]) || Ledgr.Domains.CasaTame.today()
+
+    description =
+      case params["description"] do
+        nil -> "#{movement_type} - #{account.name}"
+        "" -> "#{movement_type} - #{account.name}"
+        desc -> desc
+      end
 
     # Parse source_account_id only when needed (deposit/withdrawal)
     source_id = case source_account_id do
@@ -130,17 +137,19 @@ defmodule LedgrWeb.Domains.CasaTame.InvestmentAccountController do
 
     if lines != [] do
       case Accounting.create_journal_entry_with_lines(
-        %{date: date, entry_type: "investment_movement", description: description},
+        %{date: date, entry_type: "investment_deposit", description: description},
         lines
       ) do
         {:ok, _je} ->
           conn |> put_flash(:info, "Movement recorded.") |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
 
-        {:error, _} ->
+        {:error, reason} ->
+          Logger.warning("[CasaTame] Investment movement failed: #{inspect(reason)}")
           conn |> put_flash(:error, "Failed to record movement.") |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
       end
     else
-      conn |> put_flash(:error, "Invalid movement type.") |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
+      Logger.warning("[CasaTame] Invalid movement type '#{movement_type}' or missing source for deposit/withdrawal")
+      conn |> put_flash(:error, "Invalid movement type or missing source account.") |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
     end
   end
 
@@ -190,7 +199,6 @@ end
 
 defmodule LedgrWeb.Domains.CasaTame.InvestmentAccountHTML do
   use LedgrWeb, :html
-  import LedgrWeb.CoreComponents
 
   embed_templates "investment_account_html/*"
 end

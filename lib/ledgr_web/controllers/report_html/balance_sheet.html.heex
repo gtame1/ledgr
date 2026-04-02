@@ -141,7 +141,7 @@
         <.form for={%{}} method="post" action={dp(@domain_path_prefix, "/reports/year_end_close")} style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
           <div class="field" style="margin-bottom: 0;">
             <label style="color: #78350f;">Close Date (Year-End)</label>
-            <input type="date" name="close_date" value={Date.new!(Date.utc_today().year - 1, 12, 31)} style="width: auto;" />
+            <input type="date" name="close_date" value={Date.new!(today_mx().year - 1, 12, 31)} style="width: auto;" />
           </div>
           <button type="submit" class="btn" style="background-color: #f59e0b; border-color: #f59e0b; color: white;"
             onclick="return confirm('Are you sure you want to close the fiscal year? This will transfer Net Income and Owner\'s Drawings to Retained Earnings. This action cannot be easily undone.');">

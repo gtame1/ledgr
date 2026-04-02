@@ -28,6 +28,10 @@ defmodule Ledgr.Domains.CasaTame.Expenses.CasaTameExpense do
   @required_fields ~w(date description amount_cents expense_account_id paid_from_account_id currency)a
   @optional_fields ~w(category iva_cents payee expense_category_id)a
 
+  # USD accounts: 1000-1099, 2000-2099. MXN accounts: 1100-1199, 2100-2199.
+  @usd_ranges [{"1000", "1099"}, {"2000", "2099"}]
+  @mxn_ranges [{"1100", "1199"}, {"2100", "2199"}]
+
   def changeset(expense, attrs) do
     expense
     |> cast(attrs, @required_fields ++ @optional_fields)
@@ -38,5 +42,31 @@ defmodule Ledgr.Domains.CasaTame.Expenses.CasaTameExpense do
     |> assoc_constraint(:expense_account)
     |> assoc_constraint(:paid_from_account)
     |> assoc_constraint(:expense_category)
+    |> validate_currency_matches_account()
+  end
+
+  defp validate_currency_matches_account(changeset) do
+    currency = get_field(changeset, :currency)
+    account_id = get_field(changeset, :paid_from_account_id)
+
+    if currency && account_id do
+      case Ledgr.Repo.get(Account, account_id) do
+        nil -> changeset
+        account ->
+          valid? = case currency do
+            "USD" -> Enum.any?(@usd_ranges, fn {from, to} -> account.code >= from and account.code <= to end)
+            "MXN" -> Enum.any?(@mxn_ranges, fn {from, to} -> account.code >= from and account.code <= to end)
+            _ -> true
+          end
+
+          if valid? do
+            changeset
+          else
+            add_error(changeset, :paid_from_account_id, "must be a #{currency} account")
+          end
+      end
+    else
+      changeset
+    end
   end
 end

@@ -233,7 +233,7 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
       {:ok, cancelled} = Subscriptions.cancel(sub)
 
       assert cancelled.status == "cancelled"
-      assert cancelled.ends_on == Date.utc_today()
+      assert cancelled.ends_on == LedgrWeb.Helpers.DomainHelpers.today_mx()
     end
 
     test "recognizes remaining deferred revenue on cancellation" do
@@ -342,7 +342,7 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
 
     test "excludes subscriptions that have expired" do
       customer_id = create_customer()
-      today = Date.utc_today()
+      today = LedgrWeb.Helpers.DomainHelpers.today_mx()
       plan = plan_fixture()
 
       _expired_sub = subscription_fixture(%{

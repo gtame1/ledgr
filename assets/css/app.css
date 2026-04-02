@@ -333,6 +333,38 @@
     line-height: 1.5;
   }
 
+  /* Collapsible card using <details> */
+  details.card {
+    padding: 0;
+  }
+
+  details.card > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  details.card > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  details.card > summary::after {
+    content: "";
+    display: inline-block;
+    width: 0.5em;
+    height: 0.5em;
+    border-right: 2px solid var(--text-muted);
+    border-bottom: 2px solid var(--text-muted);
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+  }
+
+  details.card[open] > summary::after {
+    transform: rotate(-135deg);
+  }
+
   /* ── Period selector ───────────────────────────────────────────── */
   .period-selector {
     padding: 1rem 1.25rem;

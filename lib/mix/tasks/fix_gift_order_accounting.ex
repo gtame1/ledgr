@@ -337,7 +337,7 @@ defmodule Mix.Tasks.FixGiftOrderAccounting do
     all_lines = reversal_lines ++ gift_lines ++ payment_reclassification_lines
 
     entry_attrs = %{
-      date: Date.utc_today(),
+      date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
       entry_type: "other",
       reference: "Order ##{order.id}",
       description: "Correct order ##{order.id}: convert sale accounting to gift/sample"

@@ -128,8 +128,7 @@ defmodule Ledgr.Domains.CasaTame do
         %{label: "Dashboard",  path: prefix,                    icon: :dashboard},
         %{label: "Expenses",   path: "#{prefix}/expenses",      icon: :expenses},
         %{label: "Income",     path: "#{prefix}/income",        icon: :receipt},
-        %{label: "Transfers",     path: "#{prefix}/transfers",          icon: :transfers},
-        %{label: "FX Transfer",   path: "#{prefix}/fx-transfers/new",  icon: :transfers}
+        %{label: "Transfers",  path: "#{prefix}/transfers",     icon: :transfers}
       ]},
       %{group: "Accounts", items: [
         %{label: "Investments", path: "#{prefix}/investment-accounts", icon: :services},

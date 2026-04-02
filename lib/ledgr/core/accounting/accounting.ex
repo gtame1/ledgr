@@ -74,7 +74,7 @@ defmodule Ledgr.Core.Accounting do
         true -> get_account_by_code!(@cash_code)
       end
 
-    date = Keyword.get(opts, :purchase_date, Date.utc_today())
+    date = Keyword.get(opts, :purchase_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
 
     description =
@@ -150,7 +150,7 @@ defmodule Ledgr.Core.Accounting do
         true -> get_account_by_code!(@cash_code)
       end
 
-    date = Keyword.get(opts, :return_date, Date.utc_today())
+    date = Keyword.get(opts, :return_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
 
     description =
@@ -222,7 +222,7 @@ defmodule Ledgr.Core.Accounting do
         true -> get_account_by_code!(@cash_code)
       end
 
-    date = Keyword.get(opts, :purchase_date, Date.utc_today())
+    date = Keyword.get(opts, :purchase_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
     description = Keyword.get(opts, :description, "Multiple inventory purchases")
 
@@ -311,7 +311,7 @@ defmodule Ledgr.Core.Accounting do
   """
   def record_investment(amount_cents, opts) do
     cash_account_id = Keyword.fetch!(opts, :cash_account_id)
-    date            = Keyword.get(opts, :date, Date.utc_today())
+    date            = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     partner_name    = Keyword.get(opts, :partner_name, "Partner")
 
     cash_account = Repo.get!(Account, cash_account_id)
@@ -344,7 +344,7 @@ defmodule Ledgr.Core.Accounting do
 
   def record_withdrawal(amount_cents, opts) do
     cash_account_id = Keyword.fetch!(opts, :cash_account_id)
-    date            = Keyword.get(opts, :date, Date.utc_today())
+    date            = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     partner_name    = Keyword.get(opts, :partner_name, "Partner")
 
     cash_account   = Repo.get!(Account, cash_account_id)
@@ -422,7 +422,7 @@ defmodule Ledgr.Core.Accounting do
     # Get current period net income (unclosed)
     last_close_date = get_last_year_end_close_date()
     pnl_start_date = if last_close_date, do: Date.add(last_close_date, 1), else: ~D[2000-01-01]
-    pnl = profit_and_loss(pnl_start_date, Date.utc_today())
+    pnl = profit_and_loss(pnl_start_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     current_net_income_cents = pnl.net_income_cents
 
     # Total equity = Owner's Equity + Retained Earnings - Owner's Drawings + Current Net Income
@@ -731,7 +731,7 @@ defmodule Ledgr.Core.Accounting do
 
     waste_expense_account = get_account_by_code!(@inventory_waste_code)
 
-    date = Keyword.get(opts, :write_off_date, Date.utc_today())
+    date = Keyword.get(opts, :write_off_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
 
     description =
@@ -786,7 +786,7 @@ defmodule Ledgr.Core.Accounting do
           {get_account_by_code!(@ingredients_inventory_code), get_account_by_code!(@ingredients_cogs_code), "Ingredients"}
       end
 
-    date = Keyword.get(opts, :usage_date, Date.utc_today())
+    date = Keyword.get(opts, :usage_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
 
     description =
@@ -933,7 +933,7 @@ defmodule Ledgr.Core.Accounting do
     {%{
       from_account_id: nil,
       to_account_id: nil,
-      date: Date.utc_today(),
+      date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
       amount_pesos: nil,
       note: nil
     },
@@ -967,7 +967,7 @@ defmodule Ledgr.Core.Accounting do
   end
 
   def record_internal_transfer(amount_cents, from_account_id, to_account_id, opts \\ []) do
-    date = Keyword.get(opts, :date, Date.utc_today())
+    date = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     note = Keyword.get(opts, :note, nil)
     ref  = Keyword.get(opts, :reference, nil)
 
@@ -1293,7 +1293,7 @@ defmodule Ledgr.Core.Accounting do
 
   def profit_and_loss_monthly(months_back \\ 5) do
     # "months_back = 5" → last 6 months including current
-    today = Date.utc_today()
+    today = LedgrWeb.Helpers.DomainHelpers.today_mx()
     {year, month, _day} = Date.to_erl(today)
 
     months =
@@ -1702,7 +1702,7 @@ defmodule Ledgr.Core.Accounting do
     depreciation_expense = get_account_by_code!(@depreciation_expense_code)
     accum_depreciation = get_account_by_code!(@accum_depreciation_code)
 
-    date = Keyword.get(opts, :date, Date.utc_today())
+    date = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference, "Monthly depreciation")
     description = Keyword.get(opts, :description, "Monthly straight-line depreciation - Kitchen Equipment")
 
@@ -1792,7 +1792,7 @@ defmodule Ledgr.Core.Accounting do
   - iva_payable_cents:     credit balance of 2100 (IVA collected on sales)
   - net_position_cents:    receivable - payable (positive = net credit, negative = net payable)
   """
-  def iva_position(as_of_date \\ Date.utc_today()) do
+  def iva_position(as_of_date \\ LedgrWeb.Helpers.DomainHelpers.today_mx()) do
     iva_receivable_account = get_account_by_code!(@iva_receivable_code)
     iva_payable_account = get_account_by_code!(@sales_tax_payable_code)
 

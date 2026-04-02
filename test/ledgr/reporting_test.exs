@@ -116,8 +116,9 @@ defmodule Ledgr.Core.ReportingTest do
     end
 
     test "defaults to all time when no dates provided", %{product: product, variant: variant, location: location} do
-      # Create an order with today's date
-      _order = order_fixture(%{variant: variant, location: location, status: "delivered"})
+      # Create an order with today's date (Mexico City timezone, matching the function's default end date)
+      today = LedgrWeb.Helpers.DomainHelpers.today_mx()
+      _order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
 
       result = DomainReporting.unit_economics(product.id, nil, nil)
 

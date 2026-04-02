@@ -40,7 +40,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
 
   defp maybe_auto_expire(%{status: status} = sub) when status in ["active", "paused"] do
     plan      = sub.subscription_plan
-    today     = Date.utc_today()
+    today     = today_mx()
     past_due  = sub.ends_on && Date.compare(sub.ends_on, today) == :lt
     maxed_out = plan.class_limit && sub.classes_used >= plan.class_limit
 
@@ -71,10 +71,10 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
       if preselected_customer_id do
         Subscriptions.change_subscription(%Subscription{}, %{
           "customer_id" => preselected_customer_id,
-          "starts_on"   => Date.utc_today()
+          "starts_on"   => today_mx()
         })
       else
-        Subscriptions.change_subscription(%Subscription{starts_on: Date.utc_today()})
+        Subscriptions.change_subscription(%Subscription{starts_on: today_mx()})
       end
 
     customer_changeset = Customers.change_customer(%Customer{})
@@ -542,7 +542,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
   defp maybe_record_refund(_sub, _cents, nil, _note), do: {:ok, nil}
   defp maybe_record_refund(_sub, _cents, "", _note), do: {:ok, nil}
   defp maybe_record_refund(sub, refund_cents, account_id, note) do
-    case VolumeStudioAccounting.record_subscription_refund(sub, refund_cents, account_id, Date.utc_today(), note) do
+    case VolumeStudioAccounting.record_subscription_refund(sub, refund_cents, account_id, today_mx(), note) do
       {:ok, _entry} -> Subscriptions.apply_refund(sub, refund_cents)
       err           -> err
     end

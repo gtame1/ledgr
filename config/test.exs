@@ -11,7 +11,7 @@ config :ledgr, Ledgr.Repos.MrMunchMe,
   hostname: "localhost",
   database: "ledgr_mr_munch_me_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2,
+  pool_size: 10,
   priv: "priv/repos/mr_munch_me"
 
 config :ledgr, Ledgr.Repos.Viaxe,
@@ -20,7 +20,7 @@ config :ledgr, Ledgr.Repos.Viaxe,
   hostname: "localhost",
   database: "ledgr_viaxe_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2,
+  pool_size: 10,
   priv: "priv/repos/viaxe"
 
 config :ledgr, Ledgr.Repos.VolumeStudio,
@@ -29,7 +29,7 @@ config :ledgr, Ledgr.Repos.VolumeStudio,
   hostname: "localhost",
   database: "ledgr_volume_studio_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2,
+  pool_size: 10,
   priv: "priv/repos/volume_studio"
 
 config :ledgr, Ledgr.Repos.LedgrHQ,
@@ -38,7 +38,7 @@ config :ledgr, Ledgr.Repos.LedgrHQ,
   hostname: "localhost",
   database: "ledgr_ledgr_hq_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2,
+  pool_size: 10,
   priv: "priv/repos/ledgr_hq"
 
 config :ledgr, Ledgr.Repos.CasaTame,
@@ -47,7 +47,7 @@ config :ledgr, Ledgr.Repos.CasaTame,
   hostname: "localhost",
   database: "ledgr_casa_tame_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2,
+  pool_size: 10,
   priv: "priv/repos/casa_tame"
 
 # We don't run a server during test. If one is required,

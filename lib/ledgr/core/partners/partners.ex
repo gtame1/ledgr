@@ -16,7 +16,7 @@ defmodule Ledgr.Core.Partners do
     {%{
        partner_id: nil,
        cash_account_id: nil,
-       date: Date.utc_today(),
+       date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
        amount_pesos: nil,
        note: nil
      },

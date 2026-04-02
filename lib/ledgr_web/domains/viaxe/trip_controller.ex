@@ -154,7 +154,7 @@ defmodule LedgrWeb.Domains.Viaxe.TripHTML do
 
     case dates do
       [] ->
-        today = Date.utc_today()
+        today = today_mx()
         [{today.year, today.month}]
 
       _ ->

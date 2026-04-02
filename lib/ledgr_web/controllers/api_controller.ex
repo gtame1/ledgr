@@ -80,11 +80,11 @@ defmodule LedgrWeb.ApiController do
   def balance_sheet(conn, params) do
     as_of_date =
       case params["as_of_date"] do
-        nil -> Date.utc_today()
+        nil -> today_mx()
         date_str ->
           case Date.from_iso8601(date_str) do
             {:ok, date} -> date
-            _ -> Date.utc_today()
+            _ -> today_mx()
           end
       end
 
@@ -194,7 +194,7 @@ defmodule LedgrWeb.ApiController do
   # ---------- Helpers ----------
 
   defp parse_date_range(params) do
-    today = Date.utc_today()
+    today = today_mx()
 
     start_date =
       case params["start_date"] do

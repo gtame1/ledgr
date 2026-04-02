@@ -640,7 +640,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
     # Auto-set actual_delivery_date when marking as delivered
     attrs =
       if new_status == "delivered" do
-        %{status: new_status, actual_delivery_date: order.actual_delivery_date || Date.utc_today()}
+        %{status: new_status, actual_delivery_date: order.actual_delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()}
       else
         %{status: new_status}
       end
@@ -945,7 +945,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
     delivery_date =
       case Date.from_iso8601(checkout_attrs["delivery_date"] || "") do
         {:ok, d} -> d
-        _ -> Date.utc_today()
+        _ -> LedgrWeb.Helpers.DomainHelpers.today_mx()
       end
 
     delivery_type = checkout_attrs["delivery_type"] || "pickup"
@@ -987,7 +987,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
           "amount_cents" => amount_cents,
           "paid_to_account_id" => stripe_account.id,
           "method" => "stripe",
-          "payment_date" => Date.utc_today(),
+          "payment_date" => LedgrWeb.Helpers.DomainHelpers.today_mx(),
           "is_deposit" => false
         }
 
@@ -1027,7 +1027,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
             "amount_cents" => amount_cents,
             "paid_to_account_id" => stripe_account.id,
             "method" => "stripe",
-            "payment_date" => Date.utc_today(),
+            "payment_date" => LedgrWeb.Helpers.DomainHelpers.today_mx(),
             "is_deposit" => false
           }
 
@@ -1053,7 +1053,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
       "amount_cents" => amount_cents,
       "paid_to_account_id" => stripe_account.id,
       "method" => "stripe",
-      "payment_date" => Date.utc_today(),
+      "payment_date" => LedgrWeb.Helpers.DomainHelpers.today_mx(),
       "is_deposit" => order.status != "delivered"
     }
 
@@ -1067,7 +1067,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
     delivery_date =
       case Date.from_iso8601(checkout_attrs["delivery_date"] || "") do
         {:ok, d} -> d
-        _ -> Date.utc_today()
+        _ -> LedgrWeb.Helpers.DomainHelpers.today_mx()
       end
 
     delivery_type = checkout_attrs["delivery_type"] || "pickup"
@@ -1139,7 +1139,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         {:error, "Este código no está activo"}
 
       %DiscountCode{expires_at: exp} = code when not is_nil(exp) ->
-        if Date.compare(Date.utc_today(), exp) == :gt do
+        if Date.compare(LedgrWeb.Helpers.DomainHelpers.today_mx(), exp) == :gt do
           {:error, "Este código ha expirado"}
         else
           check_uses(code)

@@ -158,7 +158,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Recepies do
   Copy a recipe from one variant to another.
   Creates a new recipe for the target variant with the same recipe lines.
   """
-  def copy_recipe_from_variant(%ProductVariant{} = source_variant, %ProductVariant{} = target_variant, effective_date \\ Date.utc_today()) do
+  def copy_recipe_from_variant(%ProductVariant{} = source_variant, %ProductVariant{} = target_variant, effective_date \\ LedgrWeb.Helpers.DomainHelpers.today_mx()) do
     case get_active_recipe(source_variant) do
       nil ->
         {:error, :no_recipe_found}

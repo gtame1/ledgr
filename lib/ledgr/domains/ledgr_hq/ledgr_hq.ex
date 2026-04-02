@@ -150,7 +150,7 @@ defmodule Ledgr.Domains.LedgrHQ do
     all_clients = Clients.list_clients()
     active_clients = Enum.filter(all_clients, &(&1.status in ["active", "trial"]))
 
-    today = Date.utc_today()
+    today = LedgrWeb.Helpers.DomainHelpers.today_mx()
     month_start = %Date{today | day: 1}
 
     churned_this_month =
@@ -202,7 +202,7 @@ defmodule Ledgr.Domains.LedgrHQ do
 
   @impl Ledgr.Domain.DashboardProvider
   def data_date_range do
-    today = Date.utc_today()
+    today = LedgrWeb.Helpers.DomainHelpers.today_mx()
     start_of_year = %Date{today | month: 1, day: 1}
     {start_of_year, today}
   end

@@ -1,3 +1,14 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
 <section class="content">
   <header class="content-header">
     <h1 class="page-title">Debt Accounts</h1>
@@ -8,7 +19,7 @@
     <div class="dashboard-metrics" style="margin-bottom: 1.25rem;">
       <div class="metric-card">
         <div class="metric-label">Total Outstanding Debt</div>
-        <div class="metric-value" style="color: #dc2626;"><%= format_currency(@total_cents) %></div>
+        <div class="metric-value" style="color: #dc2626;"><%= fmt.(@total_cents) %></div>
       </div>
     </div>
 
@@ -30,7 +41,7 @@
                 <%= for item <- @grouped.credit_cards_usd do %>
                   <tr>
                     <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
                     <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
                   </tr>
                 <% end %>
@@ -40,7 +51,7 @@
                 <%= for item <- @grouped.ap_usd do %>
                   <tr>
                     <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
                     <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
                   </tr>
                 <% end %>
@@ -50,7 +61,7 @@
                 <%= for item <- @grouped.loans_usd do %>
                   <tr>
                     <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
                     <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
                   </tr>
                 <% end %>
@@ -79,7 +90,7 @@
                 <%= for item <- @grouped.credit_cards_mxn do %>
                   <tr>
                     <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
                     <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
                   </tr>
                 <% end %>
@@ -89,7 +100,7 @@
                 <%= for item <- @grouped.ap_mxn do %>
                   <tr>
                     <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
                     <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
                   </tr>
                 <% end %>
@@ -99,7 +110,7 @@
                 <%= for item <- @grouped.loans_mxn do %>
                   <tr>
                     <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
                     <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
                   </tr>
                 <% end %>

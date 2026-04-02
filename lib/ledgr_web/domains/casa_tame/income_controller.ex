@@ -127,7 +127,6 @@ end
 
 defmodule LedgrWeb.Domains.CasaTame.IncomeHTML do
   use LedgrWeb, :html
-  import LedgrWeb.CoreComponents
 
   embed_templates "income_html/*"
 end

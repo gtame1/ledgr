@@ -198,7 +198,7 @@ defmodule Ledgr.Domains.VolumeStudio do
 
     pnl = Ledgr.Core.Accounting.profit_and_loss(start_date, end_date)
 
-    today        = Date.utc_today()
+    today        = LedgrWeb.Helpers.DomainHelpers.today_mx()
     next_7_days  = Date.add(today, 7)
     next_30_days = Date.add(today, 30)
 

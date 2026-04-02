@@ -43,4 +43,9 @@ defmodule LedgrWeb.Helpers.DomainHelpers do
   defp join_path("", path), do: path
   defp join_path(prefix, "/"), do: prefix
   defp join_path(prefix, path), do: prefix <> path
+
+  @doc "Returns today's date in Mexico City timezone."
+  def today_mx do
+    DateTime.now!("America/Mexico_City") |> DateTime.to_date()
+  end
 end

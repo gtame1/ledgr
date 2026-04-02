@@ -1,9 +1,20 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
 <section class="card">
   <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
     <div>
       <h2 class="card-title"><%= @account.code %> – <%= @account.name %></h2>
       <p class="card-subtitle">
-        Current balance: <strong style="color: #059669;"><%= format_currency(@balance_cents) %></strong>
+        Current balance: <strong style="color: #059669;"><%= fmt.(@balance_cents) %></strong>
       </p>
     </div>
     <.link navigate={dp(@domain_path_prefix, "/investment-accounts")} class="btn">Back</.link>
@@ -13,39 +24,46 @@
 <!-- Record Movement -->
 <section class="card" style="margin-top: 1rem;">
   <h3 class="card-title">Record Movement</h3>
-  <form method="post" action={dp(@domain_path_prefix, "/investment-accounts/#{@account.id}/movements")} class="form-grid">
+  <form method="post" action={dp(@domain_path_prefix, "/investment-accounts/#{@account.id}/movements")}>
     <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-    <div class="form-block" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 2fr auto; gap: 0.75rem; align-items: end;">
-      <div class="field">
-        <label>Date</label>
-        <input type="date" name="movement[date]" value={Ledgr.Domains.CasaTame.today()} class="input input-sm" />
-      </div>
-      <div class="field">
-        <label>Type</label>
-        <select name="movement[movement_type]" class="input input-sm">
-          <%= for {label, val} <- @movement_types do %>
-            <option value={val}><%= label %></option>
-          <% end %>
-        </select>
-      </div>
+
+    <div class="field">
+      <label>Type</label>
+      <select name="movement[movement_type]" class="input">
+        <%= for {label, val} <- @movement_types do %>
+          <option value={val}><%= label %></option>
+        <% end %>
+      </select>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
       <div class="field">
         <label>Amount</label>
-        <input type="number" name="movement[amount_cents]" min="0" step="0.01" class="input input-sm" required />
+        <input type="number" name="movement[amount_cents]" min="0" step="0.01" class="input" required />
       </div>
       <div class="field">
-        <label>Source / Dest Account</label>
-        <select name="movement[source_account_id]" class="input input-sm">
-          <option value="">N/A (dividends, gains, fees)</option>
-          <%= for {label, val} <- @source_options do %>
-            <option value={val}><%= label %></option>
-          <% end %>
-        </select>
+        <label>Date</label>
+        <input type="date" name="movement[date]" value={Ledgr.Domains.CasaTame.today()} class="input" />
       </div>
-      <div class="field">
-        <label>Description</label>
-        <input type="text" name="movement[description]" class="input input-sm" placeholder="Optional note" />
-      </div>
-      <button class="btn primary" type="submit" style="margin-bottom: 0.25rem;">Record</button>
+    </div>
+
+    <div class="field" style="margin-top: 0.5rem;">
+      <label>Source / Dest Account <span style="color: var(--text-muted); font-weight: 400;">(for deposits & withdrawals)</span></label>
+      <select name="movement[source_account_id]" class="input">
+        <option value="">N/A (dividends, gains, fees)</option>
+        <%= for {label, val} <- @source_options do %>
+          <option value={val}><%= label %></option>
+        <% end %>
+      </select>
+    </div>
+
+    <div class="field" style="margin-top: 0.5rem;">
+      <label>Description <span style="color: var(--text-muted); font-weight: 400;">(optional)</span></label>
+      <input type="text" name="movement[description]" class="input" placeholder="e.g. Monthly deposit, Q1 dividend" />
+    </div>
+
+    <div class="actions" style="margin-top: 0.75rem;">
+      <button class="btn primary" type="submit">Record Movement</button>
     </div>
   </form>
 </section>
@@ -75,12 +93,12 @@
               <% end %>
             </td>
             <td class="numeric">
-              <%= if txn.line.debit_cents > 0 do %><%= format_currency(txn.line.debit_cents) %><% end %>
+              <%= if txn.line.debit_cents > 0 do %><%= fmt.(txn.line.debit_cents) %><% end %>
             </td>
             <td class="numeric">
-              <%= if txn.line.credit_cents > 0 do %><%= format_currency(txn.line.credit_cents) %><% end %>
+              <%= if txn.line.credit_cents > 0 do %><%= fmt.(txn.line.credit_cents) %><% end %>
             </td>
-            <td class="numeric" style="font-weight: 600;"><%= format_currency(txn.balance) %></td>
+            <td class="numeric" style="font-weight: 600;"><%= fmt.(txn.balance) %></td>
           </tr>
         <% end %>
         <%= if @transactions == [] do %>

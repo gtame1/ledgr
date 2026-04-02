@@ -77,7 +77,6 @@ end
 
 defmodule LedgrWeb.Domains.CasaTame.CategoryHTML do
   use LedgrWeb, :html
-  import LedgrWeb.CoreComponents
 
   embed_templates "category_html/*"
 end

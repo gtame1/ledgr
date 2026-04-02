@@ -84,7 +84,7 @@ defmodule Ledgr.Core.ReconciliationTest do
     test "includes balance information", %{accounts: accounts} do
       cash = accounts["1000"]
       ar = accounts["1100"]
-      today = Date.utc_today()
+      today = LedgrWeb.Helpers.DomainHelpers.today_mx()
 
       # Create a transaction
       {:ok, _} = Accounting.create_journal_entry_with_lines(

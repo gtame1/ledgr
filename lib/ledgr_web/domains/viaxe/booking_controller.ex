@@ -20,7 +20,7 @@ defmodule LedgrWeb.Domains.Viaxe.BookingController do
   end
 
   def new(conn, _params) do
-    changeset = Bookings.change_booking(%Booking{booking_date: Date.utc_today()})
+    changeset = Bookings.change_booking(%Booking{booking_date: today_mx()})
     customers = Customers.customer_select_options()
     trips = Trips.trip_select_options()
 

@@ -14,13 +14,11 @@
     "#{sign}$#{whole_with_commas}.#{dec}"
   end
 
-  # Split assets by currency range
   usd_cash = Enum.filter(bs.assets, fn i -> i.account.code >= "1000" and i.account.code < "1050" end)
   usd_investments = Enum.filter(bs.assets, fn i -> i.account.code >= "1050" and i.account.code < "1100" end)
   mxn_cash = Enum.filter(bs.assets, fn i -> i.account.code >= "1100" and i.account.code < "1150" end)
   mxn_fixed = Enum.filter(bs.assets, fn i -> i.account.code >= "1150" and i.account.code < "1200" end)
 
-  # Split liabilities by currency range
   usd_cc = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2000" and i.account.code < "2010" end)
   usd_ap = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2010" and i.account.code < "2050" end)
   usd_loans = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2050" and i.account.code < "2100" end)
@@ -34,6 +32,8 @@
   total_mxn_assets = sum.(mxn_cash) + sum.(mxn_fixed)
   total_usd_liabilities = sum.(usd_cc) + sum.(usd_ap) + sum.(usd_loans)
   total_mxn_liabilities = sum.(mxn_cc) + sum.(mxn_ap) + sum.(mxn_loans)
+  net_usd = total_usd_assets - total_usd_liabilities
+  net_mxn = total_mxn_assets - total_mxn_liabilities
 %>
 
 <section class="content">
@@ -48,27 +48,26 @@
       <button type="submit" class="btn sm">Update</button>
     </form>
 
-    <!-- USD Section -->
-    <section class="card" style="margin-top: 1.5rem;">
-      <div class="card-header">
-        <h2 class="card-title">
+    <!-- USD Section (collapsible) -->
+    <details open class="card" style="margin-top: 1.5rem;">
+      <summary style="cursor: pointer; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; list-style: none;">
+        <h2 class="card-title" style="margin: 0;">
           <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.5rem;">USD</span>
           Accounts
         </h2>
-      </div>
+        <span style="font-weight: 700; font-size: 1.1rem;"><%= fmt.(net_usd) %></span>
+      </summary>
 
       <div class="table-wrapper">
         <table class="table">
           <thead><tr style="background: var(--table-header-bg);"><th colspan="2" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em;">Assets</th></tr></thead>
           <tbody>
-            <!-- Cash & Bank -->
             <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Cash & Bank</td></tr>
             <%= for item <- usd_cash do %>
               <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric"><%= fmt.(item.amount_cents) %></td></tr>
             <% end %>
             <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Cash & Bank</td><td class="numeric"><%= fmt.(sum.(usd_cash)) %></td></tr>
 
-            <!-- Investments -->
             <%= if usd_investments != [] do %>
               <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Investments</td></tr>
               <%= for item <- usd_investments do %>
@@ -80,7 +79,6 @@
             <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total USD Assets</td><td class="numeric"><%= fmt.(total_usd_assets) %></td></tr>
           </tbody>
 
-          <!-- USD Liabilities -->
           <thead>
             <tr><th colspan="2" style="padding: 0.75rem 0; border: none;"></th></tr>
             <tr style="background: var(--table-header-bg);"><th colspan="2" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em;">Liabilities</th></tr>
@@ -112,20 +110,21 @@
 
             <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total USD Liabilities</td><td class="numeric" style="color: #dc2626;"><%= fmt.(total_usd_liabilities) %></td></tr>
             <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-            <tr style="font-weight: 700; font-size: 1.05rem;"><td>USD Net Position</td><td class="numeric"><%= fmt.(total_usd_assets - total_usd_liabilities) %></td></tr>
+            <tr style="font-weight: 700; font-size: 1.05rem;"><td>USD Net Position</td><td class="numeric"><%= fmt.(net_usd) %></td></tr>
           </tbody>
         </table>
       </div>
-    </section>
+    </details>
 
-    <!-- MXN Section -->
-    <section class="card" style="margin-top: 1.5rem;">
-      <div class="card-header">
-        <h2 class="card-title">
+    <!-- MXN Section (collapsible) -->
+    <details open class="card" style="margin-top: 1.5rem;">
+      <summary style="cursor: pointer; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; list-style: none;">
+        <h2 class="card-title" style="margin: 0;">
           <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.5rem;">MXN</span>
           Accounts
         </h2>
-      </div>
+        <span style="font-weight: 700; font-size: 1.1rem;"><%= fmt.(net_mxn) %></span>
+      </summary>
 
       <div class="table-wrapper">
         <table class="table">
@@ -148,7 +147,6 @@
             <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total MXN Assets</td><td class="numeric"><%= fmt.(total_mxn_assets) %></td></tr>
           </tbody>
 
-          <!-- MXN Liabilities -->
           <thead>
             <tr><th colspan="2" style="padding: 0.75rem 0; border: none;"></th></tr>
             <tr style="background: var(--table-header-bg);"><th colspan="2" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em;">Liabilities</th></tr>
@@ -180,10 +178,10 @@
 
             <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total MXN Liabilities</td><td class="numeric" style="color: #dc2626;"><%= fmt.(total_mxn_liabilities) %></td></tr>
             <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-            <tr style="font-weight: 700; font-size: 1.05rem;"><td>MXN Net Position</td><td class="numeric"><%= fmt.(total_mxn_assets - total_mxn_liabilities) %></td></tr>
+            <tr style="font-weight: 700; font-size: 1.05rem;"><td>MXN Net Position</td><td class="numeric"><%= fmt.(net_mxn) %></td></tr>
           </tbody>
         </table>
       </div>
-    </section>
+    </details>
   </div>
 </section>

@@ -179,7 +179,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ClassSessionController do
   end
 
   def calendar(conn, params) do
-    today = Date.utc_today()
+    today = today_mx()
 
     year = case params["year"] do
       nil -> today.year

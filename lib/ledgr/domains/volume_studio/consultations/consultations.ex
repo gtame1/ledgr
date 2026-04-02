@@ -95,7 +95,7 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations do
   def record_payment(consultation, amount_cents, opts \\ [])
 
   def record_payment(%Consultation{paid_at: nil} = consultation, amount_cents, opts) do
-    payment_date       = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date       = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     note               = Keyword.get(opts, :note)
     paid_to_account_code = Keyword.get(opts, :paid_to_account_code, "1000")
 

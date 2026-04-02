@@ -136,7 +136,7 @@ defmodule Mix.Tasks.FixWithdrawalAccounts do
     # Cr. Owner's Equity (3000) - to reverse the incorrect debit
 
     entry_attrs = %{
-      date: Date.utc_today(),
+      date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
       entry_type: "other",
       reference: "Withdrawal Account Correction",
       description: "Correct historical withdrawals: move from Owner's Equity (3000) to Owner's Drawings (3100)"

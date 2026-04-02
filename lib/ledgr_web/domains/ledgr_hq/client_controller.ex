@@ -69,7 +69,7 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientController do
 
   def update_status(conn, %{"id" => id, "status" => status}) do
     client = Clients.get_client!(id)
-    attrs = if status == "churned", do: %{"status" => status, "ended_on" => Date.utc_today()}, else: %{"status" => status}
+    attrs = if status == "churned", do: %{"status" => status, "ended_on" => today_mx()}, else: %{"status" => status}
 
     case Clients.update_client(client, attrs) do
       {:ok, _} ->

@@ -1,3 +1,14 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
 <section class="card">
   <div class="card-header">
     <h2 class="card-title">Income</h2>
@@ -54,7 +65,7 @@
               <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.25rem; #{if entry.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
                 <%= entry.currency %>
               </span>
-              <%= format_currency(entry.amount_cents) %>
+              <%= fmt.(entry.amount_cents) %>
             </td>
             <td>
               <div style="display: flex; gap: 0.5rem;">

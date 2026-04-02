@@ -1,3 +1,14 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
 <section class="content">
   <header class="content-header">
     <h1 class="page-title">Net Worth</h1>
@@ -13,11 +24,11 @@
       <div class="dashboard-metrics">
         <div class="metric-card">
           <div class="metric-label">In MXN</div>
-          <div class="metric-value" style="font-size: 1.75rem;"><%= format_currency(@nw.total_mxn) %></div>
+          <div class="metric-value" style="font-size: 1.75rem;"><%= fmt.(@nw.total_mxn) %></div>
         </div>
         <div class="metric-card">
           <div class="metric-label">In USD</div>
-          <div class="metric-value" style="font-size: 1.75rem;"><%= format_currency(@nw.total_usd) %></div>
+          <div class="metric-value" style="font-size: 1.75rem;"><%= fmt.(@nw.total_usd) %></div>
         </div>
       </div>
     </section>
@@ -35,21 +46,21 @@
           <tbody>
             <tr>
               <td>Cash & Bank</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(@nw.cash_usd) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.cash_usd) %></td>
             </tr>
             <tr>
               <td>Investments</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(@nw.investments_usd) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.investments_usd) %></td>
             </tr>
             <tr>
               <td>Liabilities</td>
-              <td class="numeric" style="color: #dc2626;">-<%= format_currency(@nw.liabilities_usd) %></td>
+              <td class="numeric" style="color: #dc2626;">-<%= fmt.(@nw.liabilities_usd) %></td>
             </tr>
           </tbody>
           <tfoot>
             <tr style="font-weight: 700;">
               <td>USD Net</td>
-              <td class="numeric"><%= format_currency(@nw.net_usd) %></td>
+              <td class="numeric"><%= fmt.(@nw.net_usd) %></td>
             </tr>
           </tfoot>
         </table>
@@ -69,21 +80,21 @@
           <tbody>
             <tr>
               <td>Cash & Bank</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(@nw.cash_mxn) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.cash_mxn) %></td>
             </tr>
             <tr>
               <td>Fixed Assets</td>
-              <td class="numeric" style="color: #059669;"><%= format_currency(@nw.fixed_mxn) %></td>
+              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.fixed_mxn) %></td>
             </tr>
             <tr>
               <td>Liabilities</td>
-              <td class="numeric" style="color: #dc2626;">-<%= format_currency(@nw.liabilities_mxn) %></td>
+              <td class="numeric" style="color: #dc2626;">-<%= fmt.(@nw.liabilities_mxn) %></td>
             </tr>
           </tbody>
           <tfoot>
             <tr style="font-weight: 700;">
               <td>MXN Net</td>
-              <td class="numeric"><%= format_currency(@nw.net_mxn) %></td>
+              <td class="numeric"><%= fmt.(@nw.net_mxn) %></td>
             </tr>
           </tfoot>
         </table>

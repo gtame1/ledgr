@@ -88,7 +88,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
               type="date"
               name="payment[payment_date]"
               required
-              value={Date.utc_today() |> Date.to_iso8601()}
+              value={LedgrWeb.Helpers.DomainHelpers.today_mx() |> Date.to_iso8601()}
               class="form-input"
             />
           </div>

@@ -14,7 +14,7 @@ defmodule Ledgr.Core.Reconciliation do
   Get the current balance of an account as of a given date.
   Returns balance in cents (positive for debit balance accounts, negative for credit balance accounts).
   """
-  def get_account_balance(account_id, as_of_date \\ Date.utc_today()) do
+  def get_account_balance(account_id, as_of_date \\ LedgrWeb.Helpers.DomainHelpers.today_mx()) do
     account = Repo.get!(Account, account_id)
 
     query =
@@ -46,7 +46,7 @@ defmodule Ledgr.Core.Reconciliation do
   Get all accounts with their current balances for reconciliation.
   Returns a list of maps with account info and balance.
   """
-  def list_accounts_for_reconciliation(as_of_date \\ Date.utc_today()) do
+  def list_accounts_for_reconciliation(as_of_date \\ LedgrWeb.Helpers.DomainHelpers.today_mx()) do
     from(a in Account,
       where: a.type in ["asset", "liability"],
       order_by: a.code

@@ -12,7 +12,7 @@
         ← Previous
       </.link>
       <.link
-        navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{Date.utc_today().year}&month=#{Date.utc_today().month}")}
+        navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{today_mx().year}&month=#{today_mx().month}")}
         class="btn btn-sm"
       >
         Today

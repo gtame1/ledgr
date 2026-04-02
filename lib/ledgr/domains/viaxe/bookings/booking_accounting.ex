@@ -70,7 +70,7 @@ defmodule Ledgr.Domains.Viaxe.Bookings.BookingAccounting do
 
       Accounting.create_journal_entry_with_lines(
         %{
-          date:        Date.utc_today(),
+          date:        LedgrWeb.Helpers.DomainHelpers.today_mx(),
           description: "Payment on booking ##{b_id} (#{label})",
           reference:   reference,
           entry_type:  entry_type
@@ -124,7 +124,7 @@ defmodule Ledgr.Domains.Viaxe.Bookings.BookingAccounting do
 
       Accounting.create_journal_entry_with_lines(
         %{
-          date:        Date.utc_today(),
+          date:        LedgrWeb.Helpers.DomainHelpers.today_mx(),
           description: "Booking ##{id} completed",
           reference:   reference,
           entry_type:  entry_type
@@ -152,7 +152,7 @@ defmodule Ledgr.Domains.Viaxe.Bookings.BookingAccounting do
 
       Accounting.create_journal_entry_with_lines(
         %{
-          date:        Date.utc_today(),
+          date:        LedgrWeb.Helpers.DomainHelpers.today_mx(),
           description: "Booking ##{id} canceled (reverse revenue)",
           reference:   reference,
           entry_type:  entry_type

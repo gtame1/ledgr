@@ -115,7 +115,6 @@ end
 
 defmodule LedgrWeb.Domains.CasaTame.ReportHTML do
   use LedgrWeb, :html
-  import LedgrWeb.CoreComponents
 
   embed_templates "report_html/*"
 end

@@ -96,7 +96,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     plan = subscription.subscription_plan ||
       Repo.preload(subscription, :subscription_plan).subscription_plan
 
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     note         = Keyword.get(opts, :note)
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_sub_payment_#{subscription.id}_#{seq}"
@@ -164,7 +164,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     - `:payment_date` — defaults to today
   """
   def reverse_subscription_payment(%JournalEntry{} = original_entry, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference    = "vs_sub_payment_reversal_#{original_entry.id}"
     entry_type   = "subscription_payment_reversal"
 
@@ -211,7 +211,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     - `:payment_date` — defaults to today
   """
   def record_owed_change_ap(subscription, overpayment_cents, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_sub_owed_change_#{subscription.id}_#{seq}"
     entry_type   = "owed_change_ap"
@@ -250,7 +250,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     - `:payment_date` — defaults to today
   """
   def record_change_given(subscription, change_given_cents, from_account_id, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_sub_change_given_#{subscription.id}_#{seq}"
     entry_type   = "change_given"
@@ -288,7 +288,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
   gets its own entry per subscription per day.
   """
   def recognize_subscription_revenue(subscription, amount_cents) do
-    reference  = "vs_sub_recognize_#{subscription.id}_#{Date.utc_today()}"
+    reference  = "vs_sub_recognize_#{subscription.id}_#{LedgrWeb.Helpers.DomainHelpers.today_mx()}"
     entry_type = "subscription_revenue_recognition"
 
     idempotent(reference, entry_type, fn ->
@@ -297,7 +297,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
 
       Accounting.create_journal_entry_with_lines(
         %{
-          date:        Date.utc_today(),
+          date:        LedgrWeb.Helpers.DomainHelpers.today_mx(),
           description: "Revenue recognition — subscription ##{subscription.id}",
           reference:   reference,
           entry_type:  entry_type
@@ -334,7 +334,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
 
       Accounting.create_journal_entry_with_lines(
         %{
-          date:        Date.utc_today(),
+          date:        LedgrWeb.Helpers.DomainHelpers.today_mx(),
           description: "Package class revenue — sub ##{subscription.id}, booking ##{booking.id}",
           reference:   reference,
           entry_type:  entry_type
@@ -366,7 +366,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     amount       = Map.get(attrs, :amount_cents, consultation.amount_cents)
     iva          = consultation.iva_cents || 0
     total        = amount + iva
-    payment_date = Map.get(attrs, :payment_date, Date.utc_today())
+    payment_date = Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     note         = Map.get(attrs, :note)
     reference    = "vs_consult_payment_#{consultation.id}"
     entry_type   = "consultation_payment"
@@ -418,7 +418,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     - `:payment_date` — defaults to today
   """
   def record_consultation_owed_change_ap(consultation, overpayment_cents, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_consult_owed_change_#{consultation.id}_#{seq}"
     entry_type   = "consultation_owed_change_ap"
@@ -450,7 +450,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     CR  {from_account}               [change_given_cents]
   """
   def record_consultation_change_given(consultation, change_given_cents, from_account_id, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_consult_change_given_#{consultation.id}_#{seq}"
     entry_type   = "consultation_change_given"
@@ -496,7 +496,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     base         = rental.amount_cents
     iva          = rental.iva_cents || 0
     total        = base + iva
-    payment_date = Map.get(attrs, :payment_date, Date.utc_today())
+    payment_date = Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     note         = Map.get(attrs, :note)
 
     {revenue_portion, iva_portion} =
@@ -552,7 +552,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     CR  Owed Change Payable (2300)   [overpayment_cents]
   """
   def record_rental_owed_change_ap(rental, overpayment_cents, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_rental_owed_change_#{rental.id}_#{seq}"
     entry_type   = "rental_owed_change_ap"
@@ -584,7 +584,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
     CR  {from_account}               [change_given_cents]
   """
   def record_rental_change_given(rental, change_given_cents, from_account_id, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_rental_change_given_#{rental.id}_#{seq}"
     entry_type   = "rental_change_given"
@@ -674,7 +674,7 @@ defmodule Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting do
   Each call creates a unique entry since fees are recorded manually per session.
   """
   def record_partner_fee(partner_id, amount_cents, opts \\ []) do
-    payment_date = Keyword.get(opts, :payment_date, Date.utc_today())
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     note         = Keyword.get(opts, :note)
     seq          = :erlang.unique_integer([:positive, :monotonic])
     reference    = "vs_partner_fee_#{partner_id}_#{seq}"

@@ -351,7 +351,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         custom_location = order_ingredient.location_code || location_code
 
         cost_cents =
-          case record_usage(code, custom_location, qty_int, Date.utc_today(), "order", order.id) do
+          case record_usage(code, custom_location, qty_int, LedgrWeb.Helpers.DomainHelpers.today_mx(), "order", order.id) do
             {:ok, {:ok, result}} -> result.movement.total_cost_cents
             {:ok, movement} -> movement.total_cost_cents
             {:error, reason} ->
@@ -365,7 +365,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       end)
     else
       # Use recipe quantities (default behavior), multiplied by order quantity.
-      recipe_date = order.delivery_date || Date.utc_today()
+      recipe_date = order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
       recipe_lines = Recepies.recipe_for_variant(order.variant, recipe_date)
 
       Enum.reduce(recipe_lines, initial_costs, fn %{ingredient_code: code, quantity: qty}, acc ->
@@ -373,7 +373,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         qty_int = round(qty * order_qty)
 
         cost_cents =
-          case record_usage(code, location_code, qty_int, Date.utc_today(), "order", order.id) do
+          case record_usage(code, location_code, qty_int, LedgrWeb.Helpers.DomainHelpers.today_mx(), "order", order.id) do
             {:ok, {:ok, result}} -> result.movement.total_cost_cents
             {:ok, movement} -> movement.total_cost_cents
             {:error, reason} ->
@@ -422,7 +422,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
           source_type: "order",
           source_id: order_id,
           note: "Return from canceled order ##{order_id}",
-          movement_date: Date.utc_today()
+          movement_date: LedgrWeb.Helpers.DomainHelpers.today_mx()
         })
         |> Repo.insert!()
       end)
@@ -462,7 +462,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     raw_needs =
       Enum.flat_map(orders, fn %Order{} = order ->
         # Use the order's delivery_date to get the active recipe at that time.
-        recipe_date = order.delivery_date || Date.utc_today()
+        recipe_date = order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
         recipe = Recepies.recipe_for_variant(order.variant, recipe_date)
 
         prep_location_id = order.prep_location_id || @production_location_code
@@ -1607,7 +1607,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
           Repo.rollback({:insufficient_quantity, "Insufficient quantity to return. Current: #{stock.quantity_on_hand}, Requested: #{movement.quantity}"})
         end
 
-        return_date = return_date || Date.utc_today()
+        return_date = return_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
         return_note = note || "Return of purchase from #{movement.movement_date}"
 
         # 1) Create reverse inventory movement

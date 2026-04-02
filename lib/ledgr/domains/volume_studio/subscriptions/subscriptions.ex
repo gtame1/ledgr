@@ -219,7 +219,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
     Repo.transaction(fn ->
       updated =
         sub
-        |> Subscription.changeset(%{status: "cancelled", ends_on: Date.utc_today()})
+        |> Subscription.changeset(%{status: "cancelled", ends_on: LedgrWeb.Helpers.DomainHelpers.today_mx()})
         |> Repo.update!()
 
       if updated.deferred_revenue_cents > 0 do
@@ -460,7 +460,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   Returns `nil` if no eligible subscription exists.
   """
   def get_soonest_expiring_subscription(customer_id) do
-    today = Date.utc_today()
+    today = LedgrWeb.Helpers.DomainHelpers.today_mx()
 
     Subscription
     |> where(customer_id: ^customer_id, status: "active")

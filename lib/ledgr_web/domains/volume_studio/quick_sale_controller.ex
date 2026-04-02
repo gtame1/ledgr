@@ -20,7 +20,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.QuickSaleController do
       customer_changeset:      Customers.change_customer(%Customer{}),
       mode:                    mode,
       preselected_customer_id: preselected_customer_id,
-      today:                   Date.utc_today() |> Date.to_iso8601(),
+      today:                   today_mx() |> Date.to_iso8601(),
       action:                  dp(conn, "/quick-sale")
     )
   end
@@ -28,7 +28,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.QuickSaleController do
   # ── POST /quick-sale ───────────────────────────────────────────────────
 
   def create(conn, %{"quick_sale" => p}) do
-    today              = Date.utc_today()
+    today              = today_mx()
     sale_date          = parse_date(p["sale_date"]) || today
     discount           = parse_int(p["discount_cents"])
     mode               = Map.get(p, "mode", "existing")

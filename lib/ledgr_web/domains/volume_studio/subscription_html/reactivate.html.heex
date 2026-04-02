@@ -43,8 +43,8 @@
             id="ends_on"
             type="date"
             name="subscription[ends_on]"
-            value={Date.add(Date.utc_today(), (@subscription.subscription_plan.duration_days || 30))}
-            min={Date.to_string(Date.utc_today())}
+            value={Date.add(today_mx(), (@subscription.subscription_plan.duration_days || 30))}
+            min={Date.to_string(today_mx())}
             class="form-input"
             required
           />

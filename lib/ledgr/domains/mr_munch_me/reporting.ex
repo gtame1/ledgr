@@ -286,9 +286,9 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
     # Default to all time if no dates provided
     {start_date, end_date} =
       case {start_date, end_date} do
-        {nil, nil} -> {~D[2000-01-01], Date.utc_today()}
+        {nil, nil} -> {~D[2000-01-01], LedgrWeb.Helpers.DomainHelpers.today_mx()}
         {s, e} when not is_nil(s) and not is_nil(e) -> {s, e}
-        {s, nil} -> {s, Date.utc_today()}
+        {s, nil} -> {s, LedgrWeb.Helpers.DomainHelpers.today_mx()}
         {nil, e} -> {~D[2000-01-01], e}
       end
 
@@ -548,9 +548,9 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
     # Default to all time if no dates provided
     {start_date, end_date} =
       case {start_date, end_date} do
-        {nil, nil} -> {~D[2000-01-01], Date.utc_today()}
+        {nil, nil} -> {~D[2000-01-01], LedgrWeb.Helpers.DomainHelpers.today_mx()}
         {s, e} when not is_nil(s) and not is_nil(e) -> {s, e}
-        {s, nil} -> {s, Date.utc_today()}
+        {s, nil} -> {s, LedgrWeb.Helpers.DomainHelpers.today_mx()}
         {nil, e} -> {~D[2000-01-01], e}
       end
 
@@ -597,7 +597,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
       ]
     }
   """
-  def ar_aging_report(as_of_date \\ Date.utc_today()) do
+  def ar_aging_report(as_of_date \\ LedgrWeb.Helpers.DomainHelpers.today_mx()) do
     # Get all delivered orders with their payments preloaded
     delivered_orders =
       from(o in Order,
