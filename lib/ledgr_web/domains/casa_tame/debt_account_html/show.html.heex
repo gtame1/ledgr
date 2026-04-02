@@ -1,0 +1,91 @@
+<section class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+    <div>
+      <h2 class="card-title"><%= @account.code %> – <%= @account.name %></h2>
+      <p class="card-subtitle">
+        Outstanding balance: <strong style="color: #dc2626;"><%= format_currency(@balance_cents) %></strong>
+      </p>
+    </div>
+    <.link navigate={dp(@domain_path_prefix, "/debt-accounts")} class="btn">Back</.link>
+  </div>
+</section>
+
+<!-- Record Movement -->
+<section class="card" style="margin-top: 1rem;">
+  <h3 class="card-title">Record Movement</h3>
+  <form method="post" action={dp(@domain_path_prefix, "/debt-accounts/#{@account.id}/movements")} class="form-grid">
+    <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+    <div class="form-block" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 2fr auto; gap: 0.75rem; align-items: end;">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" name="movement[date]" value={Ledgr.Domains.CasaTame.today()} class="input input-sm" />
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select name="movement[movement_type]" class="input input-sm">
+          <%= for {label, val} <- @movement_types do %>
+            <option value={val}><%= label %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="field">
+        <label>Amount</label>
+        <input type="number" name="movement[amount_cents]" min="0" step="0.01" class="input input-sm" required />
+      </div>
+      <div class="field">
+        <label>Source / Expense Account</label>
+        <select name="movement[source_account_id]" class="input input-sm">
+          <%= for {label, val} <- @source_options do %>
+            <option value={val}><%= label %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <input type="text" name="movement[description]" class="input input-sm" placeholder="Optional note" />
+      </div>
+      <button class="btn primary" type="submit" style="margin-bottom: 0.25rem;">Record</button>
+    </div>
+  </form>
+</section>
+
+<!-- Transaction History -->
+<section class="card" style="margin-top: 1rem;">
+  <h3 class="card-title">Transaction History</h3>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th class="numeric">Debit</th>
+          <th class="numeric">Credit</th>
+          <th class="numeric">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for txn <- @transactions do %>
+          <tr>
+            <td><%= txn.line.journal_entry.date %></td>
+            <td>
+              <span style="font-size: 0.85rem;"><%= txn.line.journal_entry.description %></span>
+              <%= if txn.line.description do %>
+                <br/><span style="font-size: 0.8rem; color: var(--text-muted);"><%= txn.line.description %></span>
+              <% end %>
+            </td>
+            <td class="numeric">
+              <%= if txn.line.debit_cents > 0 do %><%= format_currency(txn.line.debit_cents) %><% end %>
+            </td>
+            <td class="numeric">
+              <%= if txn.line.credit_cents > 0 do %><%= format_currency(txn.line.credit_cents) %><% end %>
+            </td>
+            <td class="numeric" style="font-weight: 600;"><%= format_currency(txn.balance) %></td>
+          </tr>
+        <% end %>
+        <%= if @transactions == [] do %>
+          <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No transactions yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

@@ -16,6 +16,11 @@
         <.link navigate={dp(@domain_path_prefix, "/transfers/new")} class="btn primary">
           + New Transfer
         </.link>
+        <%= if assigns[:fx_transfers] do %>
+          <.link navigate={dp(@domain_path_prefix, "/fx-transfers/new")} class="btn primary">
+            + FX Transfer
+          </.link>
+        <% end %>
       </div>
 
       <div class="table-wrapper">
@@ -69,5 +74,46 @@
         </table>
       </div>
     </section>
+
+    <%= if assigns[:fx_transfers] && @fx_transfers != [] do %>
+      <section class="card" style="margin-top: 1rem;">
+        <div class="card-header">
+          <h2 class="card-title">FX Transfers</h2>
+          <p class="card-subtitle">Cross-currency transfers with exchange rates.</p>
+        </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th class="numeric">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for je <- @fx_transfers do %>
+                <tr>
+                  <td><%= je.date %></td>
+                  <td><%= je.description %></td>
+                  <td class="numeric">
+                    <%= for line <- je.journal_lines do %>
+                      <div style="font-size: 0.85rem;">
+                        <%= if line.debit_cents > 0 do %>
+                          <span style="color: #059669;">+ <%= format_currency(line.debit_cents) %></span>
+                          <span style="color: var(--text-muted);"> to <%= line.account.name %></span>
+                        <% else %>
+                          <span style="color: #dc2626;">- <%= format_currency(line.credit_cents) %></span>
+                          <span style="color: var(--text-muted);"> from <%= line.account.name %></span>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    <% end %>
   </div>
 </section>

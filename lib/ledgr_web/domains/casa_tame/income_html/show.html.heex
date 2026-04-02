@@ -1,0 +1,31 @@
+<section class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+    <div>
+      <h2 class="card-title">Income Details</h2>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <.link navigate={dp(@domain_path_prefix, "/income")} class="btn">Back</.link>
+      <.link navigate={dp(@domain_path_prefix, "/income/#{@entry.id}/edit")} class="btn primary">Edit</.link>
+      <.link href={dp(@domain_path_prefix, "/income/#{@entry.id}")} method="delete" data-confirm="Delete this income entry?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+    </div>
+  </div>
+
+  <ul class="nice-list" style="margin-top: 1rem;">
+    <li><strong>Date:</strong> <%= @entry.date %></li>
+    <li><strong>Description:</strong> <%= @entry.description %></li>
+    <li>
+      <strong>Amount:</strong>
+      <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.25rem; #{if @entry.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
+        <%= @entry.currency %>
+      </span>
+      <%= format_currency(@entry.amount_cents) %>
+    </li>
+    <%= if @entry.income_category do %>
+      <li><strong>Category:</strong> <%= @entry.income_category.name %></li>
+    <% end %>
+    <li><strong>Deposit To:</strong> <%= @entry.deposit_account && @entry.deposit_account.name %></li>
+    <%= if @entry.source do %>
+      <li><strong>Source:</strong> <%= @entry.source %></li>
+    <% end %>
+  </ul>
+</section>

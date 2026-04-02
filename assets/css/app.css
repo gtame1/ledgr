@@ -2854,17 +2854,18 @@
 
   .landing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    max-width: 700px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+    max-width: 900px;
     width: 100%;
   }
 
   .landing-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
-    padding: 1.5rem 1.75rem;
+    gap: 0.75rem;
+    padding: 1.25rem 1rem;
     background: #ffffff;
     border-radius: var(--radius-lg);
     text-decoration: none;
@@ -2872,6 +2873,7 @@
     box-shadow: 0 4px 16px rgba(6, 10, 58, 0.07);
     border: 1.5px solid #e2e8f0;
     transition: all 0.2s ease;
+    text-align: center;
   }
 
   .landing-card:hover {
@@ -2882,10 +2884,10 @@
 
   /* Emoji logo (MrMunchMe style) */
   .landing-card-logo {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
     line-height: 1;
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2895,14 +2897,14 @@
   }
 
   .landing-card-body {
-    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
   .landing-card-name {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #1e293b;
     margin: 0;
@@ -2920,14 +2922,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1.5rem;
+    padding: 1.25rem 1rem;
     flex: 1;
   }
 
   .landing-card-logo-img {
     width: auto;
-    height: 120px;
+    height: 80px;
     object-fit: contain;
+  }
+
+  .landing-card-emoji {
+    font-size: 2.5rem;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-accent-soft);
+    border-radius: var(--radius-md);
   }
 
   .landing-card-enter {

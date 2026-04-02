@@ -86,7 +86,8 @@ defmodule Ledgr.MixProject do
       {:bcrypt_elixir, "~> 3.0"},
       {:excoveralls, "~> 0.18", only: :test},
       {:earmark, "~> 1.4"},
-      {:stripity_stripe, "~> 3.0"}
+      {:stripity_stripe, "~> 3.0"},
+      {:tz, "~> 0.28"}
     ]
   end
 

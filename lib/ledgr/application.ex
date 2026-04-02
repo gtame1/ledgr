@@ -38,12 +38,13 @@ defmodule Ledgr.Application do
     # config/test.exs); in dev/prod only start when their DATABASE_URL is set.
     optional_repos =
       if @mix_env != :prod do
-        [Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ]
+        [Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame]
       else
         [
           {"VIAXE_DATABASE_URL", Ledgr.Repos.Viaxe},
           {"VOLUME_STUDIO_DATABASE_URL", Ledgr.Repos.VolumeStudio},
-          {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ}
+          {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ},
+          {"CASA_TAME_DATABASE_URL", Ledgr.Repos.CasaTame}
         ]
         |> Enum.filter(fn {env_var, repo} ->
           case System.get_env(env_var) do
@@ -69,7 +70,13 @@ defmodule Ledgr.Application do
       [
         {DNSCluster, query: Application.get_env(:ledgr, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Ledgr.PubSub},
-        Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery,
+        Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery
+      ] ++
+      # Start exchange rate worker only when Casa Tame repo is available
+      (if Ledgr.Repos.CasaTame in optional_repos or @mix_env == :test,
+        do: [Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker],
+        else: []) ++
+      [
         # Start to serve requests, typically the last entry
         LedgrWeb.Endpoint
       ]

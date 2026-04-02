@@ -41,6 +41,15 @@ config :ledgr, Ledgr.Repos.LedgrHQ,
   pool_size: System.schedulers_online() * 2,
   priv: "priv/repos/ledgr_hq"
 
+config :ledgr, Ledgr.Repos.CasaTame,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_casa_tame_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2,
+  priv: "priv/repos/casa_tame"
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :ledgr, LedgrWeb.Endpoint,

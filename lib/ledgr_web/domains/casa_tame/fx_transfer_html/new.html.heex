@@ -1,0 +1,102 @@
+<section class="card">
+  <h2 class="card-title">FX Transfer</h2>
+  <p class="card-subtitle">Transfer between MXN and USD accounts. The exchange rate is calculated automatically from the amounts.</p>
+
+  <form method="post" action={dp(@domain_path_prefix, "/fx-transfers")} class="form-grid">
+    <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+
+    <div class="form-block">
+      <!-- From (source) -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="field">
+          <label>From Account</label>
+          <select name="fx_transfer[from_account_id]" class="input">
+            <option value="">Select source</option>
+            <optgroup label="MXN Accounts">
+              <%= for {label, id} <- @mxn_account_options do %>
+                <option value={id}><%= label %></option>
+              <% end %>
+            </optgroup>
+            <optgroup label="USD Accounts">
+              <%= for {label, id} <- @usd_account_options do %>
+                <option value={id}><%= label %></option>
+              <% end %>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field">
+          <label>From Amount</label>
+          <input type="number" name="fx_transfer[from_amount]" min="0" step="0.01" class="input" required id="fx-from-amount" />
+        </div>
+      </div>
+
+      <!-- To (destination) -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="field">
+          <label>To Account</label>
+          <select name="fx_transfer[to_account_id]" class="input">
+            <option value="">Select destination</option>
+            <optgroup label="USD Accounts">
+              <%= for {label, id} <- @usd_account_options do %>
+                <option value={id}><%= label %></option>
+              <% end %>
+            </optgroup>
+            <optgroup label="MXN Accounts">
+              <%= for {label, id} <- @mxn_account_options do %>
+                <option value={id}><%= label %></option>
+              <% end %>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field">
+          <label>To Amount</label>
+          <input type="number" name="fx_transfer[to_amount]" min="0" step="0.01" class="input" required id="fx-to-amount" />
+        </div>
+      </div>
+
+      <!-- Exchange rate display -->
+      <div class="field" style="background: var(--bg-surface); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+        <span style="color: var(--text-muted); font-size: 0.9rem;">Exchange Rate: </span>
+        <strong id="fx-rate-display" style="font-size: 1.1rem;">-</strong>
+      </div>
+
+      <div class="field">
+        <label>Date</label>
+        <input type="date" name="fx_transfer[date]" value={@today} class="input" />
+      </div>
+
+      <div class="field">
+        <label>Note (optional)</label>
+        <input type="text" name="fx_transfer[note]" class="input" placeholder="e.g. Sent via Wise" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Record FX Transfer</button>
+      <.link navigate={dp(@domain_path_prefix, "/transfers")} class="btn">Cancel</.link>
+    </div>
+  </form>
+</section>
+
+<script>
+  (function() {
+    const fromAmount = document.getElementById('fx-from-amount');
+    const toAmount = document.getElementById('fx-to-amount');
+    const rateDisplay = document.getElementById('fx-rate-display');
+
+    function updateRate() {
+      const from = parseFloat(fromAmount.value) || 0;
+      const to = parseFloat(toAmount.value) || 0;
+
+      if (from > 0 && to > 0) {
+        const rate = (from / to).toFixed(4);
+        rateDisplay.textContent = `${rate} (${from.toFixed(2)} / ${to.toFixed(2)})`;
+      } else {
+        rateDisplay.textContent = '-';
+      }
+    }
+
+    fromAmount.addEventListener('input', updateRate);
+    toAmount.addEventListener('input', updateRate);
+  })();
+</script>

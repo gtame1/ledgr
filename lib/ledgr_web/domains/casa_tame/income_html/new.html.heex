@@ -1,0 +1,85 @@
+<section class="card">
+  <h2 class="card-title">New Income</h2>
+  <p class="card-subtitle">Record incoming cash flow. This will automatically post to the ledger.</p>
+
+  <.form :let={f} for={@changeset} as={:income_entry} action={@action} class="form-grid">
+    <%= if @changeset.action do %>
+      <div class="alert alert-error">
+        <p>There were problems. Please review the fields below.</p>
+      </div>
+    <% end %>
+
+    <div class="form-block">
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem;">
+        <div class="field">
+          <.input field={f[:amount_cents]} type="number" min="0" step="0.01" label="Amount" />
+        </div>
+        <div class="field">
+          <.input field={f[:currency]} type="select" label="Currency" options={@currency_options} />
+        </div>
+      </div>
+
+      <div class="field">
+        <.input field={f[:income_category_id]} type="select" label="Category" prompt="Select category" options={@category_options} />
+      </div>
+
+      <div class="field">
+        <.input field={f[:deposit_account_id]} type="select" label="Deposit to" prompt="Select account" options={@deposit_account_options} />
+      </div>
+
+      <div class="field">
+        <.input field={f[:date]} type="date" label="Date" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:description]} type="text" label="Description" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:source]} type="text" label="Source (optional)" placeholder="e.g. Employer name, client" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Save Income</button>
+      <.link navigate={dp(@domain_path_prefix, "/income")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>
+
+<script>
+  (function() {
+    const currencySelect = document.querySelector('[name="income_entry[currency]"]');
+    const depositSelect = document.querySelector('[name="income_entry[deposit_account_id]"]');
+    if (!currencySelect || !depositSelect) return;
+
+    const allOptions = Array.from(depositSelect.options).map(opt => ({
+      value: opt.value, text: opt.text, selected: opt.selected
+    }));
+
+    function filterDeposit() {
+      const currency = currencySelect.value;
+      const currentValue = depositSelect.value;
+      depositSelect.innerHTML = '';
+
+      const prompt = document.createElement('option');
+      prompt.value = '';
+      prompt.textContent = 'Select account';
+      depositSelect.appendChild(prompt);
+
+      allOptions.forEach(opt => {
+        if (!opt.value) return;
+        if (opt.text.startsWith(currency + ':')) {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.text.replace(/^(USD|MXN): /, '');
+          if (opt.value === currentValue) option.selected = true;
+          depositSelect.appendChild(option);
+        }
+      });
+    }
+
+    currencySelect.addEventListener('change', filterDeposit);
+    filterDeposit();
+  })();
+</script>

@@ -41,6 +41,16 @@ config :ledgr, Ledgr.Repos.LedgrHQ,
   pool_size: 10,
   priv: "priv/repos/ledgr_hq"
 
+config :ledgr, Ledgr.Repos.CasaTame,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_casa_tame_dev",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10,
+  priv: "priv/repos/casa_tame"
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

@@ -1,0 +1,113 @@
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">Debt Accounts</h1>
+    <p class="card-subtitle">All liability accounts with current balances.</p>
+  </header>
+
+  <div class="content-body">
+    <div class="dashboard-metrics" style="margin-bottom: 1.25rem;">
+      <div class="metric-card">
+        <div class="metric-label">Total Outstanding Debt</div>
+        <div class="metric-value" style="color: #dc2626;"><%= format_currency(@total_cents) %></div>
+      </div>
+    </div>
+
+    <!-- USD Debts -->
+    <%= if @grouped.credit_cards_usd != [] or @grouped.ap_usd != [] or @grouped.loans_usd != [] do %>
+      <section class="card" style="margin-bottom: 1rem;">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.5rem;">USD</span>
+            Liabilities
+          </h2>
+        </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Account</th><th class="numeric">Balance</th><th></th></tr></thead>
+            <tbody>
+              <%= if @grouped.credit_cards_usd != [] do %>
+                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Credit Cards</td></tr>
+                <%= for item <- @grouped.credit_cards_usd do %>
+                  <tr>
+                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                  </tr>
+                <% end %>
+              <% end %>
+              <%= if @grouped.ap_usd != [] do %>
+                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Accounts Payable</td></tr>
+                <%= for item <- @grouped.ap_usd do %>
+                  <tr>
+                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                  </tr>
+                <% end %>
+              <% end %>
+              <%= if @grouped.loans_usd != [] do %>
+                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Long-Term Loans</td></tr>
+                <%= for item <- @grouped.loans_usd do %>
+                  <tr>
+                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    <% end %>
+
+    <!-- MXN Debts -->
+    <%= if @grouped.credit_cards_mxn != [] or @grouped.ap_mxn != [] or @grouped.loans_mxn != [] do %>
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.5rem;">MXN</span>
+            Liabilities
+          </h2>
+        </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Account</th><th class="numeric">Balance</th><th></th></tr></thead>
+            <tbody>
+              <%= if @grouped.credit_cards_mxn != [] do %>
+                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Credit Cards</td></tr>
+                <%= for item <- @grouped.credit_cards_mxn do %>
+                  <tr>
+                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                  </tr>
+                <% end %>
+              <% end %>
+              <%= if @grouped.ap_mxn != [] do %>
+                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Accounts Payable</td></tr>
+                <%= for item <- @grouped.ap_mxn do %>
+                  <tr>
+                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                  </tr>
+                <% end %>
+              <% end %>
+              <%= if @grouped.loans_mxn != [] do %>
+                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Long-Term Loans</td></tr>
+                <%= for item <- @grouped.loans_mxn do %>
+                  <tr>
+                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
+                    <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= format_currency(item.balance_cents) %></td>
+                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    <% end %>
+  </div>
+</section>

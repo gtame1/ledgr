@@ -1,0 +1,68 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Expenses</h2>
+    <p class="card-subtitle">Track your personal and household expenses.</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="btn primary">
+      + New Expense
+    </.link>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" action={dp(@domain_path_prefix, "/expenses")} style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+    <select name="currency" class="input input-sm" style="width: auto;">
+      <option value="">All currencies</option>
+      <option value="MXN" selected={@currency_filter == "MXN"}>MXN</option>
+      <option value="USD" selected={@currency_filter == "USD"}>USD</option>
+    </select>
+    <input type="date" name="date_from" value={@date_from} class="input input-sm" placeholder="From" />
+    <input type="date" name="date_to" value={@date_to} class="input input-sm" placeholder="To" />
+    <button type="submit" class="btn sm">Filter</button>
+    <%= if @currency_filter != "" or @date_from != "" or @date_to != "" do %>
+      <a href={dp(@domain_path_prefix, "/expenses")} class="btn sm">Clear</a>
+    <% end %>
+  </form>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Paid From</th>
+          <th class="numeric">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for expense <- @expenses do %>
+          <tr>
+            <td><%= expense.date %></td>
+            <td><%= expense.description %></td>
+            <td><%= expense.expense_account && expense.expense_account.name %></td>
+            <td><%= expense.paid_from_account && expense.paid_from_account.name %></td>
+            <td class="numeric">
+              <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.25rem; #{if expense.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
+                <%= expense.currency %>
+              </span>
+              <%= format_currency(expense.amount_cents) %>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.5rem;">
+                <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}")} class="btn">View</.link>
+                <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}/edit")} class="btn">Edit</.link>
+                <.link href={dp(@domain_path_prefix, "/expenses/#{expense.id}")} method="delete" data-confirm="Delete this expense?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+        <%= if @expenses == [] do %>
+          <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No expenses found.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

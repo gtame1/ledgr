@@ -54,6 +54,19 @@ if ledgr_hq_url = System.get_env("LEDGR_HQ_DATABASE_URL") do
     priv: "priv/repos/ledgr_hq"
 end
 
+if casa_tame_url = System.get_env("CASA_TAME_DATABASE_URL") do
+  db_uri = URI.parse(casa_tame_url)
+
+  config :ledgr, Ledgr.Repos.CasaTame,
+    url: casa_tame_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(db_uri.host || "")
+    ],
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
+    priv: "priv/repos/casa_tame"
+end
+
 # Domain hostname → slug mapping for production routing.
 # DomainPlug uses this to detect the active domain from the request Host header,
 # allowing each business to run on its own domain (e.g. volumestudio.com).

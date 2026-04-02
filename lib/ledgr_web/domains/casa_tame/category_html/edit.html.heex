@@ -1,0 +1,25 @@
+<section class="card">
+  <h2 class="card-title">Edit Category</h2>
+
+  <.form :let={f} for={@changeset} as={:expense_category} action={@action} method="put" class="form-grid">
+    <%= if @changeset.action do %>
+      <div class="alert alert-error">
+        <p>Please fix the errors below.</p>
+      </div>
+    <% end %>
+
+    <div class="form-block">
+      <div class="field">
+        <.input field={f[:name]} type="text" label="Name" />
+      </div>
+      <div class="field">
+        <.input field={f[:parent_id]} type="select" label="Parent category (optional)" prompt="None (top-level)" options={@parent_options} />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Update Category</button>
+      <.link navigate={dp(@domain_path_prefix, "/categories")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>

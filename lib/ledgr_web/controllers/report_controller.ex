@@ -15,6 +15,7 @@ defmodule LedgrWeb.ReportController do
     template = cond do
       domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
       domain == Ledgr.Domains.LedgrHQ      -> :ledgr_hq_dashboard
+      domain == Ledgr.Domains.CasaTame     -> :casa_tame_dashboard
       true                                  -> :dashboard
     end
 
@@ -36,13 +37,30 @@ defmodule LedgrWeb.ReportController do
     summary  = Accounting.profit_and_loss(start_date, end_date)
     monthly  = Accounting.profit_and_loss_monthly(5)  # last 6 months including current
 
-    render(conn, :pnl,
-      summary: summary,
-      monthly: monthly,
-      start_date: start_date,
-      end_date: end_date,
-      earliest_date: earliest_date,
-      latest_date: latest_date
+    template = if domain == Ledgr.Domains.CasaTame, do: :casa_tame_pnl, else: :pnl
+
+    # Casa Tame needs expense/income totals by currency for the split P&L
+    extra_assigns =
+      if domain == Ledgr.Domains.CasaTame do
+        [
+          expense_totals: Ledgr.Domains.CasaTame.Expenses.total_by_currency(start_date, end_date),
+          expense_by_account: Ledgr.Domains.CasaTame.Expenses.totals_by_account_and_currency(start_date, end_date),
+          income_by_category: Ledgr.Domains.CasaTame.Income.totals_by_category_and_currency(start_date, end_date),
+          income_totals: Ledgr.Domains.CasaTame.Income.total_by_currency(start_date, end_date)
+        ]
+      else
+        []
+      end
+
+    render(conn, template,
+      [
+        summary: summary,
+        monthly: monthly,
+        start_date: start_date,
+        end_date: end_date,
+        earliest_date: earliest_date,
+        latest_date: latest_date
+      ] ++ extra_assigns
     )
   end
 
@@ -57,8 +75,12 @@ defmodule LedgrWeb.ReportController do
 
     bs = Accounting.balance_sheet(as_of)
 
-    # Check for flash message from year_end_close action
-    render(conn, :balance_sheet,
+    template =
+      if Domain.current() == Ledgr.Domains.CasaTame,
+        do: :casa_tame_balance_sheet,
+        else: :balance_sheet
+
+    render(conn, template,
       balance_sheet: bs,
       as_of: as_of
     )
@@ -151,7 +173,9 @@ defmodule LedgrWeb.ReportController do
 
     cash_flow_data = Reporting.cash_flow(start_date, end_date)
 
-    render(conn, :cash_flow,
+    template = if domain == Ledgr.Domains.CasaTame, do: :casa_tame_cash_flow, else: :cash_flow
+
+    render(conn, template,
       cash_flow: cash_flow_data,
       start_date: start_date,
       end_date: end_date,

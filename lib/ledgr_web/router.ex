@@ -269,6 +269,54 @@ defmodule LedgrWeb.Router do
     patch "/costs/:id/toggle_active", Domains.LedgrHQ.CostController, :toggle_active
   end
 
+  # ── Casa Tame: public auth routes ──────────────────────────────────
+  scope "/app/casa-tame", LedgrWeb do
+    pipe_through :browser
+
+    get "/login", SessionController, :new
+    post "/login", SessionController, :create
+    delete "/logout", SessionController, :delete
+  end
+
+  # ── Casa Tame: protected routes ───────────────────────────────────
+  scope "/app/casa-tame", LedgrWeb do
+    pipe_through [:browser, :require_auth]
+
+    core_routes_personal_finance()
+
+    # Expenses (domain-specific with currency + categories)
+    resources "/expenses", Domains.CasaTame.ExpenseController,
+      only: [:index, :new, :create, :show, :edit, :update, :delete]
+
+    # Income
+    resources "/income", Domains.CasaTame.IncomeController,
+      only: [:index, :new, :create, :show, :edit, :update, :delete]
+
+    # Expense categories
+    resources "/categories", Domains.CasaTame.CategoryController,
+      only: [:index, :new, :create, :edit, :update, :delete]
+
+    # Investment accounts (read-only list + record movements)
+    get "/investment-accounts", Domains.CasaTame.InvestmentAccountController, :index
+    get "/investment-accounts/:id", Domains.CasaTame.InvestmentAccountController, :show
+    post "/investment-accounts/:id/movements", Domains.CasaTame.InvestmentAccountController, :create_movement
+
+    # Debt accounts (read-only list + record movements)
+    get "/debt-accounts", Domains.CasaTame.DebtAccountController, :index
+    get "/debt-accounts/:id", Domains.CasaTame.DebtAccountController, :show
+    post "/debt-accounts/:id/movements", Domains.CasaTame.DebtAccountController, :create_movement
+
+    # Domain-specific reports
+    # FX Transfers (cross-currency)
+    get "/fx-transfers/new", Domains.CasaTame.FxTransferController, :new
+    post "/fx-transfers", Domains.CasaTame.FxTransferController, :create
+
+    # Domain-specific reports
+    get "/reports/net-worth", Domains.CasaTame.ReportController, :net_worth
+    get "/reports/monthly-trends", Domains.CasaTame.ReportController, :monthly_trends
+    get "/reports/category-breakdown", Domains.CasaTame.ReportController, :category_breakdown
+  end
+
   # ── API endpoints (core) ─────────────────────────────────────────────
   scope "/api", LedgrWeb do
     pipe_through :api

@@ -71,7 +71,13 @@ const SearchableSelect = {
       },
       placeholder: prompt,
       allowEmptyOption: true,
-      controlInput: '<input>',
+      onType: function(str) {
+        // Clear the current selection when the user starts typing
+        // so the old value doesn't stick in the input
+        if (str.length > 0 && this.items.length > 0) {
+          this.clear(true)
+        }
+      },
       render: {
         option: function(data, escape) {
           return '<div class="option">' + escape(data.text) + '</div>'

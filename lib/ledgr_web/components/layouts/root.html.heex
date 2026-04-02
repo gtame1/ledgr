@@ -215,52 +215,54 @@
               </div>
             <% end %>
 
-            <!-- Core menu groups (shared across all domains) -->
-            <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reports/") or String.contains?(req_path, "/account-transactions"), do: "true"}>
-              <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
-                <span>Reports</span>
-                <.icon name="hero-chevron-down" class="dropdown-icon" />
-              </button>
-              <div class="nav-dropdown-menu">
-                <.link navigate={"#{prefix}/reports/pnl"} class="nav-link">P&L</.link>
-                <.link navigate={"#{prefix}/reports/balance_sheet"} class="nav-link">Balance Sheet</.link>
-                <.link navigate={"#{prefix}/reports/unit_economics_list"} class="nav-link">Unit Economics</.link>
-                <.link navigate={"#{prefix}/reports/cash_flow"} class="nav-link">Cash Flow</.link>
-                <.link navigate={"#{prefix}/reports/financial_analysis"} class="nav-link">Financial Analysis</.link>
-                <.link navigate={"#{prefix}/account-transactions"} class="nav-link">Account Transactions</.link>
-                <.link navigate={"#{prefix}/reports/ap_summary"} class="nav-link">AP Summary</.link>
+            <!-- Core menu groups (shared across all domains, hidden when domain manages its own nav) -->
+            <%= unless domain == Ledgr.Domains.CasaTame do %>
+              <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reports/") or String.contains?(req_path, "/account-transactions"), do: "true"}>
+                <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
+                  <span>Reports</span>
+                  <.icon name="hero-chevron-down" class="dropdown-icon" />
+                </button>
+                <div class="nav-dropdown-menu">
+                  <.link navigate={"#{prefix}/reports/pnl"} class="nav-link">P&L</.link>
+                  <.link navigate={"#{prefix}/reports/balance_sheet"} class="nav-link">Balance Sheet</.link>
+                  <.link navigate={"#{prefix}/reports/unit_economics_list"} class="nav-link">Unit Economics</.link>
+                  <.link navigate={"#{prefix}/reports/cash_flow"} class="nav-link">Cash Flow</.link>
+                  <.link navigate={"#{prefix}/reports/financial_analysis"} class="nav-link">Financial Analysis</.link>
+                  <.link navigate={"#{prefix}/account-transactions"} class="nav-link">Account Transactions</.link>
+                  <.link navigate={"#{prefix}/reports/ap_summary"} class="nav-link">AP Summary</.link>
+                </div>
               </div>
-            </div>
 
-            <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reconciliation/"), do: "true"}>
-              <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
-                <span>Reconciliation Tools</span>
-                <.icon name="hero-chevron-down" class="dropdown-icon" />
-              </button>
-              <div class="nav-dropdown-menu">
-                <.link navigate={"#{prefix}/reconciliation/accounting"} class="nav-link">Account Reconciliation</.link>
-                <%= if String.contains?(prefix, "mr-munch-me") do %>
-                  <.link navigate={"#{prefix}/reconciliation/inventory"} class="nav-link">Inventory Reconciliation</.link>
-                <% end %>
+              <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reconciliation/"), do: "true"}>
+                <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
+                  <span>Reconciliation Tools</span>
+                  <.icon name="hero-chevron-down" class="dropdown-icon" />
+                </button>
+                <div class="nav-dropdown-menu">
+                  <.link navigate={"#{prefix}/reconciliation/accounting"} class="nav-link">Account Reconciliation</.link>
+                  <%= if String.contains?(prefix, "mr-munch-me") do %>
+                    <.link navigate={"#{prefix}/reconciliation/inventory"} class="nav-link">Inventory Reconciliation</.link>
+                  <% end %>
+                </div>
               </div>
-            </div>
 
-            <% domain_has_customers = domain.menu_items() |> Enum.flat_map(& &1.items) |> Enum.any?(& &1.path == "#{prefix}/customers") %>
-            <% other_active = String.starts_with?(req_path, "#{prefix}/investments") or String.starts_with?(req_path, "#{prefix}/transfers") or (String.starts_with?(req_path, "#{prefix}/transactions") and not String.contains?(req_path, "account-transactions")) or (not domain_has_customers and String.starts_with?(req_path, "#{prefix}/customers")) %>
-            <div class="nav-dropdown" data-default-open={if other_active, do: "true"}>
-              <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
-                <span>Other</span>
-                <.icon name="hero-chevron-down" class="dropdown-icon" />
-              </button>
-              <div class="nav-dropdown-menu">
-                <%= unless domain_has_customers do %>
-                  <.link navigate={"#{prefix}/customers"} class="nav-link">Customers</.link>
-                <% end %>
-                <.link navigate={"#{prefix}/investments"} class="nav-link">Investments</.link>
-                <.link navigate={"#{prefix}/transfers"} class="nav-link">Money Transfers</.link>
-                <.link navigate={"#{prefix}/transactions"} class="nav-link">All Transactions</.link>
+              <% domain_has_customers = domain.menu_items() |> Enum.flat_map(& &1.items) |> Enum.any?(& &1.path == "#{prefix}/customers") %>
+              <% other_active = String.starts_with?(req_path, "#{prefix}/investments") or String.starts_with?(req_path, "#{prefix}/transfers") or (String.starts_with?(req_path, "#{prefix}/transactions") and not String.contains?(req_path, "account-transactions")) or (not domain_has_customers and String.starts_with?(req_path, "#{prefix}/customers")) %>
+              <div class="nav-dropdown" data-default-open={if other_active, do: "true"}>
+                <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
+                  <span>Other</span>
+                  <.icon name="hero-chevron-down" class="dropdown-icon" />
+                </button>
+                <div class="nav-dropdown-menu">
+                  <%= unless domain_has_customers do %>
+                    <.link navigate={"#{prefix}/customers"} class="nav-link">Customers</.link>
+                  <% end %>
+                  <.link navigate={"#{prefix}/investments"} class="nav-link">Investments</.link>
+                  <.link navigate={"#{prefix}/transfers"} class="nav-link">Money Transfers</.link>
+                  <.link navigate={"#{prefix}/transactions"} class="nav-link">All Transactions</.link>
+                </div>
               </div>
-            </div>
+            <% end %>
 
           </nav>
 

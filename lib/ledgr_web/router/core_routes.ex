@@ -34,6 +34,35 @@ defmodule LedgrWeb.Router.CoreRoutes do
     end
   end
 
+  @doc """
+  Core routes for personal finance domains.
+  Includes accounting, reporting, reconciliation, and transfers but
+  excludes customers, expenses (overridden by domain), investments
+  (partner-style), AP summary, and unit economics.
+  """
+  defmacro core_routes_personal_finance do
+    quote do
+      # Dashboard (root of each domain scope)
+      get "/", ReportController, :dashboard
+
+      # Transactions (manual journal entries)
+      resources "/transactions", TransactionController, only: [:index, :new, :create, :show]
+      get "/account-transactions", AccountTransactionController, :index
+
+      # Reports (core financial statements only)
+      get "/reports/pnl", ReportController, :pnl
+      get "/reports/balance_sheet", ReportController, :balance_sheet
+
+      # Reconciliation
+      get "/reconciliation/accounting", ReconciliationController, :accounting_index
+      post "/reconciliation/accounting/adjust", ReconciliationController, :accounting_adjust
+      post "/reconciliation/accounting/reconcile_all", ReconciliationController, :accounting_reconcile_all
+
+      # Transfers
+      resources "/transfers", TransferController
+    end
+  end
+
   defp shared_routes do
     quote do
       # Dashboard (root of each domain scope)

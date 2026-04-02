@@ -1,0 +1,29 @@
+<section class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+    <div>
+      <h2 class="card-title">Expense Details</h2>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <.link navigate={dp(@domain_path_prefix, "/expenses")} class="btn">Back</.link>
+      <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/edit")} class="btn primary">Edit</.link>
+      <.link href={dp(@domain_path_prefix, "/expenses/#{@expense.id}")} method="delete" data-confirm="Delete this expense?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+    </div>
+  </div>
+
+  <ul class="nice-list" style="margin-top: 1rem;">
+    <li><strong>Date:</strong> <%= @expense.date %></li>
+    <li><strong>Description:</strong> <%= @expense.description %></li>
+    <li>
+      <strong>Amount:</strong>
+      <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.25rem; #{if @expense.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
+        <%= @expense.currency %>
+      </span>
+      <%= format_currency(@expense.amount_cents) %>
+    </li>
+    <li><strong>Category:</strong> <%= @expense.expense_account && @expense.expense_account.name %></li>
+    <li><strong>Paid From:</strong> <%= @expense.paid_from_account && @expense.paid_from_account.name %></li>
+    <%= if @expense.payee do %>
+      <li><strong>Payee:</strong> <%= @expense.payee %></li>
+    <% end %>
+  </ul>
+</section>

@@ -1,0 +1,48 @@
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">Monthly Trends</h1>
+    <p class="card-subtitle">Income, expenses, and net savings over the last 12 months (MXN).</p>
+  </header>
+
+  <div class="content-body">
+    <!-- Chart -->
+    <section class="card">
+      <div id="trends-chart-wrapper" phx-hook="BarChart" style="height: 320px;">
+        <canvas id="trends-chart" data-chart-data={Jason.encode!(@chart_data_mxn)}></canvas>
+      </div>
+    </section>
+
+    <!-- Data Table -->
+    <section class="card" style="margin-top: 1rem;">
+      <h2 class="card-title">Monthly Detail</h2>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th class="numeric">Income (MXN)</th>
+              <th class="numeric">Expenses (MXN)</th>
+              <th class="numeric">Savings (MXN)</th>
+              <th class="numeric">Income (USD)</th>
+              <th class="numeric">Expenses (USD)</th>
+              <th class="numeric">Savings (USD)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for row <- Enum.reverse(@data) do %>
+              <tr>
+                <td><%= row.label %></td>
+                <td class="numeric" style="color: #059669;"><%= format_currency(row.income_mxn) %></td>
+                <td class="numeric" style="color: #dc2626;"><%= format_currency(row.expense_mxn) %></td>
+                <td class="numeric"><%= format_currency(row.savings_mxn) %></td>
+                <td class="numeric" style="color: #059669;"><%= format_currency(row.income_usd) %></td>
+                <td class="numeric" style="color: #dc2626;"><%= format_currency(row.expense_usd) %></td>
+                <td class="numeric"><%= format_currency(row.savings_usd) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</section>

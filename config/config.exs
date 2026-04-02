@@ -8,10 +8,10 @@
 import Config
 
 config :ledgr,
-  ecto_repos: [Ledgr.Repos.MrMunchMe, Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ],
+  ecto_repos: [Ledgr.Repos.MrMunchMe, Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame],
   generators: [timestamp_type: :utc_datetime],
   domain: Ledgr.Domains.MrMunchMe,
-  domains: [Ledgr.Domains.MrMunchMe, Ledgr.Domains.Viaxe, Ledgr.Domains.VolumeStudio, Ledgr.Domains.LedgrHQ],
+  domains: [Ledgr.Domains.MrMunchMe, Ledgr.Domains.Viaxe, Ledgr.Domains.VolumeStudio, Ledgr.Domains.LedgrHQ, Ledgr.Domains.CasaTame],
   default_domain: Ledgr.Domains.MrMunchMe,
   # Default shipping fee in cents (MXN). Override per-order via the admin form.
   default_shipping_fee_cents: 5000
@@ -67,6 +67,9 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# Timezone database for DateTime.now!/1
+config :elixir, :time_zone_database, Tz.TimeZoneDatabase
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

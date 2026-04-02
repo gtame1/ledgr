@@ -1,0 +1,54 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Expense Categories</h2>
+    <p class="card-subtitle">Manage your expense classification hierarchy.</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/categories/new")} class="btn primary">
+      + New Category
+    </.link>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Type</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for parent <- @categories do %>
+          <tr style="font-weight: 600; background: var(--table-header-bg);">
+            <td><%= parent.name %></td>
+            <td><span style="font-size: 0.8rem; color: var(--text-muted);">Parent</span></td>
+            <td>
+              <div style="display: flex; gap: 0.5rem;">
+                <.link navigate={dp(@domain_path_prefix, "/categories/#{parent.id}/edit")} class="btn">Edit</.link>
+                <%= unless parent.is_system do %>
+                  <.link href={dp(@domain_path_prefix, "/categories/#{parent.id}")} method="delete" data-confirm="Delete this category?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+          <%= for child <- parent.children do %>
+            <tr>
+              <td style="padding-left: 2rem;"><%= child.name %></td>
+              <td><span style="font-size: 0.8rem; color: var(--text-muted);">Sub</span></td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <.link navigate={dp(@domain_path_prefix, "/categories/#{child.id}/edit")} class="btn">Edit</.link>
+                  <%= unless child.is_system do %>
+                    <.link href={dp(@domain_path_prefix, "/categories/#{child.id}")} method="delete" data-confirm="Delete this category?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

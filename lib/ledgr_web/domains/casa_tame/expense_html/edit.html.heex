@@ -1,0 +1,87 @@
+<section class="card">
+  <h2 class="card-title">Edit Expense</h2>
+
+  <.form :let={f} for={@changeset} as={:expense} action={@action} method="put" class="form-grid">
+    <%= if @changeset.action do %>
+      <div class="alert alert-error">
+        <p>There were problems with your expense. Please review the fields below.</p>
+      </div>
+    <% end %>
+
+    <div class="form-block">
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem;">
+        <div class="field">
+          <.input field={f[:amount_cents]} type="number" min="0" step="0.01" label="Amount" />
+        </div>
+        <div class="field">
+          <.input field={f[:currency]} type="select" label="Currency" options={@currency_options} />
+        </div>
+      </div>
+
+      <div class="field">
+        <.input field={f[:expense_account_id]} type="searchable_select" label="Category" prompt="Search or select category..." options={@expense_account_options} />
+      </div>
+
+      <div class="field">
+        <.input field={f[:date]} type="date" label="Date" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:description]} type="text" label="Description" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:payee]} type="text" label="Payee" placeholder="Who are you paying?" />
+      </div>
+
+      <div class="field">
+        <.input field={f[:paid_from_account_id]} type="select" label="Paid from" prompt="Select payment account" options={@paid_from_account_options} />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Update Expense</button>
+      <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}")} class="btn">Cancel</.link>
+    </div>
+  </.form>
+</section>
+
+<script>
+  (function() {
+    const currencySelect = document.querySelector('[name="expense[currency]"]');
+    const paidFromSelect = document.querySelector('[name="expense[paid_from_account_id]"]');
+    if (!currencySelect || !paidFromSelect) return;
+
+    const allOptions = Array.from(paidFromSelect.options).map(opt => ({
+      value: opt.value,
+      text: opt.text,
+      selected: opt.selected
+    }));
+
+    function filterPaidFrom() {
+      const currency = currencySelect.value;
+      const currentValue = paidFromSelect.value;
+
+      paidFromSelect.innerHTML = '';
+
+      const prompt = document.createElement('option');
+      prompt.value = '';
+      prompt.textContent = 'Select payment account';
+      paidFromSelect.appendChild(prompt);
+
+      allOptions.forEach(opt => {
+        if (!opt.value) return;
+        if (opt.text.startsWith(currency + ':')) {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.text.replace(/^(USD|MXN): /, '');
+          if (opt.value === currentValue) option.selected = true;
+          paidFromSelect.appendChild(option);
+        }
+      });
+    }
+
+    currencySelect.addEventListener('change', filterPaidFrom);
+    filterPaidFrom();
+  })();
+</script>
