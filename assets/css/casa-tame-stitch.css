@@ -505,6 +505,33 @@
   background: #0f1f15;
 }
 
+/* Expense button — dark green */
+[data-domain="casa-tame"] .ct-cta-btn--expense {
+  background: linear-gradient(135deg, #1B3022 0%, #2d4a35 100%);
+  color: #fbf9f4;
+}
+
+[data-domain="casa-tame"] .ct-cta-btn--expense:hover {
+  background: linear-gradient(135deg, #0f1f15 0%, #1B3022 100%);
+}
+
+/* CTA pair — stacked on mobile */
+[data-domain="casa-tame"] .ct-cta-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Income button — dark warm green */
+[data-domain="casa-tame"] .ct-cta-btn--income {
+  background: linear-gradient(135deg, #2d4a35 0%, #3d5a45 100%);
+  color: #fbf9f4;
+}
+
+[data-domain="casa-tame"] .ct-cta-btn--income:hover {
+  background: linear-gradient(135deg, #1B3022 0%, #2d4a35 100%);
+}
+
 /* ── Summary metric cards (Stitch dashboard) ─────────────── */
 
 [data-domain="casa-tame"] .ct-summary-card {

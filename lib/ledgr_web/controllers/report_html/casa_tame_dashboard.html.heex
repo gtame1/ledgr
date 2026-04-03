@@ -13,85 +13,71 @@
   <header class="content-header">
     <div>
       <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Overview</div>
-      <h1 class="page-title">Financial Net Worth</h1>
+      <h1 class="page-title">Dashboard</h1>
     </div>
   </header>
 
   <div class="content-body">
     <% m = @metrics %>
 
-    <!-- Net Worth Hero Cards (side-by-side on desktop) -->
-    <div class="ct-hero-pair">
-      <div class="ct-hero-card ct-hero-card--mxn">
-        <div class="ct-hero-label">Mexican Peso</div>
-        <div class="ct-hero-value"><%= fmt.(m.net_worth.total_mxn) %> <span style="font-size: 0.9rem; font-weight: 400; opacity: 0.6;">MXN</span></div>
-        <div class="ct-hero-sublabel">Casa Tame Prime</div>
-      </div>
-      <div class="ct-hero-card ct-hero-card--usd">
-        <div class="ct-hero-label">US Dollar</div>
-        <div class="ct-hero-value"><%= fmt.(m.net_worth.total_usd) %> <span style="font-size: 0.9rem; font-weight: 400; opacity: 0.5;">USD</span></div>
-        <div class="ct-hero-sublabel">International Portfolio</div>
-      </div>
-    </div>
-
-    <!-- Quick Actions (side-by-side on desktop) -->
+    <!-- Quick Actions (stacked on mobile, side-by-side on desktop) -->
     <div class="ct-cta-pair">
-      <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="ct-cta-btn ct-cta-btn--primary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+      <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="ct-cta-btn ct-cta-btn--expense">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
         New Expense
       </.link>
-      <.link navigate={dp(@domain_path_prefix, "/income/new")} class="ct-cta-btn ct-cta-btn--primary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+      <.link navigate={dp(@domain_path_prefix, "/income/new")} class="ct-cta-btn ct-cta-btn--income">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
         New Income
       </.link>
     </div>
 
     <!-- Summary Metric Cards (3-column grid on desktop) -->
     <div class="ct-summary-grid">
-    <div class="ct-summary-card">
-      <div class="ct-summary-icon" style="background: #d0e9d4;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3022" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <div class="ct-summary-card">
+        <div class="ct-summary-icon" style="background: #d0e9d4;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3022" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div class="ct-summary-label">Total Income</div>
+        <div class="ct-summary-row">
+          <span class="ct-summary-currency">MXN</span>
+          <span class="ct-summary-value"><%= fmt.(m.income_totals.mxn) %></span>
+        </div>
+        <div class="ct-summary-row">
+          <span class="ct-summary-currency">USD</span>
+          <span class="ct-summary-value"><%= fmt.(m.income_totals.usd) %></span>
+        </div>
       </div>
-      <div class="ct-summary-label">Total Income</div>
-      <div class="ct-summary-row">
-        <span class="ct-summary-currency">MXN</span>
-        <span class="ct-summary-value"><%= fmt.(m.income_totals.mxn) %></span>
-      </div>
-      <div class="ct-summary-row">
-        <span class="ct-summary-currency">USD</span>
-        <span class="ct-summary-value"><%= fmt.(m.income_totals.usd) %></span>
-      </div>
-    </div>
 
-    <div class="ct-summary-card">
-      <div class="ct-summary-icon" style="background: #ffd9dc;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3f2427" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <div class="ct-summary-card">
+        <div class="ct-summary-icon" style="background: #ffd9dc;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3f2427" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div class="ct-summary-label">Total Expenses</div>
+        <div class="ct-summary-row">
+          <span class="ct-summary-currency">MXN</span>
+          <span class="ct-summary-value"><%= fmt.(m.expense_totals.mxn) %></span>
+        </div>
+        <div class="ct-summary-row">
+          <span class="ct-summary-currency">USD</span>
+          <span class="ct-summary-value"><%= fmt.(m.expense_totals.usd) %></span>
+        </div>
       </div>
-      <div class="ct-summary-label">Total Expenses</div>
-      <div class="ct-summary-row">
-        <span class="ct-summary-currency">MXN</span>
-        <span class="ct-summary-value"><%= fmt.(m.expense_totals.mxn) %></span>
-      </div>
-      <div class="ct-summary-row">
-        <span class="ct-summary-currency">USD</span>
-        <span class="ct-summary-value"><%= fmt.(m.expense_totals.usd) %></span>
-      </div>
-    </div>
 
-    <div class="ct-summary-card">
-      <div class="ct-summary-icon" style="background: #d0e9d4;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3022" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <div class="ct-summary-card">
+        <div class="ct-summary-icon" style="background: #d0e9d4;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3022" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="ct-summary-label">Net Savings</div>
+        <div class="ct-summary-row">
+          <span class="ct-summary-currency">MXN</span>
+          <span class="ct-summary-value" style="font-weight: 700;"><%= fmt.(m.net_savings_mxn) %></span>
+        </div>
+        <div class="ct-summary-row">
+          <span class="ct-summary-currency">USD</span>
+          <span class="ct-summary-value" style="font-weight: 700;"><%= fmt.(m.net_savings_usd) %></span>
+        </div>
       </div>
-      <div class="ct-summary-label">Net Savings</div>
-      <div class="ct-summary-row">
-        <span class="ct-summary-currency">MXN</span>
-        <span class="ct-summary-value" style="font-weight: 700;"><%= fmt.(m.net_savings_mxn) %></span>
-      </div>
-      <div class="ct-summary-row">
-        <span class="ct-summary-currency">USD</span>
-        <span class="ct-summary-value" style="font-weight: 700;"><%= fmt.(m.net_savings_usd) %></span>
-      </div>
-    </div>
     </div>
 
     <!-- Upcoming Bills -->
