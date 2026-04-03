@@ -972,10 +972,10 @@
 [data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input[type="number"],
 [data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input[type="text"],
 [data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input {
-  background: rgba(251, 249, 244, 0.06) !important;
-  border: 1px solid rgba(251, 249, 244, 0.12) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 14px !important;
-  color: #fbf9f4 !important;
+  color: #ffffff !important;
   font-family: 'Manrope', sans-serif !important;
   font-size: 2.5rem !important;
   font-weight: 800 !important;
@@ -987,7 +987,7 @@
 }
 
 [data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input::placeholder {
-  color: rgba(251, 249, 244, 0.3) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
   font-size: 2.5rem !important;
 }
 
@@ -998,14 +998,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(251, 249, 244, 0.85);
+  color: #ffffff;
 }
 
 /* Currency toggle inside the green card */
 [data-domain="casa-tame"] .ct-card-currency-toggle select {
-  background: rgba(251, 249, 244, 0.15) !important;
-  border: 1px solid rgba(251, 249, 244, 0.3) !important;
-  color: #fbf9f4 !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
   border-radius: 999px !important;
   padding: 0.3rem 0.6rem !important;
   font-size: 0.75rem !important;
@@ -1014,23 +1014,29 @@
   appearance: none;
 }
 
-/* Labels inside the green card — bright and readable */
+/* ALL text inside the green card — white */
+[data-domain="casa-tame"] .ct-form-amount-card,
+[data-domain="casa-tame"] .ct-form-amount-card * {
+  color: #ffffff !important;
+}
+
+/* Labels inside the green card */
 [data-domain="casa-tame"] .ct-form-amount-card label {
-  color: rgba(251, 249, 244, 0.85) !important;
-  font-size: 0.65rem !important;
+  color: #ffffff !important;
+  font-size: 0.7rem !important;
   font-weight: 600 !important;
   letter-spacing: 0.06em !important;
   text-transform: uppercase !important;
 }
 
-/* All inputs/selects inside the green card — visible */
+/* All inputs/selects inside the green card */
 [data-domain="casa-tame"] .ct-form-amount-card select,
 [data-domain="casa-tame"] .ct-form-amount-card input[type="date"],
 [data-domain="casa-tame"] .ct-form-amount-card input[type="number"],
 [data-domain="casa-tame"] .ct-form-amount-card input[type="text"] {
-  background: rgba(251, 249, 244, 0.12) !important;
-  border: 1px solid rgba(251, 249, 244, 0.3) !important;
-  color: #fbf9f4 !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
   border-radius: 10px !important;
   padding: 0.65rem 0.75rem !important;
   font-size: 0.9rem !important;
@@ -1039,11 +1045,11 @@
 
 [data-domain="casa-tame"] .ct-form-amount-card select option {
   background: #1B3022;
-  color: #fbf9f4;
+  color: #ffffff;
 }
 
 [data-domain="casa-tame"] .ct-form-amount-card input::placeholder {
-  color: rgba(251, 249, 244, 0.4) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
 }
 
 /* Grid inside the green card */
