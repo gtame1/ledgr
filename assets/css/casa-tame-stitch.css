@@ -1014,8 +1014,13 @@
   appearance: none;
 }
 
-/* Labels inside the green card — solid white */
-[data-domain="casa-tame"] .ct-form-amount-card label {
+/* ALL labels inside the green card — solid white */
+[data-domain="casa-tame"] .ct-form-amount-card label,
+[data-domain="casa-tame"] .ct-form-amount-card .ct-card-label,
+[data-domain="casa-tame"] .ct-form-amount-card .ct-form-section-label,
+[data-domain="casa-tame"] .ct-form-amount-card .field label,
+[data-domain="casa-tame"] .ct-form-amount-card .form-group label,
+[data-domain="casa-tame"] .ct-form-amount-card span[class*="label"] {
   color: #ffffff !important;
   font-size: 0.7rem !important;
   font-weight: 600 !important;

@@ -33,13 +33,11 @@
       </div>
 
       <div class="ct-form-section-label">Categorize</div>
-      <div class="ct-form-grid-2">
-        <div class="field">
-          <.input field={f[:expense_account_id]} type="searchable_select" label="Category" prompt="Search or select category..." options={@expense_account_options} />
-        </div>
-        <div class="field">
-          <.input field={f[:paid_from_account_id]} type="select" label="Paid from" prompt="Select payment account" options={@paid_from_account_options} />
-        </div>
+      <div class="field">
+        <.input field={f[:expense_account_id]} type="searchable_select" label="Category" prompt="Search or select category..." options={@expense_account_options} />
+      </div>
+      <div class="field">
+        <.input field={f[:paid_from_account_id]} type="select" label="Paid from" prompt="Select payment account" options={@paid_from_account_options} />
       </div>
 
       <div class="ct-form-section-label">Amount</div>
