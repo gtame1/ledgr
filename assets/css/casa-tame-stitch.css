@@ -515,6 +515,17 @@
   background: linear-gradient(135deg, #2d1417 0%, #3f2427 100%);
 }
 
+/* Transfer button — neutral/secondary */
+[data-domain="casa-tame"] .ct-cta-btn--transfer {
+  background: var(--ct-surface-container-high);
+  color: var(--ct-on-surface);
+  border: 1px solid var(--ct-outline-variant);
+}
+
+[data-domain="casa-tame"] .ct-cta-btn--transfer:hover {
+  background: var(--ct-surface-container);
+}
+
 /* CTA pair — stacked on mobile */
 [data-domain="casa-tame"] .ct-cta-pair {
   display: flex;
