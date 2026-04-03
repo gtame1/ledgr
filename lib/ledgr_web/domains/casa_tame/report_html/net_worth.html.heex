@@ -11,100 +11,92 @@
 
 <section class="content">
   <header class="content-header">
-    <h1 class="page-title">Net Worth</h1>
+    <h1 class="page-title">Portfolio Summary</h1>
     <p class="card-subtitle">
-      All balances from the ledger. Exchange rate: 1 USD = <%= :erlang.float_to_binary(@nw.rate, decimals: 2) %> MXN
+      All balances from the ledger. <span class="ct-badge" style="font-size: 0.7rem;">1 USD = <%= :erlang.float_to_binary(@nw.rate, decimals: 2) %> MXN</span>
     </p>
   </header>
 
   <div class="content-body">
-    <!-- Unified Net Worth -->
-    <section class="card">
-      <h2 class="card-title">Total Net Worth</h2>
-      <div class="dashboard-metrics">
-        <div class="metric-card">
-          <div class="metric-label">In MXN</div>
-          <div class="metric-value" style="font-size: 1.75rem;"><%= fmt.(@nw.total_mxn) %></div>
+    <!-- Total Net Worth Hero Cards (side-by-side on desktop) -->
+    <div class="ct-hero-pair">
+      <div class="ct-hero-card ct-hero-card--mxn">
+        <div class="ct-hero-label">Total Net Worth (MXN)</div>
+        <div class="ct-hero-value"><%= fmt.(@nw.total_mxn) %></div>
+      </div>
+      <div class="ct-hero-card ct-hero-card--usd">
+        <div class="ct-hero-label">Total Net Worth (USD)</div>
+        <div class="ct-hero-value"><%= fmt.(@nw.total_usd) %></div>
+      </div>
+    </div>
+
+    <div class="ct-nw-breakdowns">
+    <!-- MXN Breakdown -->
+    <section class="card ct-section">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span class="ct-badge ct-badge--mxn" style="margin-right: 0.4rem;">MXN</span>
+          Assets & Debts
+        </h2>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.15rem; padding-top: 0.5rem;">
+        <div class="ct-hero-detail">
+          <span>Cash & Bank</span>
+          <span class="ct-amount-positive" style="font-weight: 600;"><%= fmt.(@nw.cash_mxn) %></span>
         </div>
-        <div class="metric-card">
-          <div class="metric-label">In USD</div>
-          <div class="metric-value" style="font-size: 1.75rem;"><%= fmt.(@nw.total_usd) %></div>
+        <div class="ct-hero-detail">
+          <span>Fixed Assets</span>
+          <span class="ct-amount-positive" style="font-weight: 600;"><%= fmt.(@nw.fixed_mxn) %></span>
+        </div>
+        <div class="ct-hero-detail">
+          <span>Liabilities</span>
+          <span class="ct-amount-negative" style="font-weight: 600;">-<%= fmt.(@nw.liabilities_mxn) %></span>
+        </div>
+        <div style="border-top: 1px solid var(--ct-outline-variant); margin-top: 0.35rem; padding-top: 0.5rem;">
+          <div class="ct-hero-detail" style="font-weight: 700; font-size: 1rem;">
+            <span>MXN Net</span>
+            <span><%= fmt.(@nw.net_mxn) %></span>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- USD Breakdown -->
-    <section class="card" style="margin-top: 1rem;">
+    <section class="card ct-section">
       <div class="card-header">
         <h2 class="card-title">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.5rem;">USD</span>
-          Breakdown
+          <span class="ct-badge ct-badge--usd" style="margin-right: 0.4rem;">USD</span>
+          Assets & Debts
         </h2>
       </div>
-      <div class="table-wrapper">
-        <table class="table">
-          <tbody>
-            <tr>
-              <td>Cash & Bank</td>
-              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.cash_usd) %></td>
-            </tr>
-            <tr>
-              <td>Investments</td>
-              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.investments_usd) %></td>
-            </tr>
-            <tr>
-              <td>Liabilities</td>
-              <td class="numeric" style="color: #dc2626;">-<%= fmt.(@nw.liabilities_usd) %></td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr style="font-weight: 700;">
-              <td>USD Net</td>
-              <td class="numeric"><%= fmt.(@nw.net_usd) %></td>
-            </tr>
-          </tfoot>
-        </table>
+      <div style="display: flex; flex-direction: column; gap: 0.15rem; padding-top: 0.5rem;">
+        <div class="ct-hero-detail">
+          <span>Cash & Bank</span>
+          <span class="ct-amount-positive" style="font-weight: 600;"><%= fmt.(@nw.cash_usd) %></span>
+        </div>
+        <div class="ct-hero-detail">
+          <span>Investments</span>
+          <span class="ct-amount-positive" style="font-weight: 600;"><%= fmt.(@nw.investments_usd) %></span>
+        </div>
+        <div class="ct-hero-detail">
+          <span>Liabilities</span>
+          <span class="ct-amount-negative" style="font-weight: 600;">-<%= fmt.(@nw.liabilities_usd) %></span>
+        </div>
+        <div style="border-top: 1px solid var(--ct-outline-variant); margin-top: 0.35rem; padding-top: 0.5rem;">
+          <div class="ct-hero-detail" style="font-weight: 700; font-size: 1rem;">
+            <span>USD Net</span>
+            <span><%= fmt.(@nw.net_usd) %></span>
+          </div>
+        </div>
       </div>
     </section>
+    </div>
 
-    <!-- MXN Breakdown -->
-    <section class="card" style="margin-top: 1rem;">
-      <div class="card-header">
-        <h2 class="card-title">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.5rem;">MXN</span>
-          Breakdown
-        </h2>
-      </div>
-      <div class="table-wrapper">
-        <table class="table">
-          <tbody>
-            <tr>
-              <td>Cash & Bank</td>
-              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.cash_mxn) %></td>
-            </tr>
-            <tr>
-              <td>Fixed Assets</td>
-              <td class="numeric" style="color: #059669;"><%= fmt.(@nw.fixed_mxn) %></td>
-            </tr>
-            <tr>
-              <td>Liabilities</td>
-              <td class="numeric" style="color: #dc2626;">-<%= fmt.(@nw.liabilities_mxn) %></td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr style="font-weight: 700;">
-              <td>MXN Net</td>
-              <td class="numeric"><%= fmt.(@nw.net_mxn) %></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </section>
-
-    <div style="margin-top: 1rem; display: flex; gap: 0.75rem;">
-      <.link navigate={dp(@domain_path_prefix, "/investment-accounts")} class="btn">Investments</.link>
-      <.link navigate={dp(@domain_path_prefix, "/debt-accounts")} class="btn">Debts</.link>
-      <.link navigate={dp(@domain_path_prefix, "/reports/balance_sheet")} class="btn">Balance Sheet</.link>
+    <!-- Quick Links -->
+    <div class="ct-section ct-quick-actions">
+      <.link navigate={dp(@domain_path_prefix, "/investment-accounts")} class="ct-quick-pill">Investments</.link>
+      <.link navigate={dp(@domain_path_prefix, "/debt-accounts")} class="ct-quick-pill">Debts</.link>
+      <.link navigate={dp(@domain_path_prefix, "/reports/balance_sheet")} class="ct-quick-pill">Balance Sheet</.link>
     </div>
   </div>
 </section>

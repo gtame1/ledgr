@@ -14,7 +14,7 @@
     <div>
       <h2 class="card-title"><%= @account.code %> – <%= @account.name %></h2>
       <p class="card-subtitle">
-        Outstanding balance: <strong style="color: #dc2626;"><%= fmt.(@balance_cents) %></strong>
+        Outstanding balance: <strong class="ct-amount-negative"><%= fmt.(@balance_cents) %></strong>
       </p>
     </div>
     <.link navigate={dp(@domain_path_prefix, "/debt-accounts")} class="btn">Back</.link>

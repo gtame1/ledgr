@@ -1,50 +1,61 @@
-<section class="card">
-  <h2 class="card-title">New Income</h2>
-  <p class="card-subtitle">Record incoming cash flow. This will automatically post to the ledger.</p>
+<section class="content">
+  <div class="content-body">
+    <.link navigate={dp(@domain_path_prefix, "/income")} style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Income
+    </.link>
 
-  <.form :let={f} for={@changeset} as={:income_entry} action={@action} class="form-grid">
-    <%= if @changeset.action do %>
-      <div class="alert alert-error">
-        <p>There were problems. Please review the fields below.</p>
+    <header class="content-header" style="margin-top: 0.5rem;">
+      <div>
+        <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Financial Atelier</div>
+        <h1 class="page-title">Record Income</h1>
       </div>
-    <% end %>
+    </header>
 
-    <div class="form-block">
-      <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem;">
+    <.form :let={f} for={@changeset} as={:income_entry} action={@action}>
+      <%= if @changeset.action do %>
+        <div class="alert alert-error">
+          <p>There were problems. Please review the fields below.</p>
+        </div>
+      <% end %>
+
+      <div class="ct-form-section-label">Income Details</div>
+      <div class="field">
+        <.input field={f[:description]} type="text" label="Description" />
+      </div>
+      <div class="ct-form-grid-2">
         <div class="field">
-          <.input field={f[:amount_cents]} type="number" min="0" step="0.01" label="Amount" />
+          <.input field={f[:date]} type="date" label="Date" />
         </div>
         <div class="field">
+          <.input field={f[:source]} type="text" label="Source (optional)" placeholder="e.g. Employer name, client" />
+        </div>
+      </div>
+
+      <div class="ct-form-section-label">Categorize</div>
+      <div class="ct-form-grid-2">
+        <div class="field">
+          <.input field={f[:income_category_id]} type="select" label="Category" prompt="Select category" options={@category_options} />
+        </div>
+        <div class="field">
+          <.input field={f[:deposit_account_id]} type="select" label="Deposit to" prompt="Select account" options={@deposit_account_options} />
+        </div>
+      </div>
+
+      <div class="ct-form-section-label">Amount</div>
+      <div class="ct-form-amount-card">
+        <div class="ct-form-amount-main">
+          <.input field={f[:amount_cents]} type="number" min="0" step="0.01" label="Amount" placeholder="0.00" />
+        </div>
+        <div class="field" style="margin-top: 0.75rem;">
           <.input field={f[:currency]} type="select" label="Currency" options={@currency_options} />
         </div>
       </div>
 
-      <div class="field">
-        <.input field={f[:income_category_id]} type="select" label="Category" prompt="Select category" options={@category_options} />
-      </div>
-
-      <div class="field">
-        <.input field={f[:deposit_account_id]} type="select" label="Deposit to" prompt="Select account" options={@deposit_account_options} />
-      </div>
-
-      <div class="field">
-        <.input field={f[:date]} type="date" label="Date" />
-      </div>
-
-      <div class="field">
-        <.input field={f[:description]} type="text" label="Description" />
-      </div>
-
-      <div class="field">
-        <.input field={f[:source]} type="text" label="Source (optional)" placeholder="e.g. Employer name, client" />
-      </div>
-    </div>
-
-    <div class="actions">
-      <button class="btn primary" type="submit">Save Income</button>
-      <.link navigate={dp(@domain_path_prefix, "/income")} class="btn">Cancel</.link>
-    </div>
-  </.form>
+      <button class="ct-form-save-btn" type="submit">Save Income</button>
+      <.link navigate={dp(@domain_path_prefix, "/income")} class="ct-form-cancel">Cancel</.link>
+    </.form>
+  </div>
 </section>
 
 <script>

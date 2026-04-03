@@ -7,79 +7,102 @@
     whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
     "#{sign}$#{whole_with_commas}.#{dec}"
   end
+
+  category_badge_color = fn name ->
+    case name do
+      x when x in ["Wages & Salary", "Salary", "Wages"] -> "background: #d0e9d4; color: #1B3022;"
+      x when x in ["Freelance", "Consulting", "Contract"] -> "background: #f5e6c8; color: #5a4a2a;"
+      x when x in ["Investment Returns", "Dividends", "Interest"] -> "background: #c8e6c9; color: #2e5a3a;"
+      x when x in ["Side Hustle", "Side Income", "Gig Work"] -> "background: #e8d0d5; color: #5a2a3a;"
+      x when x in ["Rental Income", "Rent"] -> "background: #dbeafe; color: #1e40af;"
+      _ -> "background: var(--ct-secondary-container); color: #404941;"
+    end
+  end
 %>
 
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">Income</h2>
-    <p class="card-subtitle">Track wages, freelance, investments, and other income.</p>
-  </div>
+<section class="content">
+  <header class="content-header">
+    <div>
+      <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Cash Flow</div>
+      <h1 class="page-title">Income</h1>
+    </div>
+  </header>
 
-  <div class="actions" style="margin-bottom: 0.75rem;">
-    <.link navigate={dp(@domain_path_prefix, "/income/new")} class="btn primary">
-      + New Income
-    </.link>
-  </div>
+  <div class="content-body">
+    <!-- Currency Toggle + Date Filter (inline) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+      <div class="ct-currency-toggle">
+        <a href={dp(@domain_path_prefix, "/income?category_id=#{@category_filter}&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "", do: "ct-toggle-active"}"}>All</a>
+        <a href={dp(@domain_path_prefix, "/income?currency=MXN&category_id=#{@category_filter}&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "MXN", do: "ct-toggle-active"}"}>MXN</a>
+        <a href={dp(@domain_path_prefix, "/income?currency=USD&category_id=#{@category_filter}&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "USD", do: "ct-toggle-active"}"}>USD</a>
+      </div>
+    </div>
 
-  <!-- Filters -->
-  <form method="get" action={dp(@domain_path_prefix, "/income")} style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
-    <select name="currency" class="input input-sm" style="width: auto;">
-      <option value="">All currencies</option>
-      <option value="MXN" selected={@currency_filter == "MXN"}>MXN</option>
-      <option value="USD" selected={@currency_filter == "USD"}>USD</option>
-    </select>
-    <select name="category_id" class="input input-sm" style="width: auto;">
-      <option value="">All categories</option>
-      <%= for {label, id} <- @category_options do %>
-        <option value={id} selected={to_string(id) == @category_filter}><%= label %></option>
+    <!-- Date range + category (compact inline) -->
+    <form method="get" action={dp(@domain_path_prefix, "/income")} style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+      <input type="hidden" name="currency" value={@currency_filter} />
+      <select name="category_id" class="input input-sm" style="width: auto; font-size: 0.8rem;">
+        <option value="">All categories</option>
+        <%= for {label, id} <- @category_options do %>
+          <option value={id} selected={to_string(id) == @category_filter}><%= label %></option>
+        <% end %>
+      </select>
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ct-on-surface-variant)" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+      <input type="date" name="date_from" value={@date_from} style="font-size: 0.8rem;" />
+      <span style="color: var(--ct-on-surface-variant); font-size: 0.8rem;">&mdash;</span>
+      <input type="date" name="date_to" value={@date_to} style="font-size: 0.8rem;" />
+      <button type="submit" class="ct-quick-pill" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">Filter</button>
+      <%= if @currency_filter != "" or @category_filter != "" or @date_from != "" or @date_to != "" do %>
+        <a href={dp(@domain_path_prefix, "/income")} class="ct-quick-pill" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">Clear</a>
       <% end %>
-    </select>
-    <input type="date" name="date_from" value={@date_from} class="input input-sm" />
-    <input type="date" name="date_to" value={@date_to} class="input input-sm" />
-    <button type="submit" class="btn sm">Filter</button>
-    <%= if @currency_filter != "" or @category_filter != "" or @date_from != "" or @date_to != "" do %>
-      <a href={dp(@domain_path_prefix, "/income")} class="btn sm">Clear</a>
-    <% end %>
-  </form>
+    </form>
 
-  <div class="table-wrapper">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Description</th>
-          <th>Category</th>
-          <th>Deposit To</th>
-          <th class="numeric">Amount</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <%= for entry <- @entries do %>
-          <tr>
-            <td><%= entry.date %></td>
-            <td><%= entry.description %></td>
-            <td><%= entry.income_category && entry.income_category.name || "-" %></td>
-            <td><%= entry.deposit_account && entry.deposit_account.name %></td>
-            <td class="numeric">
-              <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.25rem; #{if entry.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
-                <%= entry.currency %>
-              </span>
-              <%= fmt.(entry.amount_cents) %>
-            </td>
-            <td>
-              <div style="display: flex; gap: 0.5rem;">
-                <.link navigate={dp(@domain_path_prefix, "/income/#{entry.id}")} class="btn">View</.link>
-                <.link navigate={dp(@domain_path_prefix, "/income/#{entry.id}/edit")} class="btn">Edit</.link>
-                <.link href={dp(@domain_path_prefix, "/income/#{entry.id}")} method="delete" data-confirm="Delete this income entry?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+    <!-- Grouped Income List -->
+    <%= if @entries == [] do %>
+      <p style="text-align: center; color: var(--ct-on-surface-variant); padding: 2rem;">No income entries found.</p>
+    <% else %>
+      <%
+        grouped = Enum.group_by(@entries, & &1.date)
+        sorted_dates = grouped |> Map.keys() |> Enum.sort({:desc, Date})
+      %>
+      <%= for date <- sorted_dates do %>
+        <div class="ct-expense-date-header">
+          <%= Calendar.strftime(date, "%A, %b %d") |> String.upcase() %>
+        </div>
+        <%= for entry <- grouped[date] do %>
+          <.link navigate={dp(@domain_path_prefix, "/income/#{entry.id}")} style="text-decoration: none; color: inherit;">
+            <div class="ct-expense-row">
+              <div class="ct-category-icon">
+                <%= case entry.income_category && entry.income_category.name do
+                  x when x in ["Wages & Salary", "Salary", "Wages"] -> "💼"
+                  x when x in ["Freelance", "Consulting", "Contract"] -> "💻"
+                  x when x in ["Investment Returns", "Dividends", "Interest"] -> "📈"
+                  x when x in ["Rental Income", "Rent"] -> "🏠"
+                  _ -> "💰"
+                end %>
               </div>
-            </td>
-          </tr>
+              <div class="ct-expense-info">
+                <div class="ct-expense-desc"><%= entry.description %></div>
+                <div class="ct-expense-meta">
+                  <span class="ct-badge" style={category_badge_color.(entry.income_category && entry.income_category.name)}>
+                    <%= entry.income_category && entry.income_category.name |> String.upcase() || "-" %>
+                  </span>
+                  <span><%= entry.deposit_account && entry.deposit_account.name %></span>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div class="ct-expense-amount ct-amount-positive">+<%= fmt.(entry.amount_cents) %></div>
+                <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant);"><%= entry.currency %></div>
+              </div>
+            </div>
+          </.link>
         <% end %>
-        <%= if @entries == [] do %>
-          <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No income entries found.</td></tr>
-        <% end %>
-      </tbody>
-    </table>
+      <% end %>
+    <% end %>
+
+    <!-- FAB for new income (mobile) -->
+    <.link navigate={dp(@domain_path_prefix, "/income/new")} class="ct-fab" aria-label="New income">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    </.link>
   </div>
 </section>

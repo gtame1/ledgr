@@ -1,0 +1,88 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+%>
+
+<section class="content">
+  <header class="content-header">
+    <div>
+      <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Financial Atelier</div>
+      <h1 class="page-title">Reports</h1>
+    </div>
+  </header>
+
+  <div class="content-body">
+    <!-- Hero Net Worth Card -->
+    <.link navigate={dp(@domain_path_prefix, "/reports/net-worth")} style="text-decoration: none; color: inherit;">
+      <div class="ct-hero-card ct-hero-card--mxn" style="position: relative;">
+        <div class="ct-hero-label">Total Balance</div>
+        <div style="font-family: Manrope, sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.15rem;">Net Worth</div>
+        <div class="ct-hero-value" style="margin-bottom: 0.25rem;"><%= fmt.(@nw.total_mxn) %> <span style="font-size: 0.9rem; font-weight: 400; opacity: 0.6;">MXN</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+          <span style="font-size: 0.8rem; opacity: 0.7;">View full report</span>
+          <span style="font-size: 1.1rem; opacity: 0.6;">&rsaquo;</span>
+        </div>
+      </div>
+    </.link>
+
+    <!-- Report Cards Grid -->
+    <div class="ct-reports-grid">
+      <.link navigate={dp(@domain_path_prefix, "/reports/monthly-trends")} class="ct-report-card">
+        <div class="ct-report-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="ct-report-card-title">Monthly Trends</div>
+        <div class="ct-report-card-subtitle">Income, expenses & savings over 12 months</div>
+        <div class="ct-report-preview">
+          <div class="ct-mini-bar" style="height: 12px; background: #3d7a5a;"></div>
+          <div class="ct-mini-bar" style="height: 20px; background: #3d7a5a;"></div>
+          <div class="ct-mini-bar" style="height: 16px; background: #9e4a4a;"></div>
+          <div class="ct-mini-bar" style="height: 24px; background: #3d7a5a;"></div>
+          <div class="ct-mini-bar" style="height: 18px; background: #3d7a5a;"></div>
+        </div>
+      </.link>
+
+      <.link navigate={dp(@domain_path_prefix, "/reports/pnl")} class="ct-report-card">
+        <div class="ct-report-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.25rem;">
+          <span style="font-size: 0.7rem; font-weight: 600;" class="ct-amount-positive">Income</span>
+          <span style="font-size: 0.7rem; font-weight: 600;" class="ct-amount-negative">Expenses</span>
+        </div>
+        <div class="ct-report-card-title">Income & Expenses</div>
+        <div class="ct-report-card-subtitle">P&L breakdown by category</div>
+      </.link>
+
+      <.link navigate={dp(@domain_path_prefix, "/reports/balance_sheet")} class="ct-report-card">
+        <div class="ct-report-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </div>
+        <div class="ct-report-card-title">Balance Sheet</div>
+        <div class="ct-report-card-subtitle">Assets vs Liabilities</div>
+      </.link>
+
+      <.link navigate={dp(@domain_path_prefix, "/reports/category-breakdown")} class="ct-report-card">
+        <div class="ct-report-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>
+        </div>
+        <div class="ct-report-card-title">Category Breakdown</div>
+        <div class="ct-report-card-subtitle">Where your money goes</div>
+      </.link>
+
+      <.link navigate={dp(@domain_path_prefix, "/reports/cash_flow")} class="ct-report-card ct-report-card--wide">
+        <div class="ct-report-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+        </div>
+        <div class="ct-report-card-title">Cash Flow</div>
+        <div class="ct-report-card-subtitle">Money in vs money out</div>
+      </.link>
+    </div>
+  </div>
+</section>

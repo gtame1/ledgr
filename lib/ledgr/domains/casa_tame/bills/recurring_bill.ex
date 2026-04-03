@@ -15,13 +15,14 @@ defmodule Ledgr.Domains.CasaTame.Bills.RecurringBill do
     field :category, :string
     field :notes, :string
     field :is_active, :boolean, default: true
+    field :last_paid_date, :date
 
     timestamps()
   end
 
   def changeset(bill, attrs) do
     bill
-    |> cast(attrs, [:name, :amount_cents, :currency, :frequency, :day_of_month, :next_due_date, :category, :notes, :is_active])
+    |> cast(attrs, [:name, :amount_cents, :currency, :frequency, :day_of_month, :next_due_date, :category, :notes, :is_active, :last_paid_date])
     |> validate_required([:name, :frequency, :next_due_date])
     |> validate_inclusion(:frequency, @frequencies)
     |> validate_inclusion(:currency, ["USD", "MXN"])

@@ -12,19 +12,21 @@
 <section class="content">
   <header class="content-header">
     <h1 class="page-title">Monthly Trends</h1>
-    <p class="card-subtitle">Income, expenses, and net savings over the last 12 months (MXN).</p>
+    <p class="card-subtitle">Income, expenses, and net savings over the last 12 months.</p>
   </header>
 
   <div class="content-body">
     <!-- Chart -->
-    <section class="card">
-      <div id="trends-chart-wrapper" phx-hook="BarChart" style="height: 320px;">
-        <canvas id="trends-chart" data-chart-data={Jason.encode!(@chart_data_mxn)}></canvas>
+    <section class="card ct-section">
+      <div class="ct-chart-wrapper">
+        <div id="trends-chart-wrapper" phx-hook="BarChart" style="height: 320px;">
+          <canvas id="trends-chart" data-chart-data={Jason.encode!(@chart_data_mxn)}></canvas>
+        </div>
       </div>
     </section>
 
     <!-- Data Table -->
-    <section class="card" style="margin-top: 1rem;">
+    <section class="card ct-section">
       <h2 class="card-title">Monthly Detail</h2>
       <div class="table-wrapper">
         <table class="table">
@@ -43,11 +45,11 @@
             <%= for row <- Enum.reverse(@data) do %>
               <tr>
                 <td><%= row.label %></td>
-                <td class="numeric" style="color: #059669;"><%= fmt.(row.income_mxn) %></td>
-                <td class="numeric" style="color: #dc2626;"><%= fmt.(row.expense_mxn) %></td>
+                <td class="numeric ct-amount-positive"><%= fmt.(row.income_mxn) %></td>
+                <td class="numeric ct-amount-negative"><%= fmt.(row.expense_mxn) %></td>
                 <td class="numeric"><%= fmt.(row.savings_mxn) %></td>
-                <td class="numeric" style="color: #059669;"><%= fmt.(row.income_usd) %></td>
-                <td class="numeric" style="color: #dc2626;"><%= fmt.(row.expense_usd) %></td>
+                <td class="numeric ct-amount-positive"><%= fmt.(row.income_usd) %></td>
+                <td class="numeric ct-amount-negative"><%= fmt.(row.expense_usd) %></td>
                 <td class="numeric"><%= fmt.(row.savings_usd) %></td>
               </tr>
             <% end %>

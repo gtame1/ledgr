@@ -9,72 +9,89 @@
   end
 %>
 
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">Expenses</h2>
-    <p class="card-subtitle">Track your personal and household expenses.</p>
-  </div>
+<section class="content">
+  <header class="content-header">
+    <div>
+      <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Portfolio Overview</div>
+      <h1 class="page-title">Expenses</h1>
+    </div>
+  </header>
 
-  <div class="actions" style="margin-bottom: 0.75rem;">
-    <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="btn primary">
-      + New Expense
-    </.link>
-  </div>
+  <div class="content-body">
+    <!-- Currency Toggle + Date Filter (inline, no wrapping card) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+      <div class="ct-currency-toggle">
+        <a href={dp(@domain_path_prefix, "/expenses?date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "", do: "ct-toggle-active"}"}>All</a>
+        <a href={dp(@domain_path_prefix, "/expenses?currency=MXN&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "MXN", do: "ct-toggle-active"}"}>MXN</a>
+        <a href={dp(@domain_path_prefix, "/expenses?currency=USD&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "USD", do: "ct-toggle-active"}"}>USD</a>
+      </div>
+    </div>
 
-  <!-- Filters -->
-  <form method="get" action={dp(@domain_path_prefix, "/expenses")} style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
-    <select name="currency" class="input input-sm" style="width: auto;">
-      <option value="">All currencies</option>
-      <option value="MXN" selected={@currency_filter == "MXN"}>MXN</option>
-      <option value="USD" selected={@currency_filter == "USD"}>USD</option>
-    </select>
-    <input type="date" name="date_from" value={@date_from} class="input input-sm" placeholder="From" />
-    <input type="date" name="date_to" value={@date_to} class="input input-sm" placeholder="To" />
-    <button type="submit" class="btn sm">Filter</button>
-    <%= if @currency_filter != "" or @date_from != "" or @date_to != "" do %>
-      <a href={dp(@domain_path_prefix, "/expenses")} class="btn sm">Clear</a>
-    <% end %>
-  </form>
+    <!-- Date range (compact inline) -->
+    <form method="get" action={dp(@domain_path_prefix, "/expenses")} style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+      <input type="hidden" name="currency" value={@currency_filter} />
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ct-on-surface-variant)" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+      <input type="date" name="date_from" value={@date_from} style="font-size: 0.8rem;" />
+      <span style="color: var(--ct-on-surface-variant); font-size: 0.8rem;">&mdash;</span>
+      <input type="date" name="date_to" value={@date_to} style="font-size: 0.8rem;" />
+      <button type="submit" class="ct-quick-pill" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">Filter</button>
+      <%= if @currency_filter != "" or @date_from != "" or @date_to != "" do %>
+        <a href={dp(@domain_path_prefix, "/expenses")} class="ct-quick-pill" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">Clear</a>
+      <% end %>
+    </form>
 
-  <div class="table-wrapper">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Description</th>
-          <th>Category</th>
-          <th>Paid From</th>
-          <th>Currency</th>
-          <th class="numeric">Amount</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <%= for expense <- @expenses do %>
-          <tr>
-            <td><%= expense.date %></td>
-            <td><%= expense.description %></td>
-            <td><%= expense.expense_account && expense.expense_account.name %></td>
-            <td><%= expense.paid_from_account && expense.paid_from_account.name %></td>
-            <td>
-              <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; #{if expense.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
-                <%= expense.currency %>
-              </span>
-            </td>
-            <td class="numeric"><%= fmt.(expense.amount_cents) %></td>
-            <td>
-              <div style="display: flex; gap: 0.5rem;">
-                <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}")} class="btn">View</.link>
-                <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}/edit")} class="btn">Edit</.link>
-                <.link href={dp(@domain_path_prefix, "/expenses/#{expense.id}")} method="delete" data-confirm="Delete this expense?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+    <!-- Grouped Expense List -->
+    <%= if @expenses == [] do %>
+      <p style="text-align: center; color: var(--ct-on-surface-variant); padding: 2rem;">No expenses found.</p>
+    <% else %>
+      <%
+        grouped = Enum.group_by(@expenses, & &1.date)
+        sorted_dates = grouped |> Map.keys() |> Enum.sort({:desc, Date})
+      %>
+      <%= for date <- sorted_dates do %>
+        <div class="ct-expense-date-header">
+          <%= Calendar.strftime(date, "%A, %b %d") |> String.upcase() %>
+        </div>
+        <%= for expense <- grouped[date] do %>
+          <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}")} style="text-decoration: none; color: inherit;">
+            <div class="ct-expense-row">
+              <div class="ct-category-icon">
+                <%= case expense.expense_account && expense.expense_account.name do
+                  x when x in ["Food & Grocery", "Food & Dining", "Restaurants"] -> "🍽️"
+                  x when x in ["Transportation", "Transport", "Gas & Fuel"] -> "🚗"
+                  x when x in ["Housing", "Rent", "Mortgage"] -> "🏠"
+                  x when x in ["Technology", "Electronics", "Software"] -> "💻"
+                  x when x in ["Healthcare", "Doctor & Specialist", "Medical", "Pharmacy"] -> "⚕️"
+                  x when x in ["Entertainment", "Fun", "Streaming"] -> "🎬"
+                  x when x in ["Kids - Daycare & School", "Education", "Kids"] -> "👶"
+                  x when x in ["Personal", "Shopping", "Clothing"] -> "🛍️"
+                  x when x in ["Pets", "Pet Care"] -> "🐾"
+                  x when x in ["Travel", "Vacation"] -> "✈️"
+                  x when x in ["Subscriptions", "Membership"] -> "📱"
+                  x when x in ["Financial", "Bank Fees", "Insurance"] -> "🏦"
+                  _ -> "💰"
+                end %>
               </div>
-            </td>
-          </tr>
+              <div class="ct-expense-info">
+                <div class="ct-expense-desc"><%= expense.description %></div>
+                <div class="ct-expense-meta">
+                  <span class="ct-badge"><%= expense.expense_account && expense.expense_account.name %></span>
+                  <span><%= expense.paid_from_account && expense.paid_from_account.name %></span>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div class="ct-expense-amount">-<%= fmt.(expense.amount_cents) %></div>
+                <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant);"><%= expense.currency %></div>
+              </div>
+            </div>
+          </.link>
         <% end %>
-        <%= if @expenses == [] do %>
-          <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No expenses found.</td></tr>
-        <% end %>
-      </tbody>
-    </table>
+      <% end %>
+    <% end %>
+
+    <!-- FAB for new expense (mobile) -->
+    <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="ct-fab" aria-label="New expense">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    </.link>
   </div>
 </section>

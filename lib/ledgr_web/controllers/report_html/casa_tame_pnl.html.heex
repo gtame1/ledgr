@@ -49,122 +49,151 @@
 
 <section class="content">
   <header class="content-header">
+    <div class="ct-hero-label">Financial Atelier</div>
     <h1 class="page-title">Income & Expenses</h1>
   </header>
 
   <div class="content-body">
     <.period_selector action={dp(@domain_path_prefix, "/reports/pnl")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
 
-    <!-- USD Section (collapsible) -->
+    <div class="ct-pnl-currencies">
+    <!-- USD Section -->
     <details open class="card">
-      <summary style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-        <h2 class="card-title" style="margin: 0;">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.5rem;">USD</span>
+      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
+        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <span class="ct-badge ct-badge--usd">USD</span>
           Period Summary
-        </h2>
-        <span style="font-weight: 700; font-size: 1.1rem;"><%= fmt.(net_usd) %></span>
+        </span>
+        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_usd) %></span>
       </summary>
-      <div class="table-wrapper">
-        <table class="table">
-          <thead><tr style="background: #f0fdf4;"><th colspan="2" style="color: #059669; font-size: 0.85rem;">INCOME</th></tr></thead>
-          <tbody>
-            <%= for item <- usd_income_items do %>
-              <tr>
-                <td style="padding-left: 2rem;"><%= item.category_name || "Other" %></td>
-                <td class="numeric" style="color: #059669;"><%= fmt.(item.total_cents) %></td>
-              </tr>
-            <% end %>
-            <%= if usd_income_items == [] do %>
-              <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">No USD income this period</td></tr>
-            <% end %>
-            <tr style="font-weight: 700; background: #dcfce7;"><td>Total USD Income</td><td class="numeric" style="color: #059669;"><%= fmt.(total_usd_income) %></td></tr>
 
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-          </tbody>
-          <thead><tr style="background: #fef2f2;"><th colspan="2" style="color: #dc2626; font-size: 0.85rem;">EXPENSES</th></tr></thead>
-          <tbody>
-            <%= for {group_label, from_code, to_code} <- expense_groups do %>
-              <% group_items = Enum.filter(usd_expense_detail, fn e -> e.account_code >= from_code and e.account_code <= to_code end) %>
-              <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
-              <%= if group_items != [] do %>
-                <tr style="font-weight: 600;">
-                  <td style="padding-left: 1rem;"><%= group_label %></td>
-                  <td class="numeric" style="color: #dc2626;"><%= fmt.(group_total) %></td>
-                </tr>
-                <%= for item <- group_items do %>
-                  <tr>
-                    <td style="padding-left: 2.5rem; color: var(--text-muted); font-size: 0.9rem;"><%= item.account_name %></td>
-                    <td class="numeric" style="color: #dc2626; font-size: 0.9rem;"><%= fmt.(item.total_cents) %></td>
-                  </tr>
-                <% end %>
+      <div style="padding: 0 1rem 1.25rem;">
+        <!-- Income -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--income">Income</div>
+          <%= for item <- usd_income_items do %>
+            <div class="ct-report-row ct-report-row--indent">
+              <span class="ct-report-row-label"><%= item.category_name || "Other" %></span>
+              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.total_cents) %></span>
+            </div>
+          <% end %>
+          <%= if usd_income_items == [] do %>
+            <div class="ct-report-row ct-report-row--empty">No USD income this period</div>
+          <% end %>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total USD Income</span>
+            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_usd_income) %></span>
+          </div>
+        </div>
+
+        <div class="ct-report-spacer"></div>
+
+        <!-- Expenses -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--expense">Expenses</div>
+          <%= for {group_label, from_code, to_code} <- expense_groups do %>
+            <% group_items = Enum.filter(usd_expense_detail, fn e -> e.account_code >= from_code and e.account_code <= to_code end) %>
+            <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
+            <%= if group_items != [] do %>
+              <div class="ct-report-row ct-report-row--group">
+                <span class="ct-report-row-label"><%= group_label %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(group_total) %></span>
+              </div>
+              <%= for item <- group_items do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label"><%= item.account_name %></span>
+                  <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.total_cents) %></span>
+                </div>
               <% end %>
             <% end %>
-            <%= if usd_expenses == 0 do %>
-              <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">No USD expenses this period</td></tr>
-            <% end %>
-            <tr style="font-weight: 700; background: #fee2e2;"><td>Total USD Expenses</td><td class="numeric" style="color: #dc2626;"><%= fmt.(usd_expenses) %></td></tr>
+          <% end %>
+          <%= if usd_expenses == 0 do %>
+            <div class="ct-report-row ct-report-row--empty">No USD expenses this period</div>
+          <% end %>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total USD Expenses</span>
+            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(usd_expenses) %></span>
+          </div>
+        </div>
 
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-            <tr style="font-weight: 700; font-size: 1.05rem; border-top: 2px solid var(--border-strong);"><td>USD Net</td><td class="numeric"><%= fmt.(net_usd) %></td></tr>
-          </tbody>
-        </table>
+        <div class="ct-report-spacer"></div>
+
+        <!-- Net -->
+        <div class="ct-report-row ct-report-row--net">
+          <span class="ct-report-row-label">USD Net</span>
+          <span class="ct-report-row-amount"><%= fmt.(net_usd) %></span>
+        </div>
       </div>
     </details>
 
-    <!-- MXN Section (collapsible) -->
-    <details open class="card" style="margin-top: 1.5rem;">
-      <summary style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-        <h2 class="card-title" style="margin: 0;">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.5rem;">MXN</span>
+    <!-- MXN Section -->
+    <details open class="card">
+      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
+        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <span class="ct-badge ct-badge--mxn">MXN</span>
           Period Summary
-        </h2>
-        <span style="font-weight: 700; font-size: 1.1rem;"><%= fmt.(net_mxn) %></span>
+        </span>
+        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_mxn) %></span>
       </summary>
-      <div class="table-wrapper">
-        <table class="table">
-          <thead><tr style="background: #f0fdf4;"><th colspan="2" style="color: #059669; font-size: 0.85rem;">INCOME</th></tr></thead>
-          <tbody>
-            <%= for item <- mxn_income_items do %>
-              <tr>
-                <td style="padding-left: 2rem;"><%= item.category_name || "Other" %></td>
-                <td class="numeric" style="color: #059669;"><%= fmt.(item.total_cents) %></td>
-              </tr>
-            <% end %>
-            <%= if mxn_income_items == [] do %>
-              <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">No MXN income this period</td></tr>
-            <% end %>
-            <tr style="font-weight: 700; background: #dcfce7;"><td>Total MXN Income</td><td class="numeric" style="color: #059669;"><%= fmt.(total_mxn_income) %></td></tr>
 
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-          </tbody>
-          <thead><tr style="background: #fef2f2;"><th colspan="2" style="color: #dc2626; font-size: 0.85rem;">EXPENSES</th></tr></thead>
-          <tbody>
-            <%= for {group_label, from_code, to_code} <- expense_groups do %>
-              <% group_items = Enum.filter(mxn_expense_detail, fn e -> e.account_code >= from_code and e.account_code <= to_code end) %>
-              <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
-              <%= if group_items != [] do %>
-                <tr style="font-weight: 600;">
-                  <td style="padding-left: 1rem;"><%= group_label %></td>
-                  <td class="numeric" style="color: #dc2626;"><%= fmt.(group_total) %></td>
-                </tr>
-                <%= for item <- group_items do %>
-                  <tr>
-                    <td style="padding-left: 2.5rem; color: var(--text-muted); font-size: 0.9rem;"><%= item.account_name %></td>
-                    <td class="numeric" style="color: #dc2626; font-size: 0.9rem;"><%= fmt.(item.total_cents) %></td>
-                  </tr>
-                <% end %>
+      <div style="padding: 0 1rem 1.25rem;">
+        <!-- Income -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--income">Income</div>
+          <%= for item <- mxn_income_items do %>
+            <div class="ct-report-row ct-report-row--indent">
+              <span class="ct-report-row-label"><%= item.category_name || "Other" %></span>
+              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.total_cents) %></span>
+            </div>
+          <% end %>
+          <%= if mxn_income_items == [] do %>
+            <div class="ct-report-row ct-report-row--empty">No MXN income this period</div>
+          <% end %>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total MXN Income</span>
+            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_mxn_income) %></span>
+          </div>
+        </div>
+
+        <div class="ct-report-spacer"></div>
+
+        <!-- Expenses -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--expense">Expenses</div>
+          <%= for {group_label, from_code, to_code} <- expense_groups do %>
+            <% group_items = Enum.filter(mxn_expense_detail, fn e -> e.account_code >= from_code and e.account_code <= to_code end) %>
+            <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
+            <%= if group_items != [] do %>
+              <div class="ct-report-row ct-report-row--group">
+                <span class="ct-report-row-label"><%= group_label %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(group_total) %></span>
+              </div>
+              <%= for item <- group_items do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label"><%= item.account_name %></span>
+                  <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.total_cents) %></span>
+                </div>
               <% end %>
             <% end %>
-            <%= if mxn_expenses == 0 do %>
-              <tr><td colspan="2" style="text-align: center; color: var(--text-muted);">No MXN expenses this period</td></tr>
-            <% end %>
-            <tr style="font-weight: 700; background: #fee2e2;"><td>Total MXN Expenses</td><td class="numeric" style="color: #dc2626;"><%= fmt.(mxn_expenses) %></td></tr>
+          <% end %>
+          <%= if mxn_expenses == 0 do %>
+            <div class="ct-report-row ct-report-row--empty">No MXN expenses this period</div>
+          <% end %>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total MXN Expenses</span>
+            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(mxn_expenses) %></span>
+          </div>
+        </div>
 
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-            <tr style="font-weight: 700; font-size: 1.05rem; border-top: 2px solid var(--border-strong);"><td>MXN Net</td><td class="numeric"><%= fmt.(net_mxn) %></td></tr>
-          </tbody>
-        </table>
+        <div class="ct-report-spacer"></div>
+
+        <!-- Net -->
+        <div class="ct-report-row ct-report-row--net">
+          <span class="ct-report-row-label">MXN Net</span>
+          <span class="ct-report-row-amount"><%= fmt.(net_mxn) %></span>
+        </div>
       </div>
     </details>
+    </div>
   </div>
 </section>

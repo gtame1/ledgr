@@ -1,26 +1,34 @@
-<section class="card">
-  <h2 class="card-title">New Category</h2>
-  <p class="card-subtitle">Add a new expense category. Leave parent blank to create a top-level category.</p>
+<section class="content">
+  <div class="content-body">
+    <.link navigate={dp(@domain_path_prefix, "/categories")} style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Categories
+    </.link>
 
-  <.form :let={f} for={@changeset} as={:expense_category} action={@action} class="form-grid">
-    <%= if @changeset.action do %>
-      <div class="alert alert-error">
-        <p>Please fix the errors below.</p>
+    <header class="content-header" style="margin-top: 0.5rem;">
+      <div>
+        <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Financial Atelier</div>
+        <h1 class="page-title">New Category</h1>
       </div>
-    <% end %>
+    </header>
 
-    <div class="form-block">
+    <.form :let={f} for={@changeset} as={:expense_category} action={@action}>
+      <%= if @changeset.action do %>
+        <div class="alert alert-error">
+          <p>Please fix the errors below.</p>
+        </div>
+      <% end %>
+
+      <div class="ct-form-section-label">Category Details</div>
       <div class="field">
         <.input field={f[:name]} type="text" label="Name" />
       </div>
       <div class="field">
         <.input field={f[:parent_id]} type="select" label="Parent category (optional)" prompt="None (top-level)" options={@parent_options} />
       </div>
-    </div>
 
-    <div class="actions">
-      <button class="btn primary" type="submit">Save Category</button>
-      <.link navigate={dp(@domain_path_prefix, "/categories")} class="btn">Cancel</.link>
-    </div>
-  </.form>
+      <button class="ct-form-save-btn" type="submit">Save Category</button>
+      <.link navigate={dp(@domain_path_prefix, "/categories")} class="ct-form-cancel">Cancel</.link>
+    </.form>
+  </div>
 </section>

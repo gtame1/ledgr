@@ -8,8 +8,88 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
   def index(conn, _params) do
     bills = Bills.list_all_bills()
     today = Ledgr.Domains.CasaTame.today()
+    year = today.year
+    month = today.month
+    first_day = Date.new!(year, month, 1)
+    last_day = Date.end_of_month(first_day)
 
-    render(conn, :index, bills: bills, today: today)
+    # Build calendar grid (Sunday-start weeks)
+    day_of_week = Date.day_of_week(first_day, :sunday)
+    calendar_start = Date.add(first_day, -(day_of_week - 1))
+    calendar_end_raw = Date.add(last_day, 7 - Date.day_of_week(last_day, :sunday))
+
+    calendar_end =
+      if Date.diff(calendar_end_raw, calendar_start) < 35,
+        do: Date.add(calendar_end_raw, 7),
+        else: calendar_end_raw
+
+    # Group active bills by their next_due_date within this month
+    bills_by_date =
+      Enum.reduce(bills, %{}, fn bill, acc ->
+        if bill.is_active && bill.next_due_date != nil &&
+             Date.compare(bill.next_due_date, first_day) != :lt &&
+             Date.compare(bill.next_due_date, last_day) != :gt do
+          Map.update(acc, bill.next_due_date, [bill], &[bill | &1])
+        else
+          acc
+        end
+      end)
+
+    # Split into today's bills and upcoming
+    today_bills = Enum.filter(bills, fn b -> b.is_active && b.next_due_date == today end)
+
+    upcoming_bills =
+      bills
+      |> Enum.filter(fn b ->
+        b.is_active && b.next_due_date != nil && Date.compare(b.next_due_date, today) == :gt
+      end)
+      |> Enum.sort_by(& &1.next_due_date, Date)
+
+    # Bills due in the next 30 days that haven't been paid yet
+    cutoff = Date.add(today, 30)
+
+    upcoming_unpaid =
+      Enum.filter(bills, fn b ->
+        b.is_active &&
+          b.next_due_date != nil &&
+          Date.compare(b.next_due_date, today) != :lt &&
+          Date.compare(b.next_due_date, cutoff) != :gt &&
+          (b.last_paid_date == nil || Date.compare(b.last_paid_date, b.next_due_date) == :lt)
+      end)
+
+    monthly_total =
+      upcoming_unpaid
+      |> Enum.filter(& &1.amount_cents != nil)
+      |> Enum.reduce(0, fn b, acc -> acc + b.amount_cents end)
+
+    monthly_count = length(upcoming_unpaid)
+
+    # Bills paid this month
+    paid_this_month =
+      bills
+      |> Enum.filter(fn b ->
+        b.last_paid_date != nil &&
+          Date.compare(b.last_paid_date, first_day) != :lt &&
+          Date.compare(b.last_paid_date, last_day) != :gt
+      end)
+      |> Enum.sort_by(& &1.last_paid_date, {:desc, Date})
+
+    render(conn, :index,
+      bills: bills,
+      today: today,
+      year: year,
+      month: month,
+      first_day: first_day,
+      last_day: last_day,
+      calendar_start: calendar_start,
+      calendar_end: calendar_end,
+      bills_by_date: bills_by_date,
+      today_bills: today_bills,
+      upcoming_bills: upcoming_bills,
+      monthly_total: monthly_total,
+      monthly_count: monthly_count,
+      paid_this_month: paid_this_month
+    )
   end
 
   def calendar(conn, params) do

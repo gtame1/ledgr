@@ -59,12 +59,14 @@ defmodule Ledgr.Domains.CasaTame.Bills do
   def delete_bill(%RecurringBill{} = bill), do: Repo.delete(bill)
 
   def mark_paid(%RecurringBill{frequency: "one_time"} = bill) do
-    bill |> Ecto.Changeset.change(%{is_active: false}) |> Repo.update()
+    today = Ledgr.Domains.CasaTame.today()
+    bill |> Ecto.Changeset.change(%{is_active: false, last_paid_date: today}) |> Repo.update()
   end
 
   def mark_paid(%RecurringBill{} = bill) do
+    today = Ledgr.Domains.CasaTame.today()
     next_date = advance_due_date(bill)
-    bill |> Ecto.Changeset.change(%{next_due_date: next_date}) |> Repo.update()
+    bill |> Ecto.Changeset.change(%{next_due_date: next_date, last_paid_date: today}) |> Repo.update()
   end
 
   def advance_due_date(%RecurringBill{} = bill) do

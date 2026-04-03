@@ -316,6 +316,7 @@ defmodule LedgrWeb.Router do
     post "/fx-transfers", Domains.CasaTame.FxTransferController, :create
 
     # Domain-specific reports
+    get "/reports", Domains.CasaTame.ReportController, :reports_hub
     get "/reports/net-worth", Domains.CasaTame.ReportController, :net_worth
     get "/reports/monthly-trends", Domains.CasaTame.ReportController, :monthly_trends
     get "/reports/category-breakdown", Domains.CasaTame.ReportController, :category_breakdown

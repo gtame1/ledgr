@@ -11,191 +11,146 @@
 
 <section class="content">
   <header class="content-header">
-    <h1 class="page-title">Dashboard</h1>
-    <p class="card-subtitle">Personal finance overview.</p>
+    <div>
+      <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Overview</div>
+      <h1 class="page-title">Financial Net Worth</h1>
+    </div>
   </header>
 
   <div class="content-body">
     <% m = @metrics %>
 
-    <!-- Quick Actions -->
-    <section class="card">
-      <div class="ct-quick-actions">
-        <div class="ct-primary-actions">
-          <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="btn primary ct-action-btn">+ New Expense</.link>
-          <.link navigate={dp(@domain_path_prefix, "/income/new")} class="btn primary ct-action-btn">+ New Income</.link>
-        </div>
-        <div class="ct-secondary-actions">
-          <.link navigate={dp(@domain_path_prefix, "/transfers/new")} class="btn sm ct-action-btn">Transfer</.link>
-          <.link navigate={dp(@domain_path_prefix, "/reports/pnl")} class="btn sm ct-action-btn">Income & Expenses</.link>
-          <.link navigate={dp(@domain_path_prefix, "/reports/balance_sheet")} class="btn sm ct-action-btn">Balance Sheet</.link>
-        </div>
+    <!-- Net Worth Hero Cards (side-by-side on desktop) -->
+    <div class="ct-hero-pair">
+      <div class="ct-hero-card ct-hero-card--mxn">
+        <div class="ct-hero-label">Mexican Peso</div>
+        <div class="ct-hero-value"><%= fmt.(m.net_worth.total_mxn) %> <span style="font-size: 0.9rem; font-weight: 400; opacity: 0.6;">MXN</span></div>
+        <div class="ct-hero-sublabel">Casa Tame Prime</div>
       </div>
-    </section>
+      <div class="ct-hero-card ct-hero-card--usd">
+        <div class="ct-hero-label">US Dollar</div>
+        <div class="ct-hero-value"><%= fmt.(m.net_worth.total_usd) %> <span style="font-size: 0.9rem; font-weight: 400; opacity: 0.5;">USD</span></div>
+        <div class="ct-hero-sublabel">International Portfolio</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions (side-by-side on desktop) -->
+    <div class="ct-cta-pair">
+      <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="ct-cta-btn ct-cta-btn--primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+        New Expense
+      </.link>
+      <.link navigate={dp(@domain_path_prefix, "/income/new")} class="ct-cta-btn ct-cta-btn--primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+        New Income
+      </.link>
+    </div>
+
+    <!-- Summary Metric Cards (3-column grid on desktop) -->
+    <div class="ct-summary-grid">
+    <div class="ct-summary-card">
+      <div class="ct-summary-icon" style="background: #d0e9d4;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3022" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div class="ct-summary-label">Total Income</div>
+      <div class="ct-summary-row">
+        <span class="ct-summary-currency">MXN</span>
+        <span class="ct-summary-value"><%= fmt.(m.income_totals.mxn) %></span>
+      </div>
+      <div class="ct-summary-row">
+        <span class="ct-summary-currency">USD</span>
+        <span class="ct-summary-value"><%= fmt.(m.income_totals.usd) %></span>
+      </div>
+    </div>
+
+    <div class="ct-summary-card">
+      <div class="ct-summary-icon" style="background: #ffd9dc;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3f2427" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div class="ct-summary-label">Total Expenses</div>
+      <div class="ct-summary-row">
+        <span class="ct-summary-currency">MXN</span>
+        <span class="ct-summary-value"><%= fmt.(m.expense_totals.mxn) %></span>
+      </div>
+      <div class="ct-summary-row">
+        <span class="ct-summary-currency">USD</span>
+        <span class="ct-summary-value"><%= fmt.(m.expense_totals.usd) %></span>
+      </div>
+    </div>
+
+    <div class="ct-summary-card">
+      <div class="ct-summary-icon" style="background: #d0e9d4;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3022" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <div class="ct-summary-label">Net Savings</div>
+      <div class="ct-summary-row">
+        <span class="ct-summary-currency">MXN</span>
+        <span class="ct-summary-value" style="font-weight: 700;"><%= fmt.(m.net_savings_mxn) %></span>
+      </div>
+      <div class="ct-summary-row">
+        <span class="ct-summary-currency">USD</span>
+        <span class="ct-summary-value" style="font-weight: 700;"><%= fmt.(m.net_savings_usd) %></span>
+      </div>
+    </div>
+    </div>
 
     <!-- Upcoming Bills -->
     <%= if m.upcoming_bills != [] do %>
       <%
         today = Ledgr.Domains.CasaTame.today()
       %>
-      <section class="card" style="border-left: 4px solid #ea580c;">
-        <div class="card-header">
-          <h2 class="card-title">Upcoming Bills</h2>
-          <.link navigate={dp(@domain_path_prefix, "/bills")} class="btn sm">View All</.link>
-        </div>
-        <div class="table-wrapper">
-          <table class="table">
-            <tbody>
-              <%= for bill <- m.upcoming_bills do %>
-                <%
-                  d = Date.diff(bill.next_due_date, today)
-                  urgency_style = cond do
-                    d < 0 -> "background: #fef2f2; color: #dc2626; font-weight: 700;"
-                    d == 0 -> "background: #fff7ed; color: #ea580c; font-weight: 700;"
-                    d <= 3 -> "background: #fffbeb; color: #d97706;"
-                    true -> ""
-                  end
-                  label = cond do
-                    d < 0 -> "#{abs(d)}d overdue!"
-                    d == 0 -> "Due today!"
-                    d == 1 -> "Tomorrow"
-                    true -> "in #{d} days"
-                  end
-                %>
-                <tr style={urgency_style}>
-                  <td style="font-weight: 600;"><%= bill.name %></td>
-                  <td>
-                    <%= if bill.category do %>
-                      <span style={"display: inline-block; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.65rem; font-weight: 600; color: white; background: #{Ledgr.Domains.CasaTame.Bills.RecurringBill.category_color(bill.category)}"}>
-                        <%= String.replace(bill.category, "_", " ") |> String.capitalize() %>
-                      </span>
-                    <% end %>
-                  </td>
-                  <td class="numeric">
-                    <%= if bill.amount_cents do %>
-                      <%= fmt.(bill.amount_cents) %>
-                    <% end %>
-                  </td>
-                  <td style="text-align: right; font-size: 0.85rem;"><%= bill.next_due_date %> (<%= label %>)</td>
-                  <td style="width: 60px;">
-                    <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline;">
-                      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-                      <button type="submit" class="btn sm" style="background: #059669; color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem;">Paid</button>
-                    </form>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div style="margin-top: 0.25rem;">
+        <div class="ct-hero-label" style="margin-bottom: 0.5rem;">Upcoming Bills</div>
+        <%= for bill <- m.upcoming_bills do %>
+          <%
+            d = Date.diff(bill.next_due_date, today)
+            label = cond do
+              d < 0 -> "#{abs(d)}d overdue"
+              d == 0 -> "Due today"
+              d == 1 -> "Tomorrow"
+              true -> "in #{d} days"
+            end
+            urgency_class = if d < 0, do: "ct-amount-negative", else: ""
+          %>
+          <div class="ct-bill-item">
+            <div class="ct-bill-item-info">
+              <div class="ct-bill-item-name"><%= bill.name %></div>
+              <div class="ct-bill-item-meta">
+                <%= if bill.category do %>
+                  <span class="ct-badge"><%= String.replace(bill.category, "_", " ") |> String.capitalize() %></span>
+                <% end %>
+                <span class={urgency_class}><%= label %></span>
+              </div>
+            </div>
+            <div class="ct-bill-item-amount">
+              <%= if bill.amount_cents, do: fmt.(bill.amount_cents) %>
+            </div>
+            <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline;">
+              <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <button type="submit" class="ct-quick-pill" style="font-size: 0.65rem; padding: 0.25rem 0.6rem; background: #3d7a5a; color: white;">Paid</button>
+            </form>
+          </div>
+        <% end %>
+        <.link navigate={dp(@domain_path_prefix, "/bills")} style="display: block; text-align: center; font-size: 0.8rem; color: var(--ct-on-surface-variant); text-decoration: none; padding: 0.5rem;">View all bills &rarr;</.link>
+      </div>
     <% end %>
 
-    <!-- Period Selector -->
-    <div class="period-selector card">
-      <form method="get" action={dp(@domain_path_prefix, "/")}>
-        <div class="period-selector__dates">
-          <div class="period-selector__field">
-            <label class="period-selector__label">From</label>
-            <input type="date" name="start_date" value={@start_date} class="period-selector__input" />
-          </div>
-          <span class="period-selector__sep">→</span>
-          <div class="period-selector__field">
-            <label class="period-selector__label">To</label>
-            <input type="date" name="end_date" value={@end_date} class="period-selector__input" />
-          </div>
-          <button type="submit" class="btn primary period-selector__submit">Apply</button>
-        </div>
-        <div class="period-selector__presets">
-          <% today = Ledgr.Domains.CasaTame.today() %>
-          <% month_start = Date.beginning_of_month(today) %>
-          <% month_end = Date.end_of_month(today) %>
-          <% prev_start = month_start |> Date.add(-1) |> Date.beginning_of_month() %>
-          <% prev_end = Date.end_of_month(prev_start) %>
-          <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{month_start}&end_date=#{month_end}"} class="period-selector__preset">This month</a>
-          <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{prev_start}&end_date=#{prev_end}"} class="period-selector__preset">Last month</a>
-        </div>
+    <!-- Period Selector (compact) -->
+    <div style="margin-top: 0.25rem;">
+      <form method="get" action={dp(@domain_path_prefix, "/")} style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+        <input type="date" name="start_date" value={@start_date} style="font-size: 0.8rem;" />
+        <span style="color: var(--ct-on-surface-variant);">&rarr;</span>
+        <input type="date" name="end_date" value={@end_date} style="font-size: 0.8rem;" />
+        <button type="submit" class="ct-quick-pill" style="font-size: 0.75rem;">Apply</button>
+        <% today = Ledgr.Domains.CasaTame.today() %>
+        <% month_start = Date.beginning_of_month(today) %>
+        <% month_end = Date.end_of_month(today) %>
+        <% prev_start = month_start |> Date.add(-1) |> Date.beginning_of_month() %>
+        <% prev_end = Date.end_of_month(prev_start) %>
+        <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{month_start}&end_date=#{month_end}"} class="ct-quick-pill" style="font-size: 0.7rem;">This month</a>
+        <a href={"#{dp(@domain_path_prefix, "/")}?start_date=#{prev_start}&end_date=#{prev_end}"} class="ct-quick-pill" style="font-size: 0.7rem;">Last month</a>
       </form>
     </div>
-
-    <!-- MXN Period Summary -->
-    <section class="card">
-      <div class="card-header">
-        <h2 class="card-title">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.5rem;">MXN</span>
-          Period Summary
-        </h2>
-      </div>
-      <div class="table-wrapper">
-        <table class="table">
-          <tbody>
-            <tr>
-              <td style="font-weight: 600;">Income</td>
-              <td class="numeric" style="color: #059669; font-weight: 600;"><%= fmt.(m.income_totals.mxn) %></td>
-            </tr>
-            <tr>
-              <td style="font-weight: 600;">Expenses</td>
-              <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(m.expense_totals.mxn) %></td>
-            </tr>
-            <tr style="font-weight: 700; font-size: 1.05rem; border-top: 2px solid var(--border-strong);">
-              <td>Net Savings</td>
-              <td class="numeric"><%= fmt.(m.net_savings_mxn) %></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- USD Period Summary -->
-    <section class="card">
-      <div class="card-header">
-        <h2 class="card-title">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.5rem;">USD</span>
-          Period Summary
-        </h2>
-      </div>
-      <div class="table-wrapper">
-        <table class="table">
-          <tbody>
-            <tr>
-              <td style="font-weight: 600;">Income</td>
-              <td class="numeric" style="color: #059669; font-weight: 600;"><%= fmt.(m.income_totals.usd) %></td>
-            </tr>
-            <tr>
-              <td style="font-weight: 600;">Expenses</td>
-              <td class="numeric" style="color: #dc2626; font-weight: 600;"><%= fmt.(m.expense_totals.usd) %></td>
-            </tr>
-            <tr style="font-weight: 700; font-size: 1.05rem; border-top: 2px solid var(--border-strong);">
-              <td>Net Savings</td>
-              <td class="numeric"><%= fmt.(m.net_savings_usd) %></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Net Worth -->
-    <section class="card">
-      <div class="card-header">
-        <h2 class="card-title">Net Worth</h2>
-        <.link navigate={dp(@domain_path_prefix, "/reports/net-worth")} class="btn sm">Details</.link>
-      </div>
-      <div class="dashboard-metrics">
-        <div class="metric-card">
-          <div class="metric-label">Total (MXN)</div>
-          <div class="metric-value" style="font-size: 1.5rem;"><%= fmt.(m.net_worth.total_mxn) %></div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Total (USD)</div>
-          <div class="metric-value" style="font-size: 1.5rem;"><%= fmt.(m.net_worth.total_usd) %></div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">FX Rate</div>
-          <div class="metric-value" style="font-size: 1rem; color: var(--text-muted);">1 USD = <%= :erlang.float_to_binary(m.net_worth.rate, decimals: 2) %> MXN</div>
-        </div>
-      </div>
-    </section>
-
 
   </div>
 </section>

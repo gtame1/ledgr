@@ -30,7 +30,7 @@
           <tr>
             <td style="color: var(--text-muted); font-size: 0.85rem;"><%= item.account.code %></td>
             <td><%= item.account.name %></td>
-            <td class="numeric" style="font-weight: 600; color: #059669;"><%= fmt.(item.balance_cents) %></td>
+            <td class="numeric ct-amount-positive" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
             <td>
               <.link navigate={dp(@domain_path_prefix, "/investment-accounts/#{item.account.id}")} class="btn">
                 View & Record
@@ -45,7 +45,7 @@
       <tfoot>
         <tr style="font-weight: 700;">
           <td colspan="2">Total</td>
-          <td class="numeric" style="color: #059669;"><%= fmt.(Enum.reduce(@accounts, 0, & &1.balance_cents + &2)) %></td>
+          <td class="numeric ct-amount-positive"><%= fmt.(Enum.reduce(@accounts, 0, & &1.balance_cents + &2)) %></td>
           <td></td>
         </tr>
       </tfoot>

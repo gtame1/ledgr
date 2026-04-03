@@ -3,6 +3,11 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
 
   alias Ledgr.Domains.CasaTame.{Expenses, Income, NetWorth}
 
+  def reports_hub(conn, _params) do
+    nw = NetWorth.calculate()
+    render(conn, :reports_hub, nw: nw)
+  end
+
   def net_worth(conn, _params) do
     nw = NetWorth.calculate()
     render(conn, :net_worth, nw: nw)
@@ -67,7 +72,7 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
     chart_data = %{
       labels: Enum.map(by_category, & &1.name),
       datasets: [%{
-        data: Enum.map(by_category, &(&1.total_cents / 100)),
+        data: Enum.map(by_category, fn c -> c.total_cents / 100 end),
         backgroundColor: category_colors(length(by_category))
       }]
     }

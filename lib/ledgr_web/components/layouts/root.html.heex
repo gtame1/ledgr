@@ -59,6 +59,17 @@
           --gradient-start: <%= t[:gradient_start] || "#fde2d0" %>;
           --gradient-mid: <%= t[:gradient_mid] || "#fff7f2" %>;
           --gradient-end: <%= t[:gradient_end] || "#fffaf5" %>;
+          --ct-surface: <%= t[:ct_surface] || "var(--bg)" %>;
+          --ct-surface-container: <%= t[:ct_surface_container] || "var(--bg-surface)" %>;
+          --ct-surface-container-high: <%= t[:ct_surface_container_high] || "var(--table-header-bg)" %>;
+          --ct-on-surface: <%= t[:ct_on_surface] || "var(--text-main)" %>;
+          --ct-on-surface-variant: <%= t[:ct_on_surface_variant] || "var(--text-muted)" %>;
+          --ct-outline-variant: <%= t[:ct_outline_variant] || "var(--border-subtle)" %>;
+          --ct-primary-container: <%= t[:ct_primary_container] || "var(--primary)" %>;
+          --ct-primary-fixed: <%= t[:ct_primary_fixed] || "var(--primary-soft)" %>;
+          --ct-secondary-container: <%= t[:ct_secondary_container] || "var(--btn-secondary-bg)" %>;
+          --ct-error: <%= t[:ct_error] || "#dc2626" %>;
+          --ct-font-headline: <%= t[:ct_font_headline] || "Inter" %>;
         }
       </style>
     <% end %>
@@ -84,7 +95,7 @@
       })();
     </script>
   </head>
-  <body>
+  <body data-domain={if assigns[:current_domain], do: assigns[:current_domain].slug()}>
     <%= if assigns[:current_domain] do %>
       <% domain = assigns[:current_domain] %>
       <% prefix = domain.path_prefix() %>
@@ -175,45 +186,91 @@
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
         <aside class="sidebar" id="sidebar">
-          <.link navigate={prefix}>
-            <div class="sidebar-header">
-              <%= if theme[:sidebar_logo] do %>
-                <div class={"sidebar-logo-wrap#{if theme[:sidebar_logo_bg], do: " sidebar-logo-wrap--bg", else: ""}"}>
-                  <img src={theme[:sidebar_logo]} alt={domain.name()} class="sidebar-logo-img" onerror="this.style.display='none'" />
-                </div>
-                <span class="sidebar-app-name"><%= domain.name() %></span>
-              <% else %>
-                <span class="app-logo"><%= domain.logo() %></span>
-                <span class="app-title"><%= domain.name() %></span>
-              <% end %>
-            </div>
+          <.link navigate={prefix} style="text-decoration: none;">
+            <%= if domain == Ledgr.Domains.CasaTame do %>
+              <div class="ct-sidebar-header">
+                <div class="ct-sidebar-title"><%= domain.name() %></div>
+                <div class="ct-sidebar-subtitle">Financial Atelier</div>
+              </div>
+            <% else %>
+              <div class="sidebar-header">
+                <%= if theme[:sidebar_logo] do %>
+                  <div class={"sidebar-logo-wrap#{if theme[:sidebar_logo_bg], do: " sidebar-logo-wrap--bg", else: ""}"}>
+                    <img src={theme[:sidebar_logo]} alt={domain.name()} class="sidebar-logo-img" onerror="this.style.display='none'" />
+                  </div>
+                  <span class="sidebar-app-name"><%= domain.name() %></span>
+                <% else %>
+                  <span class="app-logo"><%= domain.logo() %></span>
+                  <span class="app-title"><%= domain.name() %></span>
+                <% end %>
+              </div>
+            <% end %>
           </.link>
 
           <nav class="nav">
-            <!-- Domain-specific menu groups -->
             <% req_path = @conn.request_path %>
-            <%= for group <- domain.menu_items() do %>
+
+            <%= if domain == Ledgr.Domains.CasaTame do %>
+              <!-- Casa Tame: flat nav matching Stitch sidebar design -->
               <%
-                group_active = Enum.any?(group.items, fn item ->
-                  item_path = item.path |> String.split("?") |> hd()
-                  if item_path == prefix do
-                    req_path == prefix
-                  else
-                    String.starts_with?(req_path, item_path)
-                  end
-                end)
+                nav_icons = %{
+                  "Dashboard" => "hero-squares-2x2",
+                  "Expenses" => "hero-banknotes",
+                  "Income" => "hero-currency-dollar",
+                  "Transfers" => "hero-arrows-right-left",
+                  "Bills" => "hero-document-text",
+                  "Investments" => "hero-arrow-trending-up",
+                  "Debts" => "hero-document-duplicate",
+                  "Net Worth" => "hero-building-library",
+                  "Balance Sheet" => "hero-chart-bar",
+                  "Income & Expenses" => "hero-chart-pie",
+                  "Monthly Trends" => "hero-presentation-chart-line",
+                  "Reconciliation" => "hero-adjustments-horizontal",
+                  "All Transactions" => "hero-queue-list",
+                  "Account Transactions" => "hero-list-bullet"
+                }
               %>
-              <div class="nav-dropdown" data-default-open={if group_active, do: "true"}>
-                <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
-                  <span><%= group.group %></span>
-                  <.icon name="hero-chevron-down" class="dropdown-icon" />
-                </button>
-                <div class="nav-dropdown-menu">
+              <div class="ct-nav-flat">
+                <%= for group <- domain.menu_items() do %>
                   <%= for item <- group.items do %>
-                    <.link navigate={item.path} class="nav-link"><%= item.label %></.link>
+                    <%
+                      item_path = item.path |> String.split("?") |> hd()
+                      is_active = if item_path == prefix, do: req_path == prefix, else: String.starts_with?(req_path, item_path)
+                      icon_name = nav_icons[item.label] || "hero-document"
+                    %>
+                    <.link navigate={item.path} class={"ct-nav-item#{if is_active, do: " ct-nav-item--active"}"}>
+                      <.icon name={icon_name} class="ct-nav-icon" />
+                      <%= item.label %>
+                    </.link>
                   <% end %>
-                </div>
+                  <div class="ct-nav-spacer"></div>
+                <% end %>
               </div>
+            <% else %>
+              <!-- Other domains: dropdown groups -->
+              <%= for group <- domain.menu_items() do %>
+                <%
+                  group_active = Enum.any?(group.items, fn item ->
+                    item_path = item.path |> String.split("?") |> hd()
+                    if item_path == prefix do
+                      req_path == prefix
+                    else
+                      String.starts_with?(req_path, item_path)
+                    end
+                  end)
+                %>
+                <div class="nav-dropdown" data-default-open={if group_active, do: "true"}>
+                  <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
+                    <span><%= group.group %></span>
+                    <.icon name="hero-chevron-down" class="dropdown-icon" />
+                  </button>
+                  <div class="nav-dropdown-menu">
+                    <%= for item <- group.items do %>
+                      <.link navigate={item.path} class="nav-link"><%= item.label %></.link>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
             <% end %>
 
             <!-- Core menu groups (shared across all domains, hidden when domain manages its own nav) -->
@@ -283,6 +340,31 @@
             <%= @inner_content %>
           </section>
         </main>
+
+        <%= if domain == Ledgr.Domains.CasaTame do %>
+          <nav class="ct-bottom-tabs" aria-label="Main navigation">
+            <.link navigate={prefix} class={"ct-tab#{if req_path == prefix, do: " ct-tab--active"}"}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+              <span>Dashboard</span>
+            </.link>
+            <.link navigate={"#{prefix}/expenses"} class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/expenses"), do: " ct-tab--active"}"}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+              <span>Expenses</span>
+            </.link>
+            <.link navigate={"#{prefix}/income"} class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/income"), do: " ct-tab--active"}"}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Income</span>
+            </.link>
+            <.link navigate={"#{prefix}/bills"} class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/bills"), do: " ct-tab--active"}"}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+              <span>Bills</span>
+            </.link>
+            <.link navigate={"#{prefix}/reports"} class={"ct-tab#{if String.contains?(req_path, "/reports/") or req_path == "#{prefix}/reports", do: " ct-tab--active"}"}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+              <span>Reports</span>
+            </.link>
+          </nav>
+        <% end %>
       </div>
       <% end %>
       <% end %>

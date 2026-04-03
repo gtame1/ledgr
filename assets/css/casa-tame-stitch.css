@@ -1,0 +1,1395 @@
+/* ============================================================
+   Casa Tame — Stitch "Financial Atelier" Design Overrides
+   All rules scoped to [data-domain="casa-tame"]
+   ============================================================ */
+
+@layer components {
+
+/* ── Content area — tight spacing to match Stitch ────────── */
+
+[data-domain="casa-tame"] .content {
+  padding: 3rem 1rem 0.75rem !important;
+}
+
+[data-domain="casa-tame"] .content-header {
+  margin-bottom: 0.75rem !important;
+}
+
+[data-domain="casa-tame"] .content-body {
+  gap: 0.6rem !important;
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+
+[data-domain="casa-tame"] h1,
+[data-domain="casa-tame"] h2,
+[data-domain="casa-tame"] .page-title,
+[data-domain="casa-tame"] .card-title,
+[data-domain="casa-tame"] .calendar-title {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+[data-domain="casa-tame"] .page-title {
+  font-weight: 800;
+  font-size: 1.75rem !important;
+}
+
+/* ── Cards — "No-Line" rule: borders replaced by shadows ── */
+
+[data-domain="casa-tame"] .card {
+  border: none;
+  background: var(--bg-card);
+  box-shadow:
+    0 1px 3px rgba(27, 48, 34, 0.04),
+    0 4px 12px rgba(27, 48, 34, 0.06);
+  border-radius: 16px;
+}
+
+[data-domain="casa-tame"] .card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+[data-domain="casa-tame"] .card-subtitle {
+  color: var(--ct-on-surface-variant);
+  font-size: 0.85rem;
+}
+
+/* ── Tables — borderless with alternating backgrounds ──── */
+
+[data-domain="casa-tame"] .table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+[data-domain="casa-tame"] .table thead th {
+  background: transparent;
+  border-bottom: 1px solid var(--ct-outline-variant);
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ct-on-surface-variant);
+  padding: 0.6rem 0.75rem;
+}
+
+[data-domain="casa-tame"] .table tbody tr {
+  border-bottom: none;
+}
+
+[data-domain="casa-tame"] .table tbody tr:nth-child(even) {
+  background: var(--ct-surface-container);
+}
+
+[data-domain="casa-tame"] .table tbody td {
+  border: none;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+[data-domain="casa-tame"] .btn.primary {
+  background: var(--ct-primary-container);
+  border-radius: 10px;
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+[data-domain="casa-tame"] .btn.primary:hover {
+  background: #0f1f15;
+}
+
+[data-domain="casa-tame"] .btn {
+  border-radius: 10px;
+}
+
+/* ── Form inputs ─────────────────────────────────────────── */
+
+[data-domain="casa-tame"] input[type="text"],
+[data-domain="casa-tame"] input[type="email"],
+[data-domain="casa-tame"] input[type="number"],
+[data-domain="casa-tame"] input[type="date"],
+[data-domain="casa-tame"] input[type="password"],
+[data-domain="casa-tame"] select,
+[data-domain="casa-tame"] textarea {
+  border: 1px solid var(--ct-outline-variant);
+  background: var(--ct-surface-container);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  padding: 0.6rem 0.75rem;
+  color: var(--ct-on-surface);
+  transition: border-color 0.15s, outline 0.15s;
+}
+
+[data-domain="casa-tame"] input:focus,
+[data-domain="casa-tame"] select:focus,
+[data-domain="casa-tame"] textarea:focus {
+  outline: 2px solid var(--ct-primary-container);
+  outline-offset: 1px;
+  border-color: var(--ct-primary-container);
+}
+
+/* ── Hero metric cards ───────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-hero-card {
+  border-radius: 20px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-domain="casa-tame"] .ct-hero-card--mxn {
+  background: linear-gradient(155deg, #1B3022 0%, #2d4a35 100%);
+  color: #fbf9f4;
+}
+
+[data-domain="casa-tame"] .ct-hero-card--usd {
+  background: var(--ct-surface-container);
+  color: var(--ct-on-surface);
+}
+
+[data-domain="casa-tame"] .ct-hero-label {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+}
+
+[data-domain="casa-tame"] .ct-hero-value {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+[data-domain="casa-tame"] .ct-hero-sublabel {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-top: 0.5rem;
+}
+
+[data-domain="casa-tame"] .ct-hero-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+  opacity: 0.8;
+}
+
+/* ── Category badges ─────────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--ct-secondary-container);
+  color: #404941;
+}
+
+[data-domain="casa-tame"] .ct-badge--usd {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+[data-domain="casa-tame"] .ct-badge--mxn {
+  background: #d0e9d4;
+  color: #1B3022;
+}
+
+/* ── Amount colors ───────────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-amount-positive {
+  color: #3d7a5a;
+}
+
+[data-domain="casa-tame"] .ct-amount-negative {
+  color: #9e4a4a;
+}
+
+/* ── Quick action pills ──────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-quick-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  padding: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+[data-domain="casa-tame"] .ct-quick-actions::-webkit-scrollbar {
+  display: none;
+}
+
+[data-domain="casa-tame"] .ct-quick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--ct-surface-container);
+  color: var(--ct-on-surface);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+  white-space: nowrap;
+  width: auto;
+  min-height: auto;
+  justify-content: center;
+}
+
+[data-domain="casa-tame"] .ct-quick-pill:hover {
+  background: var(--ct-surface-container-high);
+}
+
+[data-domain="casa-tame"] .ct-quick-pill--primary {
+  background: var(--ct-primary-container);
+  color: #fbf9f4;
+}
+
+[data-domain="casa-tame"] .ct-quick-pill--primary:hover {
+  background: #0f1f15;
+}
+
+/* ── Bill items ──────────────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-bill-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+}
+
+[data-domain="casa-tame"] .ct-bill-item + .ct-bill-item {
+  border-top: 1px solid var(--ct-surface-container);
+}
+
+[data-domain="casa-tame"] .ct-bill-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+[data-domain="casa-tame"] .ct-bill-item-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ct-on-surface);
+}
+
+[data-domain="casa-tame"] .ct-bill-item-meta {
+  font-size: 0.75rem;
+  color: var(--ct-on-surface-variant);
+}
+
+[data-domain="casa-tame"] .ct-bill-item-amount {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+/* ── Bill row (unified bills view) ────────────────────────── */
+
+[data-domain="casa-tame"] .ct-bill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+}
+
+[data-domain="casa-tame"] .ct-bill-row + .ct-bill-row {
+  border-top: 1px solid var(--ct-surface-container);
+}
+
+/* ── Mini calendar (unified bills view) ──────────────────── */
+
+[data-domain="casa-tame"] .ct-mini-calendar {
+  width: 100%;
+}
+
+[data-domain="casa-tame"] .ct-mini-cal-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--ct-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+
+[data-domain="casa-tame"] .ct-mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+[data-domain="casa-tame"] .ct-mini-cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 6px;
+  min-height: 2rem;
+}
+
+[data-domain="casa-tame"] .ct-mini-cal-today {
+  background: var(--ct-primary-container);
+  color: #fbf9f4;
+  font-weight: 700;
+}
+
+[data-domain="casa-tame"] .ct-mini-cal-other {
+  opacity: 0.3;
+}
+
+/* ── Calendar dot colors (muted tonal) ───────────────────── */
+
+[data-domain="casa-tame"] .ct-cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+[data-domain="casa-tame"] .ct-cal-dot--credit_card { background: #9e6b6b; }
+[data-domain="casa-tame"] .ct-cal-dot--utility { background: #6b7d9e; }
+[data-domain="casa-tame"] .ct-cal-dot--loan { background: #9e8a6b; }
+[data-domain="casa-tame"] .ct-cal-dot--insurance { background: #8a6b9e; }
+[data-domain="casa-tame"] .ct-cal-dot--subscription { background: #6b9e8a; }
+[data-domain="casa-tame"] .ct-cal-dot--other { background: #7d7d7d; }
+
+/* ── Category icon (expense/income rows) ───────────────── */
+
+[data-domain="casa-tame"] .ct-category-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--ct-surface-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+/* ── Expense list ────────────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-expense-date-header {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ct-on-surface-variant);
+  padding: 1rem 0 0.4rem;
+}
+
+[data-domain="casa-tame"] .ct-expense-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+}
+
+[data-domain="casa-tame"] .ct-expense-row + .ct-expense-row {
+  border-top: 1px solid var(--ct-surface-container);
+}
+
+[data-domain="casa-tame"] .ct-expense-info {
+  flex: 1;
+  min-width: 0;
+}
+
+[data-domain="casa-tame"] .ct-expense-desc {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ct-on-surface);
+}
+
+[data-domain="casa-tame"] .ct-expense-meta {
+  font-size: 0.7rem;
+  color: var(--ct-on-surface-variant);
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.15rem;
+}
+
+[data-domain="casa-tame"] .ct-expense-amount {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+/* ── Currency segmented control ──────────────────────────── */
+
+[data-domain="casa-tame"] .ct-currency-toggle {
+  display: inline-flex;
+  background: var(--ct-surface-container);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+[data-domain="casa-tame"] .ct-currency-toggle a,
+[data-domain="casa-tame"] .ct-currency-toggle button {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ct-on-surface-variant);
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+[data-domain="casa-tame"] .ct-currency-toggle .ct-toggle-active {
+  background: var(--ct-primary-container);
+  color: #fbf9f4;
+}
+
+/* ── FAB (floating action button) ────────────────────────── */
+
+[data-domain="casa-tame"] .ct-fab {
+  display: none;
+}
+
+/* ── Full-width CTA buttons (Stitch dashboard) ──────────── */
+
+[data-domain="casa-tame"] .ct-cta-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+[data-domain="casa-tame"] .ct-cta-btn--primary {
+  background: var(--ct-primary-container);
+  color: #fbf9f4;
+}
+
+[data-domain="casa-tame"] .ct-cta-btn--primary:hover {
+  background: #0f1f15;
+}
+
+/* ── Summary metric cards (Stitch dashboard) ─────────────── */
+
+[data-domain="casa-tame"] .ct-summary-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(27, 48, 34, 0.04), 0 4px 12px rgba(27, 48, 34, 0.06);
+}
+
+[data-domain="casa-tame"] .ct-summary-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+[data-domain="casa-tame"] .ct-summary-label {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ct-on-surface-variant);
+  margin-bottom: 0.35rem;
+}
+
+[data-domain="casa-tame"] .ct-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.1rem 0;
+}
+
+[data-domain="casa-tame"] .ct-summary-currency {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--ct-on-surface-variant);
+  text-transform: uppercase;
+}
+
+[data-domain="casa-tame"] .ct-summary-value {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--ct-on-surface);
+}
+
+/* ── Section spacing ─────────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-section + .ct-section {
+  margin-top: 1.25rem;
+}
+
+/* ── Chart wrapper ───────────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-chart-wrapper {
+  background: var(--ct-surface-container);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+/* ── Bottom tab bar (mobile only) ────────────────────────── */
+
+[data-domain="casa-tame"] .ct-bottom-tabs {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  [data-domain="casa-tame"] .ct-bottom-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(251, 249, 244, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--ct-outline-variant);
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 100;
+    align-items: center;
+    justify-content: space-around;
+  }
+
+  [data-domain="casa-tame"] .ct-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    text-decoration: none;
+    color: var(--ct-on-surface-variant);
+    font-size: 0.6rem;
+    font-weight: 500;
+    padding: 0.4rem 0;
+    min-width: 48px;
+    transition: color 0.15s;
+  }
+
+  [data-domain="casa-tame"] .ct-tab svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.5;
+  }
+
+  [data-domain="casa-tame"] .ct-tab--active {
+    color: #fbf9f4;
+    font-weight: 700;
+    background: var(--ct-primary-container);
+    border-radius: 12px;
+    padding: 0.35rem 0.75rem;
+  }
+
+  [data-domain="casa-tame"] .ct-tab--active svg {
+    stroke-width: 2;
+  }
+
+  /* Add bottom padding so content doesn't hide behind tabs */
+  [data-domain="casa-tame"] .content {
+    padding-bottom: 80px !important;
+  }
+
+  /* Hide hamburger when bottom tabs are present */
+  [data-domain="casa-tame"] .hamburger-btn {
+    display: none !important;
+  }
+
+  /* Show FAB */
+  [data-domain="casa-tame"] .ct-fab {
+    display: flex;
+    position: fixed;
+    bottom: 80px;
+    right: 1rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--ct-primary-container);
+    color: #fbf9f4;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    box-shadow: 0 4px 16px rgba(27, 48, 34, 0.2);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  [data-domain="casa-tame"] .ct-fab svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ── Reports Hub grid ────────────────────────────────────── */
+
+[data-domain="casa-tame"] .ct-reports-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+[data-domain="casa-tame"] .ct-report-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(27, 48, 34, 0.04), 0 4px 12px rgba(27, 48, 34, 0.06);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.15s;
+}
+
+[data-domain="casa-tame"] .ct-report-card:hover {
+  background: var(--ct-surface-container);
+}
+
+[data-domain="casa-tame"] .ct-report-card--wide {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+[data-domain="casa-tame"] .ct-report-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--ct-surface-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  color: var(--ct-on-surface-variant);
+}
+
+[data-domain="casa-tame"] .ct-report-card--wide .ct-report-icon {
+  margin-bottom: 0;
+}
+
+[data-domain="casa-tame"] .ct-report-card-title {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ct-on-surface);
+  margin-bottom: 0.15rem;
+}
+
+[data-domain="casa-tame"] .ct-report-card-subtitle {
+  font-size: 0.65rem;
+  color: var(--ct-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+}
+
+[data-domain="casa-tame"] .ct-report-preview {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  margin-top: 0.5rem;
+}
+
+[data-domain="casa-tame"] .ct-mini-bar {
+  width: 12px;
+  border-radius: 2px;
+}
+
+/* ── Sidebar overrides ───────────────────────────────────── */
+
+[data-domain="casa-tame"] .sidebar {
+  background: linear-gradient(180deg, #1B3022 0%, #142619 100%);
+  padding: 1.25rem 0.75rem;
+}
+
+/* Sidebar header */
+[data-domain="casa-tame"] .ct-sidebar-header {
+  padding: 0.5rem 0.75rem 1rem;
+}
+
+[data-domain="casa-tame"] .ct-sidebar-title {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fbf9f4;
+  letter-spacing: -0.01em;
+}
+
+[data-domain="casa-tame"] .ct-sidebar-subtitle {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(251, 249, 244, 0.45);
+  margin-top: 0.1rem;
+}
+
+/* Flat nav items */
+[data-domain="casa-tame"] .ct-nav-flat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+[data-domain="casa-tame"] .ct-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 450;
+  color: rgba(251, 249, 244, 0.7);
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+
+[data-domain="casa-tame"] .ct-nav-item:hover {
+  background: rgba(251, 249, 244, 0.08);
+  color: #fbf9f4;
+}
+
+[data-domain="casa-tame"] .ct-nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+[data-domain="casa-tame"] .ct-nav-item--active {
+  background: rgba(251, 249, 244, 0.12);
+  color: #fbf9f4;
+  font-weight: 600;
+  border-right: 3px solid rgba(251, 249, 244, 0.6);
+}
+
+[data-domain="casa-tame"] .ct-nav-item--active .ct-nav-icon {
+  opacity: 1;
+}
+
+[data-domain="casa-tame"] .ct-nav-item:hover .ct-nav-icon {
+  opacity: 0.9;
+}
+
+[data-domain="casa-tame"] .ct-nav-spacer {
+  height: 0.5rem;
+}
+
+[data-domain="casa-tame"] .sidebar-footer {
+  border-top: 1px solid rgba(251, 249, 244, 0.1);
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+[data-domain="casa-tame"] .sidebar-user-email {
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+/* ── Delete buttons — muted rose instead of bright red ──── */
+
+[data-domain="casa-tame"] .btn[style*="dc2626"],
+[data-domain="casa-tame"] .ct-btn-danger {
+  background: #9e4a4a !important;
+  color: white !important;
+  border-radius: 10px;
+}
+
+/* ── "Nice list" detail pages ────────────────────────────── */
+
+[data-domain="casa-tame"] .nice-list dt {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ct-on-surface-variant);
+}
+
+[data-domain="casa-tame"] .nice-list dd {
+  font-size: 0.95rem;
+  color: var(--ct-on-surface);
+}
+
+/* ── Metric cards (used in debt/investment) ──────────────── */
+
+[data-domain="casa-tame"] .metric-card {
+  border: none;
+  background: var(--ct-surface-container);
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+[data-domain="casa-tame"] .metric-label {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ct-on-surface-variant);
+}
+
+[data-domain="casa-tame"] .metric-value {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 700;
+}
+
+/* ── Form styling enhancements ───────────────────────────── */
+
+[data-domain="casa-tame"] .form-grid label,
+[data-domain="casa-tame"] .form-group label,
+[data-domain="casa-tame"] label {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ct-on-surface-variant);
+}
+
+/* ── Form styling — Stitch "Define Obligation" pattern ───── */
+
+[data-domain="casa-tame"] .ct-form-section-label {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ct-on-surface-variant);
+  margin-bottom: 0.35rem;
+  margin-top: 1rem;
+}
+
+[data-domain="casa-tame"] .ct-form-section-label:first-child {
+  margin-top: 0;
+}
+
+[data-domain="casa-tame"] .ct-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+[data-domain="casa-tame"] .ct-form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+[data-domain="casa-tame"] .ct-form-amount-card {
+  background: linear-gradient(155deg, #1B3022 0%, #2d4a35 100%);
+  border-radius: 16px;
+  padding: 1.25rem;
+  color: #fbf9f4;
+  margin: 0.75rem 0;
+}
+
+/* The main amount wrapper — large, centered */
+[data-domain="casa-tame"] .ct-form-amount-main {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+[data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input[type="number"],
+[data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input[type="text"],
+[data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input {
+  background: rgba(251, 249, 244, 0.06) !important;
+  border: 1px solid rgba(251, 249, 244, 0.12) !important;
+  border-radius: 14px !important;
+  color: #fbf9f4 !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 2.5rem !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  width: 100% !important;
+  padding: 0.85rem 0.75rem !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.1 !important;
+}
+
+[data-domain="casa-tame"] .ct-form-amount-card .ct-form-amount-main input::placeholder {
+  color: rgba(251, 249, 244, 0.3) !important;
+  font-size: 2.5rem !important;
+}
+
+/* Card header label (e.g. "Commitment Amount") */
+[data-domain="casa-tame"] .ct-card-label {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(251, 249, 244, 0.85);
+}
+
+/* Currency toggle inside the green card */
+[data-domain="casa-tame"] .ct-card-currency-toggle select {
+  background: rgba(251, 249, 244, 0.15) !important;
+  border: 1px solid rgba(251, 249, 244, 0.3) !important;
+  color: #fbf9f4 !important;
+  border-radius: 999px !important;
+  padding: 0.3rem 0.6rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Labels inside the green card — bright and readable */
+[data-domain="casa-tame"] .ct-form-amount-card label {
+  color: rgba(251, 249, 244, 0.85) !important;
+  font-size: 0.65rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+/* All inputs/selects inside the green card — visible */
+[data-domain="casa-tame"] .ct-form-amount-card select,
+[data-domain="casa-tame"] .ct-form-amount-card input[type="date"],
+[data-domain="casa-tame"] .ct-form-amount-card input[type="number"],
+[data-domain="casa-tame"] .ct-form-amount-card input[type="text"] {
+  background: rgba(251, 249, 244, 0.12) !important;
+  border: 1px solid rgba(251, 249, 244, 0.3) !important;
+  color: #fbf9f4 !important;
+  border-radius: 10px !important;
+  padding: 0.65rem 0.75rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+}
+
+[data-domain="casa-tame"] .ct-form-amount-card select option {
+  background: #1B3022;
+  color: #fbf9f4;
+}
+
+[data-domain="casa-tame"] .ct-form-amount-card input::placeholder {
+  color: rgba(251, 249, 244, 0.4) !important;
+}
+
+/* Grid inside the green card */
+[data-domain="casa-tame"] .ct-form-amount-card .ct-form-grid-2,
+[data-domain="casa-tame"] .ct-form-amount-card .ct-form-grid-3 {
+  margin-top: 0.5rem;
+}
+
+[data-domain="casa-tame"] .ct-form-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: var(--ct-primary-container);
+  color: #fbf9f4;
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 1rem;
+}
+
+[data-domain="casa-tame"] .ct-form-save-btn:hover {
+  background: #0f1f15;
+}
+
+[data-domain="casa-tame"] .ct-form-cancel {
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ct-on-surface-variant);
+  text-decoration: none;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Section group headers (debt/investment) ─────────────── */
+
+[data-domain="casa-tame"] .ct-section-header {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ct-on-surface-variant);
+  padding: 0.75rem 0.75rem 0.5rem;
+  background: var(--ct-surface-container);
+  border-radius: 10px 10px 0 0;
+  margin-top: 0.75rem;
+}
+
+/* ── Shared template overrides (CSS-only, no template edits) ── */
+
+/* Override inline green/red colors on shared pages */
+[data-domain="casa-tame"] td[style*="059669"],
+[data-domain="casa-tame"] span[style*="059669"] {
+  color: #3d7a5a !important;
+}
+
+[data-domain="casa-tame"] td[style*="dc2626"],
+[data-domain="casa-tame"] span[style*="dc2626"] {
+  color: #9e4a4a !important;
+}
+
+/* Override inline badge colors in shared templates */
+[data-domain="casa-tame"] span[style*="DBEAFE"] {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 999px !important;
+  padding: 0.15rem 0.5rem !important;
+}
+
+[data-domain="casa-tame"] span[style*="D1FAE5"] {
+  background: #d0e9d4 !important;
+  color: #1B3022 !important;
+  border-radius: 999px !important;
+  padding: 0.15rem 0.5rem !important;
+}
+
+/* ── Report page layouts (P&L, Balance Sheet) ──────────── */
+
+[data-domain="casa-tame"] .ct-report-section {
+  margin-bottom: 1.25rem;
+}
+
+[data-domain="casa-tame"] .ct-report-section-header {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 0.25rem;
+}
+
+[data-domain="casa-tame"] .ct-report-section-header--income {
+  background: #d0e9d4;
+  color: #1B3022;
+}
+
+[data-domain="casa-tame"] .ct-report-section-header--expense {
+  background: #ffd9dc;
+  color: #3f2427;
+}
+
+[data-domain="casa-tame"] .ct-report-section-header--asset {
+  background: #dbeafe;
+  color: #1e3a5f;
+}
+
+[data-domain="casa-tame"] .ct-report-section-header--liability {
+  background: #ffd9dc;
+  color: #3f2427;
+}
+
+[data-domain="casa-tame"] .ct-report-section-header--equity {
+  background: #e8e0f0;
+  color: #2d2440;
+}
+
+[data-domain="casa-tame"] .ct-report-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+}
+
+[data-domain="casa-tame"] .ct-report-row:nth-child(even) {
+  background: var(--ct-surface-container);
+  border-radius: 6px;
+}
+
+[data-domain="casa-tame"] .ct-report-row--indent {
+  padding-left: 2rem;
+  font-size: 0.825rem;
+  color: var(--ct-on-surface-variant);
+}
+
+[data-domain="casa-tame"] .ct-report-row--group {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+[data-domain="casa-tame"] .ct-report-row--subtotal {
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--ct-outline-variant);
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+[data-domain="casa-tame"] .ct-report-row--total {
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-top: 2px solid var(--ct-on-surface);
+  padding-top: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+[data-domain="casa-tame"] .ct-report-row--net {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+  border-top: 2px solid var(--ct-on-surface);
+}
+
+[data-domain="casa-tame"] .ct-report-row--empty {
+  text-align: center;
+  color: var(--ct-on-surface-variant);
+  font-size: 0.825rem;
+  padding: 0.75rem 1rem;
+  justify-content: center;
+}
+
+[data-domain="casa-tame"] .ct-report-row-label {
+  min-width: 0;
+  flex: 1;
+}
+
+[data-domain="casa-tame"] .ct-report-row-amount {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+[data-domain="casa-tame"] .ct-report-subgroup-label {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ct-on-surface-variant);
+  padding: 0.6rem 1rem 0.25rem;
+  margin-top: 0.4rem;
+}
+
+[data-domain="casa-tame"] .ct-report-spacer {
+  height: 0.75rem;
+}
+
+/* ============================================================
+   DESKTOP OVERRIDES (min-width: 1025px)
+   ============================================================ */
+
+@media (min-width: 1025px) {
+
+  /* ── Content area — wider spacing ──────────────────────── */
+
+  [data-domain="casa-tame"] .content {
+    padding: 2.5rem 3rem 2rem !important;
+  }
+
+  [data-domain="casa-tame"] .content-header {
+    margin-bottom: 1rem !important;
+  }
+
+  [data-domain="casa-tame"] .content-body {
+    gap: 1rem !important;
+  }
+
+  /* ── Hero cards side-by-side ───────────────────────────── */
+
+  [data-domain="casa-tame"] .ct-hero-pair {
+    display: flex;
+    gap: 1rem;
+  }
+
+  [data-domain="casa-tame"] .ct-hero-pair > * {
+    flex: 1;
+  }
+
+  /* ── CTA buttons side-by-side ──────────────────────────── */
+
+  [data-domain="casa-tame"] .ct-cta-pair {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  [data-domain="casa-tame"] .ct-cta-pair > * {
+    flex: 1;
+  }
+
+  /* ── Summary cards in a row ────────────────────────────── */
+
+  [data-domain="casa-tame"] .ct-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  /* ── Reports hub — 3 columns ───────────────────────────── */
+
+  [data-domain="casa-tame"] .ct-reports-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  [data-domain="casa-tame"] .ct-report-card--wide {
+    grid-column: auto;
+  }
+
+  /* ── Expense/Income rows — wider ───────────────────────── */
+
+  [data-domain="casa-tame"] .ct-expense-row {
+    padding: 0.75rem 0.5rem;
+  }
+
+  [data-domain="casa-tame"] .ct-expense-amount {
+    font-size: 1.15rem;
+  }
+
+  /* ── Bills — calendar + lists side-by-side ─────────────── */
+
+  [data-domain="casa-tame"] .ct-bills-desktop-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  /* ── Report rows — wider padding ───────────────────────── */
+
+  [data-domain="casa-tame"] .ct-report-row {
+    padding: 0.65rem 1.25rem;
+  }
+
+  /* ── Forms — constrain width ───────────────────────────── */
+
+  [data-domain="casa-tame"] form {
+    max-width: 640px;
+  }
+
+  [data-domain="casa-tame"] .ct-form-amount-card {
+    max-width: 640px;
+  }
+
+  /* ── Hide FAB on desktop ───────────────────────────────── */
+
+  [data-domain="casa-tame"] .ct-fab {
+    display: none !important;
+  }
+
+  /* ── Ensure bottom tabs stay hidden ────────────────────── */
+
+  [data-domain="casa-tame"] .ct-bottom-tabs {
+    display: none !important;
+  }
+
+  /* ── Remove mobile bottom padding ──────────────────────── */
+
+  [data-domain="casa-tame"] .content {
+    padding-bottom: 2rem !important;
+  }
+
+  /* ── Page title larger on desktop ──────────────────────── */
+
+  [data-domain="casa-tame"] .page-title {
+    font-size: 2rem !important;
+  }
+
+  [data-domain="casa-tame"] .ct-hero-value {
+    font-size: 3rem;
+  }
+
+  /* ── Bills — top row & content row side-by-side ──────────── */
+
+  [data-domain="casa-tame"] .ct-bills-top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  [data-domain="casa-tame"] .ct-bills-content-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  /* ── P&L — USD & MXN side-by-side ────────────────────────── */
+
+  [data-domain="casa-tame"] .ct-pnl-currencies {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  /* ── Balance Sheet — USD & MXN side-by-side ──────────────── */
+
+  [data-domain="casa-tame"] .ct-bs-currencies {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  /* ── Net Worth — breakdowns side-by-side ─────────────────── */
+
+  [data-domain="casa-tame"] .ct-nw-breakdowns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  /* ── Metrics row — auto-fit grid ─────────────────────────── */
+
+  [data-domain="casa-tame"] .ct-metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+}
+
+} /* end @layer components */

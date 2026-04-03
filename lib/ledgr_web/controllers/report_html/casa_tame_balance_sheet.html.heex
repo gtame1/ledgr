@@ -38,6 +38,7 @@
 
 <section class="content">
   <header class="content-header">
+    <div class="ct-hero-label">Financial Atelier</div>
     <h1 class="page-title">Balance Sheet</h1>
     <p class="card-subtitle">As of <%= @as_of %></p>
   </header>
@@ -48,140 +49,228 @@
       <button type="submit" class="btn sm">Update</button>
     </form>
 
-    <!-- USD Section (collapsible) -->
-    <details open class="card" style="margin-top: 1.5rem;">
-      <summary style="cursor: pointer; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; list-style: none;">
-        <h2 class="card-title" style="margin: 0;">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #DBEAFE; color: #1E40AF; margin-right: 0.5rem;">USD</span>
+    <div class="ct-bs-currencies">
+    <!-- USD Section -->
+    <details open class="card">
+      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
+        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <span class="ct-badge ct-badge--usd">USD</span>
           Accounts
-        </h2>
-        <span style="font-weight: 700; font-size: 1.1rem;"><%= fmt.(net_usd) %></span>
+        </span>
+        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_usd) %></span>
       </summary>
 
-      <div class="table-wrapper">
-        <table class="table">
-          <thead><tr style="background: var(--table-header-bg);"><th colspan="2" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em;">Assets</th></tr></thead>
-          <tbody>
-            <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Cash & Bank</td></tr>
-            <%= for item <- usd_cash do %>
-              <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric"><%= fmt.(item.amount_cents) %></td></tr>
+      <div style="padding: 0 1rem 1.25rem;">
+        <!-- Assets -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--asset">Assets</div>
+
+          <div class="ct-report-subgroup-label">Cash & Bank</div>
+          <%= for item <- usd_cash do %>
+            <div class="ct-report-row ct-report-row--indent">
+              <span class="ct-report-row-label"><%= item.account.name %></span>
+              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
+            </div>
+          <% end %>
+          <div class="ct-report-row ct-report-row--subtotal">
+            <span class="ct-report-row-label">Subtotal Cash & Bank</span>
+            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(usd_cash)) %></span>
+          </div>
+
+          <%= if usd_investments != [] do %>
+            <div class="ct-report-subgroup-label">Investments</div>
+            <%= for item <- usd_investments do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
-            <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Cash & Bank</td><td class="numeric"><%= fmt.(sum.(usd_cash)) %></td></tr>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal Investments</span>
+              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(usd_investments)) %></span>
+            </div>
+          <% end %>
 
-            <%= if usd_investments != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Investments</td></tr>
-              <%= for item <- usd_investments do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Investments</td><td class="numeric"><%= fmt.(sum.(usd_investments)) %></td></tr>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total USD Assets</span>
+            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_usd_assets) %></span>
+          </div>
+        </div>
+
+        <div class="ct-report-spacer"></div>
+
+        <!-- Liabilities -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--liability">Liabilities</div>
+
+          <%= if usd_cc != [] do %>
+            <div class="ct-report-subgroup-label">Credit Cards</div>
+            <%= for item <- usd_cc do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal Credit Cards</span>
+              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(usd_cc)) %></span>
+            </div>
+          <% end %>
 
-            <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total USD Assets</td><td class="numeric"><%= fmt.(total_usd_assets) %></td></tr>
-          </tbody>
-
-          <thead>
-            <tr><th colspan="2" style="padding: 0.75rem 0; border: none;"></th></tr>
-            <tr style="background: var(--table-header-bg);"><th colspan="2" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em;">Liabilities</th></tr>
-          </thead>
-          <tbody>
-            <%= if usd_cc != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Credit Cards</td></tr>
-              <%= for item <- usd_cc do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric" style="color: #dc2626;"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Credit Cards</td><td class="numeric" style="color: #dc2626;"><%= fmt.(sum.(usd_cc)) %></td></tr>
+          <%= if usd_ap != [] do %>
+            <div class="ct-report-subgroup-label">Accounts Payable</div>
+            <%= for item <- usd_ap do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal AP</span>
+              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(usd_ap)) %></span>
+            </div>
+          <% end %>
 
-            <%= if usd_ap != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Accounts Payable</td></tr>
-              <%= for item <- usd_ap do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric" style="color: #dc2626;"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal AP</td><td class="numeric" style="color: #dc2626;"><%= fmt.(sum.(usd_ap)) %></td></tr>
+          <%= if usd_loans != [] do %>
+            <div class="ct-report-subgroup-label">Long-Term Loans</div>
+            <%= for item <- usd_loans do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal Loans</span>
+              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(usd_loans)) %></span>
+            </div>
+          <% end %>
 
-            <%= if usd_loans != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Long-Term Loans</td></tr>
-              <%= for item <- usd_loans do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric" style="color: #dc2626;"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Loans</td><td class="numeric" style="color: #dc2626;"><%= fmt.(sum.(usd_loans)) %></td></tr>
-            <% end %>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total USD Liabilities</span>
+            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(total_usd_liabilities) %></span>
+          </div>
+        </div>
 
-            <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total USD Liabilities</td><td class="numeric" style="color: #dc2626;"><%= fmt.(total_usd_liabilities) %></td></tr>
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-            <tr style="font-weight: 700; font-size: 1.05rem;"><td>USD Net Position</td><td class="numeric"><%= fmt.(net_usd) %></td></tr>
-          </tbody>
-        </table>
+        <div class="ct-report-spacer"></div>
+
+        <!-- Net Position -->
+        <div class="ct-report-row ct-report-row--net">
+          <span class="ct-report-row-label">USD Net Position</span>
+          <span class="ct-report-row-amount"><%= fmt.(net_usd) %></span>
+        </div>
       </div>
     </details>
 
-    <!-- MXN Section (collapsible) -->
-    <details open class="card" style="margin-top: 1.5rem;">
-      <summary style="cursor: pointer; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; list-style: none;">
-        <h2 class="card-title" style="margin: 0;">
-          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; background: #D1FAE5; color: #065F46; margin-right: 0.5rem;">MXN</span>
+    <!-- MXN Section -->
+    <details open class="card">
+      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
+        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <span class="ct-badge ct-badge--mxn">MXN</span>
           Accounts
-        </h2>
-        <span style="font-weight: 700; font-size: 1.1rem;"><%= fmt.(net_mxn) %></span>
+        </span>
+        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_mxn) %></span>
       </summary>
 
-      <div class="table-wrapper">
-        <table class="table">
-          <thead><tr style="background: var(--table-header-bg);"><th colspan="2" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em;">Assets</th></tr></thead>
-          <tbody>
-            <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Cash & Bank</td></tr>
-            <%= for item <- mxn_cash do %>
-              <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric"><%= fmt.(item.amount_cents) %></td></tr>
+      <div style="padding: 0 1rem 1.25rem;">
+        <!-- Assets -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--asset">Assets</div>
+
+          <div class="ct-report-subgroup-label">Cash & Bank</div>
+          <%= for item <- mxn_cash do %>
+            <div class="ct-report-row ct-report-row--indent">
+              <span class="ct-report-row-label"><%= item.account.name %></span>
+              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
+            </div>
+          <% end %>
+          <div class="ct-report-row ct-report-row--subtotal">
+            <span class="ct-report-row-label">Subtotal Cash & Bank</span>
+            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(mxn_cash)) %></span>
+          </div>
+
+          <%= if mxn_fixed != [] do %>
+            <div class="ct-report-subgroup-label">Fixed Assets</div>
+            <%= for item <- mxn_fixed do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
-            <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Cash & Bank</td><td class="numeric"><%= fmt.(sum.(mxn_cash)) %></td></tr>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal Fixed Assets</span>
+              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(mxn_fixed)) %></span>
+            </div>
+          <% end %>
 
-            <%= if mxn_fixed != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Fixed Assets</td></tr>
-              <%= for item <- mxn_fixed do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Fixed Assets</td><td class="numeric"><%= fmt.(sum.(mxn_fixed)) %></td></tr>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total MXN Assets</span>
+            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_mxn_assets) %></span>
+          </div>
+        </div>
+
+        <div class="ct-report-spacer"></div>
+
+        <!-- Liabilities -->
+        <div class="ct-report-section">
+          <div class="ct-report-section-header ct-report-section-header--liability">Liabilities</div>
+
+          <%= if mxn_cc != [] do %>
+            <div class="ct-report-subgroup-label">Credit Cards</div>
+            <%= for item <- mxn_cc do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal Credit Cards</span>
+              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(mxn_cc)) %></span>
+            </div>
+          <% end %>
 
-            <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total MXN Assets</td><td class="numeric"><%= fmt.(total_mxn_assets) %></td></tr>
-          </tbody>
-
-          <thead>
-            <tr><th colspan="2" style="padding: 0.75rem 0; border: none;"></th></tr>
-            <tr style="background: var(--table-header-bg);"><th colspan="2" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em;">Liabilities</th></tr>
-          </thead>
-          <tbody>
-            <%= if mxn_cc != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Credit Cards</td></tr>
-              <%= for item <- mxn_cc do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric" style="color: #dc2626;"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Credit Cards</td><td class="numeric" style="color: #dc2626;"><%= fmt.(sum.(mxn_cc)) %></td></tr>
+          <%= if mxn_ap != [] do %>
+            <div class="ct-report-subgroup-label">Accounts Payable</div>
+            <%= for item <- mxn_ap do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal AP</span>
+              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(mxn_ap)) %></span>
+            </div>
+          <% end %>
 
-            <%= if mxn_ap != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Accounts Payable</td></tr>
-              <%= for item <- mxn_ap do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric" style="color: #dc2626;"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal AP</td><td class="numeric" style="color: #dc2626;"><%= fmt.(sum.(mxn_ap)) %></td></tr>
+          <%= if mxn_loans != [] do %>
+            <div class="ct-report-subgroup-label">Long-Term Loans</div>
+            <%= for item <- mxn_loans do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label"><%= item.account.name %></span>
+                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+              </div>
             <% end %>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal Loans</span>
+              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(mxn_loans)) %></span>
+            </div>
+          <% end %>
 
-            <%= if mxn_loans != [] do %>
-              <tr style="background: var(--bg-surface);"><td colspan="2" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Long-Term Loans</td></tr>
-              <%= for item <- mxn_loans do %>
-                <tr><td style="padding-left: 2rem;"><%= item.account.name %></td><td class="numeric" style="color: #dc2626;"><%= fmt.(item.amount_cents) %></td></tr>
-              <% end %>
-              <tr style="font-weight: 600; font-size: 0.9rem; border-top: 1px solid var(--border-subtle);"><td style="padding-left: 1.5rem;">Subtotal Loans</td><td class="numeric" style="color: #dc2626;"><%= fmt.(sum.(mxn_loans)) %></td></tr>
-            <% end %>
+          <div class="ct-report-row ct-report-row--total">
+            <span class="ct-report-row-label">Total MXN Liabilities</span>
+            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(total_mxn_liabilities) %></span>
+          </div>
+        </div>
 
-            <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);"><td style="padding-left: 1rem;">Total MXN Liabilities</td><td class="numeric" style="color: #dc2626;"><%= fmt.(total_mxn_liabilities) %></td></tr>
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-            <tr style="font-weight: 700; font-size: 1.05rem;"><td>MXN Net Position</td><td class="numeric"><%= fmt.(net_mxn) %></td></tr>
-          </tbody>
-        </table>
+        <div class="ct-report-spacer"></div>
+
+        <!-- Net Position -->
+        <div class="ct-report-row ct-report-row--net">
+          <span class="ct-report-row-label">MXN Net Position</span>
+          <span class="ct-report-row-amount"><%= fmt.(net_mxn) %></span>
+        </div>
       </div>
     </details>
+    </div>
   </div>
 </section>

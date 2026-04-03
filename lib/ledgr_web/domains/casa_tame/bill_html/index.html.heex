@@ -7,100 +7,197 @@
     whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
     "#{sign}$#{whole_with_commas}.#{dec}"
   end
-
-  days_until = fn due_date ->
-    Date.diff(due_date, @today)
-  end
 %>
 
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">Bills & Payments</h2>
-    <p class="card-subtitle">Recurring and one-time upcoming payments.</p>
-  </div>
+<section class="content">
+  <header class="content-header">
+    <div>
+      <div class="ct-hero-label" style="margin-bottom: 0.15rem;">Financial Atelier</div>
+      <h1 class="page-title">Bills</h1>
+    </div>
+  </header>
 
-  <div class="actions" style="margin-bottom: 0.75rem;">
-    <.link navigate={dp(@domain_path_prefix, "/bills/new")} class="btn primary">+ New Bill</.link>
-    <.link navigate={dp(@domain_path_prefix, "/bills/calendar")} class="btn">Calendar View</.link>
-  </div>
+  <div class="content-body">
+    <div class="ct-bills-top-row">
+      <!-- Mini Calendar -->
+      <div class="card" style="padding: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 1rem;">
+            <%= Calendar.strftime(@first_day, "%B %Y") %>
+          </span>
+        </div>
+        <div class="ct-mini-calendar">
+          <div class="ct-mini-cal-header">
+            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+          </div>
+          <div class="ct-mini-cal-grid">
+            <%= for date <- Date.range(@calendar_start, @calendar_end) do %>
+              <%
+                day_bills = Map.get(@bills_by_date, date, [])
+                is_today = Date.compare(date, @today) == :eq
+                is_other_month = Date.compare(date, @first_day) == :lt or Date.compare(date, @last_day) == :gt
+              %>
+              <div class={"ct-mini-cal-day#{if is_today, do: " ct-mini-cal-today"}#{if is_other_month, do: " ct-mini-cal-other"}"}>
+                <span><%= date.day %></span>
+                <%= if day_bills != [] do %>
+                  <div style="display: flex; gap: 1px; justify-content: center; margin-top: 1px;">
+                    <%= for b <- Enum.take(day_bills, 3) do %>
+                      <span class={"ct-cal-dot ct-cal-dot--#{b.category || "other"}"} style="width: 4px; height: 4px;"></span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
 
-  <div class="table-wrapper">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Frequency</th>
-          <th>Category</th>
-          <th class="numeric">Amount</th>
-          <th>Next Due</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <%= for bill <- @bills do %>
+      <!-- Monthly Total Card -->
+      <div class="ct-hero-card ct-hero-card--mxn" style="padding: 1rem 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div class="ct-hero-value" style="font-size: 1.75rem;"><%= fmt.(@monthly_total) %></div>
+            <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.15rem;"><%= @monthly_count %> Unpaid in next 30 days</div>
+          </div>
+          <.link navigate={dp(@domain_path_prefix, "/bills/new")} class="ct-quick-pill" style="background: rgba(251,249,244,0.2); color: #fbf9f4; font-size: 0.75rem;">+ New Bill</.link>
+        </div>
+      </div>
+    </div>
+
+    <div class="ct-bills-content-row">
+    <!-- Today's Schedule -->
+    <%= if @today_bills != [] do %>
+      <div class="card" style="padding: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span class="ct-hero-label">Today's Schedule</span>
+          <span style="font-size: 0.7rem; color: var(--ct-on-surface-variant);"><%= Calendar.strftime(@today, "%b %d") %></span>
+        </div>
+        <%= for bill <- @today_bills do %>
+          <div class="ct-bill-row">
+            <.link navigate={dp(@domain_path_prefix, "/bills/#{bill.id}/edit")} style="display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; text-decoration: none; color: inherit;">
+              <span class={"ct-cal-dot ct-cal-dot--#{bill.category || "other"}"} style="width: 10px; height: 10px; flex-shrink: 0;"></span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.95rem;"><%= bill.name %></div>
+                <div style="font-size: 0.7rem; color: var(--ct-on-surface-variant); display: flex; gap: 0.35rem; align-items: center;">
+                  <span class="ct-badge" style="font-size: 0.6rem;"><%= String.replace(bill.category || "other", "_", " ") |> String.capitalize() %></span>
+                  <span>&middot; Due Today</span>
+                </div>
+              </div>
+            </.link>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+              <span style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 0.95rem;">
+                <%= if bill.amount_cents, do: fmt.(bill.amount_cents), else: "Variable" %>
+              </span>
+              <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline; margin: 0;">
+                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                <button type="submit" class="ct-quick-pill" style="font-size: 0.6rem; padding: 0.2rem 0.5rem; background: #3d7a5a; color: white;">Paid</button>
+              </form>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Upcoming -->
+    <%= if @upcoming_bills != [] do %>
+      <div class="card" style="padding: 1rem;">
+        <div class="ct-hero-label" style="margin-bottom: 0.5rem;">Upcoming</div>
+        <%= for bill <- @upcoming_bills do %>
           <%
-            d = days_until.(bill.next_due_date)
-            urgency_style = cond do
-              !bill.is_active -> "color: var(--text-muted);"
-              d < 0 -> "color: #dc2626; font-weight: 700;"
-              d <= 3 -> "color: #ea580c; font-weight: 600;"
-              d <= 7 -> "color: #d97706;"
-              true -> ""
+            days_until = Date.diff(bill.next_due_date, @today)
+            label = cond do
+              days_until == 1 -> "Tomorrow"
+              days_until <= 7 -> "in #{days_until} days"
+              true -> Calendar.strftime(bill.next_due_date, "%b %d")
             end
           %>
-          <tr style={if !bill.is_active, do: "opacity: 0.5;", else: ""}>
-            <td style="font-weight: 600;"><%= bill.name %></td>
-            <td><%= String.replace(bill.frequency, "_", " ") |> String.capitalize() %></td>
-            <td>
-              <%= if bill.category do %>
-                <span style={"display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; color: white; background: #{Ledgr.Domains.CasaTame.Bills.RecurringBill.category_color(bill.category)}"}>
-                  <%= String.replace(bill.category, "_", " ") |> String.capitalize() %>
-                </span>
-              <% end %>
-            </td>
-            <td class="numeric">
-              <%= if bill.amount_cents do %>
-                <span style={"display: inline-block; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.7rem; font-weight: 600; margin-right: 0.2rem; #{if bill.currency == "USD", do: "background: #DBEAFE; color: #1E40AF;", else: "background: #D1FAE5; color: #065F46;"}"}>
-                  <%= bill.currency %>
-                </span>
-                <%= fmt.(bill.amount_cents) %>
-              <% else %>
-                <span style="color: var(--text-muted);">Variable</span>
-              <% end %>
-            </td>
-            <td style={urgency_style}>
-              <%= bill.next_due_date %>
-              <%= cond do %>
-                <% !bill.is_active -> %>
-                <% d < 0 -> %> <span style="font-size: 0.8rem;">(<%= abs(d) %>d overdue)</span>
-                <% d == 0 -> %> <span style="font-size: 0.8rem;">(today!)</span>
-                <% d <= 7 -> %> <span style="font-size: 0.8rem;">(in <%= d %>d)</span>
-                <% true -> %>
-              <% end %>
-            </td>
-            <td>
-              <%= if bill.is_active do %>
-                <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline;">
-                  <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-                  <button type="submit" class="btn sm" style="background: #059669; color: white; font-size: 0.75rem;">Paid</button>
-                </form>
-              <% else %>
-                <span style="color: var(--text-muted); font-size: 0.8rem;">Completed</span>
-              <% end %>
-            </td>
-            <td>
-              <div style="display: flex; gap: 0.5rem;">
-                <.link navigate={dp(@domain_path_prefix, "/bills/#{bill.id}/edit")} class="btn">Edit</.link>
-                <.link href={dp(@domain_path_prefix, "/bills/#{bill.id}")} method="delete" data-confirm="Delete this bill?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+          <div class="ct-bill-row">
+            <.link navigate={dp(@domain_path_prefix, "/bills/#{bill.id}/edit")} style="display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; text-decoration: none; color: inherit;">
+              <span class={"ct-cal-dot ct-cal-dot--#{bill.category || "other"}"} style="width: 10px; height: 10px; flex-shrink: 0;"></span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.95rem;"><%= bill.name %></div>
+                <div style="font-size: 0.7rem; color: var(--ct-on-surface-variant); display: flex; gap: 0.35rem; align-items: center;">
+                  <span class="ct-badge" style="font-size: 0.6rem;"><%= String.replace(bill.category || "other", "_", " ") |> String.capitalize() %></span>
+                  <span>&middot; <%= label %></span>
+                </div>
               </div>
-            </td>
-          </tr>
+            </.link>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+              <span style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 0.95rem;">
+                <%= if bill.amount_cents, do: fmt.(bill.amount_cents), else: "Variable" %>
+              </span>
+              <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline; margin: 0;">
+                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                <button type="submit" class="ct-quick-pill" style="font-size: 0.6rem; padding: 0.2rem 0.5rem; background: #3d7a5a; color: white;">Paid</button>
+              </form>
+            </div>
+          </div>
         <% end %>
-        <%= if @bills == [] do %>
-          <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No bills yet. Add your first recurring bill.</td></tr>
+      </div>
+    <% end %>
+    </div>
+
+    <!-- Paid This Month -->
+    <%= if @paid_this_month != [] do %>
+      <div class="card" style="padding: 1rem;">
+        <div class="ct-hero-label" style="margin-bottom: 0.5rem;">Paid This Month</div>
+        <%= for bill <- @paid_this_month do %>
+          <div class="ct-bill-row" style="opacity: 0.6;">
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0;">
+              <span class={"ct-cal-dot ct-cal-dot--#{bill.category || "other"}"} style="width: 10px; height: 10px; flex-shrink: 0;"></span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; font-size: 0.9rem; text-decoration: line-through;"><%= bill.name %></div>
+                <div style="font-size: 0.7rem; color: var(--ct-on-surface-variant); display: flex; gap: 0.35rem; align-items: center;">
+                  <span class="ct-badge" style="font-size: 0.6rem; background: #d0e9d4; color: #1B3022;">Paid</span>
+                  <span>&middot; <%= Calendar.strftime(bill.last_paid_date, "%b %d") %></span>
+                </div>
+              </div>
+            </div>
+            <span style="font-family: Manrope, sans-serif; font-weight: 600; font-size: 0.85rem; color: var(--ct-on-surface-variant);">
+              <%= if bill.amount_cents, do: fmt.(bill.amount_cents), else: "Variable" %>
+            </span>
+          </div>
         <% end %>
-      </tbody>
-    </table>
+      </div>
+    <% end %>
+
+    <!-- Inactive / Archived -->
+    <% other_bills = Enum.filter(@bills, fn b -> !b.is_active || b.next_due_date == nil end) %>
+    <%= if other_bills != [] do %>
+      <div class="card" style="padding: 1rem; opacity: 0.6;">
+        <div class="ct-hero-label" style="margin-bottom: 0.5rem;">Inactive / Archived</div>
+        <%= for bill <- other_bills do %>
+          <div class="ct-bill-row">
+            <.link navigate={dp(@domain_path_prefix, "/bills/#{bill.id}/edit")} style="display: flex; align-items: center; gap: 0.6rem; flex: 1; text-decoration: none; color: inherit;">
+              <div>
+                <div style="font-weight: 500; font-size: 0.9rem;"><%= bill.name %></div>
+                <%= if bill.category do %>
+                  <span class="ct-badge" style="font-size: 0.6rem;"><%= String.replace(bill.category, "_", " ") |> String.capitalize() %></span>
+                <% end %>
+              </div>
+            </.link>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Legend -->
+    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 0.5rem 0;">
+      <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ct-on-surface-variant);">
+        <span class="ct-cal-dot ct-cal-dot--credit_card"></span> Credit Card
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ct-on-surface-variant);">
+        <span class="ct-cal-dot ct-cal-dot--utility"></span> Utility
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ct-on-surface-variant);">
+        <span class="ct-cal-dot ct-cal-dot--loan"></span> Loan
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ct-on-surface-variant);">
+        <span class="ct-cal-dot ct-cal-dot--insurance"></span> Insurance
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ct-on-surface-variant);">
+        <span class="ct-cal-dot ct-cal-dot--subscription"></span> Subscription
+      </div>
+    </div>
   </div>
 </section>

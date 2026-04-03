@@ -28,7 +28,7 @@
               <div style="display: flex; gap: 0.5rem;">
                 <.link navigate={dp(@domain_path_prefix, "/categories/#{parent.id}/edit")} class="btn">Edit</.link>
                 <%= unless parent.is_system do %>
-                  <.link href={dp(@domain_path_prefix, "/categories/#{parent.id}")} method="delete" data-confirm="Delete this category?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+                  <.link href={dp(@domain_path_prefix, "/categories/#{parent.id}")} method="delete" data-confirm="Delete this category?" class="btn ct-btn-danger">Delete</.link>
                 <% end %>
               </div>
             </td>
@@ -41,7 +41,7 @@
                 <div style="display: flex; gap: 0.5rem;">
                   <.link navigate={dp(@domain_path_prefix, "/categories/#{child.id}/edit")} class="btn">Edit</.link>
                   <%= unless child.is_system do %>
-                    <.link href={dp(@domain_path_prefix, "/categories/#{child.id}")} method="delete" data-confirm="Delete this category?" class="btn" style="background-color: #dc2626; color: white;">Delete</.link>
+                    <.link href={dp(@domain_path_prefix, "/categories/#{child.id}")} method="delete" data-confirm="Delete this category?" class="btn ct-btn-danger">Delete</.link>
                   <% end %>
                 </div>
               </td>
