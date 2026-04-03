@@ -88,7 +88,8 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
       upcoming_bills: upcoming_bills,
       monthly_total: monthly_total,
       monthly_count: monthly_count,
-      paid_this_month: paid_this_month
+      paid_this_month: paid_this_month,
+      paid_from_options: paid_from_options()
     )
   end
 
@@ -192,16 +193,76 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
     conn |> put_flash(:info, "Bill deleted.") |> redirect(to: dp(conn, "/bills"))
   end
 
-  def mark_paid(conn, %{"id" => id}) do
+  def mark_paid(conn, %{"id" => id} = params) do
     bill = Bills.get_bill!(id)
+    paid_from_account_id = params["paid_from_account_id"]
 
     case Bills.mark_paid(bill) do
       {:ok, _} ->
-        msg = if bill.frequency == "one_time", do: "Bill marked as paid and archived.", else: "Bill marked as paid. Next due: #{Bills.advance_due_date(bill)}."
+        # Auto-create expense if bill has an amount and a paid_from account was selected
+        expense_msg =
+          if bill.amount_cents && paid_from_account_id && paid_from_account_id != "" do
+            # Find a matching expense category based on bill category
+            expense_account_id = bill_category_to_expense_account(bill.category)
+
+            attrs = %{
+              "description" => bill.name,
+              "date" => to_string(Ledgr.Domains.CasaTame.today()),
+              "amount_cents" => bill.amount_cents,
+              "currency" => bill.currency || "MXN",
+              "expense_account_id" => expense_account_id,
+              "paid_from_account_id" => paid_from_account_id
+            }
+
+            case Ledgr.Domains.CasaTame.Expenses.create_expense_with_journal(attrs) do
+              {:ok, _expense} -> " Expense recorded."
+              {:error, _} -> " (Failed to create expense)"
+            end
+          else
+            ""
+          end
+
+        msg = if bill.frequency == "one_time",
+          do: "Bill marked as paid and archived.#{expense_msg}",
+          else: "Bill marked as paid. Next due: #{Bills.advance_due_date(bill)}.#{expense_msg}"
+
         conn |> put_flash(:info, msg) |> redirect(to: dp(conn, "/bills"))
 
       {:error, _} ->
         conn |> put_flash(:error, "Failed to mark as paid.") |> redirect(to: dp(conn, "/bills"))
+    end
+  end
+
+  defp paid_from_options do
+    import Ecto.Query
+    alias Ledgr.Core.Accounting.Account
+
+    Ledgr.Repo.all(
+      from a in Account,
+        where: (a.code >= "1000" and a.code <= "1019")
+            or (a.code >= "1100" and a.code <= "1139")
+            or (a.code >= "2000" and a.code <= "2019")
+            or (a.code >= "2100" and a.code <= "2119"),
+        order_by: [asc: a.code]
+    )
+    |> Enum.map(&{&1.name, &1.id})
+  end
+
+  # Map bill categories to expense account codes
+  defp bill_category_to_expense_account(category) do
+    # Find a reasonable default expense account for each bill category
+    code = case category do
+      "credit_card" -> "6060"    # Financial
+      "utility" -> "6020"        # Utilities
+      "loan" -> "6060"           # Financial
+      "insurance" -> "6070"      # Health & Personal Care
+      "subscription" -> "6050"   # Entertainment
+      _ -> "6099"                # Other
+    end
+
+    case Ledgr.Core.Accounting.get_account_by_code(code) do
+      nil -> nil
+      account -> account.id
     end
   end
 

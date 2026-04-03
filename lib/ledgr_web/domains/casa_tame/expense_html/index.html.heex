@@ -18,8 +18,9 @@
   </header>
 
   <div class="content-body">
-    <!-- Currency Toggle + Date Filter (inline, no wrapping card) -->
+    <!-- Actions + Currency Toggle -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+      <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="ct-quick-pill ct-quick-pill--primary">+ New Expense</.link>
       <div class="ct-currency-toggle">
         <a href={dp(@domain_path_prefix, "/expenses?date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "", do: "ct-toggle-active"}"}>All</a>
         <a href={dp(@domain_path_prefix, "/expenses?currency=MXN&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "MXN", do: "ct-toggle-active"}"}>MXN</a>

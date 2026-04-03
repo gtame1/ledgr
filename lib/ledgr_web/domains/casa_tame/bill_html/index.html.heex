@@ -88,8 +88,14 @@
               <span style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 0.95rem;">
                 <%= if bill.amount_cents, do: fmt.(bill.amount_cents), else: "Variable" %>
               </span>
-              <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline; margin: 0;">
+              <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: flex; align-items: center; gap: 0.3rem; margin: 0;">
                 <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                <select name="paid_from_account_id" style="font-size: 0.65rem; padding: 0.2rem 0.3rem; border-radius: 6px; border: 1px solid var(--ct-outline-variant); background: var(--ct-surface-container); max-width: 120px;">
+                  <option value="">No expense</option>
+                  <%= for {name, id} <- @paid_from_options do %>
+                    <option value={id}><%= name %></option>
+                  <% end %>
+                </select>
                 <button type="submit" class="ct-quick-pill" style="font-size: 0.6rem; padding: 0.2rem 0.5rem; background: #3d7a5a; color: white;">Paid</button>
               </form>
             </div>
@@ -126,8 +132,14 @@
               <span style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 0.95rem;">
                 <%= if bill.amount_cents, do: fmt.(bill.amount_cents), else: "Variable" %>
               </span>
-              <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline; margin: 0;">
+              <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: flex; align-items: center; gap: 0.3rem; margin: 0;">
                 <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                <select name="paid_from_account_id" style="font-size: 0.65rem; padding: 0.2rem 0.3rem; border-radius: 6px; border: 1px solid var(--ct-outline-variant); background: var(--ct-surface-container); max-width: 120px;">
+                  <option value="">No expense</option>
+                  <%= for {name, id} <- @paid_from_options do %>
+                    <option value={id}><%= name %></option>
+                  <% end %>
+                </select>
                 <button type="submit" class="ct-quick-pill" style="font-size: 0.6rem; padding: 0.2rem 0.5rem; background: #3d7a5a; color: white;">Paid</button>
               </form>
             </div>
