@@ -20,9 +20,30 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
     )
   end
 
-  def new(conn, _params) do
-    changeset = Expenses.change_expense(%Expense{date: Ledgr.Domains.CasaTame.today(), currency: "MXN"})
-    render(conn, :new, [changeset: changeset, action: dp(conn, "/expenses")] ++ form_assigns())
+  def new(conn, params) do
+    # Support prefilled values from bill payment flow
+    date = case params["date"] do
+      nil -> Ledgr.Domains.CasaTame.today()
+      d -> case Date.from_iso8601(d) do
+        {:ok, date} -> date
+        _ -> Ledgr.Domains.CasaTame.today()
+      end
+    end
+
+    prefill = %Expense{
+      date: date,
+      currency: params["currency"] || "MXN",
+      description: params["description"],
+      expense_account_id: if(params["expense_account_id"] && params["expense_account_id"] != "", do: String.to_integer(params["expense_account_id"])),
+      paid_from_account_id: if(params["paid_from_account_id"] && params["paid_from_account_id"] != "", do: String.to_integer(params["paid_from_account_id"]))
+    }
+
+    attrs = if params["amount"], do: %{"amount_cents" => params["amount"]}, else: %{}
+    changeset = Expenses.change_expense(prefill, attrs)
+
+    render(conn, :new,
+      [changeset: changeset, action: dp(conn, "/expenses"), from_bill: params["from_bill"]] ++ form_assigns()
+    )
   end
 
   def create(conn, %{"expense" => attrs}) do
