@@ -38,10 +38,14 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
     # Split into today's bills and upcoming
     today_bills = Enum.filter(bills, fn b -> b.is_active && b.next_due_date == today end)
 
+    cutoff_30d = Date.add(today, 30)
+
     upcoming_bills =
       bills
       |> Enum.filter(fn b ->
-        b.is_active && b.next_due_date != nil && Date.compare(b.next_due_date, today) == :gt
+        b.is_active && b.next_due_date != nil &&
+          Date.compare(b.next_due_date, today) == :gt &&
+          Date.compare(b.next_due_date, cutoff_30d) != :gt
       end)
       |> Enum.sort_by(& &1.next_due_date, Date)
 
