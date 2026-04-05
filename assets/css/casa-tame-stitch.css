@@ -1108,6 +1108,60 @@
 
 /* ── Shared template overrides (CSS-only, no template edits) ── */
 
+/* Fix card header layout — stack on mobile instead of overflow */
+[data-domain="casa-tame"] .card > div[style*="justify-content:space-between"],
+[data-domain="casa-tame"] .card > div[style*="justify-content: space-between"] {
+  flex-wrap: wrap !important;
+  gap: 0.75rem !important;
+}
+
+/* Fix button groups inside cards — wrap and size properly */
+[data-domain="casa-tame"] .card div[style*="display: flex"][style*="gap: 0.5rem"] {
+  flex-wrap: wrap !important;
+}
+
+/* Shared page buttons — consistent sizing */
+[data-domain="casa-tame"] .card .btn {
+  white-space: nowrap;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.75rem;
+}
+
+/* Delete buttons in shared templates — muted rose */
+[data-domain="casa-tame"] .card .btn[style*="dc2626"] {
+  background: #9e4a4a !important;
+  color: white !important;
+  border-radius: 10px !important;
+}
+
+/* Nice list styling for detail pages */
+[data-domain="casa-tame"] .nice-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+[data-domain="casa-tame"] .nice-list li {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+[data-domain="casa-tame"] .nice-list li:nth-child(even) {
+  background: var(--ct-surface-container);
+}
+
+[data-domain="casa-tame"] .nice-list li strong {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ct-on-surface-variant);
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
 /* Override inline green/red colors on shared pages */
 [data-domain="casa-tame"] td[style*="059669"],
 [data-domain="casa-tame"] span[style*="059669"] {
