@@ -457,7 +457,7 @@
 /* ── Mobile page container ───────────────────────────────── */
 
 [data-domain="mr-munch-me"] .mm-page {
-  max-width: 28rem; /* ~448px */
+  width: 100%;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -623,6 +623,105 @@
   letter-spacing: 0.02em;
   background: #F0E2D6;
   color: #5C3D2E;
+}
+
+/* ── Sidebar — flat nav matching Stitch desktop design ───── */
+
+[data-domain="mr-munch-me"] .sidebar {
+  background: linear-gradient(180deg, #3A2A1F 0%, #2E211A 100%);
+  padding: 1.5rem 0.5rem;
+}
+
+[data-domain="mr-munch-me"] .mm-sidebar-header {
+  padding: 0 0.75rem 1.25rem;
+}
+
+[data-domain="mr-munch-me"] .mm-sidebar-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #FDF8F3;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-domain="mr-munch-me"] .mm-sidebar-subtitle {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(253, 248, 243, 0.4);
+  margin-top: 0.15rem;
+}
+
+/* Flat nav */
+[data-domain="mr-munch-me"] .mm-nav-flat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #9C8578;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-item:hover {
+  background: rgba(92, 61, 46, 0.5);
+  color: #FDF8F3;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-item .material-symbols-outlined {
+  font-size: 1.25rem;
+  opacity: 0.6;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-item--active {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  font-weight: 600;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-item--active .material-symbols-outlined {
+  opacity: 1;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-item:hover .material-symbols-outlined {
+  opacity: 0.9;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-spacer {
+  height: 0.75rem;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-section-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(253, 248, 243, 0.25);
+  padding: 0.75rem 0.75rem 0.25rem;
+}
+
+/* Sidebar footer */
+[data-domain="mr-munch-me"] .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 /* ── Mobile layout for MrMunchMe ─────────────────────────── */

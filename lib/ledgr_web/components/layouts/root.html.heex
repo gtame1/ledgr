@@ -194,22 +194,99 @@
                 <div class="ct-sidebar-subtitle">Financial Atelier</div>
               </div>
             <% else %>
-              <div class="sidebar-header">
-                <%= if theme[:sidebar_logo] do %>
-                  <div class={"sidebar-logo-wrap#{if theme[:sidebar_logo_bg], do: " sidebar-logo-wrap--bg", else: ""}"}>
-                    <img src={theme[:sidebar_logo]} alt={domain.name()} class="sidebar-logo-img" onerror="this.style.display='none'" />
+              <%= if domain == Ledgr.Domains.MrMunchMe do %>
+                <div class="mm-sidebar-header">
+                  <div class="mm-sidebar-title">
+                    <img src={theme[:sidebar_logo]} alt={domain.name()} style="height: 28px; border-radius: 6px;" onerror="this.style.display='none'" />
+                    <%= domain.name() %>
                   </div>
-                  <span class="sidebar-app-name"><%= domain.name() %></span>
-                <% else %>
-                  <span class="app-logo"><%= domain.logo() %></span>
-                  <span class="app-title"><%= domain.name() %></span>
-                <% end %>
-              </div>
+                  <div class="mm-sidebar-subtitle">Artisan Snacks</div>
+                </div>
+              <% else %>
+                <div class="sidebar-header">
+                  <%= if theme[:sidebar_logo] do %>
+                    <div class={"sidebar-logo-wrap#{if theme[:sidebar_logo_bg], do: " sidebar-logo-wrap--bg", else: ""}"}>
+                      <img src={theme[:sidebar_logo]} alt={domain.name()} class="sidebar-logo-img" onerror="this.style.display='none'" />
+                    </div>
+                    <span class="sidebar-app-name"><%= domain.name() %></span>
+                  <% else %>
+                    <span class="app-logo"><%= domain.logo() %></span>
+                    <span class="app-title"><%= domain.name() %></span>
+                  <% end %>
+                </div>
+              <% end %>
             <% end %>
           </.link>
 
           <nav class="nav">
             <% req_path = @conn.request_path %>
+
+            <%= if domain == Ledgr.Domains.MrMunchMe do %>
+              <%!-- MrMunchMe: flat nav with Material Symbols matching Stitch desktop --%>
+              <%
+                mm_nav_icons = %{
+                  "Dashboard" => "dashboard",
+                  "All Orders" => "shopping_cart",
+                  "Order Calendar" => "calendar_month",
+                  "Inventory" => "inventory_2",
+                  "Shopping List" => "checklist",
+                  "Expenses" => "payments",
+                  "Product List" => "fastfood",
+                  "Ingredient List" => "set_meal",
+                  "Recepies" => "menu_book",
+                  "Discount Codes" => "sell"
+                }
+              %>
+              <div class="mm-nav-flat">
+                <%= for group <- domain.menu_items() do %>
+                  <div class="mm-nav-section-label"><%= group.group %></div>
+                  <%= for item <- group.items do %>
+                    <%
+                      item_path = item.path |> String.split("?") |> hd()
+                      is_active = if item_path == prefix, do: req_path == prefix, else: String.starts_with?(req_path, item_path)
+                      icon = mm_nav_icons[item.label] || "article"
+                    %>
+                    <.link navigate={item.path} class={"mm-nav-item#{if is_active, do: " mm-nav-item--active"}"}>
+                      <span class="material-symbols-outlined"><%= icon %></span>
+                      <%= item.label %>
+                    </.link>
+                  <% end %>
+                <% end %>
+
+                <div class="mm-nav-spacer"></div>
+                <div class="mm-nav-section-label">Reports</div>
+                <.link navigate={"#{prefix}/reports/pnl"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/pnl"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">bar_chart</span> P&L
+                </.link>
+                <.link navigate={"#{prefix}/reports/balance_sheet"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/balance_sheet"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">account_balance</span> Balance Sheet
+                </.link>
+                <.link navigate={"#{prefix}/reports/unit_economics_list"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/unit_economics"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">analytics</span> Unit Economics
+                </.link>
+                <.link navigate={"#{prefix}/reports/cash_flow"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/cash_flow"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">payments</span> Cash Flow
+                </.link>
+                <.link navigate={"#{prefix}/reports/financial_analysis"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/financial_analysis"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">monitoring</span> Financial Analysis
+                </.link>
+
+                <div class="mm-nav-spacer"></div>
+                <div class="mm-nav-section-label">Tools</div>
+                <.link navigate={"#{prefix}/reconciliation/accounting"} class={"mm-nav-item#{if String.contains?(req_path, "/reconciliation/accounting"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">fact_check</span> Reconciliation
+                </.link>
+                <.link navigate={"#{prefix}/reconciliation/inventory"} class={"mm-nav-item#{if String.contains?(req_path, "/reconciliation/inventory"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">inventory</span> Inventory Recon
+                </.link>
+                <.link navigate={"#{prefix}/account-transactions"} class={"mm-nav-item#{if String.contains?(req_path, "/account-transactions"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">list_alt</span> Transactions
+                </.link>
+                <.link navigate={"#{prefix}/customers"} class={"mm-nav-item#{if String.starts_with?(req_path, "#{prefix}/customers"), do: " mm-nav-item--active"}"}>
+                  <span class="material-symbols-outlined">people</span> Customers
+                </.link>
+              </div>
+            <% end %>
 
             <%= if domain == Ledgr.Domains.CasaTame do %>
               <!-- Casa Tame: flat nav matching Stitch sidebar design -->
@@ -275,7 +352,7 @@
             <% end %>
 
             <!-- Core menu groups (shared across all domains, hidden when domain manages its own nav) -->
-            <%= unless domain == Ledgr.Domains.CasaTame do %>
+            <%= unless domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe] do %>
               <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reports/") or String.contains?(req_path, "/account-transactions"), do: "true"}>
                 <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
                   <span>Reports</span>
