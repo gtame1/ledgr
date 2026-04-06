@@ -975,4 +975,405 @@
   }
 }
 
+/* ════════════════════════════════════════════════════════════
+   STOREFRONT (Public Menu) — Warm Artisan Overrides
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Header — warm dark with Manrope brand ─────────────── */
+
+[data-domain="mr-munch-me"] .storefront-header {
+  background: #3A2A1F;
+  padding: 0.75rem 0;
+  box-shadow: 0 2px 12px rgba(58, 42, 31, 0.25);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+[data-domain="mr-munch-me"] .storefront-brand-name {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+  color: #FDF8F3;
+}
+
+[data-domain="mr-munch-me"] .storefront-search-input {
+  background: rgba(253, 248, 243, 0.1);
+  border: 1px solid rgba(253, 248, 243, 0.15);
+  border-radius: 999px;
+  color: #FDF8F3;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem 0.5rem 2.25rem;
+}
+
+[data-domain="mr-munch-me"] .storefront-search-input::placeholder {
+  color: rgba(253, 248, 243, 0.4);
+}
+
+[data-domain="mr-munch-me"] .storefront-search-input:focus {
+  background: rgba(253, 248, 243, 0.15);
+  border-color: #D4956A;
+  outline: none;
+}
+
+[data-domain="mr-munch-me"] .storefront-cart-badge {
+  background: #D4956A;
+  color: white;
+  font-weight: 700;
+}
+
+/* ── Content area ───────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .storefront-layout {
+  background: #FDF8F3;
+}
+
+[data-domain="mr-munch-me"] .storefront-content {
+  padding: 1.5rem 1rem;
+}
+
+/* ── Menu title ─────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .menu-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .menu-subtitle {
+  color: #9C8578;
+}
+
+/* ── Product cards — warm artisan feel ───────────────────── */
+
+[data-domain="mr-munch-me"] .product-card {
+  background: #FFFAF5;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(58, 42, 31, 0.08);
+  border: none;
+}
+
+[data-domain="mr-munch-me"] .product-card:hover {
+  box-shadow: 0 12px 32px rgba(58, 42, 31, 0.15);
+  transform: translateY(-4px);
+}
+
+[data-domain="mr-munch-me"] .product-card-image {
+  background: #F5E6D8;
+}
+
+[data-domain="mr-munch-me"] .product-card-name {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .product-card-name a {
+  color: #3A2A1F;
+  text-decoration: none;
+}
+
+[data-domain="mr-munch-me"] .product-card-description {
+  color: #9C8578;
+}
+
+[data-domain="mr-munch-me"] .product-card-price {
+  color: #5C3D2E;
+  font-family: 'Manrope', sans-serif;
+}
+
+[data-domain="mr-munch-me"] .product-card-footer {
+  border-top: 1px solid #F0E2D6;
+  padding-top: 0.75rem;
+  margin-top: auto;
+}
+
+/* ── Add to Cart / View buttons ──────────────────────────── */
+
+[data-domain="mr-munch-me"] .btn-add-to-cart,
+[data-domain="mr-munch-me"] .btn-add-to-cart-lg {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  border: none;
+}
+
+[data-domain="mr-munch-me"] .btn-add-to-cart:hover,
+[data-domain="mr-munch-me"] .btn-add-to-cart-lg:hover {
+  background: #4D3328;
+}
+
+/* ── Product Detail — warm artisan ──────────────────────── */
+
+[data-domain="mr-munch-me"] .product-detail-name {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  color: #3A2A1F;
+  letter-spacing: -0.02em;
+}
+
+[data-domain="mr-munch-me"] .product-detail-price {
+  color: #5C3D2E;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+}
+
+[data-domain="mr-munch-me"] .product-detail-main-image {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+[data-domain="mr-munch-me"] .product-detail-thumb {
+  border-radius: 10px;
+}
+
+[data-domain="mr-munch-me"] .product-detail-thumb.active {
+  border-color: #5C3D2E;
+}
+
+[data-domain="mr-munch-me"] .variant-selector label {
+  border-radius: 12px;
+  border-color: #F0E2D6;
+  font-family: 'Inter', sans-serif;
+}
+
+[data-domain="mr-munch-me"] .variant-selector input:checked + .variant-option,
+[data-domain="mr-munch-me"] .variant-selector label:has(input:checked) {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  border-color: #5C3D2E;
+}
+
+/* ── Cart — warm styling ─────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .cart-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  color: #3A2A1F;
+  letter-spacing: -0.02em;
+}
+
+[data-domain="mr-munch-me"] .cart-item {
+  border-bottom-color: #F0E2D6;
+}
+
+[data-domain="mr-munch-me"] .cart-item-image {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+[data-domain="mr-munch-me"] .cart-item-name a {
+  color: #3A2A1F;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+}
+
+[data-domain="mr-munch-me"] .cart-total {
+  font-family: 'Manrope', sans-serif;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .qty-controls button {
+  background: #F5E6D8;
+  color: #5C3D2E;
+  border: none;
+  border-radius: 8px;
+}
+
+[data-domain="mr-munch-me"] .qty-controls button:hover {
+  background: #5C3D2E;
+  color: #FDF8F3;
+}
+
+/* ── Checkout — warm form styling ────────────────────────── */
+
+[data-domain="mr-munch-me"] .checkout-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .checkout-section-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .checkout-field input,
+[data-domain="mr-munch-me"] .checkout-field textarea,
+[data-domain="mr-munch-me"] .checkout-field select {
+  border: 1px solid #F0E2D6;
+  background: #FFFAF5;
+  border-radius: 12px;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .checkout-field input:focus,
+[data-domain="mr-munch-me"] .checkout-field textarea:focus {
+  border-color: #5C3D2E;
+  outline: 2px solid rgba(92, 61, 46, 0.15);
+}
+
+[data-domain="mr-munch-me"] .checkout-field label {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .checkout-summary {
+  background: #FFFAF5;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(58, 42, 31, 0.06);
+}
+
+[data-domain="mr-munch-me"] .checkout-order-recap {
+  background: #FFFAF5;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(58, 42, 31, 0.04);
+}
+
+[data-domain="mr-munch-me"] .payment-option {
+  border-radius: 12px;
+  border-color: #F0E2D6;
+}
+
+[data-domain="mr-munch-me"] .payment-option:has(input:checked),
+[data-domain="mr-munch-me"] .payment-option.selected {
+  border-color: #5C3D2E;
+  background: #F5E6D8;
+}
+
+[data-domain="mr-munch-me"] .checkout-radio:has(input:checked),
+[data-domain="mr-munch-me"] .checkout-radio.selected {
+  border-color: #5C3D2E;
+  background: #F5E6D8;
+}
+
+[data-domain="mr-munch-me"] #checkout-submit {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.85rem 1.5rem;
+  border: none;
+}
+
+[data-domain="mr-munch-me"] #checkout-submit:hover {
+  background: #4D3328;
+}
+
+/* ── Confirmation — celebratory warm ─────────────────────── */
+
+[data-domain="mr-munch-me"] .confirmation-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .confirmation-icon {
+  color: #8B9E6B;
+}
+
+[data-domain="mr-munch-me"] .confirmation-summary {
+  background: #FFFAF5;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(58, 42, 31, 0.06);
+}
+
+[data-domain="mr-munch-me"] .whatsapp-btn {
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+}
+
+/* ── Footer — warm tones ─────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .storefront-footer {
+  border-top-color: #F0E2D6;
+  color: #9C8578;
+  background: #FFFAF5;
+}
+
+[data-domain="mr-munch-me"] .storefront-social-link {
+  color: #9C8578;
+}
+
+[data-domain="mr-munch-me"] .storefront-social-link:hover {
+  color: #5C3D2E;
+}
+
+/* ── Mobile storefront refinements ───────────────────────── */
+
+@media (max-width: 768px) {
+  [data-domain="mr-munch-me"] .storefront-content {
+    padding: 1rem 0.75rem;
+  }
+
+  [data-domain="mr-munch-me"] .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  [data-domain="mr-munch-me"] .product-card-body {
+    padding: 0.75rem;
+  }
+
+  [data-domain="mr-munch-me"] .product-card-name {
+    font-size: 0.9rem;
+  }
+
+  [data-domain="mr-munch-me"] .product-card-description {
+    font-size: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  [data-domain="mr-munch-me"] .product-card-price {
+    font-size: 0.95rem;
+  }
+
+  [data-domain="mr-munch-me"] .product-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  [data-domain="mr-munch-me"] .product-detail-name {
+    font-size: 1.5rem;
+  }
+
+  [data-domain="mr-munch-me"] .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Desktop storefront refinements ──────────────────────── */
+
+@media (min-width: 769px) {
+  [data-domain="mr-munch-me"] .menu-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  [data-domain="mr-munch-me"] .storefront-content {
+    padding: 2rem 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-domain="mr-munch-me"] .menu-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 } /* end @layer components */
