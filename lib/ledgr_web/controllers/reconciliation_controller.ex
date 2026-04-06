@@ -22,7 +22,12 @@ defmodule LedgrWeb.ReconciliationController do
 
     last_reconciled_date = Settings.get_last_reconciled_date()
 
-    render(conn, :accounting_index,
+    template =
+      if Ledgr.Domain.current() == Ledgr.Domains.HelloDoctor,
+        do: :hello_doctor_accounting_index,
+        else: :accounting_index
+
+    render(conn, template,
       accounts: accounts,
       as_of: as_of,
       last_reconciled_date: last_reconciled_date

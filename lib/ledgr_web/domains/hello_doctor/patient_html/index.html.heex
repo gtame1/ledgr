@@ -1,0 +1,64 @@
+
+
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Patients</h1>
+  </div>
+
+  <%!-- Search --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/patients")} class="flex gap-3 items-end">
+      <div class="flex-1">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Search</label>
+        <input type="text" name="search" value={@current_search} placeholder="Patient name or phone..." class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+      </div>
+      <button type="submit" class="hd-btn-secondary">Search</button>
+    </form>
+  </div>
+
+  <%!-- Patients Table --%>
+  <div class="hd-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Name</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Phone</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Gender</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Date of Birth</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Insurance</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Registered</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if Enum.empty?(@patients) do %>
+            <tr><td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">No patients found.</td></tr>
+          <% else %>
+            <%= for patient <- @patients do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-3">
+                  <.link navigate={dp(@domain_path_prefix, "/patients/#{patient.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                    <%= (patient.full_name || patient.display_name || "Unknown") %>
+                  </.link>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= patient.phone || "---" %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  <%= if patient.gender, do: patient.gender |> to_string() |> String.capitalize(), else: "---" %>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= patient.date_of_birth || "---" %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= patient.insurance_provider || "---" %></td>
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  <%= if patient.created_at, do: Calendar.strftime(patient.created_at, "%b %d, %Y"), else: "---" %>
+                </td>
+                <td class="p-3 text-right">
+                  <.link navigate={dp(@domain_path_prefix, "/patients/#{patient.id}")} class="text-sm font-medium" style="color: var(--accent);">View</.link>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -50,6 +50,15 @@ config :ledgr, Ledgr.Repos.CasaTame,
   pool_size: 10,
   priv: "priv/repos/casa_tame"
 
+config :ledgr, Ledgr.Repos.HelloDoctor,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_hello_doctor_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 10,
+  priv: "priv/repos/hello_doctor"
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :ledgr, LedgrWeb.Endpoint,

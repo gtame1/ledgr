@@ -1,0 +1,100 @@
+<% fmt = fn nil -> "---"; amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"; amount -> "$#{amount}" end %>
+
+
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Payments</h1>
+  </div>
+
+  <%!-- KPI Cards --%>
+  <div class="hd-kpi-grid mb-6">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Total Revenue</div>
+      <div class="hd-kpi-value"><%= fmt.(@stats.total_revenue) %></div>
+      <div class="hd-kpi-sub">MXN</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">HelloDoctor Fees (15%)</div>
+      <div class="hd-kpi-value"><%= fmt.(@stats.total_fees) %></div>
+      <div class="hd-kpi-sub">commission</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Refunds</div>
+      <div class="hd-kpi-value" style="color: #dc2626;"><%= fmt.(@stats.total_refunds) %></div>
+    </div>
+  </div>
+
+  <%!-- Filters --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/payments")} class="flex flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-[140px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Payment Status</label>
+        <select name="payment_status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+          <option value="">All</option>
+          <option value="completed" selected={@current_payment_status == "completed"}>Completed</option>
+          <option value="pending" selected={@current_payment_status == "pending"}>Pending</option>
+          <option value="refunded" selected={@current_payment_status == "refunded"}>Refunded</option>
+          <option value="failed" selected={@current_payment_status == "failed"}>Failed</option>
+        </select>
+      </div>
+      <button type="submit" class="hd-btn-secondary">Filter</button>
+    </form>
+  </div>
+
+  <%!-- Payments Table --%>
+  <div class="hd-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Patient</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fee (15%)</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor Payout</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Payment Status</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if Enum.empty?(@consultations) do %>
+            <tr><td colspan="8" class="p-6 text-center" style="color: var(--text-muted);">No payments found.</td></tr>
+          <% else %>
+            <%= for c <- @consultations do %>
+              <% amount = c.payment_amount || 0.0 %>
+              <% fee = amount * 0.15 %>
+              <% payout = amount * 0.85 %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                </td>
+                <td class="p-3 text-sm font-medium" style="color: var(--text-main);">
+                  <%= if c.patient, do: (c.patient.full_name || c.patient.display_name || "Unknown"), else: "---" %>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  <%= if c.doctor, do: c.doctor.name, else: "---" %>
+                </td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></td>
+                <td class="p-3 text-sm text-right" style="color: var(--primary);"><%= fmt.(fee) %></td>
+                <td class="p-3 text-sm text-right" style="color: var(--text-main);"><%= fmt.(payout) %></td>
+                <td class="p-3">
+                  <%= if c.payment_status do %>
+                    <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+                  <% else %>
+                    <span class="text-sm" style="color: var(--text-muted);">---</span>
+                  <% end %>
+                </td>
+                <td class="p-3 text-right">
+                  <.link navigate={dp(@domain_path_prefix, "/payments/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                    View
+                  </.link>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

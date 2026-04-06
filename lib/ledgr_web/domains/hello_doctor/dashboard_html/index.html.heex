@@ -1,0 +1,117 @@
+<% fmt = fn cents -> "$#{div(cents, 100)}.#{rem(cents, 100) |> Integer.to_string() |> String.pad_leading(2, "0")}" end %>
+
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Dashboard</h1>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="hd-card p-5">
+      <div class="text-sm font-medium" style="color: var(--text-muted);">Active Consultations</div>
+      <div class="text-3xl font-bold mt-1" style="color: var(--accent);"><%= @active_consultations %></div>
+      <div class="text-xs mt-1" style="color: var(--text-muted);">Currently in progress</div>
+    </div>
+
+    <div class="hd-card p-5">
+      <div class="text-sm font-medium" style="color: var(--text-muted);">Revenue This Month</div>
+      <div class="text-3xl font-bold mt-1" style="color: var(--accent);"><%= fmt.(@revenue_period) %></div>
+      <div class="text-xs mt-1" style="color: var(--text-muted);">MXN collected</div>
+    </div>
+
+    <div class="hd-card p-5">
+      <div class="text-sm font-medium" style="color: var(--text-muted);">Doctors Active</div>
+      <div class="text-3xl font-bold mt-1" style="color: var(--accent);"><%= @doctors_active %></div>
+      <div class="text-xs mt-1" style="color: var(--text-muted);">Available for consultations</div>
+    </div>
+
+    <div class="hd-card p-5">
+      <div class="text-sm font-medium" style="color: var(--text-muted);">Patients This Month</div>
+      <div class="text-3xl font-bold mt-1" style="color: var(--accent);"><%= @patients_period %></div>
+      <div class="text-xs mt-1" style="color: var(--text-muted);">New registrations</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Recent Consultations -->
+    <div class="lg:col-span-2">
+      <div class="hd-card">
+        <div class="flex items-center justify-between p-4 border-b" style="border-color: var(--border-subtle);">
+          <h2 class="text-lg font-semibold" style="color: var(--text-main);">Recent Consultations</h2>
+          <.link navigate={dp(@domain_path_prefix, "/consultations")} class="text-sm font-medium" style="color: var(--accent);">
+            View all
+          </.link>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="hd-table w-full">
+            <thead>
+              <tr>
+                <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Patient</th>
+                <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor</th>
+                <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Status</th>
+                <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= if Enum.empty?(@recent_consultations) do %>
+                <tr><td colspan="4" class="p-4 text-center" style="color: var(--text-muted);">No recent consultations.</td></tr>
+              <% else %>
+                <%= for c <- @recent_consultations do %>
+                  <tr class="border-t" style="border-color: var(--border-subtle);">
+                    <td class="p-3 text-sm">
+                      <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="font-medium" style="color: var(--accent);">
+                        <%= c.patient.name %>
+                      </.link>
+                    </td>
+                    <td class="p-3 text-sm" style="color: var(--text-main);"><%= c.doctor.name %></td>
+                    <td class="p-3">
+                      <span class={"inline-block px-2 py-0.5 rounded-full text-xs font-medium #{status_badge_class(c.status)}"}>
+                        <%= c.status %>
+                      </span>
+                    </td>
+                    <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(c.amount) %></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Doctors -->
+    <div>
+      <div class="hd-card">
+        <div class="flex items-center justify-between p-4 border-b" style="border-color: var(--border-subtle);">
+          <h2 class="text-lg font-semibold" style="color: var(--text-main);">Top Doctors</h2>
+          <.link navigate={dp(@domain_path_prefix, "/doctors")} class="text-sm font-medium" style="color: var(--accent);">
+            View all
+          </.link>
+        </div>
+        <div class="divide-y" style="--tw-divide-opacity: 1; border-color: var(--border-subtle);">
+          <%= if Enum.empty?(@top_doctors) do %>
+            <div class="p-4 text-center text-sm" style="color: var(--text-muted);">No doctors yet.</div>
+          <% else %>
+            <%= for doctor <- @top_doctors do %>
+              <div class="flex items-center gap-3 p-4">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--primary);">
+                  <%= String.first(doctor.name) %>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <.link navigate={dp(@domain_path_prefix, "/doctors/#{doctor.id}")} class="text-sm font-medium truncate block" style="color: var(--text-main);">
+                    <%= doctor.name %>
+                  </.link>
+                  <div class="text-xs" style="color: var(--text-muted);"><%= doctor.specialty %></div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-semibold" style="color: var(--text-main);"><%= doctor.consultation_count %></div>
+                  <div class="text-xs" style="color: var(--text-muted);">consults</div>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

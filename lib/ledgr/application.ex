@@ -38,13 +38,14 @@ defmodule Ledgr.Application do
     # config/test.exs); in dev/prod only start when their DATABASE_URL is set.
     optional_repos =
       if @mix_env != :prod do
-        [Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame]
+        [Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame, Ledgr.Repos.HelloDoctor]
       else
         [
           {"VIAXE_DATABASE_URL", Ledgr.Repos.Viaxe},
           {"VOLUME_STUDIO_DATABASE_URL", Ledgr.Repos.VolumeStudio},
           {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ},
-          {"CASA_TAME_DATABASE_URL", Ledgr.Repos.CasaTame}
+          {"CASA_TAME_DATABASE_URL", Ledgr.Repos.CasaTame},
+          {"HELLO_DOCTOR_DATABASE_URL", Ledgr.Repos.HelloDoctor}
         ]
         |> Enum.filter(fn {env_var, repo} ->
           case System.get_env(env_var) do

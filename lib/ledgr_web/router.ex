@@ -323,6 +323,36 @@ defmodule LedgrWeb.Router do
     get "/reports/category-breakdown", Domains.CasaTame.ReportController, :category_breakdown
   end
 
+  # ── Hello Doctor: public auth routes ────────────────────────────────
+  scope "/app/hello-doctor", LedgrWeb do
+    pipe_through :browser
+
+    get "/login", SessionController, :new
+    post "/login", SessionController, :create
+    delete "/logout", SessionController, :delete
+  end
+
+  # ── Hello Doctor: protected routes ─────────────────────────────────
+  scope "/app/hello-doctor", LedgrWeb do
+    pipe_through [:browser, :require_auth]
+
+    core_routes_no_customers()
+
+    # Consultations (read-only — bot creates consultations)
+    resources "/consultations", Domains.HelloDoctor.ConsultationController, only: [:index, :show]
+    post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
+
+    # Doctors (read-only — bot manages doctors)
+    resources "/doctors", Domains.HelloDoctor.DoctorController, only: [:index, :show]
+    post "/doctors/:id/toggle-status", Domains.HelloDoctor.DoctorController, :toggle_status
+
+    # Patients (read-only — bot manages patients)
+    resources "/patients", Domains.HelloDoctor.PatientController, only: [:index, :show]
+
+    # Payments (queries consultations with payment data)
+    resources "/payments", Domains.HelloDoctor.PaymentController, only: [:index, :show]
+  end
+
   # ── API endpoints (core) ─────────────────────────────────────────────
   scope "/api", LedgrWeb do
     pipe_through :api

@@ -28,11 +28,12 @@ defmodule Ledgr.Repo do
   def repo_for_domain(Ledgr.Domains.VolumeStudio), do: Ledgr.Repos.VolumeStudio
   def repo_for_domain(Ledgr.Domains.LedgrHQ), do: Ledgr.Repos.LedgrHQ
   def repo_for_domain(Ledgr.Domains.CasaTame), do: Ledgr.Repos.CasaTame
+  def repo_for_domain(Ledgr.Domains.HelloDoctor), do: Ledgr.Repos.HelloDoctor
   def repo_for_domain(_), do: Ledgr.Repos.MrMunchMe
 
   @doc "Returns all configured repo modules."
   def all_repos do
-    [Ledgr.Repos.MrMunchMe, Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame]
+    [Ledgr.Repos.MrMunchMe, Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame, Ledgr.Repos.HelloDoctor]
   end
 
   # ── Ecto.Repo delegations ──────────────────────────────────────────

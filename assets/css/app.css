@@ -13,6 +13,9 @@
 /* MrMunchMe Stitch design overrides */
 @import "./mr-munch-me-stitch.css";
 
+/* HelloDoctor Stitch design overrides */
+@import "./hello-doctor-stitch.css";
+
 @layer components {
   /* ==============================
    Base

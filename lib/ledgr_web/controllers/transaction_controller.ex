@@ -10,7 +10,12 @@ defmodule LedgrWeb.TransactionController do
   def index(conn, _params) do
     entries = Accounting.list_journal_entries()
 
-    render(conn, :index,
+    template =
+      if Ledgr.Domain.current() == Ledgr.Domains.HelloDoctor,
+        do: :hello_doctor_index,
+        else: :index
+
+    render(conn, template,
       page_title: "Transactions",
       entries: entries
     )

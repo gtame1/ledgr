@@ -1,0 +1,151 @@
+<% fmt = fn nil -> "---"; amount -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}" end %>
+
+<% p = @patient %>
+
+<div class="hd-page">
+  <div class="mb-6">
+    <.link navigate={dp(@domain_path_prefix, "/patients")} class="hd-back">
+      &larr; Back to Patients
+    </.link>
+  </div>
+
+  <%!-- Header --%>
+  <div class="flex items-center gap-4 mb-6">
+    <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style="background: var(--primary);">
+      <%= String.first((p.full_name || p.display_name || "Unknown")) %>
+    </div>
+    <div class="flex-1">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);"><%= (p.full_name || p.display_name || "Unknown") %></h1>
+      <div class="text-sm" style="color: var(--text-muted);">
+        <%= if p.date_of_birth, do: "DOB: #{p.date_of_birth}" %>
+        <%= if p.gender, do: " - #{p.gender |> to_string() |> String.capitalize()}" %>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%!-- Patient Info --%>
+    <div>
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">Patient Info</h2>
+        <div class="space-y-3">
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Full Name</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= p.full_name || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Display Name</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= p.display_name || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Phone</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= p.phone || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Date of Birth</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= p.date_of_birth || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Gender</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= if p.gender, do: p.gender |> to_string() |> String.capitalize(), else: "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Blood Type</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= p.blood_type || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Weight / Height</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if p.weight_kg, do: "#{p.weight_kg} kg", else: "---" %>
+              /
+              <%= if p.height_cm, do: "#{p.height_cm} cm", else: "---" %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Insurance</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= p.insurance_provider || "---" %></div>
+          </div>
+          <%= if p.emergency_contact_name || p.emergency_contact_phone do %>
+            <div>
+              <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Emergency Contact</div>
+              <div class="text-sm" style="color: var(--text-main);">
+                <%= p.emergency_contact_name || "" %> <%= if p.emergency_contact_phone, do: "(#{p.emergency_contact_phone})" %>
+              </div>
+            </div>
+          <% end %>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Registered</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if p.created_at, do: Calendar.strftime(p.created_at, "%B %d, %Y"), else: "---" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Consultation History --%>
+    <div class="lg:col-span-2">
+      <div class="hd-card">
+        <div class="flex items-center justify-between p-4 border-b" style="border-color: var(--border-subtle);">
+          <h2 class="text-lg font-semibold" style="color: var(--text-main);">Consultation History</h2>
+        </div>
+        <%= if p.consultations && !Enum.empty?(p.consultations) do %>
+          <div class="overflow-x-auto">
+            <table class="hd-table w-full">
+              <thead>
+                <tr>
+                  <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
+                  <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor</th>
+                  <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Status</th>
+                  <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for c <- p.consultations do %>
+                  <tr class="border-t" style="border-color: var(--border-subtle);">
+                    <td class="p-3 text-sm" style="color: var(--text-muted);">
+                      <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                    </td>
+                    <td class="p-3">
+                      <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                        <%= if c.doctor, do: c.doctor.name, else: "---" %>
+                      </.link>
+                    </td>
+                    <td class="p-3">
+                      <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                    </td>
+                    <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="p-6 text-center text-sm" style="color: var(--text-muted);">No consultations yet.</div>
+        <% end %>
+      </div>
+
+      <%!-- Medical Records --%>
+      <%= if p.medical_records && !Enum.empty?(p.medical_records) do %>
+        <div class="hd-card mt-6">
+          <div class="p-4 border-b" style="border-color: var(--border-subtle);">
+            <h2 class="text-lg font-semibold" style="color: var(--text-main);">Medical Records</h2>
+          </div>
+          <div class="divide-y" style="border-color: var(--border-subtle);">
+            <%= for record <- p.medical_records do %>
+              <div class="p-4">
+                <div class="text-sm font-medium" style="color: var(--text-main);"><%= record.title || record.type || "Record" %></div>
+                <%= if record.description do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);"><%= record.description %></div>
+                <% end %>
+                <%= if record.created_at do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);"><%= Calendar.strftime(record.created_at, "%b %d, %Y") %></div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

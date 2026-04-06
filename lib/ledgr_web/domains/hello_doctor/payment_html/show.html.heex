@@ -1,0 +1,115 @@
+<% fmt = fn nil -> "---"; amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"; amount -> "$#{amount}" end %>
+
+<% c = @consultation %>
+<% amount = c.payment_amount || 0.0 %>
+<% fee = amount * 0.15 %>
+<% payout = amount * 0.85 %>
+
+<div class="hd-page">
+  <div class="mb-6">
+    <.link navigate={dp(@domain_path_prefix, "/payments")} class="hd-back">
+      &larr; Back to Payments
+    </.link>
+  </div>
+
+  <div class="flex items-center gap-3 mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Payment Details</h1>
+    <%= if c.payment_status do %>
+      <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%!-- Payment Details --%>
+    <div class="lg:col-span-2">
+      <div class="hd-card p-5">
+        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Amount Breakdown</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Total Amount</div>
+            <div class="text-xl font-bold" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Payment Status</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if c.payment_status, do: c.payment_status |> to_string() |> String.capitalize(), else: "---" %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">HelloDoctor Fee (15%)</div>
+            <div class="text-sm font-semibold" style="color: var(--primary);"><%= fmt.(fee) %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Doctor Payout (85%)</div>
+            <div class="text-sm font-semibold" style="color: var(--accent);"><%= fmt.(payout) %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Date</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%B %d, %Y at %I:%M %p"), else: "---" %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Consultation Status</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Related Info --%>
+    <div class="space-y-6">
+      <%!-- Consultation --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Consultation</h3>
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Status</span>
+            <span style="color: var(--text-main);"><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+          </div>
+          <div class="pt-2 border-t" style="border-color: var(--border-subtle);">
+            <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
+              View Consultation
+            </.link>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Patient --%>
+      <%= if c.patient do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Patient</h3>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--primary);">
+              <%= String.first((c.patient.full_name || c.patient.display_name || "Unknown")) %>
+            </div>
+            <div>
+              <.link navigate={dp(@domain_path_prefix, "/patients/#{c.patient.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                <%= (c.patient.full_name || c.patient.display_name || "Unknown") %>
+              </.link>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Doctor --%>
+      <%= if c.doctor do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Doctor</h3>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--accent);">
+              <%= String.first(c.doctor.name) %>
+            </div>
+            <div>
+              <.link navigate={dp(@domain_path_prefix, "/doctors/#{c.doctor.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                <%= c.doctor.name %>
+              </.link>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

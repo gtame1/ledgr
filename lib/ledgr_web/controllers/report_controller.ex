@@ -17,11 +17,12 @@ defmodule LedgrWeb.ReportController do
     metrics = domain.dashboard_metrics(start_date, end_date)
 
     template = cond do
-      domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
-      domain == Ledgr.Domains.LedgrHQ      -> :ledgr_hq_dashboard
-      domain == Ledgr.Domains.CasaTame     -> :casa_tame_dashboard
-      domain == Ledgr.Domains.MrMunchMe    -> :mr_munch_me_dashboard
-      true                                  -> :dashboard
+      domain == Ledgr.Domains.VolumeStudio  -> :volume_studio_dashboard
+      domain == Ledgr.Domains.LedgrHQ       -> :ledgr_hq_dashboard
+      domain == Ledgr.Domains.CasaTame      -> :casa_tame_dashboard
+      domain == Ledgr.Domains.MrMunchMe     -> :mr_munch_me_dashboard
+      domain == Ledgr.Domains.HelloDoctor   -> :hello_doctor_dashboard
+      true                                   -> :dashboard
     end
 
     render(conn, template,
@@ -45,6 +46,7 @@ defmodule LedgrWeb.ReportController do
     template = cond do
       domain == Ledgr.Domains.CasaTame -> :casa_tame_pnl
       domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_pnl
+      domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_pnl
       true -> :pnl
     end
 
@@ -87,6 +89,7 @@ defmodule LedgrWeb.ReportController do
     template = cond do
       Domain.current() == Ledgr.Domains.CasaTame -> :casa_tame_balance_sheet
       Domain.current() == Ledgr.Domains.MrMunchMe -> :mr_munch_me_balance_sheet
+      Domain.current() == Ledgr.Domains.HelloDoctor -> :hello_doctor_balance_sheet
       true -> :balance_sheet
     end
 

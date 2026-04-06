@@ -1,0 +1,167 @@
+<% fmt = fn nil -> "---"; amount -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}" end %>
+
+<% c = @consultation %>
+
+<div class="hd-page">
+  <div class="mb-6">
+    <.link navigate={dp(@domain_path_prefix, "/consultations")} class="hd-back">
+      &larr; Back to Consultations
+    </.link>
+  </div>
+
+  <div class="flex items-center gap-3 mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Consultation</h1>
+    <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+  </div>
+
+  <div class="hd-two-col">
+    <%!-- Left Column: Consultation Details --%>
+    <div class="space-y-6">
+      <div class="hd-card p-5">
+        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Consultation Details</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Assigned At</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%B %d, %Y at %I:%M %p"), else: "---" %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Accepted At</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if c.accepted_at, do: Calendar.strftime(c.accepted_at, "%B %d, %Y at %I:%M %p"), else: "---" %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Completed At</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if c.completed_at, do: Calendar.strftime(c.completed_at, "%B %d, %Y at %I:%M %p"), else: "---" %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Duration</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if c.duration_minutes, do: "#{c.duration_minutes} min", else: "---" %>
+            </div>
+          </div>
+          <%= if c.doctor_notes do %>
+            <div class="col-span-2">
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Doctor Notes</div>
+              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= c.doctor_notes %></div>
+            </div>
+          <% end %>
+          <%= if c.patient_summary do %>
+            <div class="col-span-2">
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Patient Summary</div>
+              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= c.patient_summary %></div>
+            </div>
+          <% end %>
+          <%= if c.patient_rating do %>
+            <div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Patient Rating</div>
+              <div class="text-sm font-semibold" style="color: var(--accent);"><%= c.patient_rating %> / 5</div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%!-- Status Update --%>
+      <div class="hd-card p-5">
+        <h2 class="text-lg font-semibold mb-3" style="color: var(--text-main);">Update Status</h2>
+        <.form for={%{}} action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")} method="post" class="flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">New Status</label>
+            <select name="status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+              <option value="pending" selected={to_string(c.status) == "pending"}>Pending</option>
+              <option value="assigned" selected={to_string(c.status) == "assigned"}>Assigned</option>
+              <option value="active" selected={to_string(c.status) == "active"}>Active</option>
+              <option value="completed" selected={to_string(c.status) == "completed"}>Completed</option>
+              <option value="cancelled" selected={to_string(c.status) == "cancelled"}>Cancelled</option>
+            </select>
+          </div>
+          <button type="submit" class="hd-btn-primary">Update</button>
+        </.form>
+      </div>
+    </div>
+
+    <%!-- Right Column: Related Info --%>
+    <div class="space-y-6">
+      <%!-- Patient Card --%>
+      <%= if c.patient do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Patient</h3>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--primary);">
+              <%= String.first((c.patient.full_name || c.patient.display_name || "Unknown")) %>
+            </div>
+            <div>
+              <.link navigate={dp(@domain_path_prefix, "/patients/#{c.patient.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                <%= (c.patient.full_name || c.patient.display_name || "Unknown") %>
+              </.link>
+              <div class="text-xs" style="color: var(--text-muted);"><%= c.patient.phone || "" %></div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Doctor Card --%>
+      <%= if c.doctor do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Doctor</h3>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--accent);">
+              <%= String.first(c.doctor.name) %>
+            </div>
+            <div>
+              <.link navigate={dp(@domain_path_prefix, "/doctors/#{c.doctor.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                <%= c.doctor.name %>
+              </.link>
+              <div class="text-xs" style="color: var(--text-muted);"><%= c.doctor.specialty %></div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Payment Card --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Payment</h3>
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Amount</span>
+            <span class="font-medium" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Status</span>
+            <span>
+              <%= if c.payment_status do %>
+                <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+              <% else %>
+                <span style="color: var(--text-muted);">---</span>
+              <% end %>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Prescriptions --%>
+      <%= if c.prescriptions && !Enum.empty?(c.prescriptions) do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Prescriptions</h3>
+          <div class="space-y-3">
+            <%= for rx <- c.prescriptions do %>
+              <div class="p-3 rounded-lg" style="background: var(--bg-surface);">
+                <div class="text-sm font-medium" style="color: var(--text-main);"><%= rx.medication || rx.name || "Prescription" %></div>
+                <%= if rx.dosage do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);">Dosage: <%= rx.dosage %></div>
+                <% end %>
+                <%= if rx.instructions do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);"><%= rx.instructions %></div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

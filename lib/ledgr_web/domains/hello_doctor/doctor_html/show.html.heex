@@ -1,0 +1,100 @@
+
+<% d = @doctor %>
+
+<div class="hd-page">
+  <div class="mb-6">
+    <.link navigate={dp(@domain_path_prefix, "/doctors")} class="hd-back">
+      &larr; Back to Doctors
+    </.link>
+  </div>
+
+  <%!-- Header --%>
+  <div class="flex items-center gap-4 mb-6">
+    <div class="hd-doctor-avatar text-2xl" style="width: 4rem; height: 4rem;">
+      <%= String.first(d.name) %>
+    </div>
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);"><%= d.name %></h1>
+        <%= if d.is_available do %>
+          <span class="hd-badge hd-badge--active">Available</span>
+        <% else %>
+          <span class="hd-badge" style="background: #e5e7eb; color: #6b7280;">Unavailable</span>
+        <% end %>
+      </div>
+      <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium" style="background: rgba(2, 186, 151, 0.1); color: var(--accent);">
+        <%= d.specialty %>
+      </span>
+    </div>
+    <div class="ml-auto">
+      <.link href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle_status")} method="post" class="hd-btn-primary">
+        <%= if d.is_available, do: "Set Unavailable", else: "Set Available" %>
+      </.link>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%!-- Info Card --%>
+    <div class="lg:col-span-2">
+      <div class="hd-card p-5">
+        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Doctor Information</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Phone</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= d.phone || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Email</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= d.email || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Cedula Profesional</div>
+            <div class="text-sm font-mono" style="color: var(--text-main);"><%= d.cedula_profesional || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">University</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= d.university || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Years of Experience</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if d.years_experience, do: "#{d.years_experience} years", else: "---" %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Specialty</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= d.specialty || "---" %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Recent Consultations --%>
+    <div>
+      <div class="hd-card">
+        <div class="p-4 border-b" style="border-color: var(--border-subtle);">
+          <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">Recent Consultations</h3>
+        </div>
+        <%= if d.consultations && !Enum.empty?(d.consultations) do %>
+          <div class="divide-y" style="border-color: var(--border-subtle);">
+            <%= for c <- Enum.take(d.consultations, 10) do %>
+              <div class="p-3">
+                <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                  <%= if c.patient, do: (c.patient.full_name || c.patient.display_name || "Unknown"), else: "Patient" %>
+                </.link>
+                <div class="flex items-center justify-between mt-1">
+                  <span class="text-xs" style="color: var(--text-muted);">
+                    <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                  </span>
+                  <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-4 text-center text-sm" style="color: var(--text-muted);">No consultations yet.</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
