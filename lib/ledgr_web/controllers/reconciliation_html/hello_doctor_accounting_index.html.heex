@@ -1,0 +1,87 @@
+<% fmt = fn cents ->
+  cents = cents || 0
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  "#{sign}$#{formatted}"
+end %>
+
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Reconciliation</h1>
+  </div>
+
+  <%!-- Date Picker --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/reconciliation/accounting")} class="flex flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-[140px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">As of date</label>
+        <input type="date" name="as_of" value={@as_of} class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+      </div>
+      <button type="submit" class="hd-btn-secondary">Update</button>
+    </form>
+  </div>
+
+  <%!-- Accounts Table --%>
+  <div class="hd-card overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Account Code</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Account Name</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">System Balance</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Actual Balance</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Description</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for {type, group_accounts} <- Enum.group_by(@accounts, fn a -> a.account.type end) |> Enum.sort() do %>
+            <%!-- Section Header --%>
+            <tr>
+              <td colspan="6" class="p-3 text-xs font-bold uppercase tracking-wide" style="color: #0d9488; background: rgba(13, 148, 136, 0.05);">
+                <%= type |> to_string() |> String.upcase() %>
+              </td>
+            </tr>
+            <%= for acct <- Enum.sort_by(group_accounts, & &1.account.code) do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <form method="post" action={dp(@domain_path_prefix, "/reconciliation/accounting/adjust")}>
+                  <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                  <input type="hidden" name="account_id" value={acct.account.id} />
+                  <input type="hidden" name="adjustment_date" value={@as_of} />
+                  <td class="p-3 text-sm font-mono" style="color: var(--text-muted);"><%= acct.account.code %></td>
+                  <td class="p-3 text-sm font-medium" style="color: var(--text-main);"><%= acct.account.name %></td>
+                  <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(acct.balance_cents) %></td>
+                  <td class="p-3 text-right">
+                    <input type="number" step="0.01" name="actual_balance" value="0.00" class="w-28 rounded-md border px-2 py-1 text-sm text-right" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+                  </td>
+                  <td class="p-3">
+                    <input type="text" name="description" placeholder="Adjustment note" class="w-full rounded-md border px-2 py-1 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+                  </td>
+                  <td class="p-3 text-right">
+                    <button type="submit" class="hd-btn-secondary text-xs">Adjust</button>
+                  </td>
+                </form>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%!-- Reconcile All --%>
+  <div class="flex items-center justify-between">
+    <div>
+      <%= if @last_reconciled_date do %>
+        <p class="text-sm" style="color: var(--text-muted);">Last reconciled: <strong><%= @last_reconciled_date %></strong></p>
+      <% end %>
+    </div>
+    <form method="post" action={dp(@domain_path_prefix, "/reconciliation/accounting/reconcile_all")}>
+      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+      <input type="hidden" name="as_of" value={@as_of} />
+      <button type="submit" class="hd-btn-primary">Reconcile All</button>
+    </form>
+  </div>
+</div>
