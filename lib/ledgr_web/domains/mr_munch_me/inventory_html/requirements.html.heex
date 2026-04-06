@@ -1,118 +1,97 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">Inventory Requirements</h1>
-    <p class="text-muted">
-      Ingredients required to fulfill all <strong>new</strong> orders.
-    </p>
-  </header>
-
-  <div class="content-body">
-    <!-- 🛒 SHOPPING LIST (SHORTAGES ONLY) -->
-    <section class="card">
-      <h2 class="card-title">Shopping List</h2>
-      <p class="card-subtitle">
-        Ingredients where current stock at each location is <strong>not enough</strong> to fulfill upcoming new orders.
-      </p>
-
-      <% shortage_items =
-        @requirements
-        |> Enum.filter(&(&1.shortage > 0))
-        |> Enum.sort_by(fn r ->
-          {r.needed_by || r.location_name, ~D[9999-12-31],  r.ingredient_name}
-        end)
-      %>
-
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Location</th>
-              <th>Ingredient</th>
-              <th class="numeric">Shortage</th>
-              <th>Unit</th>
-              <th>Needed By</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <%= if shortage_items == [] do %>
-              <tr>
-                <td colspan="5">
-                  ✅ No shortages right now. You have enough inventory to fulfill all new orders.
-                </td>
-              </tr>
-            <% else %>
-              <%= for r <- shortage_items do %>
-                <tr class="alert-row">
-                  <td><.location_badge location={r.location} /></td>
-                  <td><strong><%= r.ingredient_name %></strong></td>
-                  <td class={["numeric", "text-danger"]}>
-                    <%= r.shortage %>
-                  </td>
-                  <td><%= r.unit %></td>
-                  <td>
-                    <%= if r.needed_by do %>
-                      <%= r.needed_by %>
-                    <% else %>
-                      –
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            <% end %>
-          </tbody>
-        </table>
+<%!-- ── MrMunchMe Ingredient Requirements — Stitch Mobile Design ── --%>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/inventory")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <div>
+        <h1 class="mm-topbar-title">Shopping List</h1>
+        <p style="font-size: 0.7rem; color: #9C8578; margin: 0;">What you need for upcoming orders</p>
       </div>
-    </section>
-
-    <section class="card">
-      <h2 class="card-title">Upcoming Order Requirements</h2>
-      <p class="card-subtitle">
-        Based on all orders with status <code>new_order</code>.
-      </p>
-
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-                <th>Location</th>
-                <th>Ingredient</th>
-                <th class="numeric">On Hand</th>
-                <th class="numeric">Required</th>
-                <th class="numeric">Shortage</th>
-                <th>Unit</th>
-                <th>Needed By</th>
-            </tr>
-            </thead>
-
-            <tbody>
-                <%= if @requirements == [] do %>
-                    <tr>
-                    <td colspan="6">✅ No new orders require inventory right now.</td>
-                    </tr>
-                <% else %>
-                    <%= for r <- @requirements |> Enum.sort_by(fn r -> {r.location_name, r.needed_by || ~D[9999-12-31], r.ingredient_name} end) do %>                    <tr class={r.shortage > 0 && "alert-row"}>
-                        <td><.location_badge location={r.location} /></td>
-                        <td><strong><%= r.ingredient_name %></strong></td>
-                        <td class="numeric"><%= r.on_hand %></td>
-                        <td class="numeric"><%= r.total_required %></td>
-                        <td class={["numeric", r.shortage > 0 && "text-danger"]}>
-                        <%= r.shortage %>
-                        </td>
-                        <td><%= r.unit %></td>
-                        <td>
-                            <%= if r.needed_by do %>
-                                <%= r.needed_by %>
-                            <% else %>
-                                –
-                            <% end %>
-                        </td>
-                    </tr>
-                    <% end %>
-                <% end %>
-            </tbody>
-        </table>
-      </div>
-    </section>
+    </div>
   </div>
-</section>
+
+  <%
+    shortage_items =
+      @requirements
+      |> Enum.filter(&(&1.shortage > 0))
+      |> Enum.sort_by(fn r -> {r.needed_by || ~D[9999-12-31], r.ingredient_name} end)
+
+    ok_items =
+      @requirements
+      |> Enum.filter(&(&1.shortage <= 0))
+      |> Enum.sort_by(fn r -> r.ingredient_name end)
+  %>
+
+  <%!-- Summary card --%>
+  <div class="mm-hero-card" style="margin-bottom: 1rem;">
+    <div class="mm-hero-label">Pending Orders</div>
+    <div class="mm-hero-value" style="font-size: 1.75rem;"><%= length(@requirements) %> ingredients needed</div>
+    <div class="mm-hero-sublabel">
+      <%= if shortage_items == [] do %>
+        All in stock
+      <% else %>
+        <span style="color: #F5E6D8;"><%= length(shortage_items) %> shortage<%= if length(shortage_items) != 1, do: "s" %></span>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- Shortages --%>
+  <%= if shortage_items != [] do %>
+    <div class="mm-section-title" style="color: #D4956A;">
+      <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">warning</span>
+      Need to Buy
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem;">
+      <%= for r <- shortage_items do %>
+        <div class="mm-order-card" style="border-left: 3px solid #D4956A; padding: 0.75rem 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 600; font-size: 0.85rem; color: #3A2A1F;"><%= r.ingredient_name %></div>
+              <div style="font-size: 0.65rem; color: #9C8578; margin-top: 0.1rem;">
+                <%= if r.location do %><%= r.location.name %> · <% end %>
+                Need <%= r.total_required %> <%= r.unit %> · Have <%= r.on_hand %> <%= r.unit %>
+                <%= if r.needed_by do %>· by <%= r.needed_by %><% end %>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 700; font-size: 0.95rem; color: #D4956A;"><%= r.shortage %> <%= r.unit %></div>
+              <div style="font-size: 0.6rem; color: #9C8578;">short</div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%!-- In stock --%>
+  <%= if ok_items != [] do %>
+    <div class="mm-section-title" style="color: #8ca681;">
+      <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">check_circle</span>
+      In Stock
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 2rem;">
+      <%= for r <- ok_items do %>
+        <div class="mm-order-card" style="padding: 0.5rem 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 500; font-size: 0.8rem; color: #3A2A1F;"><%= r.ingredient_name %></div>
+              <div style="font-size: 0.6rem; color: #9C8578;">
+                Need <%= r.total_required %> · Have <%= r.on_hand %> <%= r.unit %>
+              </div>
+            </div>
+            <span class="material-symbols-outlined" style="font-size: 1rem; color: #8ca681; font-variation-settings: 'FILL' 1;">check_circle</span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= if @requirements == [] do %>
+    <div class="mm-order-card" style="text-align: center; padding: 2rem 1rem; color: #9C8578;">
+      <span class="material-symbols-outlined" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">check_circle</span>
+      No new orders require inventory right now.
+    </div>
+  <% end %>
+</div>

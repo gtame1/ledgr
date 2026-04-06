@@ -1,183 +1,88 @@
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">Recipes</h2>
-    <p class="card-subtitle">
-      Manage recipes for your products. Recipes are versioned by date - editing a recipe creates a new version to preserve historical accuracy.
-    </p>
-  </div>
-
-  <div class="actions" style="margin-bottom: 0.75rem;">
-    <.link navigate={dp(@domain_path_prefix, "/recipes/new")} class="btn primary">
-      + New Recipe
+<%!-- ── MrMunchMe Recipes Overview — Stitch Mobile Design ── --%>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <h1 class="mm-topbar-title">Recipes</h1>
+    <.link navigate={dp(@domain_path_prefix, "/recipes/new")} class="mm-topbar-action">
+      <span class="material-symbols-outlined">add</span>
     </.link>
   </div>
 
-  <%!-- Missing-recipe warning banner --%>
+  <%!-- Missing recipes alert --%>
   <%= if @variants_missing_recipes != [] do %>
-    <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 0.5rem; padding: 0.875rem 1rem; margin-bottom: 1.25rem;">
-      <p style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">
-        ⚠ The following active variants have no recipe:
-      </p>
-      <ul style="margin: 0; padding-left: 1.25rem; color: #78350f; font-size: 0.875rem;">
-        <%= for {product_name, variants} <- @variants_missing_recipes do %>
-          <li>
-            <strong><%= product_name %></strong>:
-            <%= Enum.map_join(variants, ", ", & &1.name) %>
-            <%= for variant <- variants do %>
-              <.link
-                navigate={dp(@domain_path_prefix, "/products/#{variant.product_id}/variants/#{variant.id}/edit")}
-                style="margin-left: 0.25rem; font-size: 0.8rem; color: #b45309; text-decoration: underline;"
-              >
-                (add recipe)
-              </.link>
-            <% end %>
-          </li>
-        <% end %>
-      </ul>
+    <div class="mm-order-card" style="margin-bottom: 1rem; border-left: 3px solid #D4956A;">
+      <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+        <span class="material-symbols-outlined" style="font-size: 1rem; color: #D4956A;">warning</span>
+        <span style="font-weight: 600; font-size: 0.8rem; color: #5C3D2E;">Missing Recipes</span>
+      </div>
+      <%= for {product_name, variants} <- @variants_missing_recipes do %>
+        <div style="font-size: 0.8rem; color: #3A2A1F; margin-bottom: 0.25rem;">
+          <strong><%= product_name %></strong>:
+          <%= for variant <- variants do %>
+            <.link
+              navigate={dp(@domain_path_prefix, "/products/#{variant.product_id}/variants/#{variant.id}/edit")}
+              style="color: #D4956A; text-decoration: underline; font-size: 0.75rem; margin-left: 0.25rem;"
+            >
+              <%= variant.name %>
+            </.link>
+          <% end %>
+        </div>
+      <% end %>
     </div>
   <% end %>
 
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Product · Variant</th>
-        <th>Name</th>
-        <th>Effective Date</th>
-        <th># of Ingredients</th>
-        <th class="numeric">Estimated Cost</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <%= for {{_product_id, product_name}, recipes} <- @recipes_by_product do %>
-        <%!-- Product group header row --%>
-        <tr class="product-group-header-row" style="background: #f3f4f6;">
-          <td colspan="6" style="font-weight: 700; font-size: 0.9rem; color: #374151; padding: 0.6rem 1rem;">
-            <%= product_name %>
-          </td>
-        </tr>
-        <%!-- Recipe rows for this product --%>
-        <%= for recipe <- recipes do %>
-          <tr>
-            <td><%= recipe.variant.name %></td>
-            <td><%= recipe.name || "—" %></td>
-            <td><%= Calendar.strftime(recipe.effective_date, "%Y-%m-%d") %></td>
-            <td><%= length(recipe.recipe_lines || []) %></td>
-            <td class="numeric">
-              <%= case recipe.estimated_cost do %>
-                <% {:ok, total_cents} -> %>
-                  <strong><%= format_currency(total_cents) %></strong>
-                <% {:partial, total_cents, _missing} -> %>
-                  <strong><%= format_currency(total_cents) %></strong>
-                  <span style="color: #dc2626; font-size: 0.75rem;" title="Some ingredients missing costs">
-                    ⚠
-                  </span>
-                <% _ -> %>
-                  <span style="color: #6b7280; font-style: italic; font-size: 0.85rem;">—</span>
-              <% end %>
-            </td>
-            <td>
-              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-                <.link navigate={dp(@domain_path_prefix, "/recipes/#{recipe.id}")} class="btn btn-sm">
-                  View
-                </.link>
+  <%!-- Recipes grouped by product --%>
+  <%= for {{_product_id, product_name}, recipes} <- @recipes_by_product do %>
+    <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+      <%!-- Product header --%>
+      <div style="font-weight: 700; font-size: 0.9rem; color: #3A2A1F; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+        <span class="material-symbols-outlined" style="font-size: 1rem; color: #D4956A;">menu_book</span>
+        <%= product_name %>
+      </div>
+
+      <%!-- Recipe rows --%>
+      <%= for recipe <- recipes do %>
+        <.link navigate={dp(@domain_path_prefix, "/recipes/#{recipe.id}")} style="text-decoration: none; color: inherit; display: block;">
+          <div style={"display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;#{unless recipe == List.last(recipes), do: " border-bottom: 1px solid #F0E2D6;"}"}>
+            <div>
+              <div style="font-weight: 500; font-size: 0.85rem; color: #3A2A1F;"><%= recipe.variant.name %></div>
+              <div style="font-size: 0.65rem; color: #9C8578; display: flex; align-items: center; gap: 0.5rem; margin-top: 0.1rem;">
+                <span>Since <%= Calendar.strftime(recipe.effective_date, "%b %d, %Y") %></span>
+                <span><%= length(recipe.recipe_lines || []) %> ingredients</span>
                 <%= if Map.has_key?(@recipe_versions_by_variant, recipe.variant_id) do %>
                   <% versions = @recipe_versions_by_variant[recipe.variant_id] %>
                   <%= if length(versions) > 1 do %>
-                    <button
-                      type="button"
-                      class="btn btn-sm toggle-versions-btn"
-                      data-recipe-id={recipe.id}
-                      data-version-count={length(versions)}
-                    >
-                      Versions (<%= length(versions) %>)
-                    </button>
+                    <span class="mm-badge" style="font-size: 0.55rem; padding: 0.05rem 0.3rem;"><%= length(versions) %> versions</span>
                   <% end %>
                 <% end %>
               </div>
-            </td>
-          </tr>
-          <%= if Map.has_key?(@recipe_versions_by_variant, recipe.variant_id) do %>
-            <% versions = @recipe_versions_by_variant[recipe.variant_id] %>
-            <%= if length(versions) > 1 do %>
-              <tr id={"versions-#{recipe.id}"} style="display: none;">
-                <td colspan="6">
-                  <div style="padding: 1rem; background: #f9fafb; border-radius: 0.5rem; margin-top: 0.5rem;">
-                    <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem;">
-                      Previous Versions (<%= length(versions) - 1 %>)
-                    </h3>
-                    <table class="table" style="margin: 0;">
-                      <thead>
-                        <tr>
-                          <th>Effective Date</th>
-                          <th>Name</th>
-                          <th># of Ingredients</th>
-                          <th class="numeric">Estimated Cost</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <%= for version <- versions do %>
-                          <tr style={version.id == recipe.id && "background: #e0f2fe;"}>
-                            <td><%= Calendar.strftime(version.effective_date, "%Y-%m-%d") %></td>
-                            <td><%= version.name || "—" %></td>
-                            <td><%= length(version.recipe_lines || []) %></td>
-                            <td class="numeric">
-                              <%= case version.estimated_cost do %>
-                                <% {:ok, total_cents} -> %>
-                                  <strong><%= format_currency(total_cents) %></strong>
-                                <% {:partial, total_cents, _missing} -> %>
-                                  <strong><%= format_currency(total_cents) %></strong>
-                                  <span style="color: #dc2626; font-size: 0.75rem;" title="Some ingredients missing costs">
-                                    ⚠
-                                  </span>
-                                <% _ -> %>
-                                  <span style="color: #6b7280; font-style: italic; font-size: 0.85rem;">—</span>
-                              <% end %>
-                            </td>
-                            <td>
-                              <%= if version.id == recipe.id do %>
-                                <span style="color: #059669; font-weight: 600;">Current</span>
-                              <% else %>
-                                <span style="color: #6b7280;">Deprecated</span>
-                              <% end %>
-                            </td>
-                            <td>
-                              <.link navigate={dp(@domain_path_prefix, "/recipes/#{version.id}")} class="btn btn-sm">
-                                View Details
-                              </.link>
-                            </td>
-                          </tr>
-                        <% end %>
-                      </tbody>
-                    </table>
+            </div>
+            <div style="text-align: right;">
+              <%= case recipe.estimated_cost do %>
+                <% {:ok, total_cents} -> %>
+                  <div style="font-weight: 600; font-size: 0.85rem; color: #5C3D2E;"><%= format_currency(total_cents) %></div>
+                <% {:partial, total_cents, _missing} -> %>
+                  <div style="font-weight: 600; font-size: 0.85rem; color: #5C3D2E;">
+                    <%= format_currency(total_cents) %>
+                    <span style="color: #D4956A; font-size: 0.7rem;">~</span>
                   </div>
-                </td>
-              </tr>
-            <% end %>
-          <% end %>
-        <% end %>
+                <% _ -> %>
+                  <span style="color: #9C8578; font-size: 0.8rem;">—</span>
+              <% end %>
+            </div>
+          </div>
+        </.link>
       <% end %>
-    </tbody>
-  </table>
+    </div>
+  <% end %>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      document.querySelectorAll('.toggle-versions-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          const recipeId = this.getAttribute('data-recipe-id');
-          const versionCount = this.getAttribute('data-version-count');
-          const row = document.getElementById('versions-' + recipeId);
-          if (row) {
-            const isHidden = row.style.display === 'none';
-            row.style.display = isHidden ? 'table-row' : 'none';
-            this.textContent = isHidden
-              ? 'Hide Versions'
-              : 'Versions (' + versionCount + ')';
-          }
-        });
-      });
-    });
-  </script>
-</section>
+  <%= if @recipes_by_product == [] do %>
+    <div class="mm-order-card" style="text-align: center; padding: 2rem 1rem; color: #9C8578;">
+      <span class="material-symbols-outlined" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">menu_book</span>
+      No recipes yet. Create your first recipe!
+    </div>
+  <% end %>
+</div>
+
+<.link navigate={dp(@domain_path_prefix, "/recipes/new")} class="mm-fab">
+  <span class="material-symbols-outlined" style="font-size: 1.5rem;">add</span>
+</.link>

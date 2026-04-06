@@ -1,29 +1,37 @@
-<%!-- ── Header ── --%>
-<div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-  <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} style="color: var(--text-muted); text-decoration: none; font-size: 1.1rem;">←</.link>
-    <h2 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Record Payment</h2>
-    <span style="font-size: 0.85rem; color: var(--text-muted);">Order #<%= @order.id %> · <%= @order.customer_name %></span>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <div>
+        <h1 class="mm-topbar-title">Record Payment</h1>
+        <p style="font-size: 0.7rem; color: #9C8578; margin: 0;">Order #<%= @order.id %> · <%= @order.customer_name %></p>
+      </div>
+    </div>
+    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")} class="mm-topbar-action">
+      <span class="material-symbols-outlined">link</span>
+    </.link>
   </div>
-  <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")} class="btn btn-secondary" style="font-size: 0.85rem;">
-    Generate Payment Link
-  </.link>
-</div>
 
-<%!-- ── Order context ── --%>
-<div style="display: flex; gap: 0.3rem; font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-muted);">
-  <span>Total: <strong style="color: var(--text-main);"><%= format_currency(@payment_summary.order_total_cents) %></strong></span>
-  <span>·</span>
-  <span>Paid: <strong style="color: var(--text-main);"><%= format_currency(@payment_summary.total_paid_cents) %></strong></span>
-  <span>·</span>
-  <span>Outstanding:
-    <strong style={if @payment_summary.outstanding_cents > 0, do: "color: #b91c1c;", else: "color: var(--text-main);"}>
-      <%= format_currency(@payment_summary.outstanding_cents) %>
-    </strong>
-  </span>
-</div>
+  <%!-- Order summary card --%>
+  <div class="mm-order-card" style="margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+      <span style="color: #9C8578;">Total</span>
+      <span style="font-weight: 600; color: #3A2A1F;"><%= format_currency(@payment_summary.order_total_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+      <span style="color: #9C8578;">Paid</span>
+      <span style="font-weight: 600; color: #3A2A1F;"><%= format_currency(@payment_summary.total_paid_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 0.25rem; border-top: 1px solid #F0E2D6;">
+      <span style="font-weight: 600; color: #3A2A1F;">Outstanding</span>
+      <span style={"font-weight: 700; #{if @payment_summary.outstanding_cents > 0, do: "color: #D4956A;", else: "color: #8ca681;"}"}>
+        <%= format_currency(@payment_summary.outstanding_cents) %>
+      </span>
+    </div>
+  </div>
 
-<%!-- ── Form ── --%>
 <section class="card">
   <.form :let={f} for={@changeset} as={:order_payment} action={@action} class="form-grid">
     <%= if @changeset.action do %>
@@ -168,6 +176,7 @@
     </div>
   </.form>
 </section>
+</div> <%!-- close mm-page --%>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

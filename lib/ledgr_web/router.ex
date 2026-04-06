@@ -77,6 +77,7 @@ defmodule LedgrWeb.Router do
     core_routes()
 
     # MrMunchMe-specific routes
+    get "/more", ReportController, :mr_munch_me_more
     get "/orders/calendar", Domains.MrMunchMe.OrderController, :calendar
     get "/orders/:id/stripe-link", Domains.MrMunchMe.OrderController, :stripe_link
     get "/orders/:id/shipping-link", Domains.MrMunchMe.OrderController, :shipping_link

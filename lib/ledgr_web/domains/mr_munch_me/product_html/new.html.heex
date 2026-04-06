@@ -1,5 +1,15 @@
-<section class="card">
-  <h2 class="card-title">New Product</h2>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/products")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">New Product</h1>
+    </div>
+  </div>
+
+  <section class="card">
+    <h2 class="card-title">New Product</h2>
   <p class="card-subtitle">
     Create a new product in your catalog.
   </p>
@@ -116,4 +126,5 @@
       <a href={dp(@domain_path_prefix, "/recipes")} style="color: #2563eb; text-decoration: underline;">Recipes page</a>.
     </p>
   </div>
-</section>
+  </section>
+</div>

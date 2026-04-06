@@ -1,8 +1,14 @@
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/ingredients")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">New Ingredient</h1>
+    </div>
+  </div>
+
 <section class="card">
-  <h2 class="card-title">New Ingredient</h2>
-  <p class="card-subtitle">
-    Create a new ingredient in your catalog.
-  </p>
 
   <.form :let={f} for={@changeset} as={:ingredient} action={@action} class="form-grid">
     <%= if @changeset.action do %>
@@ -58,4 +64,5 @@
     </div>
   </.form>
 </section>
+</div>
 

@@ -1,116 +1,388 @@
-<%!-- ── Header ── --%>
-<div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-  <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-    <.link navigate={dp(@domain_path_prefix, "/orders")} style="color: var(--text-muted); text-decoration: none; font-size: 1.1rem;">←</.link>
-    <h2 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Order #<%= @order.id %></h2>
-    <.status_badge status={@order.status} />
-    <%= if @order.is_gift do %>
-      <span style="display: inline-block; padding: 0.15rem 0.5rem; font-size: 0.78rem; font-weight: 600; border-radius: 999px; background: #fef3c7; color: #92400e;">🎁 Gift</span>
-    <% end %>
-    <span style="font-size: 0.85rem; color: var(--text-muted);">
-      <%= @order.variant.product.name %> · <%= @order.variant.name %><%= if (@order.quantity || 1) > 1, do: " x#{@order.quantity}" %>
-    </span>
-    <.location_badge location={@order.prep_location} />
-  </div>
-  <div style="display: flex; gap: 0.5rem; align-items: center;">
-    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/edit")} class="btn">Edit</.link>
-    <%!-- Actions dropdown --%>
-    <div style="position: relative;">
-      <button
-        id="actions-toggle"
-        onclick="toggleActionsMenu(event)"
-        class="btn"
-        style="display: flex; align-items: center; gap: 0.35rem;"
-      >
-        Actions
-        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+<%!-- ── MrMunchMe Order Detail — Stitch Mobile Design ── --%>
+<div class="mm-page">
+  <%!-- Top App Bar --%>
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Order #<%= @order.id %></h1>
+    </div>
+    <div style="display: flex; gap: 0.25rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/edit")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">edit</span>
+      </.link>
+      <button id="actions-toggle" onclick="toggleActionsMenu(event)" class="mm-topbar-action">
+        <span class="material-symbols-outlined">more_vert</span>
       </button>
-      <div
-        id="actions-dropdown"
-        style="display: none; position: absolute; right: 0; top: calc(100% + 0.4rem); min-width: 210px; background: var(--card-bg, white); border: 1px solid var(--border-subtle); border-radius: 0.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06); z-index: 200; overflow: hidden; padding: 0.3rem 0;"
-      >
-        <%= unless @order.is_gift do %>
-          <a
-            href={dp(@domain_path_prefix, "/orders/#{@order.id}/payments/new")}
-            class="actions-menu-item"
-          >
-            Record Payment
-          </a>
-          <%= unless @order.status == "canceled" do %>
-            <div style="height: 1px; background: var(--border-subtle); margin: 0.3rem 0;"></div>
-            <a href={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")} class="actions-menu-item">
-              Payment Link
-            </a>
-            <a href={dp(@domain_path_prefix, "/orders/#{@order.id}/shipping-link")} class="actions-menu-item">
-              Shipping Payment Link
-            </a>
-          <% end %>
-        <% end %>
-        <%= if @order.status not in ["delivered", "canceled", "ready", "in_prep"] do %>
-          <div style="height: 1px; background: var(--border-subtle); margin: 0.3rem 0;"></div>
-          <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
-            <input type="hidden" name="status[status]" value="canceled" />
-            <button type="submit" class="actions-menu-item actions-menu-item--danger" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer;">
-              Cancel Order
-            </button>
-          </.form>
-        <% end %>
-      </div>
     </div>
   </div>
+
+  <%!-- Actions dropdown --%>
+  <div id="actions-dropdown" style="display: none; position: fixed; right: 1rem; top: 3.5rem; min-width: 200px; background: #FFFAF5; border: 1px solid #F0E2D6; border-radius: 12px; box-shadow: 0 8px 24px rgba(58,42,31,0.12); z-index: 200; overflow: hidden; padding: 0.3rem 0;">
+    <%= unless @order.is_gift do %>
+      <a href={dp(@domain_path_prefix, "/orders/#{@order.id}/payments/new")} class="mm-dropdown-item">
+        <span class="material-symbols-outlined" style="font-size: 1.1rem;">payments</span> Record Payment
+      </a>
+      <%= unless @order.status == "canceled" do %>
+        <a href={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")} class="mm-dropdown-item">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">link</span> Payment Link
+        </a>
+        <a href={dp(@domain_path_prefix, "/orders/#{@order.id}/shipping-link")} class="mm-dropdown-item">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">local_shipping</span> Shipping Link
+        </a>
+      <% end %>
+    <% end %>
+    <%= if @order.status not in ["delivered", "canceled", "ready", "in_prep"] do %>
+      <div style="height: 1px; background: #F0E2D6; margin: 0.3rem 0;"></div>
+      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
+        <input type="hidden" name="status[status]" value="canceled" />
+        <button type="submit" class="mm-dropdown-item" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; color: #b91c1c;">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">cancel</span> Cancel Order
+        </button>
+      </.form>
+    <% end %>
+  </div>
+
+  <%!-- Status Stepper --%>
+  <% steps = ["new_order", "in_prep", "ready", "delivered"] %>
+  <% current_idx = Enum.find_index(steps, &(&1 == @order.status)) || 0 %>
+  <div class="mm-stepper">
+    <%= for {step, idx} <- Enum.with_index(steps) do %>
+      <%= if idx > 0 do %>
+        <div class={"mm-stepper-line#{if idx <= current_idx, do: " mm-stepper-line--done"}"} />
+      <% end %>
+      <div class={"mm-stepper-step#{if idx < current_idx, do: " mm-stepper-step--done"}#{if idx == current_idx, do: " mm-stepper-step--current"}"}>
+        <div class="mm-stepper-dot">
+          <%= if idx < current_idx do %>
+            <span class="material-symbols-outlined" style="font-size: 0.85rem; font-variation-settings: 'FILL' 1;">check</span>
+          <% else %>
+            <%= idx + 1 %>
+          <% end %>
+        </div>
+        <span style="font-size: 0.55rem; text-align: center; line-height: 1.2;"><%= step |> String.replace("_", " ") |> String.split(" ") |> Enum.map(&String.capitalize/1) |> Enum.join(" ") %></span>
+      </div>
+    <% end %>
+  </div>
+
+  <%!-- Hero Product Card --%>
+  <div class="mm-hero-card" style="margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <div style="font-size: 0.9rem; font-weight: 600;"><%= @order.variant.product.name %></div>
+        <div style="font-size: 0.8rem; opacity: 0.7;"><%= @order.variant.name %><%= if (@order.quantity || 1) > 1, do: " x #{@order.quantity}" %></div>
+      </div>
+      <span class={"mm-status mm-status--#{@order.status}"} style="background: rgba(255,255,255,0.2); color: white;">
+        <%= @order.status |> String.replace("_", " ") |> String.capitalize() %>
+      </span>
+    </div>
+    <div class="mm-hero-value" style="margin-top: 0.5rem; font-size: 2rem;">
+      <%= if @order.is_gift do %>
+        <span style="font-size: 1.2rem;">Gift</span>
+      <% else %>
+        <%= format_currency(@payment_summary.order_total_cents) %>
+      <% end %>
+    </div>
+    <div class="mm-hero-sublabel">
+      <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">calendar_today</span>
+      <%= @order.delivery_date %> · <%= String.capitalize(@order.delivery_type || "pickup") %>
+      <%= if @order.is_gift do %>
+        · <span style="font-size: 0.75rem;">🎁</span>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- Next Action Button --%>
+  <%= if @order.status in ["new_order", "in_prep", "ready"] do %>
+    <div style="margin-bottom: 1rem;">
+      <%= if @order.status == "new_order" do %>
+        <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;" onsubmit="return confirm('Move to In Prep? Inventory will be deducted.');">
+          <input type="hidden" name="status[status]" value="in_prep" />
+          <button class="btn primary" type="submit" style="width: 100%; border-radius: 12px; padding: 0.75rem;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle;">arrow_forward</span>
+            Move to In Prep
+          </button>
+        </.form>
+      <% end %>
+      <%= if @order.status == "in_prep" do %>
+        <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
+          <input type="hidden" name="status[status]" value="ready" />
+          <button class="btn primary" type="submit" style="width: 100%; border-radius: 12px; padding: 0.75rem;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle;">check</span>
+            Mark as Ready
+          </button>
+        </.form>
+      <% end %>
+      <%= if @order.status == "ready" do %>
+        <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
+          <input type="hidden" name="status[status]" value="delivered" />
+          <button class="btn primary" type="submit" style="width: 100%; border-radius: 12px; padding: 0.75rem;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem; vertical-align: middle;">local_shipping</span>
+            Mark as Delivered
+          </button>
+        </.form>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%!-- Desktop: two-column layout for detail sections --%>
+  <div class="mm-desktop-2col">
+  <div> <%!-- left column --%>
+
+  <%!-- Customer Section --%>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <div class="mm-section-title" style="padding: 0; margin-bottom: 0.5rem;">Customer</div>
+    <div style="font-weight: 600; font-size: 0.95rem;"><%= @order.customer_name %></div>
+    <div style="font-size: 0.8rem; color: #9C8578; margin-top: 0.15rem;">
+      <%= if @order.customer_phone do %>
+        <a href={"tel:#{@order.customer_phone}"} style="color: #5C3D2E; text-decoration: none;">
+          <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">phone</span>
+          <%= @order.customer_phone %>
+        </a>
+      <% end %>
+      <%= if @order.customer_email do %>
+        <span style="margin-left: 0.5rem;"><%= @order.customer_email %></span>
+      <% end %>
+    </div>
+    <%= if @order.delivery_address do %>
+      <div style="font-size: 0.8rem; color: #9C8578; margin-top: 0.35rem;">
+        <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">location_on</span>
+        <%= @order.delivery_address %>
+      </div>
+    <% end %>
+  </div>
+
+  </div> <%!-- close left column --%>
+  <div> <%!-- right column --%>
+
+  <%!-- Payment Summary --%>
+  <%= unless @order.is_gift do %>
+    <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+      <div class="mm-section-title" style="padding: 0; margin-bottom: 0.5rem;">Payment Summary</div>
+      <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem;">
+        <div style="display: flex; justify-content: space-between; color: #9C8578;">
+          <span>Product<%= if (@order.quantity || 1) > 1, do: " (#{format_currency(@order.variant.price_cents)} x #{@order.quantity})" %></span>
+          <span><%= format_currency(@payment_summary.original_price_cents) %></span>
+        </div>
+        <%= if @payment_summary.discount_cents > 0 do %>
+          <div style="display: flex; justify-content: space-between; color: #8ca681;">
+            <span>Discount (<%= if @order.discount_type == "flat", do: "flat", else: "#{@order.discount_value}%" %>)</span>
+            <span>-<%= format_currency(@payment_summary.discount_cents) %></span>
+          </div>
+        <% end %>
+        <div style="display: flex; justify-content: space-between; color: #9C8578;">
+          <span>Shipping</span>
+          <span>+<%= format_currency(@payment_summary.shipping_cents) %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid #F0E2D6; color: #3A2A1F;">
+          <span>Total</span>
+          <span><%= format_currency(@payment_summary.order_total_cents) %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: #9C8578;">
+          <span>Paid</span>
+          <span>-<%= format_currency(@payment_summary.product_paid_cents + @payment_summary.shipping_paid_cents) %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid #F0E2D6;">
+          <span style="color: #3A2A1F;">Outstanding</span>
+          <span style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style={if @payment_summary.outstanding_cents > 0, do: "color: #D4956A;", else: "color: #8ca681;"}>
+              <%= format_currency(@payment_summary.outstanding_cents) %>
+            </span>
+            <%= cond do %>
+              <% @payment_summary.fully_paid? -> %>
+                <span class="mm-status mm-status--delivered">Paid</span>
+              <% @payment_summary.partially_paid? -> %>
+                <span class="mm-status mm-status--in_prep">Partial</span>
+              <% true -> %>
+                <span class="mm-status mm-status--new_order">Unpaid</span>
+            <% end %>
+          </span>
+        </div>
+      </div>
+      <%= unless @payment_summary.fully_paid? do %>
+        <div style="margin-top: 0.75rem;">
+          <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/payments/new")} class="btn primary" style="width: 100%; text-align: center; border-radius: 12px; display: block;">
+            <span class="material-symbols-outlined" style="font-size: 1rem; vertical-align: middle;">payments</span>
+            Record Payment
+          </.link>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+      <div class="mm-section-title" style="padding: 0; margin-bottom: 0.5rem;">Gift Order</div>
+      <div style="font-size: 0.85rem; color: #9C8578;">
+        Product value: <%= format_currency(@payment_summary.product_total_cents) %>
+      </div>
+      <span class="mm-badge" style="background: #fef3c7; color: #92400e; margin-top: 0.5rem;">Gift / Sample</span>
+    </div>
+  <% end %>
+
+  <%!-- Payments List --%>
+  <%= unless @order.is_gift do %>
+    <%= if @payments != [] do %>
+      <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+        <div class="mm-section-title" style="padding: 0; margin-bottom: 0.5rem;">Payments</div>
+        <%= for p <- @payments do %>
+          <.link navigate={dp(@domain_path_prefix, "/order_payments/#{p.id}")} style="text-decoration: none; color: inherit;">
+            <div style={"display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;#{unless p == List.last(@payments), do: " border-bottom: 1px solid #F0E2D6;"}"}>
+              <div>
+                <div style="font-size: 0.8rem; font-weight: 500; color: #3A2A1F;"><%= p.payment_date %></div>
+                <div style="font-size: 0.7rem; color: #9C8578;"><%= p.method %><%= if p.paid_to_account, do: " · #{p.paid_to_account.name}" %></div>
+              </div>
+              <span style="font-weight: 600; font-size: 0.9rem; color: #5C3D2E;"><%= format_currency(p.amount_cents) %></span>
+            </div>
+          </.link>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%!-- Shipping --%>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <div class="mm-section-title" style="padding: 0; margin-bottom: 0.5rem;">Shipping</div>
+    <form method="post" action={dp(@domain_path_prefix, "/orders/#{@order.id}")}>
+      <input type="hidden" name="_method" value="put" />
+      <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div style="position: relative; flex: 1;">
+          <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9C8578; font-size: 0.85rem;">$</span>
+          <input
+            type="number"
+            name="order[shipping_fee]"
+            value={if @order.shipping_fee_cents && @order.shipping_fee_cents > 0, do: @order.shipping_fee_cents / 100, else: ""}
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            style="width: 100%; padding: 0.6rem 0.75rem 0.6rem 1.5rem; border: 1px solid #F0E2D6; border-radius: 12px; background: #FFFAF5; font-size: 0.875rem;"
+          />
+        </div>
+        <button type="submit" class="btn" style="border-radius: 12px;">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <%!-- Ingredients --%>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="mm-section-title" style="padding: 0;">Ingredients</div>
+      <%= if @order.status == "new_order" do %>
+        <span style="font-size: 0.65rem; color: #9C8578;">Editable until prep</span>
+      <% end %>
+    </div>
+
+    <%= if @order.status == "new_order" do %>
+      <.form for={%{}} as={:ingredients} action={dp(@domain_path_prefix, "/orders/#{@order.id}/ingredients")} method="post" id="ingredients-form">
+        <div id="ingredients-container" style="margin-top: 0.75rem;">
+          <%= for {ingredient, idx} <- Enum.with_index(@current_ingredients) do %>
+            <div class="ingredient-row" style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+              <select name={"ingredients[#{idx}][ingredient_code]"} style="flex: 2; padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;">
+                <option value="">Select...</option>
+                <%= for {name, code} <- @ingredient_options do %>
+                  <option value={code} selected={code == ingredient.ingredient_code}><%= name %></option>
+                <% end %>
+              </select>
+              <input
+                type="number"
+                name={"ingredients[#{idx}][quantity]"}
+                value={ingredient.quantity}
+                step="0.01"
+                min="0"
+                placeholder="Qty"
+                style="flex: 1; padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;"
+              />
+              <button type="button" class="remove-ingredient-btn" style="width: 28px; height: 28px; border-radius: 8px; background: #F5E6D8; border: none; color: #9C8578; cursor: pointer; font-size: 0.85rem;">x</button>
+            </div>
+          <% end %>
+        </div>
+
+        <div style="margin-top: 0.5rem; display: flex; gap: 0.35rem; flex-wrap: wrap;">
+          <button type="button" id="add-ingredient-btn" class="mm-quick-pill" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">
+            <span class="material-symbols-outlined" style="font-size: 0.85rem;">add</span> Add
+          </button>
+          <button type="button" id="reset-recipe-btn" class="mm-quick-pill" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">
+            <span class="material-symbols-outlined" style="font-size: 0.85rem;">restart_alt</span> Reset
+          </button>
+          <button type="submit" class="mm-quick-pill mm-quick-pill--primary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">
+            <span class="material-symbols-outlined" style="font-size: 0.85rem;">save</span> Save
+          </button>
+        </div>
+      </.form>
+    <% else %>
+      <%= if @current_ingredients != [] do %>
+        <div style="margin-top: 0.5rem;">
+          <%= for ingredient <- @current_ingredients do %>
+            <div style={"display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.8rem;#{unless ingredient == List.last(@current_ingredients), do: " border-bottom: 1px solid #F0E2D6;"}"}>
+              <span style="color: #3A2A1F;"><%= ingredient.ingredient_code %></span>
+              <span style="color: #9C8578; font-weight: 500;"><%= ingredient.quantity %></span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #9C8578;">
+          Default recipe will be used when moved to prep.
+        </p>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%!-- Delivery Details --%>
+  <div class="mm-order-card" style="margin-bottom: 2rem;">
+    <div class="mm-section-title" style="padding: 0; margin-bottom: 0.5rem;">Details</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+      <div>
+        <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Type</div>
+        <div style="font-size: 0.85rem; font-weight: 500;"><%= String.capitalize(@order.delivery_type) %></div>
+      </div>
+      <div>
+        <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Delivery Date</div>
+        <div style="font-size: 0.85rem; font-weight: 500;"><%= @order.delivery_date %></div>
+      </div>
+      <%= if @order.actual_delivery_date do %>
+        <div>
+          <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Delivered On</div>
+          <div style="font-size: 0.85rem; font-weight: 500;"><%= @order.actual_delivery_date %></div>
+        </div>
+      <% end %>
+      <%= if @order.delivery_time do %>
+        <div>
+          <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Time</div>
+          <div style="font-size: 0.85rem; font-weight: 500;"><%= @order.delivery_time %></div>
+        </div>
+      <% end %>
+      <div>
+        <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Location</div>
+        <div style="font-size: 0.85rem; font-weight: 500;"><%= if @order.prep_location, do: @order.prep_location.name, else: "—" %></div>
+      </div>
+      <div>
+        <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Created</div>
+        <div style="font-size: 0.85rem; font-weight: 500;"><%= Calendar.strftime(to_mx_time(@order.inserted_at), "%b %d, %Y") %></div>
+      </div>
+    </div>
+    <%= if @order.special_instructions && @order.special_instructions != "" do %>
+      <div style="margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid #F0E2D6;">
+        <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Notes</div>
+        <div style="font-size: 0.85rem; font-style: italic; color: #3A2A1F; margin-top: 0.15rem;"><%= @order.special_instructions %></div>
+      </div>
+    <% end %>
+  </div>
+  </div> <%!-- close right column --%>
+  </div> <%!-- close mm-desktop-2col --%>
 </div>
 
-<%!-- ── Status Banner ── --%>
-<%= if @order.status in ["new_order", "in_prep", "ready"] do %>
-  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; padding: 0.875rem 1.1rem; background: var(--card-bg); border: 1px solid var(--border-subtle); border-left: 3px solid #4f46e5; border-radius: 0.5rem;">
-    <div>
-      <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Next step</div>
-      <div style="font-size: 0.9rem; font-weight: 500;">
-        <%= case @order.status do %>
-          <% "new_order" -> %>Review ingredients below, then confirm the order.
-          <% "in_prep" -> %>Preparing — mark as ready once done.
-          <% "ready" -> %>Ready — mark as delivered when handed off.
-        <% end %>
-      </div>
-    </div>
-    <%= if @order.status == "new_order" do %>
-      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move this order to In Prep?\n\nMake sure you have reviewed the ingredients. Inventory will be deducted and ingredients will be locked after this step.');">
-        <input type="hidden" name="status[status]" value="in_prep" />
-        <button class="btn primary" type="submit" style="white-space: nowrap;">Confirm & Move to In Prep</button>
-      </.form>
-    <% end %>
-    <%= if @order.status == "in_prep" do %>
-      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
-        <input type="hidden" name="status[status]" value="ready" />
-        <button class="btn primary" type="submit" style="white-space: nowrap;">Mark as Ready</button>
-      </.form>
-    <% end %>
-    <%= if @order.status == "ready" do %>
-      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{@order.id}/status")} method="post" style="margin: 0;">
-        <input type="hidden" name="status[status]" value="delivered" />
-        <button class="btn primary" type="submit" style="white-space: nowrap;">Mark as Delivered</button>
-      </.form>
-    <% end %>
-  </div>
-<% end %>
-
 <style>
-  .actions-menu-item {
-    display: block;
-    padding: 0.55rem 0.875rem;
-    font-size: 0.875rem;
-    color: var(--text);
+  [data-domain="mr-munch-me"] .mm-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.875rem;
+    font-size: 0.85rem;
+    color: #3A2A1F;
     text-decoration: none;
     transition: background 0.1s;
   }
-  .actions-menu-item:hover {
-    background: var(--hover-bg, rgba(0,0,0,0.04));
-  }
-  .actions-menu-item--danger {
-    color: #b91c1c;
-  }
-  .actions-menu-item--danger:hover {
-    background: #fef2f2;
+  [data-domain="mr-munch-me"] .mm-dropdown-item:hover {
+    background: #F5E6D8;
   }
 </style>
 
@@ -121,299 +393,11 @@
     const isOpen = dropdown.style.display !== 'none';
     dropdown.style.display = isOpen ? 'none' : 'block';
   }
-
   document.addEventListener('click', function() {
     const dropdown = document.getElementById('actions-dropdown');
     if (dropdown) dropdown.style.display = 'none';
   });
 </script>
-
-<%= if @order.is_gift do %>
-  <%!-- ── Gift Summary ── --%>
-  <section class="card">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.6rem 0;">Gift Order</h3>
-    <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem;">
-      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-        <span>Product Value</span>
-        <span><%= format_currency(@payment_summary.product_total_cents) %></span>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
-        <span>Cost</span>
-        <span style="color: #92400e;">Gift / Sample</span>
-      </div>
-    </div>
-  </section>
-<% else %>
-  <%!-- ── Financial Summary ── --%>
-  <section class="card">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.6rem 0;">Payment Summary</h3>
-    <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem;">
-      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-        <span>
-          Product<%= if (@order.quantity || 1) > 1 do %>
-            <span style="font-size: 0.8rem;"> (<%= format_currency(@order.variant.price_cents) %> × <%= @order.quantity %>)</span>
-          <% end %>
-        </span>
-        <span><%= format_currency(@payment_summary.original_price_cents) %></span>
-      </div>
-      <div style={"display: flex; justify-content: space-between; color: #{if @payment_summary.discount_cents > 0, do: "#059669", else: "var(--text-muted)"};"}>
-        <span>Discount<%= if @payment_summary.discount_cents > 0 do %> (<%= if @order.discount_type == "flat", do: "flat", else: "#{@order.discount_value}%" %>)<% end %></span>
-        <span>−<%= format_currency(@payment_summary.discount_cents) %></span>
-      </div>
-      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-        <span>Shipping</span>
-        <span>+<%= format_currency(@payment_summary.shipping_cents) %></span>
-      </div>
-      <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
-        <span>Order Total</span>
-        <span><%= format_currency(@payment_summary.order_total_cents) %></span>
-      </div>
-      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-        <span>Product paid</span>
-        <span>−<%= format_currency(@payment_summary.product_paid_cents) %></span>
-      </div>
-      <div style="display: flex; justify-content: space-between; color: var(--text-muted);">
-        <span>Shipping paid</span>
-        <span>−<%= format_currency(@payment_summary.shipping_paid_cents) %></span>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
-        <span>Outstanding</span>
-        <span style="display: flex; align-items: center; gap: 0.5rem;">
-          <span style={if @payment_summary.outstanding_cents > 0, do: "color: #b91c1c;", else: ""}>
-            <%= format_currency(@payment_summary.outstanding_cents) %>
-          </span>
-          <%= cond do %>
-            <% @payment_summary.fully_paid? -> %>
-              <span class="status-badge status-paid">Paid</span>
-            <% @payment_summary.partially_paid? -> %>
-              <span class="status-badge status-partial">Partial</span>
-            <% true -> %>
-              <span class="status-badge status-unpaid">Unpaid</span>
-          <% end %>
-        </span>
-      </div>
-    </div>
-  </section>
-<% end %>
-
-<%!-- ── Shipping ── --%>
-<section class="card" style="margin-top: 1rem;">
-  <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Shipping</h3>
-  <form method="post" action={dp(@domain_path_prefix, "/orders/#{@order.id}")}>
-    <input type="hidden" name="_method" value="put" />
-    <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
-    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
-      <div style="position: relative; flex: 1; max-width: 14rem;">
-        <span style="position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none;">$</span>
-        <input
-          type="number"
-          name="order[shipping_fee]"
-          value={if @order.shipping_fee_cents && @order.shipping_fee_cents > 0, do: @order.shipping_fee_cents / 100, else: ""}
-          step="0.01"
-          min="0"
-          placeholder="0.00"
-          class="input"
-          style="padding-left: 1.4rem;"
-        />
-      </div>
-      <button type="submit" class="btn" style="flex-shrink: 0;">Save</button>
-    </div>
-    <p style="margin: 0.4rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
-      Set to 0 to remove shipping charge.
-    </p>
-  </form>
-  <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
-    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/shipping-link")} style="font-size: 0.875rem; color: var(--text-muted); text-decoration: none;">
-      Shipping Payment Link →
-    </.link>
-  </div>
-</section>
-
-<%!-- ── Customer & Delivery Details (two-column) ── --%>
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-  <%!-- Customer info --%>
-  <section class="card" style="margin: 0;">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Customer</h3>
-    <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-      <div>
-        <div style="font-weight: 600; font-size: 1rem;"><%= @order.customer_name %></div>
-        <div style="font-size: 0.85rem; color: var(--text-muted);"><%= @order.customer_phone %></div>
-        <%= if @order.customer_email do %>
-          <div style="font-size: 0.85rem; color: var(--text-muted);"><%= @order.customer_email %></div>
-        <% end %>
-      </div>
-      <%= if @order.delivery_address do %>
-        <div>
-          <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Address</span>
-          <div style="font-size: 0.9rem;"><%= @order.delivery_address %></div>
-        </div>
-      <% end %>
-    </div>
-  </section>
-
-  <%!-- Delivery info --%>
-  <section class="card" style="margin: 0;">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Delivery</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
-      <div>
-        <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Type</span>
-        <div style="font-size: 0.9rem;"><%= String.capitalize(@order.delivery_type) %></div>
-      </div>
-      <div>
-        <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Scheduled Date</span>
-        <div style="font-size: 0.9rem;"><%= @order.delivery_date %></div>
-      </div>
-      <%= if @order.actual_delivery_date do %>
-        <div>
-          <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Delivered On</span>
-          <div style="font-size: 0.9rem;"><%= @order.actual_delivery_date %></div>
-        </div>
-      <% end %>
-      <%= if @order.delivery_time do %>
-        <div>
-          <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Time</span>
-          <div style="font-size: 0.9rem;"><%= @order.delivery_time %></div>
-        </div>
-      <% end %>
-      <div>
-        <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Product Price</span>
-        <div style="font-size: 0.9rem;">
-          <%= format_currency(@order.variant.price_cents) %>
-          <%= if (@order.quantity || 1) > 1 do %>
-            <span style="color: var(--text-muted);"> x <%= @order.quantity %> = <%= format_currency(@order.variant.price_cents * @order.quantity) %></span>
-          <% end %>
-        </div>
-      </div>
-      <div>
-        <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Quantity</span>
-        <div style="font-size: 0.9rem;"><%= @order.quantity || 1 %></div>
-      </div>
-      <div>
-        <span style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Created</span>
-        <div style="font-size: 0.9rem;"><%= Calendar.strftime(to_mx_time(@order.inserted_at), "%b %d, %Y") %></div>
-      </div>
-    </div>
-  </section>
-</div>
-
-<%= unless @order.is_gift do %>
-  <%!-- ── Payments ── --%>
-  <section class="card" style="margin-top: 1rem;">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.5rem 0;">Payments</h3>
-
-    <%= if @payments == [] do %>
-      <p style="font-size: 0.9rem; color: var(--text-muted);">
-        No payments recorded yet.
-      </p>
-    <% else %>
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Paid to</th>
-              <th>Method</th>
-              <th>Note</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for p <- @payments do %>
-              <tr>
-                <td><%= p.payment_date %></td>
-                <td><%= format_currency(p.amount_cents) %></td>
-                <td><%= p.paid_to_account && "#{p.paid_to_account.code} – #{p.paid_to_account.name}" %></td>
-                <td><%= p.method %></td>
-                <td><%= p.note %></td>
-                <td>
-                  <.link navigate={dp(@domain_path_prefix, "/order_payments/#{p.id}")} class="btn btn-sm">View</.link>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
-<% end %>
-
-
-<%!-- ── Order Ingredients ── --%>
-<section class="card" style="margin-top: 1rem;">
-  <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0;">Ingredients</h3>
-    <%= if @order.status == "new_order" do %>
-      <span style="font-size: 0.78rem; color: var(--text-muted);">Editable until moved to prep</span>
-    <% end %>
-  </div>
-
-  <%= if @order.status == "new_order" do %>
-    <.form for={%{}} as={:ingredients} action={dp(@domain_path_prefix, "/orders/#{@order.id}/ingredients")} method="post" id="ingredients-form">
-      <div id="ingredients-container" style="margin-top: 0.75rem;">
-        <%= for {ingredient, idx} <- Enum.with_index(@current_ingredients) do %>
-          <div class="ingredient-row" style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
-            <div class="field" style="flex: 2; margin-bottom: 0;">
-              <select name={"ingredients[#{idx}][ingredient_code]"} class="w-full select">
-                <option value="">Select ingredient...</option>
-                <%= for {name, code} <- @ingredient_options do %>
-                  <option value={code} selected={code == ingredient.ingredient_code}><%= name %></option>
-                <% end %>
-              </select>
-            </div>
-            <div class="field" style="flex: 1; margin-bottom: 0;">
-              <input
-                type="number"
-                name={"ingredients[#{idx}][quantity]"}
-                value={ingredient.quantity}
-                step="0.01"
-                min="0"
-                placeholder="Qty"
-                class="w-full input"
-              />
-            </div>
-            <button type="button" class="btn danger btn-sm remove-ingredient-btn" style="flex-shrink: 0; padding: 0.4rem 0.6rem;">
-              &times;
-            </button>
-          </div>
-        <% end %>
-      </div>
-
-      <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" id="add-ingredient-btn" class="btn" style="font-size: 0.85rem;">+ Add</button>
-        <button type="button" id="reset-recipe-btn" class="btn" style="font-size: 0.85rem;">Reset to Defaults</button>
-        <button type="submit" class="btn primary" style="font-size: 0.85rem;">Save Ingredients</button>
-      </div>
-    </.form>
-  <% else %>
-    <%= if @current_ingredients != [] do %>
-      <div class="table-wrapper" style="margin-top: 0.5rem;">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Ingredient</th>
-              <th class="numeric">Quantity</th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for ingredient <- @current_ingredients do %>
-              <tr>
-                <td><%= ingredient.ingredient_code %></td>
-                <td class="numeric"><%= ingredient.quantity %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
-        Default recipe ingredients will be used when this order moves to prep.
-      </p>
-    <% end %>
-  <% end %>
-</section>
-
-
 
 <%!-- ── Ingredient JS (only rendered for new_order status) ── --%>
 <script>
@@ -444,22 +428,18 @@
       const idx = getNextIndex();
       const row = document.createElement("div");
       row.className = "ingredient-row";
-      row.style.cssText = "display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;";
+      row.style.cssText = "display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;";
 
-      let optionsHtml = '<option value="">Select ingredient...</option>';
+      let optionsHtml = '<option value="">Select...</option>';
       ingredientOptions.forEach(function(opt) {
         const selected = opt[1] === ingredientCode ? " selected" : "";
         optionsHtml += '<option value="' + opt[1] + '"' + selected + '>' + opt[0] + '</option>';
       });
 
       row.innerHTML =
-        '<div class="field" style="flex: 2; margin-bottom: 0;">' +
-          '<select name="ingredients[' + idx + '][ingredient_code]" class="w-full select">' + optionsHtml + '</select>' +
-        '</div>' +
-        '<div class="field" style="flex: 1; margin-bottom: 0;">' +
-          '<input type="number" name="ingredients[' + idx + '][quantity]" value="' + (quantity || '') + '" step="0.01" min="0" placeholder="Qty" class="w-full input" />' +
-        '</div>' +
-        '<button type="button" class="btn danger btn-sm remove-ingredient-btn" style="flex-shrink: 0; padding: 0.4rem 0.6rem;">&times;</button>';
+        '<select name="ingredients[' + idx + '][ingredient_code]" style="flex: 2; padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;">' + optionsHtml + '</select>' +
+        '<input type="number" name="ingredients[' + idx + '][quantity]" value="' + (quantity || '') + '" step="0.01" min="0" placeholder="Qty" style="flex: 1; padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;" />' +
+        '<button type="button" class="remove-ingredient-btn" style="width: 28px; height: 28px; border-radius: 8px; background: #F5E6D8; border: none; color: #9C8578; cursor: pointer; font-size: 0.85rem;">x</button>';
 
       container.appendChild(row);
       bindRemoveBtn(row);

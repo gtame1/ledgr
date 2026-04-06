@@ -1,8 +1,14 @@
-<div style="max-width: 600px; margin: 0 auto;">
-  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} style="color: var(--text-muted); text-decoration: none; font-size: 1.1rem;">←</.link>
-    <h2 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Cobrar Envío — Pedido #<%= @order.id %></h2>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Shipping Link</h1>
+    </div>
   </div>
+
+  <div style="max-width: 600px; margin: 0 auto;">
 
   <section class="card">
     <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Resumen</h3>
@@ -118,4 +124,5 @@
       </.link>
     </div>
   <% end %>
+  </div>
 </div>

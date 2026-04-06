@@ -1,14 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">New Inventory Purchase</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/inventory")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">New Purchase</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
     <section class="card">
-      <h2 class="card-title">Record Purchase</h2>
-      <p class="card-subtitle">
-        Add new stock into a location. Multiple products can be added with the same payment method, date, and location.
-      </p>
 
       <.form
         for={@form}
@@ -164,8 +164,7 @@
         </div>
       </.form>
     </section>
-  </div>
-</section>
+</div> <%!-- close mm-page --%>
 
 <script>
   // Make ingredient quick infos available to JS

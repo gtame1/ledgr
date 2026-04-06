@@ -1,10 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">Order Payments</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Payments</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
-    <section class="card">
+  <section class="card">
       <div class="card-header">
         <h2 class="card-title">All Payments</h2>
         <p class="card-subtitle">
@@ -80,7 +84,6 @@
           </tbody>
         </table>
       </div>
-    </section>
-  </div>
-</section>
+  </section>
+</div>
 

@@ -1,10 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">Edit Inventory Transfer</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/inventory")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Edit Movement</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
-    <section class="card">
+  <section class="card">
       <h2 class="card-title">Edit Transfer</h2>
       <p class="card-subtitle">
         Update transfer details. This will reverse the old transfer and create a new one with updated values.
@@ -111,7 +115,6 @@
           </.link>
         </div>
       </.form>
-    </section>
-  </div>
-</section>
+  </section>
+</div>
 

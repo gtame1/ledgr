@@ -1,67 +1,80 @@
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">Discount Codes</h2>
-    <p class="card-subtitle">Manage promo codes for customer checkout.</p>
-  </div>
-
-  <div class="actions" style="margin-bottom: 0.75rem;">
-    <.link navigate={dp(@domain_path_prefix, "/discount-codes/new")} class="btn primary">
-      + New Code
+<%!-- ── MrMunchMe Discount Codes — Stitch Mobile Design ── --%>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <h1 class="mm-topbar-title">Discount Codes</h1>
+    <.link navigate={dp(@domain_path_prefix, "/discount-codes/new")} class="mm-topbar-action">
+      <span class="material-symbols-outlined">add</span>
     </.link>
   </div>
 
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Code</th>
-        <th>Type</th>
-        <th>Value</th>
-        <th>Uses</th>
-        <th>Expires</th>
-        <th>Active</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
+  <%!-- Summary --%>
+  <% active_count = Enum.count(@discount_codes, & &1.active) %>
+  <% inactive_count = length(@discount_codes) - active_count %>
+  <p style="font-size: 0.8rem; color: #9C8578; margin-bottom: 1rem;">
+    <%= active_count %> active code<%= if active_count != 1, do: "s" %><%= if inactive_count > 0, do: " · #{inactive_count} inactive" %>
+  </p>
+
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <%= if @discount_codes == [] do %>
+      <div class="mm-order-card" style="text-align: center; padding: 2rem 1rem; color: #9C8578;">
+        <span class="material-symbols-outlined" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">sell</span>
+        No discount codes yet.
+      </div>
+    <% else %>
       <%= for code <- @discount_codes do %>
-        <tr>
-          <td><strong><%= code.code %></strong></td>
-          <td><%= code.discount_type %></td>
-          <td>
-            <%= if code.discount_type == "flat" do %>
-              $<%= code.discount_value %> MXN
+        <div class="mm-order-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+            <div>
+              <div style="font-family: monospace; font-weight: 700; font-size: 1.1rem; color: #3A2A1F; letter-spacing: 0.05em;"><%= code.code %></div>
+              <div style="font-size: 0.75rem; color: #9C8578; margin-top: 0.15rem;">
+                <%= if code.discount_type == "flat" do %>
+                  $<%= code.discount_value %> MXN off
+                <% else %>
+                  <%= code.discount_value %>% off
+                <% end %>
+                · Used <%= code.uses_count %> time<%= if code.uses_count != 1, do: "s" %><%= if code.max_uses, do: " / #{code.max_uses}" %>
+              </div>
+              <%= if code.expires_at do %>
+                <div style="font-size: 0.65rem; color: #9C8578; margin-top: 0.1rem;">
+                  Expires: <%= code.expires_at %>
+                </div>
+              <% end %>
+            </div>
+            <%= if code.active do %>
+              <span class="mm-status mm-status--delivered" style="font-size: 0.6rem;">Active</span>
             <% else %>
-              <%= code.discount_value %>%
+              <span class="mm-status mm-status--canceled" style="font-size: 0.6rem;">Inactive</span>
             <% end %>
-          </td>
-          <td>
-            <%= code.uses_count %><%= if code.max_uses, do: " / #{code.max_uses}", else: " / ∞" %>
-          </td>
-          <td><%= code.expires_at || "—" %></td>
-          <td>
+          </div>
+
+          <div style="display: flex; gap: 0.35rem; padding-top: 0.5rem; border-top: 1px solid #F0E2D6;">
             <.link
               href={dp(@domain_path_prefix, "/discount-codes/#{code.id}/toggle-active")}
               method="patch"
-              class={"toggle-switch #{if code.active, do: "toggle-switch--on"}"}
-              title={if code.active, do: "Click to deactivate", else: "Click to activate"}>
-              <span class="toggle-switch-knob"></span>
+              class="mm-quick-pill"
+              style={"font-size: 0.7rem; padding: 0.2rem 0.6rem;#{unless code.active, do: " background: #d4edda; color: #155724; border-color: #c3e6cb;"}"}
+            >
+              <%= if code.active, do: "Deactivate", else: "Activate" %>
             </.link>
-          </td>
-          <td style="display: flex; gap: 0.5rem;">
-            <.link navigate={dp(@domain_path_prefix, "/discount-codes/#{code.id}/edit")} class="btn sm">
+            <.link navigate={dp(@domain_path_prefix, "/discount-codes/#{code.id}/edit")} class="mm-quick-pill" style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">
               Edit
             </.link>
             <.link
               href={dp(@domain_path_prefix, "/discount-codes/#{code.id}")}
               method="delete"
               data-confirm="Delete this code?"
-              class="btn sm"
-              style="color: var(--color-danger);">
+              class="mm-quick-pill"
+              style="font-size: 0.7rem; padding: 0.2rem 0.6rem; color: #b91c1c;"
+            >
               Delete
             </.link>
-          </td>
-        </tr>
+          </div>
+        </div>
       <% end %>
-    </tbody>
-  </table>
-</section>
+    <% end %>
+  </div>
+</div>
+
+<.link navigate={dp(@domain_path_prefix, "/discount-codes/new")} class="mm-fab">
+  <span class="material-symbols-outlined" style="font-size: 1.5rem;">add</span>
+</.link>

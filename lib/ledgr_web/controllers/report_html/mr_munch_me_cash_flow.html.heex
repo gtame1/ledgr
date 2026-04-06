@@ -1,0 +1,108 @@
+<%!-- ── MrMunchMe Cash Flow — Stitch Design ── --%>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/more")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Cash Flow</h1>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 1rem;">
+    <.period_selector action={dp(@domain_path_prefix, "/reports/cash_flow")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
+  </div>
+
+  <% cf = @cash_flow %>
+
+  <%!-- Hero: Net Cash Flow --%>
+  <div class="mm-hero-card" style="margin-bottom: 1rem;">
+    <div class="mm-hero-label">Net Cash Flow</div>
+    <div class="mm-hero-value"><%= if cf.net_cash_flow_cents >= 0, do: "+", else: "" %><%= format_currency(cf.net_cash_flow_cents) %></div>
+  </div>
+
+  <%!-- Inflows / Outflows / Net --%>
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; overflow-x: auto;">
+    <div class="mm-stat-card" style="flex: 1; min-width: 100px; border-left: 3px solid #8B9E6B;">
+      <div class="mm-stat-label">Inflows</div>
+      <div class="mm-stat-value" style="font-size: 1rem; color: #8B9E6B;"><%= format_currency(cf.cash_inflows_cents) %></div>
+    </div>
+    <div class="mm-stat-card" style="flex: 1; min-width: 100px; border-left: 3px solid #D4956A;">
+      <div class="mm-stat-label">Outflows</div>
+      <div class="mm-stat-value" style="font-size: 1rem; color: #D4956A;"><%= format_currency(cf.cash_outflows_cents) %></div>
+    </div>
+    <div class="mm-stat-card" style="flex: 1; min-width: 100px; border-left: 3px solid #5C3D2E;">
+      <div class="mm-stat-label">Net</div>
+      <div class="mm-stat-value" style="font-size: 1rem;"><%= format_currency(cf.net_cash_flow_cents) %></div>
+    </div>
+  </div>
+
+  <%!-- Inflows Detail --%>
+  <div class="mm-section-title" style="color: #8B9E6B;">
+    <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">arrow_downward</span>
+    Cash Inflows
+  </div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid #F0E2D6;">
+      <span style="color: #3A2A1F;">Sales Revenue</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.breakdown.sales_inflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid #F0E2D6;">
+      <span style="color: #3A2A1F;">Investment Inflows</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.breakdown.investment_inflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem;">
+      <span style="color: #3A2A1F;">Other Inflows</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.breakdown.other_inflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0 0; font-weight: 700; font-size: 0.9rem; border-top: 2px solid #F0E2D6; margin-top: 0.25rem; color: #8B9E6B;">
+      <span>Total Inflows</span>
+      <span><%= format_currency(cf.cash_inflows_cents) %></span>
+    </div>
+  </div>
+
+  <%!-- Outflows Detail --%>
+  <div class="mm-section-title" style="color: #D4956A;">
+    <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">arrow_upward</span>
+    Cash Outflows
+  </div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid #F0E2D6;">
+      <span style="color: #3A2A1F;">Expenses & Inventory</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.breakdown.expense_outflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid #F0E2D6;">
+      <span style="color: #3A2A1F;">Owner Withdrawals</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.breakdown.withdrawal_outflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem;">
+      <span style="color: #3A2A1F;">Other Outflows</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.breakdown.other_outflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0 0; font-weight: 700; font-size: 0.9rem; border-top: 2px solid #F0E2D6; margin-top: 0.25rem; color: #D4956A;">
+      <span>Total Outflows</span>
+      <span><%= format_currency(cf.cash_outflows_cents) %></span>
+    </div>
+  </div>
+
+  <%!-- Cash Balance Reconciliation --%>
+  <div class="mm-section-title">Cash Balance Reconciliation</div>
+  <div class="mm-order-card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid #F0E2D6;">
+      <span style="color: #9C8578;">Beginning Balance</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.beginning_balance_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; color: #8B9E6B; border-bottom: 1px solid #F0E2D6;">
+      <span>+ Cash Inflows</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.cash_inflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; color: #D4956A; border-bottom: 1px solid #F0E2D6;">
+      <span>- Cash Outflows</span>
+      <span style="font-weight: 500;"><%= format_currency(cf.cash_outflows_cents) %></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0 0; font-weight: 700; font-size: 1rem; border-top: 2px solid #F0E2D6; margin-top: 0.25rem;">
+      <span>= Ending Balance</span>
+      <span style="color: #5C3D2E;"><%= format_currency(cf.ending_balance_cents) %></span>
+    </div>
+  </div>
+</div>

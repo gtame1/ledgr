@@ -1,0 +1,119 @@
+<%!-- ── MrMunchMe Balance Sheet — Stitch Design ── --%>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/more")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <div>
+        <h1 class="mm-topbar-title">Balance Sheet</h1>
+        <p style="font-size: 0.7rem; color: #9C8578; margin: 0;">As of <%= @as_of %></p>
+      </div>
+    </div>
+  </div>
+
+  <%!-- Date selector --%>
+  <form method="get" action={dp(@domain_path_prefix, "/reports/balance_sheet")} style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+    <input type="date" name="as_of" value={@as_of} style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #F0E2D6; border-radius: 12px; background: #FFFAF5; font-size: 0.8rem;" />
+    <button type="submit" class="btn primary" style="border-radius: 12px; font-size: 0.8rem;">Update</button>
+  </form>
+
+  <% bs = @balance_sheet %>
+
+  <%!-- Balance Check Hero --%>
+  <div class="mm-hero-card" style="margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div class="mm-hero-label">Total Assets</div>
+        <div class="mm-hero-value" style="font-size: 1.75rem;"><%= format_currency(bs.total_assets_cents) %></div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 0.75rem; opacity: 0.7;">L + E + I</div>
+        <div style="font-size: 1.2rem; font-weight: 700; font-family: 'Manrope';"><%= format_currency(bs.liabilities_plus_equity_plus_income_cents) %></div>
+        <%= if bs.balance_diff_cents == 0 do %>
+          <span style="font-size: 0.7rem; background: rgba(139,158,107,0.3); padding: 0.1rem 0.4rem; border-radius: 999px;">Balanced</span>
+        <% else %>
+          <span style="font-size: 0.7rem; background: rgba(212,149,106,0.3); padding: 0.1rem 0.4rem; border-radius: 999px;">Off by <%= format_currency(bs.balance_diff_cents) %></span>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%!-- Assets --%>
+  <div class="mm-section-title">
+    <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">account_balance</span>
+    Assets
+  </div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <%= for acct <- bs.assets do %>
+      <div style={"display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem;#{unless acct == List.last(bs.assets), do: " border-bottom: 1px solid #F0E2D6;"}"}>
+        <span style="color: #3A2A1F;">
+          <span style="color: #9C8578; font-size: 0.7rem; font-family: monospace;"><%= acct.account.code %></span>
+          <%= acct.account.name %>
+        </span>
+        <span style="font-weight: 500;"><%= format_currency(acct.amount_cents) %></span>
+      </div>
+    <% end %>
+    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0 0; font-weight: 700; font-size: 0.9rem; border-top: 2px solid #F0E2D6; margin-top: 0.25rem;">
+      <span>Total Assets</span>
+      <span><%= format_currency(bs.total_assets_cents) %></span>
+    </div>
+  </div>
+
+  <%!-- Liabilities --%>
+  <div class="mm-section-title">
+    <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">credit_card</span>
+    Liabilities
+  </div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <%= if bs.liabilities == [] do %>
+      <div style="padding: 0.5rem 0; font-size: 0.85rem; color: #9C8578;">No liabilities</div>
+    <% else %>
+      <%= for acct <- bs.liabilities do %>
+        <div style={"display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem;#{unless acct == List.last(bs.liabilities), do: " border-bottom: 1px solid #F0E2D6;"}"}>
+          <span style="color: #3A2A1F;">
+            <span style="color: #9C8578; font-size: 0.7rem; font-family: monospace;"><%= acct.account.code %></span>
+            <%= acct.account.name %>
+          </span>
+          <span style="font-weight: 500;"><%= format_currency(acct.amount_cents) %></span>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%!-- Equity --%>
+  <div class="mm-section-title">
+    <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">savings</span>
+    Equity
+  </div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <%= for acct <- bs.equity do %>
+      <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid #F0E2D6;">
+        <span style="color: #3A2A1F;">
+          <span style="color: #9C8578; font-size: 0.7rem; font-family: monospace;"><%= acct.account.code %></span>
+          <%= acct.account.name %>
+        </span>
+        <span style="font-weight: 500;"><%= format_currency(acct.amount_cents) %></span>
+      </div>
+    <% end %>
+    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; font-style: italic; color: #9C8578;">
+      <span>Current Period Net Income</span>
+      <span style="font-weight: 500;"><%= format_currency(bs.net_income_cents) %></span>
+    </div>
+  </div>
+
+  <%!-- Year-End Close --%>
+  <div class="mm-section-title" style="margin-top: 1rem;">Year-End Close</div>
+  <div class="mm-order-card" style="margin-bottom: 2rem;">
+    <form method="post" action={dp(@domain_path_prefix, "/reports/year_end_close")} onsubmit="return confirm('Are you sure? This will close the fiscal year and move net income to retained earnings.');">
+      <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <input type="date" name="close_date" value={Date.new!(Date.utc_today().year - 1, 12, 31)} style="flex: 1; padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;" />
+        <button type="submit" class="btn" style="border-radius: 10px; font-size: 0.8rem; white-space: nowrap;">Close Year</button>
+      </div>
+      <%= if bs.last_close_date do %>
+        <p style="font-size: 0.7rem; color: #9C8578; margin: 0.35rem 0 0;">Last close: <%= bs.last_close_date %></p>
+      <% end %>
+    </form>
+  </div>
+</div>

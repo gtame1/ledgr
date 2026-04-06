@@ -1,14 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">New Inventory Movement</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/inventory")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">New Movement</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
     <section class="card">
-      <h2 class="card-title">Record Movement</h2>
-      <p class="card-subtitle">
-        Record usage (consumption), transfers between locations, or write-offs. Multiple products can be added with the same movement type, date, and locations.
-      </p>
 
       <.form
         for={@form}
@@ -172,8 +172,7 @@
         </div>
       </.form>
     </section>
-  </div>
-</section>
+</div> <%!-- close mm-page --%>
 
 <script>
   // Make ingredient quick infos available to JS

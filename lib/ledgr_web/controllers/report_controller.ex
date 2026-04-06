@@ -5,6 +5,10 @@ defmodule LedgrWeb.ReportController do
   alias Ledgr.Core.Reporting
   alias Ledgr.Domain
 
+  def mr_munch_me_more(conn, _params) do
+    render(conn, :mr_munch_me_more)
+  end
+
   def dashboard(conn, params) do
     domain = Domain.current()
     {start_date, end_date} = resolve_period(params)
@@ -16,6 +20,7 @@ defmodule LedgrWeb.ReportController do
       domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
       domain == Ledgr.Domains.LedgrHQ      -> :ledgr_hq_dashboard
       domain == Ledgr.Domains.CasaTame     -> :casa_tame_dashboard
+      domain == Ledgr.Domains.MrMunchMe    -> :mr_munch_me_dashboard
       true                                  -> :dashboard
     end
 
@@ -37,7 +42,11 @@ defmodule LedgrWeb.ReportController do
     summary  = Accounting.profit_and_loss(start_date, end_date)
     monthly  = Accounting.profit_and_loss_monthly(5)  # last 6 months including current
 
-    template = if domain == Ledgr.Domains.CasaTame, do: :casa_tame_pnl, else: :pnl
+    template = cond do
+      domain == Ledgr.Domains.CasaTame -> :casa_tame_pnl
+      domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_pnl
+      true -> :pnl
+    end
 
     # Casa Tame needs expense/income totals by currency for the split P&L
     extra_assigns =
@@ -75,10 +84,11 @@ defmodule LedgrWeb.ReportController do
 
     bs = Accounting.balance_sheet(as_of)
 
-    template =
-      if Domain.current() == Ledgr.Domains.CasaTame,
-        do: :casa_tame_balance_sheet,
-        else: :balance_sheet
+    template = cond do
+      Domain.current() == Ledgr.Domains.CasaTame -> :casa_tame_balance_sheet
+      Domain.current() == Ledgr.Domains.MrMunchMe -> :mr_munch_me_balance_sheet
+      true -> :balance_sheet
+    end
 
     render(conn, template,
       balance_sheet: bs,
@@ -173,7 +183,11 @@ defmodule LedgrWeb.ReportController do
 
     cash_flow_data = Reporting.cash_flow(start_date, end_date)
 
-    template = if domain == Ledgr.Domains.CasaTame, do: :casa_tame_cash_flow, else: :cash_flow
+    template = cond do
+      domain == Ledgr.Domains.CasaTame -> :casa_tame_cash_flow
+      domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_cash_flow
+      true -> :cash_flow
+    end
 
     render(conn, template,
       cash_flow: cash_flow_data,
@@ -264,7 +278,9 @@ defmodule LedgrWeb.ReportController do
         delivered_order_count: delivered_order_count
       )
 
-    render(conn, :financial_analysis,
+    template = if Domain.current() == Ledgr.Domains.MrMunchMe, do: :mr_munch_me_financial_analysis, else: :financial_analysis
+
+    render(conn, template,
       analysis: analysis,
       start_date: start_date,
       end_date: end_date,

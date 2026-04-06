@@ -1,10 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">Edit Payment</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/order_payments")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Edit Payment</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
-    <section class="card">
+  <section class="card">
       <h2 class="card-title">Edit Payment for Order #<%= @payment.order_id %></h2>
       <p class="card-subtitle">
         Update payment details. This will automatically update the accounting entries.
@@ -151,9 +155,8 @@
           </.link>
         </div>
       </.form>
-    </section>
-  </div>
-</section>
+  </section>
+</div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

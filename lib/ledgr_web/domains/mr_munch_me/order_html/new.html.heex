@@ -1,14 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">New Order</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">New Order</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
     <section class="card">
-      <h2 class="card-title">Register New Order</h2>
-      <p class="card-subtitle">
-        Create a new order with customer details, delivery information, and product selection.
-      </p>
 
       <.form :let={f} for={@changeset} as={:order} action={@action} class="form-grid">
         <%= if @changeset.action do %>
@@ -288,8 +288,7 @@
         </div>
       </.form>
     </section>
-  </div>
-</section>
+</div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

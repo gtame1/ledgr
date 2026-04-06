@@ -1,10 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">Create New Recipe Version</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/recipes")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Edit Recipe</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
-    <section class="card">
+  <section class="card">
       <h2 class="card-title">Create New Recipe Version</h2>
       <p class="card-subtitle">
         Creating a new version of this recipe. The original recipe (effective from <%= Calendar.strftime(@original_recipe.effective_date, "%Y-%m-%d") %>) will remain unchanged for historical accuracy.
@@ -228,9 +232,8 @@
           </.link>
         </div>
       </.form>
-    </section>
-  </div>
-</section>
+  </section>
+</div>
 
 <script>
   const FORM_NAME = "<%= @form.name %>";

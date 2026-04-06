@@ -1,14 +1,14 @@
-<section class="content">
-  <header class="content-header">
-    <h1 class="page-title">Edit Order</h1>
-  </header>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </.link>
+      <h1 class="mm-topbar-title">Edit Order</h1>
+    </div>
+  </div>
 
-  <div class="content-body">
     <section class="card">
-      <h2 class="card-title">Update Order</h2>
-      <p class="card-subtitle">
-        Update customer details, delivery information, and product selection for this order.
-      </p>
 
       <.form :let={f} for={@changeset} as={:order} action={dp(@domain_path_prefix, "/orders/#{@order.id}")} method="patch" class="form-grid">
         <%= if @changeset.action do %>
@@ -266,8 +266,7 @@
         </div>
       </.form>
     </section>
-  </div>
-</section>
+</div> <%!-- close mm-page --%>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

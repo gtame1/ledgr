@@ -1,0 +1,879 @@
+/* ============================================================
+   MrMunchMe — Stitch "Warm Artisan" Design Overrides
+   All rules scoped to [data-domain="mr-munch-me"]
+   ============================================================ */
+
+@layer components {
+
+/* ── Content area — match Stitch mobile spacing ─────────── */
+
+[data-domain="mr-munch-me"] {
+  overflow-x: hidden;
+}
+
+[data-domain="mr-munch-me"] .content {
+  padding: 0 !important;
+  background: #FDF8F3;
+  overflow-x: hidden;
+}
+
+[data-domain="mr-munch-me"] .content-body {
+  gap: 0 !important;
+  padding-bottom: 6rem; /* space for bottom nav */
+  overflow-x: hidden;
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] h1,
+[data-domain="mr-munch-me"] h2,
+[data-domain="mr-munch-me"] .page-title,
+[data-domain="mr-munch-me"] .card-title,
+[data-domain="mr-munch-me"] .calendar-title {
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+[data-domain="mr-munch-me"] .page-title {
+  font-weight: 700;
+  font-size: 1.25rem !important;
+  color: #5C3D2E;
+}
+
+/* ── Cards — no borders, warm shadows ────────────────────── */
+
+[data-domain="mr-munch-me"] .card {
+  border: none;
+  background: #FFFAF5;
+  box-shadow: 0 4px 12px rgba(58, 42, 31, 0.04);
+  border-radius: 16px;
+}
+
+[data-domain="mr-munch-me"] .card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .card-header {
+  border-bottom: 1px solid #F0E2D6;
+}
+
+/* ── Tables — soft warm styling ──────────────────────────── */
+
+[data-domain="mr-munch-me"] .table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+[data-domain="mr-munch-me"] .table thead th {
+  background: transparent;
+  border-bottom: 1px solid #F0E2D6;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9C8578;
+  padding: 0.6rem 0.75rem;
+}
+
+[data-domain="mr-munch-me"] .table tbody tr {
+  border-bottom: none;
+}
+
+[data-domain="mr-munch-me"] .table tbody tr:nth-child(even) {
+  background: #FFFAF5;
+}
+
+[data-domain="mr-munch-me"] .table tbody td {
+  border: none;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .btn.primary {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+[data-domain="mr-munch-me"] .btn.primary:hover {
+  background: #4D3328;
+}
+
+[data-domain="mr-munch-me"] .btn {
+  border-radius: 12px;
+}
+
+/* ── Form inputs ─────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] input[type="text"],
+[data-domain="mr-munch-me"] input[type="email"],
+[data-domain="mr-munch-me"] input[type="number"],
+[data-domain="mr-munch-me"] input[type="date"],
+[data-domain="mr-munch-me"] input[type="password"],
+[data-domain="mr-munch-me"] input[type="tel"],
+[data-domain="mr-munch-me"] select,
+[data-domain="mr-munch-me"] textarea {
+  border: 1px solid #F0E2D6;
+  background: #FFFAF5;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  padding: 0.6rem 0.75rem;
+  color: #3A2A1F;
+  transition: border-color 0.15s, outline 0.15s;
+}
+
+[data-domain="mr-munch-me"] input:focus,
+[data-domain="mr-munch-me"] select:focus,
+[data-domain="mr-munch-me"] textarea:focus {
+  outline: 2px solid rgba(92, 61, 46, 0.2);
+  outline-offset: 1px;
+  border-color: #5C3D2E;
+}
+
+/* ── Hero metric cards ───────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-hero-card {
+  border-radius: 20px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(155deg, #5C3D2E 0%, #4D3328 100%);
+  color: #FDF8F3;
+}
+
+[data-domain="mr-munch-me"] .mm-hero-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+}
+
+[data-domain="mr-munch-me"] .mm-hero-value {
+  font-family: 'Manrope', sans-serif;
+  font-size: clamp(1.5rem, 7vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  overflow-wrap: break-word;
+}
+
+[data-domain="mr-munch-me"] .mm-hero-sublabel {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-top: 0.5rem;
+}
+
+/* ── Status chips ────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: white;
+}
+
+[data-domain="mr-munch-me"] .mm-status--new_order { background: #D4956A; }
+[data-domain="mr-munch-me"] .mm-status--in_prep   { background: #e5a443; }
+[data-domain="mr-munch-me"] .mm-status--ready      { background: #8ca681; }
+[data-domain="mr-munch-me"] .mm-status--delivered   { background: #6b9e7a; }
+[data-domain="mr-munch-me"] .mm-status--canceled    { background: #9C8578; }
+
+/* ── Order cards (mobile Stitch style) ───────────────────── */
+
+[data-domain="mr-munch-me"] .mm-order-card {
+  background: #FFFAF5;
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(58, 42, 31, 0.04);
+  position: relative;
+}
+
+[data-domain="mr-munch-me"] .mm-order-card + .mm-order-card {
+  margin-top: 1rem;
+}
+
+[data-domain="mr-munch-me"] .mm-order-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #F5E6D8;
+  flex-shrink: 0;
+}
+
+[data-domain="mr-munch-me"] .mm-order-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Tab pills ───────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-tab-pills {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+[data-domain="mr-munch-me"] .mm-tab-pill {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #9C8578;
+  background: transparent;
+  text-decoration: none;
+  transition: all 0.15s;
+  border: none;
+  cursor: pointer;
+}
+
+[data-domain="mr-munch-me"] .mm-tab-pill:hover {
+  background: #F5E6D8;
+}
+
+[data-domain="mr-munch-me"] .mm-tab-pill--active {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(58, 42, 31, 0.15);
+}
+
+/* ── Filter chips (horizontal scroll) ────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-filter-chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+[data-domain="mr-munch-me"] .mm-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+[data-domain="mr-munch-me"] .mm-filter-chip {
+  white-space: nowrap;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #F0E2D6;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5C3D2E;
+  background: #FFFAF5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+[data-domain="mr-munch-me"] .mm-filter-chip--active {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  border-color: #5C3D2E;
+}
+
+/* ── Search bar ──────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-search {
+  width: 100%;
+  padding-left: 2.75rem;
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  background: #FFFAF5;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(58, 42, 31, 0.03);
+  font-size: 0.875rem;
+  color: #3A2A1F;
+}
+
+[data-domain="mr-munch-me"] .mm-search::placeholder {
+  color: rgba(156, 133, 120, 0.5);
+}
+
+[data-domain="mr-munch-me"] .mm-search:focus {
+  outline: 2px solid rgba(92, 61, 46, 0.2);
+  border: none;
+}
+
+/* ── Delivery type badge ─────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-delivery-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #F0E2D6;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #5C3D2E;
+}
+
+/* ── Payment status indicator ────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-payment-paid {
+  color: #6b9e7a;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+[data-domain="mr-munch-me"] .mm-payment-pending {
+  color: #D4956A;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/* ── FAB (floating action button) ────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-fab {
+  position: fixed;
+  bottom: 6rem;
+  right: 1.5rem;
+  width: 56px;
+  height: 56px;
+  background: #5C3D2E;
+  color: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(58, 42, 31, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s;
+  text-decoration: none;
+}
+
+[data-domain="mr-munch-me"] .mm-fab:hover {
+  transform: scale(1.05);
+}
+
+/* ── Top app bar ─────────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #FDF8F3;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+[data-domain="mr-munch-me"] .mm-topbar-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #5C3D2E;
+}
+
+[data-domain="mr-munch-me"] .mm-topbar-action {
+  padding: 0.5rem;
+  border-radius: 999px;
+  background: transparent;
+  border: none;
+  color: #5C3D2E;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+[data-domain="mr-munch-me"] .mm-topbar-action:hover {
+  background: #F5E6D8;
+}
+
+/* ── Bottom navigation bar ───────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 5rem;
+  background: #FFFAF5;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 0.5rem;
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  border-top: 1px solid #F0E2D6;
+  box-shadow: 0 -4px 12px rgba(58, 42, 31, 0.04);
+  z-index: 50;
+  border-radius: 1.5rem 1.5rem 0 0;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #9C8578;
+  text-decoration: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  transition: all 0.15s;
+  gap: 0.15rem;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-tab span.mm-nav-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.6875rem;
+}
+
+[data-domain="mr-munch-me"] .mm-nav-tab--active {
+  color: #5C3D2E;
+  font-weight: 700;
+  background: #F5E6D8;
+}
+
+/* ── Mobile page container ───────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-page {
+  max-width: 28rem; /* ~448px */
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ── Section dividers ────────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-section-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9C8578;
+  padding: 1rem 0 0.5rem;
+}
+
+/* ── Stat grid (2x2 cards) ───────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+[data-domain="mr-munch-me"] .mm-stat-card {
+  background: #FFFAF5;
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(58, 42, 31, 0.04);
+}
+
+[data-domain="mr-munch-me"] .mm-stat-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #9C8578;
+  margin-bottom: 0.25rem;
+}
+
+[data-domain="mr-munch-me"] .mm-stat-value {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.1rem, 5vw, 1.5rem);
+  color: #3A2A1F;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+}
+
+/* ── Status progress stepper ─────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 1rem 0;
+}
+
+[data-domain="mr-munch-me"] .mm-stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: #9C8578;
+  position: relative;
+}
+
+[data-domain="mr-munch-me"] .mm-stepper-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #F0E2D6;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+[data-domain="mr-munch-me"] .mm-stepper-step--done .mm-stepper-dot {
+  background: #5C3D2E;
+  color: white;
+}
+
+[data-domain="mr-munch-me"] .mm-stepper-step--current .mm-stepper-dot {
+  background: #D4956A;
+  color: white;
+}
+
+[data-domain="mr-munch-me"] .mm-stepper-line {
+  flex: 1;
+  height: 2px;
+  background: #F0E2D6;
+  margin: 0 0.25rem;
+  align-self: flex-start;
+  margin-top: 12px;
+}
+
+[data-domain="mr-munch-me"] .mm-stepper-line--done {
+  background: #5C3D2E;
+}
+
+/* ── Material Symbols helper ─────────────────────────────── */
+
+[data-domain="mr-munch-me"] .material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ── Quick actions row ───────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-quick-actions {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0.5rem 0;
+}
+
+[data-domain="mr-munch-me"] .mm-quick-actions::-webkit-scrollbar {
+  display: none;
+}
+
+[data-domain="mr-munch-me"] .mm-quick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: #FFFAF5;
+  color: #3A2A1F;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+  white-space: nowrap;
+  border: 1px solid #F0E2D6;
+}
+
+[data-domain="mr-munch-me"] .mm-quick-pill:hover {
+  background: #F5E6D8;
+}
+
+[data-domain="mr-munch-me"] .mm-quick-pill--primary {
+  background: #5C3D2E;
+  color: #FDF8F3;
+  border-color: #5C3D2E;
+}
+
+[data-domain="mr-munch-me"] .mm-quick-pill--primary:hover {
+  background: #4D3328;
+}
+
+/* ── Badge / Pill generic ────────────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: #F0E2D6;
+  color: #5C3D2E;
+}
+
+/* ── Mobile layout for MrMunchMe ─────────────────────────── */
+
+@media (max-width: 768px) {
+  [data-domain="mr-munch-me"] .app-layout {
+    grid-template-columns: 1fr;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  [data-domain="mr-munch-me"] .sidebar {
+    display: none !important;
+  }
+
+  [data-domain="mr-munch-me"] .sidebar-overlay {
+    display: none !important;
+  }
+
+  [data-domain="mr-munch-me"] .hamburger-btn {
+    display: none !important;
+  }
+
+  [data-domain="mr-munch-me"] .content {
+    padding: 0 !important;
+    padding-bottom: 6rem !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  [data-domain="mr-munch-me"] .content-body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  [data-domain="mr-munch-me"] .mm-page {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 1rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* Filter chips can scroll horizontally but page shouldn't */
+  [data-domain="mr-munch-me"] .mm-filter-chips {
+    max-width: 100%;
+  }
+
+  /* Hero card should respect padding */
+  [data-domain="mr-munch-me"] .mm-hero-card {
+    overflow: hidden;
+    word-break: break-word;
+  }
+
+  /* Stats grid shouldn't overflow */
+  [data-domain="mr-munch-me"] .mm-stats-grid {
+    max-width: 100%;
+  }
+
+  /* Order cards should stay within bounds */
+  [data-domain="mr-munch-me"] .mm-order-card {
+    max-width: 100%;
+    overflow: hidden;
+    word-break: break-word;
+  }
+}
+
+/* Desktop: keep sidebar, hide bottom nav, wider layouts */
+@media (min-width: 769px) {
+  [data-domain="mr-munch-me"] .mm-bottom-nav {
+    display: none;
+  }
+
+  [data-domain="mr-munch-me"] .mm-fab {
+    bottom: 2rem;
+    right: 2rem;
+  }
+
+  [data-domain="mr-munch-me"] .mm-page {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  [data-domain="mr-munch-me"] .content {
+    padding: 1.5rem 2rem !important;
+    background: #FDF8F3;
+  }
+
+  [data-domain="mr-munch-me"] .content-body {
+    padding-bottom: 2rem;
+  }
+
+  /* Topbar becomes inline with the page on desktop */
+  [data-domain="mr-munch-me"] .mm-topbar {
+    position: relative;
+    padding: 0 0 1rem;
+  }
+
+  [data-domain="mr-munch-me"] .mm-topbar-title {
+    font-size: 1.5rem;
+  }
+
+  /* Hero cards — max width for readability */
+  [data-domain="mr-munch-me"] .mm-hero-card {
+    max-width: 600px;
+  }
+
+  [data-domain="mr-munch-me"] .mm-hero-value {
+    font-size: 2.5rem;
+  }
+
+  /* Stats grid — 4 columns on desktop */
+  [data-domain="mr-munch-me"] .mm-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Stat values back to normal size */
+  [data-domain="mr-munch-me"] .mm-stat-value {
+    font-size: 1.5rem;
+  }
+
+  /* Order cards — max width for readability, side-by-side possible */
+  [data-domain="mr-munch-me"] .mm-order-card {
+    max-width: 100%;
+  }
+
+  /* Quick actions wrap nicely */
+  [data-domain="mr-munch-me"] .mm-quick-actions {
+    flex-wrap: wrap;
+  }
+
+  /* Section titles larger */
+  [data-domain="mr-munch-me"] .mm-section-title {
+    font-size: 0.85rem;
+  }
+
+  /* Desktop two-column layout helper */
+  [data-domain="mr-munch-me"] .mm-desktop-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* Desktop three-column layout for product grid */
+  [data-domain="mr-munch-me"] .mm-desktop-3col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  /* Filter chips don't need scroll on desktop */
+  [data-domain="mr-munch-me"] .mm-filter-chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  /* Tab pills don't need to fill on desktop */
+  [data-domain="mr-munch-me"] .mm-tab-pill {
+    flex: none;
+  }
+
+  /* Stepper can be wider */
+  [data-domain="mr-munch-me"] .mm-stepper {
+    max-width: 500px;
+  }
+}
+
+/* ── Responsive visibility helpers ────────────────────────── */
+
+[data-domain="mr-munch-me"] .mm-mobile-only {
+  display: block;
+}
+
+[data-domain="mr-munch-me"] .mm-desktop-only {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  [data-domain="mr-munch-me"] .mm-mobile-only {
+    display: none !important;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-only {
+    display: block !important;
+  }
+
+  /* Desktop table styling */
+  [data-domain="mr-munch-me"] .mm-desktop-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #FFFAF5;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(58, 42, 31, 0.04);
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table thead th {
+    background: transparent;
+    border-bottom: 1px solid #F0E2D6;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9C8578;
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table thead th.numeric {
+    text-align: right;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table tbody tr {
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table tbody tr:hover {
+    background: #F5E6D8;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table tbody tr:nth-child(even) {
+    background: rgba(255, 250, 245, 0.5);
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table tbody tr:nth-child(even):hover {
+    background: #F5E6D8;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table tbody td {
+    border: none;
+    border-bottom: 1px solid #F0E2D6;
+    padding: 0.7rem 1rem;
+    font-size: 0.875rem;
+    color: #3A2A1F;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table tbody td.numeric {
+    text-align: right;
+  }
+
+  [data-domain="mr-munch-me"] .mm-desktop-table tbody td.muted {
+    color: #9C8578;
+    font-size: 0.8rem;
+  }
+}
+
+} /* end @layer components */

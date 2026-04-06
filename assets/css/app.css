@@ -10,6 +10,9 @@
 /* Casa Tame Stitch design overrides */
 @import "./casa-tame-stitch.css";
 
+/* MrMunchMe Stitch design overrides */
+@import "./mr-munch-me-stitch.css";
+
 @layer components {
   /* ==============================
    Base

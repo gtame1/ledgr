@@ -1,0 +1,123 @@
+<%!-- ── MrMunchMe More Menu — Stitch Mobile Design ── --%>
+<div class="mm-page">
+  <div class="mm-topbar">
+    <h1 class="mm-topbar-title">More</h1>
+  </div>
+
+  <%!-- Main Menu --%>
+  <div class="mm-section-title">Main</div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/orders/calendar")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">calendar_month</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Order Calendar</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/inventory/requirements")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">checklist</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Shopping List</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/expenses")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">receipt_long</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Expenses</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+  </div>
+
+  <%!-- Materials --%>
+  <div class="mm-section-title">Materials</div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/ingredients")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">restaurant</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Ingredients</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/recipes")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">menu_book</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Recipes</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+  </div>
+
+  <%!-- Promotions --%>
+  <div class="mm-section-title">Promotions</div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/discount-codes")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">sell</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Discount Codes</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+  </div>
+
+  <%!-- Reports --%>
+  <div class="mm-section-title">Reports</div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/reports/pnl")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">bar_chart</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">P&amp;L</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/reports/balance_sheet")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">account_balance</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Balance Sheet</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics_list")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">analytics</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Unit Economics</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/reports/cash_flow")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">payments</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Cash Flow</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/reports/financial_analysis")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">monitoring</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Financial Analysis</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/reports/ap_summary")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">request_quote</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">AP Summary</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/account-transactions")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">list_alt</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Account Transactions</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+  </div>
+
+  <%!-- Reconciliation & Tools --%>
+  <div class="mm-section-title">Tools</div>
+  <div class="mm-order-card" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/reconciliation/accounting")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">fact_check</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Account Reconciliation</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/reconciliation/inventory")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">inventory</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Inventory Reconciliation</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/customers")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">people</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">Customers</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/order_payments")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #F0E2D6;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">credit_card</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">All Payments</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+    <.link navigate={dp(@domain_path_prefix, "/transactions")} style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0;">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #D4956A;">swap_horiz</span>
+      <span style="font-weight: 500; font-size: 0.9rem;">All Transactions</span>
+      <span class="material-symbols-outlined" style="font-size: 1rem; color: #9C8578; margin-left: auto;">chevron_right</span>
+    </.link>
+  </div>
+
+  <div style="height: 2rem;"></div>
+</div>

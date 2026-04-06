@@ -1,33 +1,26 @@
-<div class="calendar-page">
-  <div class="calendar-header">
-    <div class="calendar-header-left">
-      <h1 class="calendar-title">Delivery Calendar</h1>
-      <p class="calendar-subtitle">View all orders scheduled for delivery by date</p>
-    </div>
-    <div class="calendar-header-actions">
-      <.link
-        navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}")}
-        class="btn btn-sm"
-      >
-        ← Previous
+<div class="mm-page">
+  <%!-- Stitch-style top bar --%>
+  <div class="mm-topbar">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">arrow_back</span>
       </.link>
-      <.link
-        navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{today_mx().year}&month=#{today_mx().month}")}
-        class="btn btn-sm"
-      >
+      <h1 class="mm-topbar-title">Calendar</h1>
+    </div>
+    <div style="display: flex; gap: 0.25rem;">
+      <.link navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </.link>
+      <.link navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{today_mx().year}&month=#{today_mx().month}")} class="mm-topbar-action" style="font-size: 0.75rem; font-weight: 600; color: #5C3D2E;">
         Today
       </.link>
-      <.link
-        navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}")}
-        class="btn btn-sm"
-      >
-        Next →
-      </.link>
-      <.link navigate={dp(@domain_path_prefix, "/orders")} class="btn btn-sm primary">
-        View List
+      <.link navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}")} class="mm-topbar-action">
+        <span class="material-symbols-outlined">chevron_right</span>
       </.link>
     </div>
   </div>
+
+<div class="calendar-page">
 
   <div class="calendar-month-title">
     <%= Calendar.strftime(@first_day, "%B %Y") %>
@@ -144,3 +137,4 @@
 
 <%!-- Floating tooltip for desktop hover --%>
 <div id="calendar-tooltip" class="calendar-tooltip" aria-hidden="true"></div>
+</div> <%!-- close mm-page --%>
