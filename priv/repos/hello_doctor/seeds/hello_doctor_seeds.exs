@@ -23,7 +23,7 @@ hd_accounts = [
   %{code: "1010", name: "Bank - MXN", type: "asset", normal_balance: "debit", is_cash: true},
   %{code: "1020", name: "Bank - USD", type: "asset", normal_balance: "debit", is_cash: true},
   %{code: "1100", name: "Accounts Receivable", type: "asset", normal_balance: "debit"},
-  %{code: "1200", name: "Stripe Clearing", type: "asset", normal_balance: "debit"},
+  %{code: "1200", name: "Stripe Receivable", type: "asset", normal_balance: "debit"},
 
   # ── Liabilities ─────────────────────────────────────────
   %{code: "2000", name: "Doctor Payable", type: "liability", normal_balance: "credit"},

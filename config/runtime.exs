@@ -119,6 +119,15 @@ if webhook_secret = System.get_env("STRIPE_WEBHOOK_SECRET") do
   config :ledgr, stripe_webhook_secret: webhook_secret
 end
 
+# HelloDoctor Stripe (separate account)
+if hd_stripe_key = System.get_env("HELLO_DOCTOR_STRIPE_SECRET_KEY") do
+  config :ledgr, hello_doctor_stripe_api_key: hd_stripe_key
+end
+
+if hd_webhook_secret = System.get_env("HELLO_DOCTOR_STRIPE_WEBHOOK_SECRET") do
+  config :ledgr, hello_doctor_stripe_webhook_secret: hd_webhook_secret
+end
+
 if config_env() == :prod do
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||

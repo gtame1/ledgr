@@ -59,9 +59,9 @@ defmodule Ledgr.Domains.HelloDoctor do
       gradient_mid: "#f0f9ff",
       gradient_end: "#f5f7f9",
       tab_title: "HelloDoctor",
-      favicon: "/images/hello-doctor-logos/favicon.png",
-      sidebar_logo: "/images/hello-doctor-logos/logo-white.png",
-      card_logo: "/images/hello-doctor-logos/logo.png",
+      favicon: "/images/hello-doctor-logos/Hello-Doctor-Icon.png",
+      sidebar_logo: "/images/hello-doctor-logos/Hello-Doctor-Icon.png",
+      card_logo: "/images/hello-doctor-logos/Hello-Doctor-Logo.png",
       # Stitch extended tokens
       ct_surface: "#f5f7f9",
       ct_surface_container: "#ffffff",
@@ -83,7 +83,7 @@ defmodule Ledgr.Domains.HelloDoctor do
       # Assets
       cash: "1000",
       ar: "1100",
-      stripe_clearing: "1200",
+      stripe_receivable: "1200",
       # Liabilities
       doctor_payable: "2000",
       refunds_payable: "2100",

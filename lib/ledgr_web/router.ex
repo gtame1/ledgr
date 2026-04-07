@@ -61,6 +61,12 @@ defmodule LedgrWeb.Router do
     post "/stripe", StripeWebhookController, :handle
   end
 
+  scope "/webhooks", LedgrWeb do
+    pipe_through :api
+
+    post "/hello-doctor-stripe", HelloDoctorStripeWebhookController, :handle
+  end
+
   # ── MrMunchMe: public auth routes ──────────────────────────────────
   scope "/app/mr-munch-me", LedgrWeb do
     pipe_through :browser

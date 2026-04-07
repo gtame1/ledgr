@@ -18,6 +18,50 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations do
     |> Repo.preload([:patient, :doctor, :conversation, :prescriptions])
   end
 
+  def get_consultation(id) do
+    Consultation
+    |> Repo.get(id)
+    |> Repo.preload([:patient, :doctor])
+  end
+
+  @doc """
+  Records a Stripe payment for a consultation. Updates the consultation
+  payment fields and creates the accounting journal entry in a transaction.
+  """
+  def record_stripe_payment(%Consultation{} = consultation, attrs) do
+    consultation = Repo.preload(consultation, [:patient, :doctor])
+    amount = attrs[:payment_amount] || attrs["payment_amount"] || 0.0
+
+    Repo.transaction(fn ->
+      # Update consultation payment fields
+      changeset =
+        consultation
+        |> Ecto.Changeset.change(%{
+          payment_status: "paid",
+          payment_amount: amount,
+          payment_confirmed_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+        })
+
+      case Repo.update(changeset) do
+        {:ok, updated} ->
+          updated = Repo.preload(updated, [:patient, :doctor])
+
+          # Create accounting journal entry
+          case Ledgr.Domains.HelloDoctor.ConsultationAccounting.record_payment(
+                 updated,
+                 amount,
+                 stripe_session_id: attrs[:stripe_session_id]
+               ) do
+            {:ok, _entry} -> updated
+            {:error, reason} -> Repo.rollback(reason)
+          end
+
+        {:error, changeset} ->
+          Repo.rollback(changeset)
+      end
+    end)
+  end
+
   def update_consultation(%Consultation{} = consultation, attrs) do
     consultation
     |> Consultation.changeset(attrs)
