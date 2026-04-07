@@ -1,4 +1,8 @@
-<% fmt = fn nil -> "---"; amount -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}" end %>
+<% fmt = fn
+  nil -> "---"
+  amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"
+  amount when is_integer(amount) -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}"
+end %>
 
 <% c = @consultation %>
 
@@ -150,12 +154,14 @@
           <div class="space-y-3">
             <%= for rx <- c.prescriptions do %>
               <div class="p-3 rounded-lg" style="background: var(--bg-surface);">
-                <div class="text-sm font-medium" style="color: var(--text-main);"><%= rx.medication || rx.name || "Prescription" %></div>
-                <%= if rx.dosage do %>
-                  <div class="text-xs mt-1" style="color: var(--text-muted);">Dosage: <%= rx.dosage %></div>
+                <%= if rx.diagnosis do %>
+                  <div class="text-sm font-semibold" style="color: var(--text-main);"><%= rx.diagnosis %></div>
                 <% end %>
-                <%= if rx.instructions do %>
-                  <div class="text-xs mt-1" style="color: var(--text-muted);"><%= rx.instructions %></div>
+                <%= if rx.content do %>
+                  <div class="text-sm mt-1 whitespace-pre-line" style="color: var(--text-main);"><%= rx.content %></div>
+                <% end %>
+                <%= if rx.created_at do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);"><%= Calendar.strftime(rx.created_at, "%b %d, %Y") %></div>
                 <% end %>
               </div>
             <% end %>
