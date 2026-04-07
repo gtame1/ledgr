@@ -15,7 +15,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
   def get_doctor!(id) do
     Doctor
     |> Repo.get!(id)
-    |> Repo.preload(:consultations)
+    |> Repo.preload(consultations: :patient)
   end
 
   def create_doctor(attrs) do

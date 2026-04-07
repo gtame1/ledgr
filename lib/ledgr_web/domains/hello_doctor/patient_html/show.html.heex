@@ -102,14 +102,12 @@
               </thead>
               <tbody>
                 <%= for c <- p.consultations do %>
-                  <tr class="border-t" style="border-color: var(--border-subtle);">
-                    <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  <tr class="border-t cursor-pointer hover:bg-[rgba(2,186,151,0.04)]" style="border-color: var(--border-subtle);" onclick={"window.location='#{dp(@domain_path_prefix, "/consultations/#{c.id}")}';"}>
+                    <td class="p-3 text-sm font-medium" style="color: var(--accent);">
                       <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
                     </td>
-                    <td class="p-3">
-                      <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                        <%= if c.doctor, do: c.doctor.name, else: "---" %>
-                      </.link>
+                    <td class="p-3 text-sm" style="color: var(--text-main);">
+                      <%= if c.doctor, do: c.doctor.name, else: "Unassigned" %>
                     </td>
                     <td class="p-3">
                       <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
@@ -134,13 +132,23 @@
           <div class="divide-y" style="border-color: var(--border-subtle);">
             <%= for record <- p.medical_records do %>
               <div class="p-4">
-                <div class="text-sm font-medium" style="color: var(--text-main);"><%= record.title || record.type || "Record" %></div>
-                <%= if record.description do %>
-                  <div class="text-xs mt-1" style="color: var(--text-muted);"><%= record.description %></div>
+                <%= if record.chief_complaint do %>
+                  <div class="text-sm font-semibold" style="color: var(--text-main);"><%= record.chief_complaint %></div>
                 <% end %>
-                <%= if record.created_at do %>
-                  <div class="text-xs mt-1" style="color: var(--text-muted);"><%= Calendar.strftime(record.created_at, "%b %d, %Y") %></div>
+                <%= if record.ai_summary do %>
+                  <div class="text-sm mt-1" style="color: var(--text-main);"><%= record.ai_summary %></div>
                 <% end %>
+                <div class="flex gap-3 mt-1 text-xs" style="color: var(--text-muted);">
+                  <%= if record.urgency do %>
+                    <span>Urgency: <%= record.urgency %></span>
+                  <% end %>
+                  <%= if record.specialty do %>
+                    <span>Specialty: <%= record.specialty %></span>
+                  <% end %>
+                  <%= if record.created_at do %>
+                    <span><%= Calendar.strftime(record.created_at, "%b %d, %Y") %></span>
+                  <% end %>
+                </div>
               </div>
             <% end %>
           </div>

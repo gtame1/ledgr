@@ -1,44 +1,39 @@
-<% fmt = fn nil -> "---"; amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"; amount -> "$#{amount}" end %>
-
+<% fmt = fn
+  nil -> "---"
+  amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"
+  amount when is_integer(amount) -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}"
+end %>
 
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Payments</h1>
+    <.link href={dp(@domain_path_prefix, "/payments/sync")} method="post" class="hd-btn-primary">
+      Sync from Stripe
+    </.link>
   </div>
 
   <%!-- KPI Cards --%>
   <div class="hd-kpi-grid mb-6">
     <div class="hd-kpi">
       <div class="hd-kpi-label">Total Revenue</div>
-      <div class="hd-kpi-value"><%= fmt.(@stats.total_revenue) %></div>
+      <div class="hd-kpi-value" style="color: var(--accent);"><%= fmt.(@stats.total_revenue) %></div>
       <div class="hd-kpi-sub">MXN</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">HelloDoctor Fees (15%)</div>
-      <div class="hd-kpi-value"><%= fmt.(@stats.total_fees) %></div>
+      <div class="hd-kpi-label">HelloDoctor Commission (15%)</div>
+      <div class="hd-kpi-value" style="color: var(--primary);"><%= fmt.(@stats.commission) %></div>
       <div class="hd-kpi-sub">commission</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">Refunds</div>
-      <div class="hd-kpi-value" style="color: #dc2626;"><%= fmt.(@stats.total_refunds) %></div>
+      <div class="hd-kpi-label">Stripe Fees</div>
+      <div class="hd-kpi-value" style="color: #dc2626;"><%= fmt.(@stats.total_fees) %></div>
+      <div class="hd-kpi-sub">processing</div>
     </div>
-  </div>
-
-  <%!-- Filters --%>
-  <div class="hd-card p-4 mb-6">
-    <form method="get" action={dp(@domain_path_prefix, "/payments")} class="flex flex-wrap gap-3 items-end">
-      <div class="flex-1 min-w-[140px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Payment Status</label>
-        <select name="payment_status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
-          <option value="">All</option>
-          <option value="completed" selected={@current_payment_status == "completed"}>Completed</option>
-          <option value="pending" selected={@current_payment_status == "pending"}>Pending</option>
-          <option value="refunded" selected={@current_payment_status == "refunded"}>Refunded</option>
-          <option value="failed" selected={@current_payment_status == "failed"}>Failed</option>
-        </select>
-      </div>
-      <button type="submit" class="hd-btn-secondary">Filter</button>
-    </form>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Transactions</div>
+      <div class="hd-kpi-value"><%= @stats.total_count %></div>
+      <div class="hd-kpi-sub">payments received</div>
+    </div>
   </div>
 
   <%!-- Payments Table --%>
@@ -48,46 +43,55 @@
         <thead>
           <tr>
             <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Patient</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Customer</th>
             <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fee (15%)</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fee</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Commission (15%)</th>
             <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor Payout</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Payment Status</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Status</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Consultation</th>
             <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <%= if Enum.empty?(@consultations) do %>
-            <tr><td colspan="8" class="p-6 text-center" style="color: var(--text-muted);">No payments found.</td></tr>
+          <%= if Enum.empty?(@payments) do %>
+            <tr>
+              <td colspan="9" class="p-8 text-center" style="color: var(--text-muted);">
+                <div class="text-3xl mb-2 opacity-30">💳</div>
+                No payments yet. Click "Sync from Stripe" to pull recent payments.
+              </td>
+            </tr>
           <% else %>
-            <%= for c <- @consultations do %>
-              <% amount = c.payment_amount || 0.0 %>
-              <% fee = amount * 0.15 %>
-              <% payout = amount * 0.85 %>
+            <%= for pay <- @payments do %>
+              <% commission = pay.amount * 0.15 %>
+              <% doctor_payout = pay.amount * 0.85 %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                  <%= if pay.paid_at, do: Calendar.strftime(pay.paid_at, "%b %d, %Y"), else: "---" %>
                 </td>
-                <td class="p-3 text-sm font-medium" style="color: var(--text-main);">
-                  <%= if c.patient, do: (c.patient.full_name || c.patient.display_name || "Unknown"), else: "---" %>
-                </td>
-                <td class="p-3 text-sm" style="color: var(--text-main);">
-                  <%= if c.doctor, do: c.doctor.name, else: "---" %>
-                </td>
-                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></td>
-                <td class="p-3 text-sm text-right" style="color: var(--primary);"><%= fmt.(fee) %></td>
-                <td class="p-3 text-sm text-right" style="color: var(--text-main);"><%= fmt.(payout) %></td>
                 <td class="p-3">
-                  <%= if c.payment_status do %>
-                    <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+                  <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.customer_name || "---" %></div>
+                  <div class="text-xs" style="color: var(--text-muted);"><%= pay.customer_email || "" %></div>
+                </td>
+                <td class="p-3 text-sm text-right font-semibold" style="color: var(--text-main);"><%= fmt.(pay.amount) %></td>
+                <td class="p-3 text-sm text-right" style="color: #dc2626;"><%= fmt.(pay.stripe_fee) %></td>
+                <td class="p-3 text-sm text-right" style="color: var(--accent);"><%= fmt.(commission) %></td>
+                <td class="p-3 text-sm text-right" style="color: var(--text-main);"><%= fmt.(doctor_payout) %></td>
+                <td class="p-3">
+                  <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+                </td>
+                <td class="p-3">
+                  <%= if pay.consultation_id do %>
+                    <.link navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")} class="text-sm" style="color: var(--accent);">
+                      View
+                    </.link>
                   <% else %>
-                    <span class="text-sm" style="color: var(--text-muted);">---</span>
+                    <span class="text-xs" style="color: var(--text-muted);">Unlinked</span>
                   <% end %>
                 </td>
                 <td class="p-3 text-right">
-                  <.link navigate={dp(@domain_path_prefix, "/payments/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                    View
+                  <.link navigate={dp(@domain_path_prefix, "/payments/#{pay.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                    Details
                   </.link>
                 </td>
               </tr>

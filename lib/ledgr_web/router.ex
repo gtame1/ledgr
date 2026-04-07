@@ -349,7 +349,7 @@ defmodule LedgrWeb.Router do
     post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
 
     # Doctors (read-only — bot manages doctors)
-    resources "/doctors", Domains.HelloDoctor.DoctorController, only: [:index, :show]
+    resources "/doctors", Domains.HelloDoctor.DoctorController, only: [:index, :show, :new, :create]
     post "/doctors/:id/toggle-status", Domains.HelloDoctor.DoctorController, :toggle_status
 
     # Patients (read-only — bot manages patients)
@@ -357,6 +357,7 @@ defmodule LedgrWeb.Router do
 
     # Payments (queries consultations with payment data)
     resources "/payments", Domains.HelloDoctor.PaymentController, only: [:index, :show]
+    post "/payments/sync", Domains.HelloDoctor.PaymentController, :sync
   end
 
   # ── API endpoints (core) ─────────────────────────────────────────────

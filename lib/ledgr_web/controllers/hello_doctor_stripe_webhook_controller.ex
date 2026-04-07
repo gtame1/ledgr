@@ -40,9 +40,15 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
   defp handle_checkout_completed(conn, session) do
     consultation_id = get_in(session.metadata, ["consultation_id"])
 
+    amount_pesos = (session.amount_total || 0) / 100.0
+    customer_email = session.customer_details && session.customer_details.email
+    customer_name = session.customer_details && session.customer_details.name
+
+    Logger.info("[HelloDoctor] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, email=#{customer_email || "none"}, name=#{customer_name || "none"}, metadata=#{inspect(session.metadata)}")
+
     if is_nil(consultation_id) do
-      Logger.warning("[HelloDoctor] Stripe webhook: checkout.session.completed missing consultation_id in metadata. Session: #{session.id}")
-      send_resp(conn, 200, "ok — no consultation_id")
+      Logger.warning("[HelloDoctor] Stripe webhook: no consultation_id in metadata — payment received but cannot link to consultation. Session: #{session.id}, amount: $#{amount_pesos}")
+      send_resp(conn, 200, "ok — payment received, no consultation_id to link")
     else
       case Consultations.get_consultation(consultation_id) do
         nil ->
@@ -54,8 +60,6 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
             Logger.info("[HelloDoctor] Stripe webhook: consultation #{consultation_id} already paid, skipping")
             send_resp(conn, 200, "ok — already paid")
           else
-            amount_pesos = (session.amount_total || 0) / 100.0
-
             case Consultations.record_stripe_payment(consultation, %{
                    payment_amount: amount_pesos,
                    stripe_session_id: session.id

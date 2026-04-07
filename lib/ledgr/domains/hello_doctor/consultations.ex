@@ -15,7 +15,12 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations do
   def get_consultation!(id) do
     Consultation
     |> Repo.get!(id)
-    |> Repo.preload([:patient, :doctor, :conversation, :prescriptions])
+    |> Repo.preload([
+      :patient,
+      :doctor,
+      :prescriptions,
+      conversation: [:medical_record, :messages]
+    ])
   end
 
   def get_consultation(id) do
