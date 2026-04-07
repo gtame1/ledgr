@@ -47,6 +47,13 @@ defmodule LedgrWeb.Domains.CasaTame.IncomeController do
     end
   end
 
+  # Catch-all for debugging — if income_entry key is missing from params
+  def create(conn, params) do
+    require Logger
+    Logger.error("Income create called with unexpected params: #{inspect(Map.keys(params))}")
+    conn |> put_flash(:error, "Unexpected form data. Keys: #{inspect(Map.keys(params))}") |> redirect(to: dp(conn, "/income/new"))
+  end
+
   def show(conn, %{"id" => id}) do
     entry = Income.get_income_entry!(id)
     render(conn, :show, entry: entry)
