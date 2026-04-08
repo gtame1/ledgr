@@ -42,6 +42,22 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     end
   end
 
+  def refund(conn, %{"id" => id}) do
+    payment = Repo.get!(StripePayment, id)
+
+    case Ledgr.Domains.HelloDoctor.StripeRefunds.refund_payment(payment) do
+      {:ok, updated_payment} ->
+        conn
+        |> put_flash(:info, "Payment refunded successfully ($#{:erlang.float_to_binary(updated_payment.amount, decimals: 2)} MXN).")
+        |> redirect(to: dp(conn, "/payments/#{updated_payment.id}"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Refund failed: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+    end
+  end
+
   defp payment_stats do
     total_revenue =
       StripePayment

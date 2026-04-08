@@ -13,9 +13,17 @@ end %>
     </.link>
   </div>
 
-  <div class="flex items-center gap-3 mb-6">
-    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Payment Details</h1>
-    <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Payment Details</h1>
+      <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+    </div>
+    <%= if pay.status == "paid" && pay.stripe_payment_intent_id do %>
+      <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/refund")} method="post" class="hd-btn-danger"
+        data-confirm="Are you sure you want to refund this payment? This will issue a full refund of #{fmt.(pay.amount)} MXN via Stripe and cannot be undone.">
+        Refund Payment
+      </.link>
+    <% end %>
   </div>
 
   <div class="hd-two-col">
