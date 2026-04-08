@@ -1,0 +1,135 @@
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/transactions")} class="hd-back">
+      &larr; Back to Transactions
+    </.link>
+  </div>
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">New Transaction</h1>
+  </div>
+
+  <div class="hd-form">
+    <div class="hd-card p-6">
+      <p class="text-sm mb-4" style="color: var(--text-muted);">
+        Record a manual journal entry. Debits and credits must balance.
+      </p>
+
+      <.form :let={f} for={@changeset} as={:journal_entry} action={@action} class="space-y-5">
+
+        <%!-- Error banner --%>
+        <%= if @changeset.action do %>
+          <div class="p-3 rounded-lg text-sm" style="background: #fee2e2; color: #991b1b;">
+            <p class="font-medium">Please fix the errors below:</p>
+            <% base_errors = Keyword.get_values(@changeset.errors, :base) %>
+            <%= if base_errors != [] do %>
+              <ul class="list-disc pl-4 mt-1">
+                <%= for {msg, _opts} <- base_errors do %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%!-- Header fields --%>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <.input field={f[:date]} type="date" label="Date" />
+          </div>
+          <div>
+            <.input field={f[:entry_type]} type="select" label="Type" prompt="Select type..." options={@entry_types} />
+          </div>
+        </div>
+
+        <div>
+          <.input field={f[:description]} type="text" label="Description" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <.input field={f[:reference]} type="text" label="Reference (optional)" />
+          </div>
+          <div>
+            <.input field={f[:payee]} type="text" label="Payee (optional)" />
+          </div>
+        </div>
+
+        <%!-- Journal Lines --%>
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 1.25rem; margin-top: 0.5rem;">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Journal Lines</h3>
+          <p class="text-xs mb-4" style="color: var(--text-muted);">One debit and one credit line. Amounts in MXN pesos.</p>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <%!-- Debit Line --%>
+            <div class="p-4 rounded-lg" style="background: var(--bg); border: 1px solid var(--border-subtle);">
+              <div class="text-xs font-semibold uppercase mb-3" style="color: #16a34a;">Debit</div>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Account</label>
+                  <select name="journal_entry[journal_lines][0][account_id]"
+                    class="w-full rounded-lg border px-3 py-2 text-sm"
+                    style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+                    <option value="">Select account...</option>
+                    <%= for {label, id} <- @account_options do %>
+                      <option value={id}><%= label %></option>
+                    <% end %>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Amount (MXN)</label>
+                  <input type="number" name="journal_entry[journal_lines][0][debit_cents]" step="0.01" min="0"
+                    class="w-full rounded-lg border px-3 py-2 text-sm"
+                    style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+                    placeholder="0.00" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Description (optional)</label>
+                  <input type="text" name="journal_entry[journal_lines][0][description]"
+                    class="w-full rounded-lg border px-3 py-2 text-sm"
+                    style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+                </div>
+              </div>
+            </div>
+
+            <%!-- Credit Line --%>
+            <div class="p-4 rounded-lg" style="background: var(--bg); border: 1px solid var(--border-subtle);">
+              <div class="text-xs font-semibold uppercase mb-3" style="color: #dc2626;">Credit</div>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Account</label>
+                  <select name="journal_entry[journal_lines][1][account_id]"
+                    class="w-full rounded-lg border px-3 py-2 text-sm"
+                    style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+                    <option value="">Select account...</option>
+                    <%= for {label, id} <- @account_options do %>
+                      <option value={id}><%= label %></option>
+                    <% end %>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Amount (MXN)</label>
+                  <input type="number" name="journal_entry[journal_lines][1][credit_cents]" step="0.01" min="0"
+                    class="w-full rounded-lg border px-3 py-2 text-sm"
+                    style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+                    placeholder="0.00" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Description (optional)</label>
+                  <input type="text" name="journal_entry[journal_lines][1][description]"
+                    class="w-full rounded-lg border px-3 py-2 text-sm"
+                    style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-3">
+          <button type="submit" class="hd-btn-primary">Save Transaction</button>
+          <.link navigate={dp(@domain_path_prefix, "/transactions")} class="hd-btn-secondary">Cancel</.link>
+        </div>
+      </.form>
+    </div>
+  </div>
+</div>

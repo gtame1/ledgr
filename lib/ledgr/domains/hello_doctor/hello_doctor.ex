@@ -124,6 +124,7 @@ defmodule Ledgr.Domains.HelloDoctor do
       ]},
       %{group: "Finance", items: [
         %{label: "Payments",       path: "#{prefix}/payments",         icon: :expenses},
+        %{label: "Expenses",       path: "#{prefix}/expenses",         icon: :expenses},
         %{label: "Balance Sheet",  path: "#{prefix}/reports/balance_sheet", icon: :reports},
         %{label: "P&L",            path: "#{prefix}/reports/pnl",      icon: :reports}
       ]},

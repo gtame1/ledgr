@@ -22,7 +22,12 @@ defmodule LedgrWeb.TransactionController do
   end
 
   def new(conn, _params) do
-    render(conn, :new,
+    template =
+      if Ledgr.Domain.current() == Ledgr.Domains.HelloDoctor,
+        do: :hello_doctor_new,
+        else: :new
+
+    render(conn, template,
       page_title: "New Transaction",
       changeset: Accounting.change_journal_entry(%JournalEntry{}),
       account_options: Accounting.account_select_options(),
