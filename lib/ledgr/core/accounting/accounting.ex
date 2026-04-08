@@ -522,7 +522,7 @@ defmodule Ledgr.Core.Accounting do
   def cash_or_payable_account_options do
     Repo.all(
       from a in Account,
-        where: like(a.code, "10%") or like(a.code, "11%") or like(a.code, "20%") or like(a.code, "21%"),
+        where: (a.type == "asset" and (a.is_cash == true or like(a.code, "11%"))) or a.type == "liability",
         order_by: [asc: a.code]
     )
     |> Enum.map(fn a ->
