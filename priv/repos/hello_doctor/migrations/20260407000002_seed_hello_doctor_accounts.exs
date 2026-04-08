@@ -39,9 +39,11 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.SeedHelloDoctorAccounts do
     ]
 
     for acct <- accounts do
+      escaped_name = String.replace(acct.name, "'", "''")
+
       execute("""
         INSERT INTO accounts (code, name, type, normal_balance, is_cash, is_cogs, inserted_at, updated_at)
-        VALUES ('#{acct.code}', '#{acct.name}', '#{acct.type}', '#{acct.normal_balance}', #{acct.is_cash}, #{acct.is_cogs}, '#{now}', '#{now}')
+        VALUES ('#{acct.code}', '#{escaped_name}', '#{acct.type}', '#{acct.normal_balance}', #{acct.is_cash}, #{acct.is_cogs}, '#{now}', '#{now}')
         ON CONFLICT (code) DO NOTHING
       """)
     end
