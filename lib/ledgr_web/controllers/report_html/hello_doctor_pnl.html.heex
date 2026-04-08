@@ -54,7 +54,7 @@ end %>
           <%= for row <- @summary.revenue_accounts do %>
             <tr class="border-t" style="border-color: var(--border-subtle);">
               <td class="p-3 pl-6 text-sm" style="color: var(--text-main);"><%= row.code %> &mdash; <%= row.name %></td>
-              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.amount_cents) %></td>
+              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.net_cents) %></td>
             </tr>
           <% end %>
           <tr style="background: rgba(2, 186, 151, 0.04);">
@@ -74,7 +74,7 @@ end %>
             <%= for row <- @summary.cogs_accounts do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 pl-6 text-sm" style="color: var(--text-main);"><%= row.code %> &mdash; <%= row.name %></td>
-                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.amount_cents) %></td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.net_cents) %></td>
               </tr>
             <% end %>
             <tr style="background: var(--table-header-bg);">
@@ -112,7 +112,7 @@ end %>
           <%= for row <- @summary.operating_expense_accounts do %>
             <tr class="border-t" style="border-color: var(--border-subtle);">
               <td class="p-3 pl-6 text-sm" style="color: var(--text-main);"><%= row.code %> &mdash; <%= row.name %></td>
-              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.amount_cents) %></td>
+              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.net_cents) %></td>
             </tr>
           <% end %>
           <tr style="background: rgba(220, 38, 38, 0.04);">
