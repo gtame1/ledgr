@@ -56,7 +56,17 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         amount_pesos = (session.amount_total || 0) / 100.0
         customer_email = session.customer_details && session.customer_details.email
         customer_name = session.customer_details && session.customer_details.name
-        consultation_id = get_in(session.metadata || %{}, ["consultation_id"])
+        # Bot sends conversation_id in metadata — look up the consultation via conversation
+        metadata = session.metadata || %{}
+        consultation_id =
+          cond do
+            metadata["consultation_id"] ->
+              metadata["consultation_id"]
+            metadata["conversation_id"] ->
+              find_consultation_by_conversation(metadata["conversation_id"])
+            true ->
+              nil
+          end
 
         # Try to fetch actual Stripe fee
         fee_cents = fetch_fee(session, api_key)
@@ -197,5 +207,18 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         _ -> nil
       end
     end
+  end
+
+  defp find_consultation_by_conversation(conversation_id) do
+    import Ecto.Query, warn: false
+    alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
+
+    # Find the most recent consultation for this conversation
+    Consultation
+    |> where([c], c.conversation_id == ^conversation_id)
+    |> order_by(desc: :assigned_at)
+    |> limit(1)
+    |> select([c], c.id)
+    |> Repo.one()
   end
 end

@@ -38,17 +38,25 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
   end
 
   defp handle_checkout_completed(conn, session) do
-    consultation_id = get_in(session.metadata, ["consultation_id"])
+    metadata = session.metadata || %{}
+
+    # Bot sends conversation_id — look up consultation via conversation
+    consultation_id =
+      cond do
+        metadata["consultation_id"] -> metadata["consultation_id"]
+        metadata["conversation_id"] -> find_consultation_by_conversation(metadata["conversation_id"])
+        true -> nil
+      end
 
     amount_pesos = (session.amount_total || 0) / 100.0
     customer_email = session.customer_details && session.customer_details.email
     customer_name = session.customer_details && session.customer_details.name
 
-    Logger.info("[HelloDoctor] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, email=#{customer_email || "none"}, name=#{customer_name || "none"}, metadata=#{inspect(session.metadata)}")
+    Logger.info("[HelloDoctor] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, email=#{customer_email || "none"}, name=#{customer_name || "none"}, metadata=#{inspect(metadata)}")
 
     if is_nil(consultation_id) do
-      Logger.warning("[HelloDoctor] Stripe webhook: no consultation_id in metadata — payment received but cannot link to consultation. Session: #{session.id}, amount: $#{amount_pesos}")
-      send_resp(conn, 200, "ok — payment received, no consultation_id to link")
+      Logger.warning("[HelloDoctor] Stripe webhook: no consultation_id or conversation_id in metadata. Session: #{session.id}, amount: $#{amount_pesos}")
+      send_resp(conn, 200, "ok — payment received, no consultation to link")
     else
       case Consultations.get_consultation(consultation_id) do
         nil ->
@@ -78,8 +86,18 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
   end
 
   defp handle_refund(conn, charge) do
-    # Future: handle refunds by looking up consultation via charge metadata
     Logger.info("[HelloDoctor] Stripe webhook: charge.refunded received for charge #{charge.id}")
     send_resp(conn, 200, "ok")
+  end
+
+  defp find_consultation_by_conversation(conversation_id) do
+    import Ecto.Query, warn: false
+
+    Ledgr.Domains.HelloDoctor.Consultations.Consultation
+    |> where([c], c.conversation_id == ^conversation_id)
+    |> order_by(desc: :assigned_at)
+    |> limit(1)
+    |> select([c], c.id)
+    |> Ledgr.Repo.one()
   end
 end
