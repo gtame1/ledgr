@@ -67,10 +67,9 @@ defmodule Ledgr.Domains.HelloDoctor.PaymentLinking do
   """
   def suggest_consultations(%StripePayment{} = _payment) do
     Consultation
-    |> where([c], c.payment_status in ["pending", "confirmed"])
-    |> where([c], is_nil(c.payment_confirmed_at))
+    |> where([c], c.payment_status != "paid" or is_nil(c.payment_status))
     |> order_by([c], [desc: c.assigned_at])
-    |> limit(20)
+    |> limit(30)
     |> Repo.all()
     |> Repo.preload([:patient, :doctor])
   end
