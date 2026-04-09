@@ -46,7 +46,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     payment = Repo.get!(StripePayment, id)
     suggestions = Ledgr.Domains.HelloDoctor.PaymentLinking.suggest_consultations(payment)
 
-    render(conn, :link,
+    render(conn, :link_form,
       payment: payment,
       consultations: suggestions
     )
