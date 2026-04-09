@@ -61,13 +61,12 @@ end %>
                 <% end %>
               </div>
             </div>
-            <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/link")} method="post"
-              class="hd-btn-primary text-sm"
-              style="padding: 0.35rem 0.75rem;"
-              data-confirm={"Link this payment to consultation with #{if c.patient, do: (c.patient.full_name || c.patient.display_name), else: "Unknown"}?"}>
+            <form method="post" action={dp(@domain_path_prefix, "/payments/#{pay.id}/link")}
+              onsubmit={"return confirm('Link this payment to consultation with #{if c.patient, do: (c.patient.full_name || c.patient.display_name), else: "Unknown"}?')"}>
+              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
               <input type="hidden" name="consultation_id" value={c.id} />
-              Link
-            </.link>
+              <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.35rem 0.75rem;">Link</button>
+            </form>
           </div>
         <% end %>
       </div>
