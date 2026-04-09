@@ -90,14 +90,25 @@ end %>
         </div>
       </div>
 
-      <%= if pay.consultation_id do %>
-        <div class="hd-card p-5">
-          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Linked Consultation</h3>
-          <.link navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")} class="hd-btn-secondary">
-            View Consultation
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Consultation</h3>
+        <%= if pay.consultation_id do %>
+          <div class="flex items-center gap-3">
+            <.link navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")} class="hd-btn-secondary flex-1 justify-center">
+              View Consultation
+            </.link>
+            <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/unlink")} method="post" class="text-xs" style="color: #dc2626;"
+              data-confirm="Unlink this payment from its consultation?">
+              Unlink
+            </.link>
+          </div>
+        <% else %>
+          <p class="text-sm mb-3" style="color: var(--text-muted);">Not linked to any consultation.</p>
+          <.link navigate={dp(@domain_path_prefix, "/payments/#{pay.id}/link")} class="hd-btn-secondary">
+            Link to Consultation
           </.link>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
     </div>
   </div>
 </div>

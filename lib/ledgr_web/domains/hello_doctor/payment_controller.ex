@@ -42,6 +42,44 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     end
   end
 
+  def link_form(conn, %{"id" => id}) do
+    payment = Repo.get!(StripePayment, id)
+    suggestions = Ledgr.Domains.HelloDoctor.PaymentLinking.suggest_consultations(payment)
+
+    render(conn, :link,
+      payment: payment,
+      consultations: suggestions
+    )
+  end
+
+  def save_link(conn, %{"id" => id, "consultation_id" => consultation_id}) do
+    case Ledgr.Domains.HelloDoctor.PaymentLinking.link_payment(id, consultation_id) do
+      {:ok, _payment} ->
+        conn
+        |> put_flash(:info, "Payment linked to consultation successfully.")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Failed to link: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/payments/#{id}/link"))
+    end
+  end
+
+  def unlink(conn, %{"id" => id}) do
+    case Ledgr.Domains.HelloDoctor.PaymentLinking.unlink_payment(id) do
+      {:ok, _payment} ->
+        conn
+        |> put_flash(:info, "Payment unlinked from consultation.")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Failed to unlink: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+    end
+  end
+
   def refund(conn, %{"id" => id}) do
     payment = Repo.get!(StripePayment, id)
 
