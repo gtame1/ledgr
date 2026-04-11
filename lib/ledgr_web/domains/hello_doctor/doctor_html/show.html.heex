@@ -65,6 +65,12 @@
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Specialty</div>
             <div class="text-sm" style="color: var(--text-main);"><%= d.specialty || "---" %></div>
           </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Video Calls</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if d.accepts_video_calls, do: "✅ Accepts video calls", else: "❌ No video calls" %>
+            </div>
+          </div>
         </div>
       </div>
     </div>
