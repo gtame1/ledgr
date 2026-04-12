@@ -7,6 +7,7 @@ end %>
 <% c = @consultation %>
 <% mr = if c.conversation, do: c.conversation.medical_record, else: nil %>
 <% messages = if c.conversation, do: c.conversation.messages || [], else: [] %>
+<% calls = c.calls || [] %>
 
 <div class="hd-page">
   <div class="mb-4">
@@ -19,6 +20,9 @@ end %>
   <div class="flex items-center gap-3 mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Consultation</h1>
     <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+    <%= if c.consultation_type && c.consultation_type != "messaging" do %>
+      <span class="hd-badge hd-badge--assigned"><%= c.consultation_type |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+    <% end %>
     <%= if c.payment_status do %>
       <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
     <% end %>
@@ -182,6 +186,71 @@ end %>
               </div>
             <% end %>
           </div>
+        </div>
+      <% end %>
+
+      <%!-- Video Call & Transcript --%>
+      <%= for call <- calls do %>
+        <div class="hd-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+              Video Call
+            </h2>
+            <%
+              call_badge = cond do
+                call.status in ["completed", "ended"] -> "completed"
+                call.status == "active" -> "in_progress"
+                true -> "pending"
+              end
+            %>
+            <span class={"hd-badge hd-badge--#{call_badge}"}>
+              <%= call.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %>
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <%= if call.started_at do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Started</div>
+                <div class="text-sm" style="color: var(--text-main);"><%= Calendar.strftime(call.started_at, "%b %d, %Y %I:%M %p") %></div>
+              </div>
+            <% end %>
+            <%= if call.ended_at do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Ended</div>
+                <div class="text-sm" style="color: var(--text-main);"><%= Calendar.strftime(call.ended_at, "%b %d, %Y %I:%M %p") %></div>
+              </div>
+            <% end %>
+            <%= if call.duration_seconds do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Duration</div>
+                <div class="text-sm font-medium" style="color: var(--text-main);"><%= div(call.duration_seconds, 60) %> min <%= rem(call.duration_seconds, 60) %> sec</div>
+              </div>
+            <% end %>
+            <%= if call.recording_url do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Recording</div>
+                <a href={call.recording_url} target="_blank" class="text-sm font-medium" style="color: var(--accent);">
+                  View Recording ↗
+                </a>
+              </div>
+            <% end %>
+          </div>
+
+          <%!-- Transcript --%>
+          <%= if call.transcript_text do %>
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-xs font-semibold uppercase" style="color: var(--accent);">Transcript</h3>
+                <%= if call.transcription_status do %>
+                  <span class="text-xs" style="color: var(--text-muted);"><%= call.transcription_status %></span>
+                <% end %>
+              </div>
+              <div class="text-sm whitespace-pre-line leading-relaxed p-4 rounded-lg max-h-[400px] overflow-y-auto" style="background: var(--bg); color: var(--text-main); border: 1px solid var(--border-subtle);">
+                <%= call.transcript_text %>
+              </div>
+            </div>
+          <% end %>
         </div>
       <% end %>
 

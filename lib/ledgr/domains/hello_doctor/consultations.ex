@@ -19,6 +19,7 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations do
       :patient,
       :doctor,
       :prescriptions,
+      :calls,
       conversation: [:medical_record, :messages]
     ])
   end
