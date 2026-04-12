@@ -61,9 +61,14 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
           (b.last_paid_date == nil || Date.compare(b.last_paid_date, b.next_due_date) == :lt)
       end)
 
-    monthly_total =
+    monthly_total_mxn =
       upcoming_unpaid
-      |> Enum.filter(& &1.amount_cents != nil)
+      |> Enum.filter(fn b -> b.amount_cents != nil && (b.currency || "MXN") == "MXN" end)
+      |> Enum.reduce(0, fn b, acc -> acc + b.amount_cents end)
+
+    monthly_total_usd =
+      upcoming_unpaid
+      |> Enum.filter(fn b -> b.amount_cents != nil && b.currency == "USD" end)
       |> Enum.reduce(0, fn b, acc -> acc + b.amount_cents end)
 
     monthly_count = length(upcoming_unpaid)
@@ -90,7 +95,8 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
       bills_by_date: bills_by_date,
       today_bills: today_bills,
       upcoming_bills: upcoming_bills,
-      monthly_total: monthly_total,
+      monthly_total_mxn: monthly_total_mxn,
+      monthly_total_usd: monthly_total_usd,
       monthly_count: monthly_count,
       paid_this_month: paid_this_month
     )
