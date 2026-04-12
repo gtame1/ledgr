@@ -121,6 +121,150 @@ if System.get_env("MIX_ENV") != "prod" and is_nil(System.get_env("HELLO_DOCTOR_D
     end)
 
   IO.puts("  Created #{length(consultations)} consultations")
+
+  # Make the first consultation a video call
+  [c1, _c2, c3, _c4, _c5] = consultations
+
+  alias Ledgr.Domains.HelloDoctor.ConsultationCalls.ConsultationCall
+  alias Ledgr.Domains.HelloDoctor.Prescriptions.Prescription
+  alias Ledgr.Domains.HelloDoctor.MedicalRecords.MedicalRecord
+
+  # ── Video Calls with Transcripts ─────────────────────────
+  Repo.insert!(%ConsultationCall{} |> Ecto.Changeset.change(%{
+    id: Ecto.UUID.generate(),
+    consultation_id: c1.id,
+    status: "completed",
+    whereby_meeting_id: "mtg-demo-001",
+    whereby_room_name: "hellodoctor-room-001",
+    whereby_room_url: "https://hellodoctor.whereby.com/room-001",
+    whereby_host_url: "https://hellodoctor.whereby.com/room-001?roomKey=host123",
+    created_at: ~N[2026-04-01 10:00:00],
+    started_at: ~N[2026-04-01 10:05:00],
+    ended_at: ~N[2026-04-01 10:25:00],
+    duration_seconds: 1200,
+    transcription_status: "completed",
+    transcript_text: """
+    [00:00] Dr. Mendez: Buenos dias Laura, soy el Dr. Carlos Mendez. Como se encuentra hoy?
+
+    [00:15] Laura: Buenos dias doctor. Tengo un dolor de cabeza muy fuerte que no se me quita desde hace tres dias. Ya tome paracetamol pero no ayuda mucho.
+
+    [01:02] Dr. Mendez: Entiendo. Me puede describir el dolor? Es punzante, como presion, o pulsatil?
+
+    [01:20] Laura: Es como una presion constante, sobre todo en la frente y detras de los ojos. Empeora cuando estoy en la computadora mucho tiempo.
+
+    [02:05] Dr. Mendez: Ha tenido nauseas, vomito, sensibilidad a la luz?
+
+    [02:15] Laura: Un poco de sensibilidad a la luz, pero no nauseas.
+
+    [03:00] Dr. Mendez: Cuantas horas duerme normalmente? Y ha estado bajo mucho estres ultimamente?
+
+    [03:15] Laura: La verdad duermo como 5-6 horas. Y si, en el trabajo ha habido mucha presion.
+
+    [04:30] Dr. Mendez: Por lo que me describe, parece una cefalea tensional, muy comun cuando hay estres y falta de sueno. Le voy a recetar ibuprofeno 400mg cada 8 horas por 3 dias, y le recomiendo dormir al menos 7-8 horas.
+
+    [05:15] Laura: Y si no mejora?
+
+    [05:25] Dr. Mendez: Si en 5 dias no mejora, hagamos una cita de seguimiento. Tambien le recomiendo hacer pausas de 20 minutos cuando este en la computadora.
+
+    [06:00] Laura: Muchas gracias doctor, lo voy a hacer.
+
+    [06:10] Dr. Mendez: Con gusto Laura. Cualquier cosa me escribe por WhatsApp. Que se mejore!
+    """
+  }))
+
+  Repo.insert!(%ConsultationCall{} |> Ecto.Changeset.change(%{
+    id: Ecto.UUID.generate(),
+    consultation_id: c3.id,
+    status: "completed",
+    whereby_room_url: "https://hellodoctor.whereby.com/room-003",
+    created_at: ~N[2026-04-03 11:00:00],
+    started_at: ~N[2026-04-03 11:05:00],
+    ended_at: ~N[2026-04-03 11:30:00],
+    duration_seconds: 1500,
+    transcription_status: "completed",
+    transcript_text: """
+    [00:00] Dr. Mendez: Hola Daniela, como te sientes?
+
+    [00:10] Daniela: Hola doctor. Tengo mucha congestion nasal, dolor de garganta y un poco de fiebre desde ayer.
+
+    [00:45] Dr. Mendez: Te has tomado la temperatura?
+
+    [00:55] Daniela: Si, 37.8 grados.
+
+    [01:20] Dr. Mendez: Tienes dolor de cuerpo, dolor de cabeza?
+
+    [01:30] Daniela: Si, me duele todo el cuerpo y tengo escalofrios.
+
+    [02:00] Dr. Mendez: Suena a un cuadro gripal clasico. Te voy a recetar paracetamol para la fiebre y el dolor, y un descongestionante nasal. Mucho liquido y reposo.
+
+    [03:00] Daniela: Cuanto tiempo tarda en quitarse?
+
+    [03:10] Dr. Mendez: Normalmente entre 5 a 7 dias. Si la fiebre sube arriba de 38.5 o aparecen otros sintomas, me escribes de inmediato.
+
+    [03:40] Daniela: Gracias doctor!
+    """
+  }))
+
+  IO.puts("  Created 2 video call records with transcripts")
+
+  # ── Medical Records (via conversation) ───────────────────
+  Repo.insert!(%MedicalRecord{} |> Ecto.Changeset.change(%{
+    id: Ecto.UUID.generate(),
+    conversation_id: cv1.id,
+    patient_id: p1.id,
+    chief_complaint: "Dolor de cabeza persistente por 3 dias",
+    soap_subjective: "Paciente refiere cefalea tipo presion frontal y retroocular de 3 dias de evolucion. Empeora con uso prolongado de computadora. Duerme 5-6 horas. Estres laboral alto. Tomo paracetamol sin mejoria significativa. Leve fotosensibilidad.",
+    soap_objective: "Paciente alerta, orientada. No signos de alarma neurologica. No rigidez de nuca. Pupilas isocoricas reactivas.",
+    soap_assessment: "Cefalea tensional episodica. Relacionada con estres y privacion de sueno. Sin datos de alarma.",
+    soap_plan: "1. Ibuprofeno 400mg c/8h x 3 dias\n2. Higiene de sueno: minimo 7-8 horas\n3. Pausas de pantalla cada 20 min\n4. Seguimiento en 5 dias si no mejora\n5. Acudir a urgencias si dolor subito intenso, rigidez de nuca, o cambios visuales",
+    urgency: "low",
+    possible_conditions: "Cefalea tensional, Migrana sin aura (menos probable)",
+    specialty: "Medicina General",
+    ai_summary: "Laura, 34 anos, consulta por cefalea tipo presion frontal de 3 dias, exacerbada por pantallas. Duerme 5-6h con alto estres laboral. Se diagnostica cefalea tensional episodica. Se prescribe ibuprofeno 400mg c/8h y medidas de higiene de sueno. Seguimiento en 5 dias.",
+    created_at: ~N[2026-04-01 10:00:00],
+    updated_at: ~N[2026-04-01 10:25:00]
+  }))
+
+  Repo.insert!(%MedicalRecord{} |> Ecto.Changeset.change(%{
+    id: Ecto.UUID.generate(),
+    conversation_id: cv3.id,
+    patient_id: p3.id,
+    chief_complaint: "Congestion nasal, dolor de garganta y fiebre",
+    soap_subjective: "Paciente refiere congestion nasal, odinofagia y fiebre de 37.8C desde ayer. Dolor generalizado y escalofrios.",
+    soap_assessment: "Infeccion de vias respiratorias superiores (gripa comun). Sin datos de complicacion.",
+    soap_plan: "1. Paracetamol 500mg c/6h para fiebre y dolor\n2. Descongestionante nasal\n3. Liquidos abundantes y reposo\n4. Si fiebre >38.5C o empeora, acudir de inmediato",
+    urgency: "low",
+    possible_conditions: "IVRS viral (gripa comun), Faringitis",
+    specialty: "Medicina General",
+    ai_summary: "Daniela, 28 anos, presenta cuadro gripal de 1 dia de evolucion con congestion nasal, odinofagia, fiebre 37.8C y mialgias. Se diagnostica IVRS viral. Tratamiento sintomatico con paracetamol y descongestionante. Datos de alarma explicados.",
+    created_at: ~N[2026-04-03 11:00:00],
+    updated_at: ~N[2026-04-03 11:30:00]
+  }))
+
+  IO.puts("  Created 2 medical records with AI summaries")
+
+  # ── Prescriptions ────────────────────────────────────────
+  Repo.insert!(%Prescription{} |> Ecto.Changeset.change(%{
+    id: Ecto.UUID.generate(),
+    consultation_id: c1.id,
+    patient_id: p1.id,
+    doctor_id: d1.id,
+    diagnosis: "Cefalea tensional episodica",
+    content: "1. Ibuprofeno 400mg - Tomar 1 tableta cada 8 horas por 3 dias con alimentos\n2. Higiene de sueno - Dormir minimo 7-8 horas diarias\n3. Pausas de pantalla cada 20 minutos de trabajo",
+    created_at: ~N[2026-04-01 10:20:00]
+  }))
+
+  Repo.insert!(%Prescription{} |> Ecto.Changeset.change(%{
+    id: Ecto.UUID.generate(),
+    consultation_id: c3.id,
+    patient_id: p3.id,
+    doctor_id: d1.id,
+    diagnosis: "Infeccion de vias respiratorias superiores",
+    content: "1. Paracetamol 500mg - Tomar 1 tableta cada 6 horas para fiebre y dolor\n2. Oximetazolina nasal 0.05% - 2 disparos en cada fosa nasal cada 12 horas por 3 dias\n3. Liquidos abundantes (minimo 2L al dia)\n4. Reposo en casa por 3 dias",
+    created_at: ~N[2026-04-03 11:25:00]
+  }))
+
+  IO.puts("  Created 2 prescriptions")
   IO.puts("HelloDoctor dev seed complete!")
 else
   IO.puts("Skipping dev sample data (prod or remote DB detected)")

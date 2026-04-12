@@ -26,8 +26,8 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.AddConsultationCallsAndNewFields do
       add :recording_id, :string
       add :recording_url, :string
       add :recording_status, :string
-      add :transcript_text, :string
-      add :transcript_json, :string
+      add :transcript_text, :text
+      add :transcript_json, :text
       add :transcription_status, :string
     end
 
