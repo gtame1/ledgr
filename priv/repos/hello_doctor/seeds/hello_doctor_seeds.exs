@@ -251,6 +251,7 @@ if System.get_env("MIX_ENV") != "prod" and is_nil(System.get_env("HELLO_DOCTOR_D
     doctor_id: d1.id,
     diagnosis: "Cefalea tensional episodica",
     content: "1. Ibuprofeno 400mg - Tomar 1 tableta cada 8 horas por 3 dias con alimentos\n2. Higiene de sueno - Dormir minimo 7-8 horas diarias\n3. Pausas de pantalla cada 20 minutos de trabajo",
+    requires_prescription: false,
     created_at: ~N[2026-04-01 10:20:00]
   }))
 
@@ -261,6 +262,7 @@ if System.get_env("MIX_ENV") != "prod" and is_nil(System.get_env("HELLO_DOCTOR_D
     doctor_id: d1.id,
     diagnosis: "Infeccion de vias respiratorias superiores",
     content: "1. Paracetamol 500mg - Tomar 1 tableta cada 6 horas para fiebre y dolor\n2. Oximetazolina nasal 0.05% - 2 disparos en cada fosa nasal cada 12 horas por 3 dias\n3. Liquidos abundantes (minimo 2L al dia)\n4. Reposo en casa por 3 dias",
+    requires_prescription: true,
     created_at: ~N[2026-04-03 11:25:00]
   }))
 

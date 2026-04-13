@@ -30,6 +30,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       operations: operations_metrics(start_date, end_date),
       revenue: revenue_metrics(start_date, end_date),
       top_diagnoses: top_diagnoses(start_date, end_date, 10),
+      prescription_mix: prescription_mix(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       daily_series: daily_series(start_date, end_date),
       recent_consultations: recent_consultations(6),
@@ -189,6 +190,38 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     |> order_by([p], desc: count(p.id))
     |> limit(^limit)
     |> Repo.all()
+  end
+
+  @doc """
+  Returns the breakdown of recipes by whether they require a formal prescription.
+  %{requires: N, does_not_require: N, unknown: N, total: N, requires_rate: %}
+  """
+  def prescription_mix(start_date, end_date) do
+    base =
+      Prescription
+      |> where_date_range(:created_at, start_date, end_date)
+
+    total = Repo.aggregate(base, :count)
+
+    requires =
+      base
+      |> where([p], p.requires_prescription == true)
+      |> Repo.aggregate(:count)
+
+    does_not_require =
+      base
+      |> where([p], p.requires_prescription == false)
+      |> Repo.aggregate(:count)
+
+    unknown = total - requires - does_not_require
+
+    %{
+      total: total,
+      requires: requires,
+      does_not_require: does_not_require,
+      unknown: unknown,
+      requires_rate: pct(requires, total)
+    }
   end
 
   # ── Top doctors with ratings ───────────────────────────────────

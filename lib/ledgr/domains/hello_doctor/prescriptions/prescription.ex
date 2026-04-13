@@ -8,6 +8,7 @@ defmodule Ledgr.Domains.HelloDoctor.Prescriptions.Prescription do
     field :content, :string
     field :diagnosis, :string
     field :items_json, :string
+    field :requires_prescription, :boolean
     field :created_at, :naive_datetime
 
     belongs_to :consultation, Ledgr.Domains.HelloDoctor.Consultations.Consultation

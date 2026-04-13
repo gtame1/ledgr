@@ -61,6 +61,19 @@ end %>
   ]
 } %>
 
+<% prescription_mix_chart = %{
+  format: "number",
+  labels: ["Requires prescription", "Does not require", "Unknown"],
+  datasets: [
+    %{
+      label: "Count",
+      data: [m.prescription_mix.requires, m.prescription_mix.does_not_require, m.prescription_mix.unknown],
+      backgroundColor: [c_red, c_accent, "#cbd5e1"],
+      borderWidth: 0
+    }
+  ]
+} %>
+
 <% revenue_chart = %{
   format: "currency_pesos",
   labels: day_labels,
@@ -234,18 +247,41 @@ end %>
   <div class="mb-8">
     <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Clinical</h2>
 
-    <div class="hd-card p-5">
-      <div class="hd-card-title">Top Diagnoses</div>
-      <%= if Enum.empty?(m.top_diagnoses) do %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">🩺</div>
-          <p>No diagnoses recorded in this period</p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="hd-card p-5">
+        <div class="hd-card-title">Top Diagnoses</div>
+        <%= if Enum.empty?(m.top_diagnoses) do %>
+          <div class="hd-empty">
+            <div class="hd-empty-icon">🩺</div>
+            <p>No diagnoses recorded in this period</p>
+          </div>
+        <% else %>
+          <div id="diagnoses-chart-wrapper" phx-hook="DoughnutChart" style="height: 320px;">
+            <canvas id="diagnoses-chart" data-chart-data={Jason.encode!(diagnoses_chart)}></canvas>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="hd-card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="hd-card-title" style="margin-bottom: 0;">Prescription Requirement</div>
+          <%= if m.prescription_mix.total > 0 do %>
+            <span class="text-xs font-semibold" style="color: var(--accent);">
+              <%= :erlang.float_to_binary(m.prescription_mix.requires_rate * 1.0, decimals: 1) %>% require Rx
+            </span>
+          <% end %>
         </div>
-      <% else %>
-        <div id="diagnoses-chart-wrapper" phx-hook="DoughnutChart" style="height: 320px;">
-          <canvas id="diagnoses-chart" data-chart-data={Jason.encode!(diagnoses_chart)}></canvas>
-        </div>
-      <% end %>
+        <%= if m.prescription_mix.total == 0 do %>
+          <div class="hd-empty">
+            <div class="hd-empty-icon">💊</div>
+            <p>No recipes in this period</p>
+          </div>
+        <% else %>
+          <div id="prescription-mix-chart-wrapper" phx-hook="DoughnutChart" style="height: 320px;">
+            <canvas id="prescription-mix-chart" data-chart-data={Jason.encode!(prescription_mix_chart)}></canvas>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 
