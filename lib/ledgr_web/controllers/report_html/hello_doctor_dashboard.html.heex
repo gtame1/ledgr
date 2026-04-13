@@ -20,6 +20,7 @@ end %>
 <% day_labels = Enum.map(daily, fn d -> Calendar.strftime(d.date, "%b %d") end) %>
 
 <% funnel_chart = %{
+  format: "number",
   labels: ["Conversations", "Doctor Recommended", "Consultations", "Paid"],
   datasets: [
     %{
@@ -33,6 +34,8 @@ end %>
 } %>
 
 <% doctors_chart = %{
+  format: "number",
+  indexAxis: "y",
   labels: Enum.map(m.top_doctors, & &1.name),
   datasets: [
     %{
@@ -46,6 +49,7 @@ end %>
 } %>
 
 <% diagnoses_chart = %{
+  format: "number",
   labels: Enum.map(m.top_diagnoses, & &1.diagnosis),
   datasets: [
     %{
@@ -58,10 +62,11 @@ end %>
 } %>
 
 <% revenue_chart = %{
+  format: "currency_pesos",
   labels: day_labels,
   datasets: [
     %{
-      label: "Revenue (MXN)",
+      label: "Revenue",
       data: Enum.map(daily, & &1.revenue),
       backgroundColor: c_accent,
       borderWidth: 0,
@@ -71,6 +76,7 @@ end %>
 } %>
 
 <% activity_chart = %{
+  format: "number",
   labels: day_labels,
   datasets: [
     %{

@@ -105,6 +105,59 @@ const chartColors = {
   netNegative: '#dc2626'
 }
 
+// Formats a value based on chart format options.
+// - format: 'currency' (pesos, divides by 100 if in cents), 'currency_pesos' (already in pesos), 'number' (default)
+// - decimals: optional decimal places for number format
+function formatChartValue(value, format, decimals) {
+  if (value == null) return ''
+  if (format === 'currency') {
+    return (value / 100).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
+  }
+  if (format === 'currency_pesos') {
+    return value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
+  }
+  if (typeof decimals === 'number') {
+    return value.toLocaleString('es-MX', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+  }
+  return value.toLocaleString('es-MX')
+}
+
+// Plugin: draw the value on top of each bar
+const barValueLabelPlugin = {
+  id: 'barValueLabel',
+  afterDatasetsDraw(chart, args, opts) {
+    const { ctx } = chart
+    const format = opts?.format || 'number'
+    const decimals = opts?.decimals
+    ctx.save()
+    ctx.font = '600 11px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = '#141414'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex)
+      if (!meta || meta.hidden) return
+      meta.data.forEach((bar, i) => {
+        const value = dataset.data[i]
+        if (value == null || value === 0) return
+        const formatted = formatChartValue(value, format, decimals)
+        // For horizontal bars (indexAxis: 'y'), position to the right of the bar
+        if (chart.options.indexAxis === 'y') {
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(formatted, bar.x + 6, bar.y)
+        } else {
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'bottom'
+          ctx.fillText(formatted, bar.x, bar.y - 4)
+        }
+      })
+    })
+    ctx.restore()
+  }
+}
+
 const BarChart = {
   mounted() {
     this.initChart()
@@ -139,6 +192,8 @@ const BarChart = {
     }
 
     const ctx = canvas.getContext('2d')
+    const format = data.format || 'number'
+    const decimals = data.decimals
 
     this.chart = new Chart(ctx, {
       type: 'bar',
@@ -146,11 +201,18 @@ const BarChart = {
         labels: data.labels || [],
         datasets: data.datasets || []
       },
+      plugins: [barValueLabelPlugin],
       options: {
+        indexAxis: data.indexAxis || 'x',
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: { top: 24, right: data.indexAxis === 'y' ? 70 : 10 }
+        },
         plugins: {
+          barValueLabel: { format, decimals },
           legend: {
+            display: (data.datasets || []).length > 1,
             position: 'top',
             labels: {
               usePointStyle: true,
@@ -162,48 +224,43 @@ const BarChart = {
             }
           },
           tooltip: {
-            backgroundColor: '#3d2318',
+            backgroundColor: '#141414',
             titleFont: { family: 'system-ui', size: 13 },
             bodyFont: { family: 'system-ui', size: 12 },
             padding: 12,
             cornerRadius: 8,
             callbacks: {
               label: function(context) {
-                let value = context.raw
-                // Format as currency (divide by 100 to convert cents to pesos)
-                const formatted = (value / 100).toLocaleString('es-MX', {
-                  style: 'currency',
-                  currency: 'MXN'
-                })
-                return context.dataset.label + ': ' + formatted
+                const formatted = formatChartValue(context.raw, format, decimals)
+                const label = context.dataset.label ? context.dataset.label + ': ' : ''
+                return label + formatted
               }
             }
           }
         },
         scales: {
           x: {
-            grid: {
-              display: false
-            },
+            grid: { display: false },
             ticks: {
-              font: {
-                family: 'system-ui',
-                size: 11
+              font: { family: 'system-ui', size: 11 },
+              callback: function(value) {
+                if (data.indexAxis === 'y') {
+                  return formatChartValue(value, format, decimals)
+                }
+                return this.getLabelForValue(value)
               }
             }
           },
           y: {
             beginAtZero: true,
-            grid: {
-              color: 'rgba(139, 111, 91, 0.1)'
-            },
+            grid: { color: 'rgba(100, 116, 139, 0.1)' },
             ticks: {
-              font: {
-                family: 'system-ui',
-                size: 11
-              },
+              font: { family: 'system-ui', size: 11 },
               callback: function(value) {
-                return '$' + (value / 100).toLocaleString('es-MX')
+                if (data.indexAxis === 'y') {
+                  return this.getLabelForValue(value)
+                }
+                return formatChartValue(value, format, decimals)
               }
             }
           }
@@ -248,12 +305,45 @@ const DoughnutChart = {
 
     const ctx = canvas.getContext('2d')
 
+    const format = data.format || 'number'
+    const decimals = data.decimals
+
+    // Draw value labels on each slice
+    const doughnutValueLabelPlugin = {
+      id: 'doughnutValueLabel',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart
+        ctx.save()
+        ctx.font = '600 11px system-ui, -apple-system, sans-serif'
+        ctx.fillStyle = '#ffffff'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex)
+          if (!meta || meta.hidden) return
+          meta.data.forEach((arc, i) => {
+            const value = dataset.data[i]
+            if (value == null || value === 0) return
+            // Only draw label if slice is big enough
+            const angle = arc.endAngle - arc.startAngle
+            if (angle < 0.25) return
+            const pos = arc.tooltipPosition()
+            const formatted = formatChartValue(value, format, decimals)
+            ctx.fillText(formatted, pos.x, pos.y)
+          })
+        })
+        ctx.restore()
+      }
+    }
+
     this.chart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: data.labels || [],
         datasets: data.datasets || []
       },
+      plugins: [doughnutValueLabelPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -270,18 +360,14 @@ const DoughnutChart = {
             }
           },
           tooltip: {
-            backgroundColor: '#3d2318',
+            backgroundColor: '#141414',
             titleFont: { family: 'system-ui', size: 13 },
             bodyFont: { family: 'system-ui', size: 12 },
             padding: 12,
             cornerRadius: 8,
             callbacks: {
               label: function(context) {
-                let value = context.raw
-                const formatted = (value / 100).toLocaleString('es-MX', {
-                  style: 'currency',
-                  currency: 'MXN'
-                })
+                const formatted = formatChartValue(context.raw, format, decimals)
                 return context.label + ': ' + formatted
               }
             }

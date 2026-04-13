@@ -36,6 +36,7 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
       end)
 
     chart_data_mxn = %{
+      format: "currency_pesos",
       labels: Enum.map(data, fn d -> d.label end),
       datasets: [
         %{label: "Income (MXN)", data: Enum.map(data, fn d -> d.income_mxn / 100 end), backgroundColor: "#059669"},
@@ -70,6 +71,7 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
       |> Enum.sort_by(& &1.total_cents, :desc)
 
     chart_data = %{
+      format: "currency_pesos",
       labels: Enum.map(by_category, & &1.name),
       datasets: [%{
         data: Enum.map(by_category, fn c -> c.total_cents / 100 end),

@@ -213,6 +213,7 @@
         net_income_data = Enum.map(sorted_monthly, & &1.net_income_cents)
 
         chart_data = %{
+          format: "currency",
           labels: chart_labels,
           datasets: [
             %{
