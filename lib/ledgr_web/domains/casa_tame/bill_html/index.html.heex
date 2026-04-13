@@ -53,34 +53,68 @@
       </div>
 
       <!-- Monthly Total Card -->
-      <div class="ct-hero-card ct-hero-card--mxn" style="padding: 1rem 1.25rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="display: flex; gap: 1rem; align-items: baseline;">
-              <%= if @monthly_total_mxn > 0 do %>
-                <div>
-                  <div class="ct-hero-value" style="font-size: 1.75rem;"><%= fmt.(@monthly_total_mxn) %></div>
-                  <div style="font-size: 0.65rem; opacity: 0.6;">MXN</div>
-                </div>
-              <% end %>
-              <%= if @monthly_total_usd > 0 do %>
-                <div>
-                  <div class="ct-hero-value" style="font-size: 1.75rem;"><%= fmt.(@monthly_total_usd) %></div>
-                  <div style="font-size: 0.65rem; opacity: 0.6;">USD</div>
-                </div>
-              <% end %>
-              <%= if @monthly_total_mxn == 0 && @monthly_total_usd == 0 do %>
-                <div class="ct-hero-value" style="font-size: 1.75rem;">$0.00</div>
-              <% end %>
-            </div>
-            <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;"><%= @monthly_count %> Unpaid in next 30 days</div>
+      <div class="ct-hero-card ct-hero-card--mxn ct-bills-totals-card">
+        <div class="ct-bills-totals-inner">
+          <div class="ct-bills-totals-amounts">
+            <%= if @monthly_total_mxn > 0 do %>
+              <div>
+                <div class="ct-hero-value ct-bills-total-value"><%= fmt.(@monthly_total_mxn) %></div>
+                <div class="ct-bills-total-label">MXN</div>
+              </div>
+            <% end %>
+            <%= if @monthly_total_usd > 0 do %>
+              <div>
+                <div class="ct-hero-value ct-bills-total-value"><%= fmt.(@monthly_total_usd) %></div>
+                <div class="ct-bills-total-label">USD</div>
+              </div>
+            <% end %>
+            <%= if @monthly_total_mxn == 0 && @monthly_total_usd == 0 do %>
+              <div class="ct-hero-value ct-bills-total-value">$0.00</div>
+            <% end %>
           </div>
-          <.link navigate={dp(@domain_path_prefix, "/bills/new")} class="ct-quick-pill" style="background: rgba(251,249,244,0.2); color: #fbf9f4; font-size: 0.75rem;">+ New Bill</.link>
+          <.link navigate={dp(@domain_path_prefix, "/bills/new")} class="ct-bills-new-pill">+ New Bill</.link>
         </div>
+        <div class="ct-bills-totals-subtitle"><%= @monthly_count %> Unpaid in next 30 days</div>
       </div>
     </div>
 
     <div class="ct-bills-content-row">
+    <!-- Overdue Bills -->
+    <%= if @overdue_bills != [] do %>
+      <div class="card" style="padding: 1rem; border-left: 3px solid #9e4a4a;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span class="ct-hero-label" style="color: #9e4a4a;">Overdue</span>
+          <span style="font-size: 0.7rem; color: #9e4a4a; font-weight: 600;"><%= length(@overdue_bills) %> past due</span>
+        </div>
+        <%= for bill <- @overdue_bills do %>
+          <% days_overdue = Date.diff(@today, bill.next_due_date) %>
+          <div class="ct-bill-row">
+            <.link navigate={dp(@domain_path_prefix, "/bills/#{bill.id}/edit")} style="display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; text-decoration: none; color: inherit;">
+              <span class={"ct-cal-dot ct-cal-dot--#{bill.category || "other"}"} style="width: 10px; height: 10px; flex-shrink: 0;"></span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.95rem;"><%= bill.name %></div>
+                <div style="font-size: 0.7rem; display: flex; gap: 0.35rem; align-items: center;">
+                  <span class="ct-badge" style="font-size: 0.6rem;"><%= String.replace(bill.category || "other", "_", " ") |> String.capitalize() %></span>
+                  <span style="color: #9e4a4a; font-weight: 600;">&middot; <%= days_overdue %>d overdue</span>
+                </div>
+              </div>
+            </.link>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+              <div style="text-align: right;">
+                <span style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 0.95rem;">
+                  <%= if bill.amount_cents, do: fmt.(bill.amount_cents), else: "Variable" %>
+                </span>
+                <div style="font-size: 0.6rem; color: var(--ct-on-surface-variant);"><%= bill.currency || "MXN" %></div>
+              </div>
+              <form method="post" action={dp(@domain_path_prefix, "/bills/#{bill.id}/mark-paid")} style="display: inline; margin: 0;">
+                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                <button type="submit" class="ct-quick-pill" style="font-size: 0.6rem; padding: 0.2rem 0.5rem; background: #3d7a5a; color: white;">Paid</button>
+              </form>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
     <!-- Today's Schedule -->
     <%= if @today_bills != [] do %>
       <div class="card" style="padding: 1rem;">

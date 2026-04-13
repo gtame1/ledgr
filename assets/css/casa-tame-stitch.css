@@ -16,7 +16,7 @@
 }
 
 [data-domain="casa-tame"] .content-body {
-  gap: 0.6rem !important;
+  gap: 1rem !important;
 }
 
 /* ── Typography ──────────────────────────────────────────── */
@@ -1485,6 +1485,90 @@
   [data-domain="casa-tame"] .ct-metrics-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* ── Dashboard summary grid — mobile stacking ───────────── */
+
+[data-domain="casa-tame"] .ct-summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Bills monthly totals card — responsive layout ──────── */
+
+[data-domain="casa-tame"] .ct-bills-totals-card {
+  padding: 1rem 1.25rem;
+}
+
+[data-domain="casa-tame"] .ct-bills-totals-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+[data-domain="casa-tame"] .ct-bills-totals-amounts {
+  display: flex;
+  gap: 1.25rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+[data-domain="casa-tame"] .ct-bills-total-value {
+  font-size: 1.5rem !important;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+[data-domain="casa-tame"] .ct-bills-total-label {
+  font-size: 0.6rem;
+  opacity: 0.6;
+  letter-spacing: 0.05em;
+}
+
+[data-domain="casa-tame"] .ct-bills-totals-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+[data-domain="casa-tame"] .ct-bills-new-pill {
+  background: rgba(251, 249, 244, 0.2);
+  color: #fbf9f4;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Mobile: stack the totals and "New Bill" button, smaller amount text */
+@media (max-width: 600px) {
+  [data-domain="casa-tame"] .ct-bills-totals-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  [data-domain="casa-tame"] .ct-bills-total-value {
+    font-size: 1.35rem !important;
+  }
+
+  [data-domain="casa-tame"] .ct-bills-new-pill {
+    align-self: flex-start;
+  }
+
+  /* Add vertical spacing between cards on mobile bills page */
+  [data-domain="casa-tame"] .ct-bills-content-row,
+  [data-domain="casa-tame"] .ct-bills-top-row {
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
   }
 }

@@ -35,6 +35,16 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
         end
       end)
 
+    # Overdue bills — past their due date and not yet paid for this period
+    overdue_bills =
+      bills
+      |> Enum.filter(fn b ->
+        b.is_active && b.next_due_date != nil &&
+          Date.compare(b.next_due_date, today) == :lt &&
+          (b.last_paid_date == nil || Date.compare(b.last_paid_date, b.next_due_date) == :lt)
+      end)
+      |> Enum.sort_by(& &1.next_due_date, Date)
+
     # Split into today's bills and upcoming
     today_bills = Enum.filter(bills, fn b -> b.is_active && b.next_due_date == today end)
 
@@ -94,6 +104,7 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
       calendar_end: calendar_end,
       bills_by_date: bills_by_date,
       today_bills: today_bills,
+      overdue_bills: overdue_bills,
       upcoming_bills: upcoming_bills,
       monthly_total_mxn: monthly_total_mxn,
       monthly_total_usd: monthly_total_usd,
