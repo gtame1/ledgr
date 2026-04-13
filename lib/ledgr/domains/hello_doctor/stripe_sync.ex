@@ -49,6 +49,15 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     end
   end
 
+  @doc """
+  Public entry point for upserting a single Stripe session — used by the
+  webhook controller to record payments as they come in.
+  """
+  def upsert_payment(session) do
+    api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
+    upsert_payment(session, api_key)
+  end
+
   defp upsert_payment(session, api_key) do
     case Repo.get_by(StripePayment, stripe_session_id: session.id) do
       nil ->

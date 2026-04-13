@@ -3,13 +3,15 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
 
   require Logger
 
-  alias Ledgr.Domains.HelloDoctor.Consultations
+  alias Ledgr.Domains.HelloDoctor.StripeSync
 
   @doc """
   Handles Stripe webhook events for HelloDoctor's separate Stripe account.
 
   The bot sends Stripe payment links to patients. When payment completes,
-  Stripe fires checkout.session.completed with consultation_id in metadata.
+  Stripe fires checkout.session.completed. We always record the payment
+  (via StripeSync.upsert_payment/1), and if metadata contains conversation_id
+  or consultation_id, we also link it to the consultation.
   """
   def handle(conn, _params) do
     raw_body = conn.assigns[:raw_body] || ""
@@ -38,66 +40,29 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
   end
 
   defp handle_checkout_completed(conn, session) do
+    amount_pesos = (session.amount_total || 0) / 100.0
     metadata = session.metadata || %{}
 
-    # Bot sends conversation_id — look up consultation via conversation
-    consultation_id =
-      cond do
-        metadata["consultation_id"] -> metadata["consultation_id"]
-        metadata["conversation_id"] -> find_consultation_by_conversation(metadata["conversation_id"])
-        true -> nil
-      end
+    Logger.info("[HelloDoctor] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, metadata=#{inspect(metadata)}")
 
-    amount_pesos = (session.amount_total || 0) / 100.0
-    customer_email = session.customer_details && session.customer_details.email
-    customer_name = session.customer_details && session.customer_details.name
+    case StripeSync.upsert_payment(session) do
+      {:ok, :already_exists} ->
+        Logger.info("[HelloDoctor] Stripe webhook: payment for session #{session.id} already recorded, skipping")
+        send_resp(conn, 200, "ok — already recorded")
 
-    Logger.info("[HelloDoctor] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, email=#{customer_email || "none"}, name=#{customer_name || "none"}, metadata=#{inspect(metadata)}")
+      {:ok, payment} ->
+        link_info = if payment.consultation_id, do: " (linked to consultation #{payment.consultation_id})", else: " (unlinked — no metadata)"
+        Logger.info("[HelloDoctor] Stripe webhook: recorded payment for session #{session.id}, amount: $#{amount_pesos}#{link_info}")
+        send_resp(conn, 200, "ok")
 
-    if is_nil(consultation_id) do
-      Logger.warning("[HelloDoctor] Stripe webhook: no consultation_id or conversation_id in metadata. Session: #{session.id}, amount: $#{amount_pesos}")
-      send_resp(conn, 200, "ok — payment received, no consultation to link")
-    else
-      case Consultations.get_consultation(consultation_id) do
-        nil ->
-          Logger.warning("[HelloDoctor] Stripe webhook: consultation #{consultation_id} not found")
-          send_resp(conn, 200, "ok — consultation not found")
-
-        consultation ->
-          if consultation.payment_status in ["paid", "confirmed"] do
-            Logger.info("[HelloDoctor] Stripe webhook: consultation #{consultation_id} already paid, skipping")
-            send_resp(conn, 200, "ok — already paid")
-          else
-            case Consultations.record_stripe_payment(consultation, %{
-                   payment_amount: amount_pesos,
-                   stripe_session_id: session.id
-                 }) do
-              {:ok, _consultation} ->
-                Logger.info("[HelloDoctor] Stripe webhook: recorded payment for consultation #{consultation_id}, amount: $#{amount_pesos}")
-                send_resp(conn, 200, "ok")
-
-              {:error, reason} ->
-                Logger.error("[HelloDoctor] Stripe webhook: failed to record payment for consultation #{consultation_id}: #{inspect(reason)}")
-                send_resp(conn, 500, "error")
-            end
-          end
-      end
+      {:error, reason} ->
+        Logger.error("[HelloDoctor] Stripe webhook: failed to record payment for session #{session.id}: #{inspect(reason)}")
+        send_resp(conn, 500, "error")
     end
   end
 
   defp handle_refund(conn, charge) do
     Logger.info("[HelloDoctor] Stripe webhook: charge.refunded received for charge #{charge.id}")
     send_resp(conn, 200, "ok")
-  end
-
-  defp find_consultation_by_conversation(conversation_id) do
-    import Ecto.Query, warn: false
-
-    Ledgr.Domains.HelloDoctor.Consultations.Consultation
-    |> where([c], c.conversation_id == ^conversation_id)
-    |> order_by(desc: :assigned_at)
-    |> limit(1)
-    |> select([c], c.id)
-    |> Ledgr.Repo.one()
   end
 end
