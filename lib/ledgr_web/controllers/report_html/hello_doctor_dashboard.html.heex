@@ -1,116 +1,346 @@
 <% m = @metrics %>
-<% fmt = fn nil -> "$0.00"; amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"; amount -> "$#{amount}" end %>
+<% fmt_money = fn
+  nil -> "$0.00"
+  amount when is_number(amount) ->
+    "$" <> (amount |> :erlang.float_to_binary(decimals: 2))
+end %>
+<% fmt_pct = fn
+  nil -> "0%"
+  n when is_number(n) -> "#{:erlang.float_to_binary(n * 1.0, decimals: 1)}%"
+end %>
 
+<%!-- Color palette --%>
+<% c_primary = "#004058" %>
+<% c_accent = "#02ba97" %>
+<% c_amber = "#f59e0b" %>
+<% c_red = "#dc2626" %>
+
+<%!-- Chart data preparation --%>
+<% daily = m.daily_series %>
+<% day_labels = Enum.map(daily, fn d -> Calendar.strftime(d.date, "%b %d") end) %>
+
+<% funnel_chart = %{
+  labels: ["Conversations", "Doctor Recommended", "Consultations", "Paid"],
+  datasets: [
+    %{
+      label: "Count",
+      data: [m.funnel.conversations, m.funnel.doctor_recommended, m.funnel.consultations, m.funnel.paid],
+      backgroundColor: [c_primary, c_accent, c_amber, c_red],
+      borderWidth: 0,
+      borderRadius: 6
+    }
+  ]
+} %>
+
+<% doctors_chart = %{
+  labels: Enum.map(m.top_doctors, & &1.name),
+  datasets: [
+    %{
+      label: "Consultations",
+      data: Enum.map(m.top_doctors, & &1.consultation_count),
+      backgroundColor: c_accent,
+      borderWidth: 0,
+      borderRadius: 4
+    }
+  ]
+} %>
+
+<% diagnoses_chart = %{
+  labels: Enum.map(m.top_diagnoses, & &1.diagnosis),
+  datasets: [
+    %{
+      label: "Count",
+      data: Enum.map(m.top_diagnoses, & &1.count),
+      backgroundColor: [c_primary, c_accent, c_amber, "#7c3aed", "#0891b2", "#059669", "#d97706", "#e11d48", "#2563eb", "#64748b"],
+      borderWidth: 0
+    }
+  ]
+} %>
+
+<% revenue_chart = %{
+  labels: day_labels,
+  datasets: [
+    %{
+      label: "Revenue (MXN)",
+      data: Enum.map(daily, & &1.revenue),
+      backgroundColor: c_accent,
+      borderWidth: 0,
+      borderRadius: 3
+    }
+  ]
+} %>
+
+<% activity_chart = %{
+  labels: day_labels,
+  datasets: [
+    %{
+      label: "Conversations",
+      data: Enum.map(daily, & &1.conversations),
+      backgroundColor: c_primary,
+      borderWidth: 0,
+      borderRadius: 3
+    },
+    %{
+      label: "Consultations",
+      data: Enum.map(daily, & &1.consultations),
+      backgroundColor: c_accent,
+      borderWidth: 0,
+      borderRadius: 3
+    },
+    %{
+      label: "Paid",
+      data: Enum.map(daily, & &1.paid),
+      backgroundColor: c_amber,
+      borderWidth: 0,
+      borderRadius: 3
+    }
+  ]
+} %>
 
 <div class="hd-page">
-  <div class="hd-topbar">
-    <h1>Dashboard</h1>
-  </div>
-
-  <%!-- KPI Cards --%>
-  <div class="hd-kpi-grid">
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Active Consultations</div>
-      <div class="hd-kpi-value"><%= m.active_consultations %></div>
-      <div class="hd-kpi-sub">pending + assigned + active</div>
+  <%!-- Header with period selector --%>
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Dashboard</h1>
+      <p class="text-sm mt-1" style="color: var(--text-muted);">
+        <%= Calendar.strftime(@start_date, "%b %d, %Y") %> &mdash; <%= Calendar.strftime(@end_date, "%b %d, %Y") %>
+      </p>
     </div>
-
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Revenue This Month</div>
-      <div class="hd-kpi-value"><%= fmt.(m.revenue_period) %></div>
-      <div class="hd-kpi-sub">MXN</div>
-    </div>
-
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Fees Collected</div>
-      <div class="hd-kpi-value"><%= fmt.(m.fees_collected) %></div>
-      <div class="hd-kpi-sub">15% commission</div>
-    </div>
-
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Doctors Active</div>
-      <div class="hd-kpi-value"><%= m.doctors_online %></div>
-      <div class="hd-kpi-sub">of <%= m.total_doctors %> total</div>
+    <div class="flex gap-1 p-1 rounded-lg" style="background: var(--bg-surface); border: 1px solid var(--border-subtle);">
+      <%= for {label, value} <- [{"7d", "last_7_days"}, {"30d", "last_30_days"}, {"90d", "last_90_days"}, {"All", "all_time"}] do %>
+        <% active = (@current_period || "last_30_days") == value %>
+        <.link navigate={dp(@domain_path_prefix, "/?period=#{value}")}
+          class={"px-3 py-1.5 text-sm font-medium rounded-md transition-colors"}
+          style={if active, do: "background: #02ba97; color: white;", else: "color: var(--text-muted);"}>
+          <%= label %>
+        </.link>
+      <% end %>
     </div>
   </div>
 
-  <%!-- Two-column layout --%>
-  <div class="hd-two-col">
-    <%!-- Left: Recent Consultations --%>
-    <div class="hd-card">
-      <div class="hd-card-title">Recent Consultations</div>
-      <%= if Enum.empty?(m.recent_consultations) do %>
-        <div class="hd-empty">
-          <p>No consultations yet</p>
+  <%!-- ═══ FUNNEL ═══ --%>
+  <div class="mb-8">
+    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Funnel</h2>
+
+    <div class="hd-kpi-grid mb-4">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Conversations</div>
+        <div class="hd-kpi-value"><%= m.funnel.conversations %></div>
+        <div class="hd-kpi-sub">started in period</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Doctor Recommended</div>
+        <div class="hd-kpi-value"><%= m.funnel.doctor_recommended %></div>
+        <div class="hd-kpi-sub"><%= fmt_pct.(m.funnel.doctor_recommended_rate) %> of conversations</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Consultations</div>
+        <div class="hd-kpi-value"><%= m.funnel.consultations %></div>
+        <div class="hd-kpi-sub"><%= fmt_pct.(m.funnel.consultation_rate) %> of recommended</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Paid</div>
+        <div class="hd-kpi-value" style="color: #02ba97;"><%= m.funnel.paid %></div>
+        <div class="hd-kpi-sub"><%= fmt_pct.(m.funnel.overall_conversion) %> overall conversion</div>
+      </div>
+    </div>
+
+    <div class="hd-card p-5">
+      <div class="hd-card-title">Conversion Funnel</div>
+      <%= if m.funnel.conversations > 0 do %>
+        <div id="funnel-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
+          <canvas id="funnel-chart" data-chart-data={Jason.encode!(funnel_chart)}></canvas>
         </div>
       <% else %>
-        <table class="hd-table">
+        <div class="hd-empty">
+          <div class="hd-empty-icon">📊</div>
+          <p>No conversations in this period</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- ═══ OPERATIONS ═══ --%>
+  <div class="mb-8">
+    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Operations</h2>
+
+    <div class="hd-kpi-grid mb-4">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Active Now</div>
+        <div class="hd-kpi-value"><%= m.operations.active_consultations %></div>
+        <div class="hd-kpi-sub">in progress</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Avg Response</div>
+        <div class="hd-kpi-value"><%= m.operations.avg_response_minutes %> <span class="text-base">min</span></div>
+        <div class="hd-kpi-sub">assigned → accepted</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Avg Duration</div>
+        <div class="hd-kpi-value"><%= m.operations.avg_duration_minutes %> <span class="text-base">min</span></div>
+        <div class="hd-kpi-sub">per consultation</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Avg Rating</div>
+        <div class="hd-kpi-value" style="color: #f59e0b;">
+          <%= if m.operations.avg_rating > 0, do: m.operations.avg_rating, else: "—" %>
+          <%= if m.operations.avg_rating > 0, do: "★", else: "" %>
+        </div>
+        <div class="hd-kpi-sub"><%= m.operations.rated_count %> ratings</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Video Adoption</div>
+        <div class="hd-kpi-value"><%= fmt_pct.(m.operations.video_adoption_rate) %></div>
+        <div class="hd-kpi-sub"><%= m.operations.video_count %> video calls</div>
+      </div>
+    </div>
+
+    <div class="hd-card p-5 mb-4">
+      <div class="hd-card-title">Daily Activity</div>
+      <%= if Enum.any?(daily, fn d -> d.consultations > 0 or d.conversations > 0 end) do %>
+        <div id="activity-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
+          <canvas id="activity-chart" data-chart-data={Jason.encode!(activity_chart)}></canvas>
+        </div>
+      <% else %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">📈</div>
+          <p>No activity in this period</p>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="hd-card p-5">
+      <div class="hd-card-title">Consultations per Doctor</div>
+      <%= if Enum.any?(m.top_doctors, & &1.consultation_count > 0) do %>
+        <div id="doctors-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
+          <canvas id="doctors-chart" data-chart-data={Jason.encode!(doctors_chart)}></canvas>
+        </div>
+      <% else %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">👨‍⚕️</div>
+          <p>No doctor activity in this period</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- ═══ CLINICAL ═══ --%>
+  <div class="mb-8">
+    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Clinical</h2>
+
+    <div class="hd-card p-5">
+      <div class="hd-card-title">Top Diagnoses</div>
+      <%= if Enum.empty?(m.top_diagnoses) do %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">🩺</div>
+          <p>No diagnoses recorded in this period</p>
+        </div>
+      <% else %>
+        <div id="diagnoses-chart-wrapper" phx-hook="DoughnutChart" style="height: 320px;">
+          <canvas id="diagnoses-chart" data-chart-data={Jason.encode!(diagnoses_chart)}></canvas>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- ═══ REVENUE ═══ --%>
+  <div class="mb-8">
+    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Revenue</h2>
+
+    <div class="hd-kpi-grid mb-4">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Total Revenue</div>
+        <div class="hd-kpi-value" style="color: #02ba97;"><%= fmt_money.(m.revenue.total_revenue) %></div>
+        <div class="hd-kpi-sub"><%= m.revenue.paid_count %> payments</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Commission (15%)</div>
+        <div class="hd-kpi-value"><%= fmt_money.(m.revenue.commission) %></div>
+        <div class="hd-kpi-sub">HelloDoctor's share</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Avg Consultation</div>
+        <div class="hd-kpi-value"><%= fmt_money.(m.revenue.avg_consultation_value) %></div>
+        <div class="hd-kpi-sub">per paid consult</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Refunds</div>
+        <div class="hd-kpi-value" style="color: #dc2626;"><%= fmt_money.(m.revenue.total_refunds) %></div>
+        <div class="hd-kpi-sub"><%= m.revenue.refund_count %> refunded</div>
+      </div>
+    </div>
+
+    <div class="hd-card p-5">
+      <div class="hd-card-title">Daily Revenue</div>
+      <%= if m.revenue.total_revenue > 0 do %>
+        <div id="revenue-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
+          <canvas id="revenue-chart" data-chart-data={Jason.encode!(revenue_chart)}></canvas>
+        </div>
+      <% else %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">💰</div>
+          <p>No revenue in this period</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- ═══ RECENT CONSULTATIONS ═══ --%>
+  <div class="hd-card">
+    <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--border-subtle);">
+      <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted); letter-spacing: 0.05em;">Recent Consultations</h2>
+      <.link navigate={dp(@domain_path_prefix, "/consultations")} class="text-sm font-medium" style="color: var(--accent);">
+        View all →
+      </.link>
+    </div>
+    <%= if Enum.empty?(m.recent_consultations) do %>
+      <div class="hd-empty">
+        <div class="hd-empty-icon">🩺</div>
+        <p>No consultations yet</p>
+      </div>
+    <% else %>
+      <div class="overflow-x-auto">
+        <table class="hd-table w-full">
           <thead>
             <tr>
-              <th>Patient</th>
-              <th>Doctor</th>
-              <th>Status</th>
-              <th>Amount</th>
-              <th>Date</th>
+              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
+              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Patient</th>
+              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor</th>
+              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Status</th>
+              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Payment</th>
+              <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
             </tr>
           </thead>
           <tbody>
             <%= for c <- m.recent_consultations do %>
-              <tr>
-                <td>
-                  <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-[#004058] font-medium hover:underline">
-                    <%= if c.patient, do: (c.patient.full_name || c.patient.display_name || "Unknown"), else: "---" %>
-                  </.link>
+              <tr class="border-t cursor-pointer hover:bg-[rgba(2,186,151,0.04)]"
+                style="border-color: var(--border-subtle);"
+                onclick={"window.location='#{dp(@domain_path_prefix, "/consultations/#{c.id}")}';"}>
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %I:%M %p"), else: "---" %>
                 </td>
-                <td class="text-sm text-[#64748b]"><%= if c.doctor, do: c.doctor.name, else: "---" %></td>
-                <td><span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") %></span></td>
-                <td class="font-medium"><%= fmt.(c.payment_amount) %></td>
-                <td class="text-sm text-[#64748b]">
-                  <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d"), else: "---" %>
+                <td class="p-3 text-sm font-medium" style="color: var(--text-main);">
+                  <%= if c.patient, do: (c.patient.full_name || c.patient.display_name || "Unknown"), else: "Unknown" %>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  <%= if c.doctor, do: c.doctor.name, else: "Unassigned" %>
+                </td>
+                <td class="p-3">
+                  <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                </td>
+                <td class="p-3">
+                  <%= if c.payment_status do %>
+                    <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+                  <% end %>
+                </td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
+                  <%= fmt_money.(c.payment_amount) %>
                 </td>
               </tr>
             <% end %>
           </tbody>
         </table>
-        <div class="mt-3 text-right">
-          <.link navigate={dp(@domain_path_prefix, "/consultations")} class="text-sm text-[#02ba97] font-medium hover:underline">
-            View all consultations &rarr;
-          </.link>
-        </div>
-      <% end %>
-    </div>
-
-    <%!-- Right: Top Doctors --%>
-    <div class="hd-card">
-      <div class="hd-card-title">Top Doctors</div>
-      <%= if Enum.empty?(m.top_doctors) do %>
-        <div class="hd-empty">
-          <p>No doctors yet</p>
-        </div>
-      <% else %>
-        <div class="flex flex-col gap-3">
-          <%= for d <- m.top_doctors do %>
-            <.link navigate={dp(@domain_path_prefix, "/doctors/#{d.id}")} class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f1f5f9] transition-colors no-underline">
-              <div class="hd-doctor-avatar text-sm">
-                <%= String.first(d.name) %>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="font-semibold text-[#141414] text-sm truncate"><%= d.name %></div>
-                <div class="text-xs text-[#64748b]"><%= d.specialty %></div>
-              </div>
-              <div class="text-right">
-                <div class="text-sm font-semibold text-[#141414]"><%= d.years_experience %></div>
-                <div class="text-xs text-[#64748b]">consults</div>
-              </div>
-            </.link>
-          <% end %>
-        </div>
-        <div class="mt-3 text-right">
-          <.link navigate={dp(@domain_path_prefix, "/doctors")} class="text-sm text-[#02ba97] font-medium hover:underline">
-            View all doctors &rarr;
-          </.link>
-        </div>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
   </div>
 </div>

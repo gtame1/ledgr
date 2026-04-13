@@ -159,20 +159,7 @@ defmodule Ledgr.Domains.HelloDoctor do
 
   @impl Ledgr.Domain.DashboardProvider
   def dashboard_metrics(start_date, end_date) do
-    alias Ledgr.Domains.HelloDoctor.{Consultations, Doctors, Patients}
-
-    payment_stats = Consultations.payment_stats(start_date: start_date, end_date: end_date)
-
-    %{
-      active_consultations: Consultations.count_active(),
-      revenue_period: payment_stats.total_revenue,
-      fees_collected: payment_stats.total_fees,
-      doctors_online: Doctors.count_by_status(:active),
-      total_doctors: Doctors.count_all(),
-      patients_period: Patients.count_new(start_date, end_date),
-      recent_consultations: Consultations.list_recent(6),
-      top_doctors: Doctors.top_by_consultations(5)
-    }
+    Ledgr.Domains.HelloDoctor.DashboardMetrics.all(start_date, end_date)
   end
 
   @impl Ledgr.Domain.DashboardProvider

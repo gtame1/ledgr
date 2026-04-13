@@ -11,6 +11,16 @@ defmodule LedgrWeb.ReportController do
 
   def dashboard(conn, params) do
     domain = Domain.current()
+
+    # HelloDoctor defaults to last 30 days; other domains keep "this month" default
+    params =
+      if domain == Ledgr.Domains.HelloDoctor and not Map.has_key?(params, "period") and
+           not Map.has_key?(params, "start_date") and not Map.has_key?(params, "all_dates") do
+        Map.put(params, "period", "last_30_days")
+      else
+        params
+      end
+
     {start_date, end_date} = resolve_period(params)
     {earliest_date, latest_date} = domain.data_date_range()
 
@@ -30,7 +40,8 @@ defmodule LedgrWeb.ReportController do
       start_date: start_date,
       end_date: end_date,
       earliest_date: earliest_date,
-      latest_date: latest_date
+      latest_date: latest_date,
+      current_period: params["period"]
     )
   end
 
@@ -305,6 +316,11 @@ defmodule LedgrWeb.ReportController do
   defp resolve_period(%{"period" => "last_7_days"}) do
     today = today_mx()
     {Date.add(today, -6), today}
+  end
+
+  defp resolve_period(%{"period" => "last_30_days"}) do
+    today = today_mx()
+    {Date.add(today, -29), today}
   end
 
   defp resolve_period(%{"period" => "this_month"}) do
