@@ -34,7 +34,6 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       conversations_per_patient: conversations_per_patient(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       daily_series: daily_series(start_date, end_date),
-      recent_consultations: recent_consultations(6),
       # Infrastructure
       db_size: db_size(),
       # Totals independent of period (for footer/nav context)
