@@ -12,6 +12,8 @@ defmodule Ledgr.Domains.HelloDoctor.Conversations.Conversation do
     field :doctor_declined_by_patient, :boolean
     field :created_at, :naive_datetime
     field :last_message_at, :naive_datetime
+    field :stripe_payment_intent_id, :string
+    field :consultation_type, :string
 
     belongs_to :patient, Ledgr.Domains.HelloDoctor.Patients.Patient
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation

@@ -118,6 +118,7 @@ defmodule Ledgr.Domains.HelloDoctor do
     [
       %{group: "Main", items: [
         %{label: "Dashboard",      path: prefix,                       icon: :dashboard},
+        %{label: "Conversations",  path: "#{prefix}/conversations",    icon: :receipt},
         %{label: "Consultations",  path: "#{prefix}/consultations",    icon: :receipt},
         %{label: "Doctors",        path: "#{prefix}/doctors",          icon: :customers},
         %{label: "Patients",       path: "#{prefix}/patients",         icon: :customers}

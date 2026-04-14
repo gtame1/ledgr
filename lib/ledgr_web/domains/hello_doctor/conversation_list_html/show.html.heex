@@ -1,0 +1,212 @@
+<% conv = @conversation %>
+<% mr = conv.medical_record %>
+<% messages = conv.messages || [] %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/conversations")} class="hd-back">
+      &larr; Back to Conversations
+    </.link>
+  </div>
+
+  <%!-- Header --%>
+  <div class="flex items-center gap-3 mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Conversation</h1>
+    <%
+      status_badge = case conv.status do
+        "active" -> "in_progress"
+        "closed" -> "completed"
+        _ -> "pending"
+      end
+    %>
+    <span class={"hd-badge hd-badge--#{status_badge}"}><%= conv.status |> to_string() |> String.capitalize() %></span>
+    <span class="text-sm" style="color: var(--text-muted);"><%= conv.funnel_stage |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+  </div>
+
+  <div class="hd-two-col">
+    <%!-- Left Column --%>
+    <div class="space-y-6">
+
+      <%!-- AI Summary --%>
+      <%= if mr && mr.ai_summary do %>
+        <div class="hd-card p-5" style="border-left: 4px solid #02ba97;">
+          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--accent);">AI Summary</h2>
+          <div class="text-sm leading-relaxed whitespace-pre-line" style="color: var(--text-main);"><%= mr.ai_summary %></div>
+        </div>
+      <% end %>
+
+      <%!-- Chief Complaint & Triage --%>
+      <%= if mr && (mr.chief_complaint || mr.urgency || mr.possible_conditions) do %>
+        <div class="hd-card p-5">
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Triage Assessment</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <%= if mr.chief_complaint do %>
+              <div class="col-span-2">
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Chief Complaint</div>
+                <div class="text-sm font-medium" style="color: var(--text-main);"><%= mr.chief_complaint %></div>
+              </div>
+            <% end %>
+            <%= if mr.urgency do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Urgency</div>
+                <div class="text-sm" style="color: var(--text-main);"><%= mr.urgency |> String.capitalize() %></div>
+              </div>
+            <% end %>
+            <%= if mr.specialty do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Specialty</div>
+                <div class="text-sm" style="color: var(--text-main);"><%= mr.specialty %></div>
+              </div>
+            <% end %>
+            <%= if mr.possible_conditions do %>
+              <div class="col-span-2">
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Possible Conditions</div>
+                <div class="text-sm" style="color: var(--text-main);"><%= mr.possible_conditions %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Messages --%>
+      <%= if messages != [] do %>
+        <div class="hd-card p-5">
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Messages
+            <span class="text-xs font-normal ml-1" style="color: var(--text-muted);">(<%= length(messages) %>)</span>
+          </h2>
+          <div class="space-y-3 max-h-[600px] overflow-y-auto">
+            <%= for msg <- Enum.sort_by(messages, & &1.created_at) do %>
+              <% is_patient = msg.role in ["user", "patient"] %>
+              <% is_doctor = msg.role in ["doctor"] %>
+              <%
+                msg_bg = cond do
+                  is_patient -> "bg-[#d0f5ed]"
+                  is_doctor -> "bg-[#dbeafe]"
+                  true -> "bg-[#f1f5f9]"
+                end
+                msg_color = cond do
+                  is_patient -> "#065f46"
+                  is_doctor -> "#1e40af"
+                  true -> "#64748b"
+                end
+              %>
+              <div class={"flex #{if is_patient, do: "justify-end", else: "justify-start"}"}>
+                <div class={"max-w-[80%] rounded-lg p-3 text-sm #{msg_bg}"}>
+                  <div class="text-xs font-semibold mb-1" style={"color: #{msg_color};"}>
+                    <%= cond do
+                      is_patient -> "Patient"
+                      is_doctor -> "Doctor"
+                      true -> "HelloDoctor AI"
+                    end %>
+                  </div>
+                  <div class="whitespace-pre-line" style="color: var(--text-main);"><%= msg.content %></div>
+                  <%= if msg.created_at do %>
+                    <div class="text-xs mt-1 opacity-60"><%= Calendar.strftime(msg.created_at, "%I:%M %p") %></div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <div class="hd-card p-5">
+          <div class="hd-empty">
+            <div class="hd-empty-icon">💬</div>
+            <p>No messages in this conversation</p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <%!-- Right Column --%>
+    <div class="space-y-6">
+
+      <%!-- Patient --%>
+      <%= if conv.patient do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Patient</h3>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--primary);">
+              <%= String.first(conv.patient.full_name || conv.patient.display_name || "?") %>
+            </div>
+            <div>
+              <.link navigate={dp(@domain_path_prefix, "/patients/#{conv.patient.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                <%= conv.patient.full_name || conv.patient.display_name || "Unknown" %>
+              </.link>
+              <div class="text-xs" style="color: var(--text-muted);"><%= conv.patient.phone || "" %></div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Conversation Details --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Details</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Status</span>
+            <span style="color: var(--text-main);"><%= conv.status |> to_string() |> String.capitalize() %></span>
+          </div>
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Funnel Stage</span>
+            <span style="color: var(--text-main);"><%= conv.funnel_stage |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+          </div>
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Doctor Recommended</span>
+            <span style="color: var(--text-main);"><%= if conv.doctor_recommended, do: "Yes", else: "No" %></span>
+          </div>
+          <%= if conv.doctor_declined_by_patient do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Patient Declined Doctor</span>
+              <span style="color: #dc2626;">Yes</span>
+            </div>
+          <% end %>
+          <%= if conv.resolved_without_doctor do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Resolved w/o Doctor</span>
+              <span style="color: var(--accent);">Yes</span>
+            </div>
+          <% end %>
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Started</span>
+            <span style="color: var(--text-main);"><%= if conv.created_at, do: Calendar.strftime(conv.created_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+          </div>
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Last Message</span>
+            <span style="color: var(--text-main);"><%= if conv.last_message_at, do: Calendar.strftime(conv.last_message_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Linked Consultations --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Consultations</h3>
+        <%= if Enum.empty?(conv.consultations) do %>
+          <div class="text-sm" style="color: var(--text-muted);">No consultations created from this conversation.</div>
+        <% else %>
+          <div class="space-y-2">
+            <%= for c <- conv.consultations do %>
+              <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")}
+                class="block p-3 rounded-lg hover:bg-[rgba(2,186,151,0.04)] no-underline"
+                style="border: 1px solid var(--border-subtle);">
+                <div class="flex items-center justify-between">
+                  <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                  <span class="text-xs" style="color: var(--text-muted);">
+                    <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                  </span>
+                </div>
+                <%= if c.payment_status do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);">
+                    Payment: <%= c.payment_status |> String.capitalize() %>
+                    <%= if c.payment_amount, do: " — $#{:erlang.float_to_binary(c.payment_amount, decimals: 2)}", else: "" %>
+                  </div>
+                <% end %>
+              </.link>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
