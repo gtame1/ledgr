@@ -366,6 +366,34 @@ end %>
     </div>
   </div>
 
+  <%!-- ═══ INFRASTRUCTURE ═══ --%>
+  <div class="mb-8">
+    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Infrastructure</h2>
+
+    <div class="hd-kpi-grid">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Database Storage</div>
+        <div class="hd-kpi-value"><%= m.db_size.mb %> <span class="text-base font-normal" style="color: var(--text-muted);">/ <%= m.db_size.cap_mb %> MB</span></div>
+        <div class="hd-kpi-sub"><%= m.db_size.percent %>% of Neon free tier</div>
+        <div class="mt-3 w-full rounded-full h-2.5" style="background: var(--border-subtle);">
+          <%
+            bar_color = cond do
+              m.db_size.percent > 80 -> "#dc2626"
+              m.db_size.percent > 60 -> "#f59e0b"
+              true -> "#02ba97"
+            end
+          %>
+          <div class="h-2.5 rounded-full transition-all" style={"width: #{min(m.db_size.percent, 100)}%; background: #{bar_color};"}></div>
+        </div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Active Doctors</div>
+        <div class="hd-kpi-value"><%= m.active_doctors %> <span class="text-base font-normal" style="color: var(--text-muted);">/ <%= m.total_doctors %></span></div>
+        <div class="hd-kpi-sub">available on platform</div>
+      </div>
+    </div>
+  </div>
+
   <%!-- ═══ RECENT CONSULTATIONS ═══ --%>
   <div class="hd-card">
     <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--border-subtle);">

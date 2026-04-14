@@ -35,6 +35,8 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       daily_series: daily_series(start_date, end_date),
       recent_consultations: recent_consultations(6),
+      # Infrastructure
+      db_size: db_size(),
       # Totals independent of period (for footer/nav context)
       total_doctors: count_doctors(),
       active_doctors: count_active_doctors()
@@ -348,6 +350,18 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     |> limit(^limit)
     |> Repo.all()
     |> Repo.preload([:patient, :doctor])
+  end
+
+  @neon_cap_bytes 512 * 1024 * 1024  # 512 MB
+
+  @doc "Returns current database size and % of Neon's 512 MB cap."
+  def db_size do
+    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), "SELECT pg_database_size(current_database()) AS size_bytes")
+    bytes = result.rows |> List.first() |> List.first() || 0
+    mb = Float.round(bytes / (1024 * 1024), 1)
+    percent = Float.round(bytes / @neon_cap_bytes * 100, 1)
+
+    %{bytes: bytes, mb: mb, cap_mb: 512, percent: percent}
   end
 
   def count_doctors, do: Repo.aggregate(Doctor, :count)
