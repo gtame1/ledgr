@@ -73,8 +73,9 @@ defmodule Ledgr.Application do
         {Phoenix.PubSub, name: Ledgr.PubSub},
         Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery
       ] ++
-      # Start exchange rate worker only when Casa Tame repo is available
-      (if Ledgr.Repos.CasaTame in optional_repos or @mix_env == :test,
+      # Start exchange rate worker only when Casa Tame repo is available.
+      # Skip in :test to avoid spurious DB connections during the test run.
+      (if @mix_env != :test and Ledgr.Repos.CasaTame in optional_repos,
         do: [Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker],
         else: []) ++
       [

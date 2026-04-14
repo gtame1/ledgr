@@ -31,6 +31,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       revenue: revenue_metrics(start_date, end_date),
       top_diagnoses: top_diagnoses(start_date, end_date, 10),
       prescription_mix: prescription_mix(start_date, end_date),
+      conversations_per_patient: conversations_per_patient(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       daily_series: daily_series(start_date, end_date),
       recent_consultations: recent_consultations(6),
@@ -225,6 +226,43 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   end
 
   # ── Top doctors with ratings ───────────────────────────────────
+
+  @doc """
+  Returns a distribution of conversations per patient. Groups patients by
+  their conversation count and returns bucket labels + counts.
+  e.g. [%{bucket: "1", count: 45}, %{bucket: "2", count: 12}, %{bucket: "3+", count: 5}]
+  Also returns avg and total unique patients.
+  """
+  def conversations_per_patient(start_date, end_date) do
+    # Count conversations per patient in the period
+    per_patient =
+      Conversation
+      |> where_date_range(:created_at, start_date, end_date)
+      |> group_by([c], c.patient_id)
+      |> select([c], %{patient_id: c.patient_id, count: count(c.id)})
+      |> Repo.all()
+
+    total_patients = length(per_patient)
+    total_conversations = Enum.reduce(per_patient, 0, fn p, acc -> acc + p.count end)
+    avg = if total_patients > 0, do: Float.round(total_conversations / total_patients, 1), else: 0.0
+
+    # Build distribution buckets: 1, 2, 3, 4, 5+
+    buckets =
+      per_patient
+      |> Enum.group_by(fn p -> min(p.count, 5) end)
+      |> Enum.map(fn {bucket, patients} ->
+        label = if bucket >= 5, do: "5+", else: "#{bucket}"
+        %{bucket: label, bucket_num: bucket, count: length(patients)}
+      end)
+      |> Enum.sort_by(& &1.bucket_num)
+
+    %{
+      distribution: buckets,
+      total_patients: total_patients,
+      total_conversations: total_conversations,
+      avg: avg
+    }
+  end
 
   def top_doctors_with_ratings(limit, start_date, end_date) do
     query =

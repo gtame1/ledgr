@@ -116,6 +116,20 @@ end %>
   ]
 } %>
 
+<% conversations_per_patient_chart = %{
+  format: "number",
+  labels: Enum.map(m.conversations_per_patient.distribution, & &1.bucket),
+  datasets: [
+    %{
+      label: "Patients",
+      data: Enum.map(m.conversations_per_patient.distribution, & &1.count),
+      backgroundColor: c_primary,
+      borderWidth: 0,
+      borderRadius: 6
+    }
+  ]
+} %>
+
 <div class="hd-page">
   <%!-- Header with period selector --%>
   <div class="flex items-center justify-between mb-6">
@@ -238,6 +252,31 @@ end %>
         <div class="hd-empty">
           <div class="hd-empty-icon">👨‍⚕️</div>
           <p>No doctor activity in this period</p>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="hd-card p-5">
+      <div class="flex items-center justify-between mb-2">
+        <div class="hd-card-title" style="margin-bottom: 0;">Conversations per Patient</div>
+        <%= if m.conversations_per_patient.total_patients > 0 do %>
+          <span class="text-xs font-semibold" style="color: var(--accent);">
+            avg <%= m.conversations_per_patient.avg %> per patient
+          </span>
+        <% end %>
+      </div>
+      <%= if m.conversations_per_patient.total_patients > 0 do %>
+        <div id="conv-per-patient-chart-wrapper" phx-hook="BarChart" style="height: 250px;">
+          <canvas id="conv-per-patient-chart" data-chart-data={Jason.encode!(conversations_per_patient_chart)}></canvas>
+        </div>
+        <div class="flex gap-4 mt-3 text-xs" style="color: var(--text-muted);">
+          <span><%= m.conversations_per_patient.total_patients %> unique patients</span>
+          <span><%= m.conversations_per_patient.total_conversations %> total conversations</span>
+        </div>
+      <% else %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">👥</div>
+          <p>No patient conversations in this period</p>
         </div>
       <% end %>
     </div>
