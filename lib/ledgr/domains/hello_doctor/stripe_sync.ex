@@ -22,6 +22,9 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   Fetches recent completed checkout sessions from Stripe and upserts them
   into the local stripe_payments table. Returns {:ok, count_synced}.
   """
+  # Only sync payments created on or after 2026-01-01
+  @sync_from_unix 1_735_689_600
+
   def sync_recent_payments(opts \\ []) do
     api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
 
@@ -29,9 +32,15 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
       Logger.warning("[HelloDoctor StripeSync] No API key configured")
       {:error, :no_api_key}
     else
-      limit = opts[:limit] || 25
+      limit = opts[:limit] || 100
 
-      case Stripe.Checkout.Session.list(%{limit: limit, status: "complete"}, api_key: api_key) do
+      params = %{
+        limit: limit,
+        status: "complete",
+        created: %{gte: @sync_from_unix}
+      }
+
+      case Stripe.Checkout.Session.list(params, api_key: api_key) do
         {:ok, %{data: sessions}} ->
           synced =
             sessions

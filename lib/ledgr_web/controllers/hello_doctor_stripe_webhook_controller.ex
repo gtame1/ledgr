@@ -62,7 +62,31 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
   end
 
   defp handle_refund(conn, charge) do
-    Logger.info("[HelloDoctor] Stripe webhook: charge.refunded received for charge #{charge.id}")
+    payment_intent_id =
+      case charge.payment_intent do
+        nil -> nil
+        pi when is_binary(pi) -> pi
+        %{id: id} -> id
+      end
+
+    if payment_intent_id do
+      alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
+
+      case Ledgr.Repo.get_by(StripePayment, stripe_payment_intent_id: payment_intent_id) do
+        nil ->
+          Logger.warning("[HelloDoctor] Stripe webhook: charge.refunded for unknown payment_intent #{payment_intent_id}")
+
+        payment ->
+          payment
+          |> StripePayment.changeset(%{status: "refunded"})
+          |> Ledgr.Repo.update()
+
+          Logger.info("[HelloDoctor] Stripe webhook: marked payment #{payment.id} as refunded (charge #{charge.id})")
+      end
+    else
+      Logger.warning("[HelloDoctor] Stripe webhook: charge.refunded with no payment_intent (charge #{charge.id})")
+    end
+
     send_resp(conn, 200, "ok")
   end
 end
