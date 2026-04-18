@@ -12,13 +12,14 @@ defmodule Ledgr.Domains.HelloDoctor.StripePayments.StripePayment do
     field :customer_name, :string
     field :consultation_id, :string
     field :stripe_fee, :float
+    field :product_name, :string
     field :paid_at, :naive_datetime
 
     timestamps()
   end
 
   @required ~w[stripe_session_id amount status paid_at]a
-  @optional ~w[stripe_payment_intent_id currency customer_email customer_name consultation_id stripe_fee]a
+  @optional ~w[stripe_payment_intent_id currency customer_email customer_name consultation_id stripe_fee product_name]a
 
   def changeset(payment, attrs) do
     payment

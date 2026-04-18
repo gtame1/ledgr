@@ -61,6 +61,13 @@ end %>
         </div>
       </div>
 
+      <%= if pay.product_name do %>
+        <div class="hd-card p-5">
+          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--text-muted);">Product</h2>
+          <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.product_name %></div>
+        </div>
+      <% end %>
+
       <div class="hd-card p-5">
         <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">Stripe Details</h2>
         <div class="space-y-2 text-sm">

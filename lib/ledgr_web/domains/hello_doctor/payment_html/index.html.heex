@@ -44,6 +44,7 @@ end %>
           <tr>
             <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
             <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Customer</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Product</th>
             <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
             <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fee</th>
             <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Commission (15%)</th>
@@ -56,7 +57,7 @@ end %>
         <tbody>
           <%= if Enum.empty?(@payments) do %>
             <tr>
-              <td colspan="9" class="p-8 text-center" style="color: var(--text-muted);">
+              <td colspan="10" class="p-8 text-center" style="color: var(--text-muted);">
                 <div class="text-3xl mb-2 opacity-30">💳</div>
                 No payments yet. Click "Sync from Stripe" to pull recent payments.
               </td>
@@ -73,6 +74,7 @@ end %>
                   <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.customer_name || "---" %></div>
                   <div class="text-xs" style="color: var(--text-muted);"><%= pay.customer_email || "" %></div>
                 </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= pay.product_name || "—" %></td>
                 <td class="p-3 text-sm text-right font-semibold" style="color: var(--text-main);"><%= fmt.(pay.amount) %></td>
                 <td class="p-3 text-sm text-right" style="color: #dc2626;"><%= fmt.(pay.stripe_fee) %></td>
                 <td class="p-3 text-sm text-right" style="color: var(--accent);"><%= fmt.(commission) %></td>

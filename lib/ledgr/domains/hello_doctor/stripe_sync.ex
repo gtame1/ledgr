@@ -77,12 +77,18 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           true -> payment.status
         end
 
-      if stripe_status != payment.status do
-        payment
-        |> StripePayment.changeset(%{status: stripe_status})
-        |> Repo.update()
+      # Also backfill product_name if missing
+      product_name =
+        if is_nil(payment.product_name) && payment.stripe_session_id do
+          fetch_product_name(%{id: payment.stripe_session_id}, api_key)
+        end
 
-        Logger.info("[HelloDoctor StripeSync] Payment #{payment.id} status updated: #{payment.status} → #{stripe_status}")
+      updates = %{status: stripe_status}
+      updates = if product_name, do: Map.put(updates, :product_name, product_name), else: updates
+
+      if stripe_status != payment.status || product_name do
+        payment |> StripePayment.changeset(updates) |> Repo.update()
+        Logger.info("[HelloDoctor StripeSync] Payment #{payment.id} updated: status=#{stripe_status}, product=#{product_name || "unchanged"}")
         {:ok, :updated, stripe_status}
       else
         {:ok, :unchanged}
@@ -125,6 +131,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         fee_cents = fetch_fee(session, api_key)
         fee_pesos = if fee_cents, do: fee_cents / 100.0, else: nil
 
+        product_name = fetch_product_name(session, api_key)
+
         attrs = %{
           stripe_session_id: session.id,
           stripe_payment_intent_id: session.payment_intent,
@@ -135,6 +143,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           customer_name: customer_name,
           consultation_id: consultation_id,
           stripe_fee: fee_pesos,
+          product_name: product_name,
           paid_at: DateTime.from_unix!(session.created) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
         }
 
@@ -259,6 +268,26 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
       rescue
         _ -> nil
       end
+    end
+  end
+
+  defp fetch_product_name(session, api_key) do
+    try do
+      case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["line_items"]}, api_key: api_key) do
+        {:ok, full_session} ->
+          items = get_in(full_session, [:line_items, :data]) || []
+          items
+          |> Enum.map(& &1.description)
+          |> Enum.reject(&is_nil/1)
+          |> Enum.join(", ")
+          |> case do
+            "" -> nil
+            name -> name
+          end
+        _ -> nil
+      end
+    rescue
+      _ -> nil
     end
   end
 
