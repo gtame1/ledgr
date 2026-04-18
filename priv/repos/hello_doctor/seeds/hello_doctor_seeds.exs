@@ -66,10 +66,10 @@ if System.get_env("MIX_ENV") != "prod" and is_nil(System.get_env("HELLO_DOCTOR_D
 
   doctors =
     [
-      %{id: Ecto.UUID.generate(), name: "Dr. Carlos Mendez Garcia", phone: "+525512345001", specialty: "Medicina General", cedula_profesional: "CED-12345678", university: "UNAM", years_experience: 10, email: "carlos@hellodoctor.mx", is_available: true},
-      %{id: Ecto.UUID.generate(), name: "Dra. Maria Fernanda Lopez", phone: "+525512345002", specialty: "Dermatologia", cedula_profesional: "CED-23456789", university: "IPN", years_experience: 8, email: "maria@hellodoctor.mx", is_available: true},
-      %{id: Ecto.UUID.generate(), name: "Dr. Alejandro Ruiz Torres", phone: "+525512345003", specialty: "Pediatria", cedula_profesional: "CED-34567890", university: "U de G", years_experience: 12, email: "alejandro@hellodoctor.mx", is_available: true},
-      %{id: Ecto.UUID.generate(), name: "Dra. Sofia Ramirez Ortega", phone: "+525512345004", specialty: "Psicologia", cedula_profesional: "CED-45678901", university: "IBERO", years_experience: 6, email: "sofia@hellodoctor.mx", is_available: false}
+      %{id: Ecto.UUID.generate(), name: "Dr. Carlos Mendez Garcia", phone: "525512345001", specialty: "Medicina General", cedula_profesional: "CED-12345678", university: "UNAM", years_experience: 10, email: "carlos@hellodoctor.mx", is_available: true},
+      %{id: Ecto.UUID.generate(), name: "Dra. Maria Fernanda Lopez", phone: "525512345002", specialty: "Dermatología", cedula_profesional: "CED-23456789", university: "IPN", years_experience: 8, email: "maria@hellodoctor.mx", is_available: true},
+      %{id: Ecto.UUID.generate(), name: "Dr. Alejandro Ruiz Torres", phone: "525512345003", specialty: "Pediatría", cedula_profesional: "CED-34567890", university: "U de G", years_experience: 12, email: "alejandro@hellodoctor.mx", is_available: true},
+      %{id: Ecto.UUID.generate(), name: "Dra. Sofia Ramirez Ortega", phone: "525512345004", specialty: "Psicología Clínica", cedula_profesional: "CED-45678901", university: "IBERO", years_experience: 6, email: "sofia@hellodoctor.mx", is_available: false}
     ]
     |> Enum.map(fn attrs ->
       Repo.insert!(%Doctor{} |> Ecto.Changeset.change(attrs), on_conflict: :nothing)
