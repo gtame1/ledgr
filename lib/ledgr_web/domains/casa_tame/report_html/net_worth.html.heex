@@ -30,6 +30,25 @@
       </div>
     </div>
 
+    <!-- Liquid Assets (Cash & Bank only) -->
+    <div class="card" style="padding: 1rem 1.25rem;">
+      <div class="ct-hero-label" style="margin-bottom: 0.5rem;">Liquid Assets (Cash & Bank)</div>
+      <div class="ct-hero-pair" style="gap: 1.5rem;">
+        <div>
+          <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant); text-transform: uppercase; letter-spacing: 0.06em;">MXN</div>
+          <div style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 1.35rem; color: var(--ct-on-surface);"><%= fmt.(@nw.cash_mxn) %></div>
+        </div>
+        <div>
+          <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant); text-transform: uppercase; letter-spacing: 0.06em;">USD</div>
+          <div style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 1.35rem; color: var(--ct-on-surface);"><%= fmt.(@nw.cash_usd) %></div>
+        </div>
+        <div>
+          <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant); text-transform: uppercase; letter-spacing: 0.06em;">Combined (MXN)</div>
+          <div style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 1.35rem; color: var(--ct-on-surface);"><%= fmt.(@nw.cash_mxn + round(@nw.cash_usd * @nw.rate)) %></div>
+        </div>
+      </div>
+    </div>
+
     <div class="ct-nw-breakdowns">
     <!-- MXN Breakdown -->
     <section class="card ct-section">
