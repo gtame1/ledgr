@@ -46,9 +46,9 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         {:ok, %{data: sessions}} ->
           synced =
             sessions
-            |> Enum.filter(&(&1.payment_status == "paid"))
+            |> Enum.filter(&(&1.payment_status in ["paid", "unpaid"]))
             |> Enum.map(&upsert_payment(&1, api_key))
-            |> Enum.count(&match?({:ok, _}, &1))
+            |> Enum.count(&match?({:ok, %StripePayment{}}, &1))
 
           Logger.info("[HelloDoctor StripeSync] Synced #{synced} payments from Stripe")
           {:ok, synced}
@@ -132,8 +132,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
                 nil
             end
 
-          # Try to fetch actual Stripe fee
-          fee_cents = fetch_fee(session, api_key)
+          # Try to fetch actual Stripe fee and detect refund status
+          {fee_cents, payment_status} = fetch_fee_and_status(session, api_key)
           fee_pesos = if fee_cents, do: fee_cents / 100.0, else: nil
 
           attrs = %{
@@ -141,7 +141,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             stripe_payment_intent_id: session.payment_intent,
             amount: amount_pesos,
             currency: session.currency || "mxn",
-            status: "paid",
+            status: payment_status,
             customer_email: customer_email,
             customer_name: customer_name,
             consultation_id: consultation_id,
@@ -253,28 +253,42 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     end
   end
 
-  defp fetch_fee(session, api_key) do
+  # Returns {fee_cents_or_nil, status_string} by fetching the payment intent.
+  defp fetch_fee_and_status(session, api_key) do
     if session.payment_intent do
       try do
         case Stripe.PaymentIntent.retrieve(session.payment_intent, %{expand: ["latest_charge"]}, api_key: api_key) do
           {:ok, pi} ->
             charge = pi.latest_charge
-            bt_id = charge && charge.balance_transaction
 
-            if bt_id do
-              bt_id = if is_binary(bt_id), do: bt_id, else: bt_id.id
-
-              case Stripe.BalanceTransaction.retrieve(bt_id, %{}, api_key: api_key) do
-                {:ok, bt} -> bt.fee
-                _ -> nil
+            status =
+              cond do
+                charge && Map.get(charge, :refunded) == true -> "refunded"
+                charge && (Map.get(charge, :amount_refunded) || 0) > 0 -> "refunded"
+                pi.status == "succeeded" -> "paid"
+                pi.status == "canceled" -> "canceled"
+                true -> "paid"
               end
-            end
 
-          _ -> nil
+            bt_id = charge && Map.get(charge, :balance_transaction)
+            fee =
+              if bt_id do
+                bt_id = if is_binary(bt_id), do: bt_id, else: bt_id.id
+                case Stripe.BalanceTransaction.retrieve(bt_id, %{}, api_key: api_key) do
+                  {:ok, bt} -> bt.fee
+                  _ -> nil
+                end
+              end
+
+            {fee, status}
+
+          _ -> {nil, "paid"}
         end
       rescue
-        _ -> nil
+        _ -> {nil, "paid"}
       end
+    else
+      {nil, "paid"}
     end
   end
 
@@ -300,14 +314,15 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           product_ids =
             items
             |> Enum.map(fn item ->
-              price = item[:price] || item.price
-              price && (price[:product] || price.product)
-            end)
-            |> Enum.reject(&is_nil/1)
-            |> Enum.map(fn
-              pid when is_binary(pid) -> pid
-              %{id: id} -> id
-              _ -> nil
+              case Map.get(item, :price) do
+                nil -> nil
+                price ->
+                  case Map.get(price, :product) do
+                    pid when is_binary(pid) -> pid
+                    %{id: id} -> id
+                    _ -> nil
+                  end
+              end
             end)
             |> Enum.reject(&is_nil/1)
 
