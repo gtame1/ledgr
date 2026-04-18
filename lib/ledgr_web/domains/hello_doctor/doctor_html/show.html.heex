@@ -30,7 +30,7 @@
       <.link navigate={dp(@domain_path_prefix, "/doctors/#{d.id}/edit")} class="hd-btn-secondary">
         Edit Doctor
       </.link>
-      <.link href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle_status")} method="post" class="hd-btn-primary">
+      <.link href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle-status")} method="post" class="hd-btn-primary">
         <%= if d.is_available, do: "Set Unavailable", else: "Set Available" %>
       </.link>
     </div>
