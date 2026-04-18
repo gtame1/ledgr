@@ -88,9 +88,14 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
         |> put_flash(:info, "Doctor is now #{status_label}.")
         |> redirect(to: dp(conn, "/doctors/#{doctor.id}"))
 
-      {:error, _changeset} ->
+      {:error, changeset} ->
+        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+          Enum.reduce(opts, msg, fn {k, v}, acc ->
+            String.replace(acc, "%{#{k}}", to_string(v))
+          end)
+        end)
         conn
-        |> put_flash(:error, "Failed to update doctor availability.")
+        |> put_flash(:error, "Failed to update availability: #{inspect(errors)}")
         |> redirect(to: dp(conn, "/doctors/#{id}"))
     end
   end
