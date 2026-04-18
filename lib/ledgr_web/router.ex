@@ -365,6 +365,7 @@ defmodule LedgrWeb.Router do
     resources "/payments", Domains.HelloDoctor.PaymentController, only: [:index, :show]
     post "/payments/sync", Domains.HelloDoctor.PaymentController, :sync
     post "/payments/:id/refund", Domains.HelloDoctor.PaymentController, :refund
+    post "/payments/:id/check-status", Domains.HelloDoctor.PaymentController, :check_status
     get "/payments/:id/link", Domains.HelloDoctor.PaymentController, :link_form
     post "/payments/:id/link", Domains.HelloDoctor.PaymentController, :save_link
     post "/payments/:id/unlink", Domains.HelloDoctor.PaymentController, :unlink

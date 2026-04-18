@@ -59,6 +59,41 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   end
 
   @doc """
+  Fetches the current status of a payment from Stripe and updates the DB if
+  it has changed. Returns {:ok, :updated, new_status} or {:ok, :unchanged}.
+  """
+  def sync_payment_status(%StripePayment{} = payment) do
+    api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
+
+    with pi_id when not is_nil(pi_id) <- payment.stripe_payment_intent_id,
+         {:ok, pi} <- Stripe.PaymentIntent.retrieve(pi_id, %{expand: ["latest_charge"]}, api_key: api_key) do
+      charge = pi.latest_charge
+      stripe_status =
+        cond do
+          charge && Map.get(charge, :refunded) == true -> "refunded"
+          charge && (Map.get(charge, :amount_refunded) || 0) > 0 -> "refunded"
+          pi.status == "succeeded" -> "paid"
+          pi.status == "canceled" -> "canceled"
+          true -> payment.status
+        end
+
+      if stripe_status != payment.status do
+        payment
+        |> StripePayment.changeset(%{status: stripe_status})
+        |> Repo.update()
+
+        Logger.info("[HelloDoctor StripeSync] Payment #{payment.id} status updated: #{payment.status} → #{stripe_status}")
+        {:ok, :updated, stripe_status}
+      else
+        {:ok, :unchanged}
+      end
+    else
+      nil -> {:error, :no_payment_intent}
+      {:error, err} -> {:error, err}
+    end
+  end
+
+  @doc """
   Public entry point for upserting a single Stripe session — used by the
   webhook controller to record payments as they come in.
   """

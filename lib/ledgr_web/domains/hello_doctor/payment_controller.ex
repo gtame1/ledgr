@@ -80,6 +80,27 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     end
   end
 
+  def check_status(conn, %{"id" => id}) do
+    payment = Repo.get!(StripePayment, id)
+
+    case Ledgr.Domains.HelloDoctor.StripeSync.sync_payment_status(payment) do
+      {:ok, :updated, new_status} ->
+        conn
+        |> put_flash(:info, "Status updated to #{new_status}.")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+
+      {:ok, :unchanged} ->
+        conn
+        |> put_flash(:info, "Status is already up to date.")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Could not check status: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+    end
+  end
+
   def refund(conn, %{"id" => id}) do
     payment = Repo.get!(StripePayment, id)
 
