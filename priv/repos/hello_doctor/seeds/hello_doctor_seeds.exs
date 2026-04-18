@@ -1,6 +1,9 @@
 alias Ledgr.Repo
 alias Ledgr.Core.Accounting.Account
 
+# Point the dynamic Repo wrapper at the HelloDoctor database for this process
+Ledgr.Repo.put_active_repo(Ledgr.Repos.HelloDoctor)
+
 # ══════════════════════════════════════════════════════════════
 # HelloDoctor Chart of Accounts (runs in dev AND prod)
 # ══════════════════════════════════════════════════════════════
@@ -267,6 +270,79 @@ if System.get_env("MIX_ENV") != "prod" and is_nil(System.get_env("HELLO_DOCTOR_D
   }))
 
   IO.puts("  Created 2 prescriptions")
+
+  # ── Doctor Assistant Messages ─────────────────────────────
+  alias Ledgr.Domains.HelloDoctor.DoctorAssistantMessages.DoctorAssistantMessage
+
+  [c1, c2, _c3, _c4, _c5] = consultations
+
+  doctor_messages = [
+    # ── Dr. Carlos Mendez — General chat (no consultation) ──
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: nil,
+      role: "user", content: "Hola, tengo una duda sobre un paciente. Cuándo debo recomendar una tomografía para cefalea?",
+      created_at: ~N[2026-04-10 09:00:00]},
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: nil,
+      role: "assistant", content: "Buena pregunta. Las indicaciones de neuroimagen urgente en cefalea incluyen:\n\n• Cefalea en trueno (thunderclap): inicio súbito e intenso, pico en <1 min\n• Cefalea con fiebre + rigidez de nuca (descartar meningitis)\n• Déficit neurológico focal o papiledema\n• Cefalea en paciente inmunocomprometido o con cáncer\n• Cambio significativo en patrón de cefalea crónica\n• Cefalea post-trauma\n\nPara cefalea tensional o migraña típica sin datos de alarma, no está indicada de inicio. ¿Tienes alguna característica específica del paciente que te preocupe?",
+      created_at: ~N[2026-04-10 09:01:15]},
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: nil,
+      role: "user", content: "No, es una cefalea tensional clásica. Solo quería confirmar. Gracias!",
+      created_at: ~N[2026-04-10 09:02:30]},
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: nil,
+      role: "assistant", content: "Perfecto, entonces no hay indicación de imagen por ahora. Recuerda que si el paciente no mejora en 4-6 semanas con tratamiento adecuado, o si desarrolla alguna bandera roja, entonces sí reconsiderarías. ¡Éxito con la consulta!",
+      created_at: ~N[2026-04-10 09:03:00]},
+
+    # ── Dr. Carlos Mendez — Consultation-linked thread ──────
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: c1.id,
+      role: "user", content: "Necesito ayuda para redactar la nota de esta consulta. Paciente femenina 34 años, cefalea tensional, ya le recetamos ibuprofeno.",
+      created_at: ~N[2026-04-01 10:26:00]},
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: c1.id,
+      role: "tool", tool_name: "get_consultation_details", tool_args: ~s({"consultation_id": "#{c1.id}"}),
+      content: "",
+      created_at: ~N[2026-04-01 10:26:05]},
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: c1.id,
+      role: "assistant", content: "Aquí tienes un borrador de nota clínica:\n\n**NOTA DE CONSULTA**\nFecha: 01/04/2026\nMédico: Dr. Carlos Mendez García\n\n**S (Subjetivo):** Paciente femenina de 34 años refiere cefalea tipo presión frontal y retroocular de 3 días de evolución. Empeora con uso prolongado de pantallas. Refiere privación de sueño (5-6h) y estrés laboral elevado. Fotosensibilidad leve. Sin náuseas ni vómito.\n\n**O (Objetivo):** Paciente alerta, orientada. Sin déficit neurológico focal. Sin rigidez de nuca.\n\n**A (Assessment):** Cefalea tensional episódica. Sin datos de alarma.\n\n**P (Plan):** Ibuprofeno 400mg c/8h x 3 días. Higiene de sueño ≥7h. Pausas de pantalla. Seguimiento en 5 días si no mejora.\n\n¿Quieres que ajuste algo?",
+      created_at: ~N[2026-04-01 10:26:30]},
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: c1.id,
+      role: "user", content: "Perfecto, solo agrega que se le explicaron datos de alarma.",
+      created_at: ~N[2026-04-01 10:27:00]},
+    %{id: Ecto.UUID.generate(), doctor_id: d1.id, consultation_id: c1.id,
+      role: "assistant", content: "Actualizado. Al final del plan agrego:\n\n*Se explicaron datos de alarma: cefalea en trueno, fiebre con rigidez de nuca, déficit neurológico focal, o cambio súbito en patrón de cefalea. Indicaciones claras para acudir a urgencias.*\n\nListo para guardar.",
+      created_at: ~N[2026-04-01 10:27:20]},
+
+    # ── Dra. Maria Fernanda — General chat ──────────────────
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: nil,
+      role: "user", content: "Cuál es el tratamiento de primera línea para dermatitis atópica leve en adultos?",
+      created_at: ~N[2026-04-12 11:00:00]},
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: nil,
+      role: "assistant", content: "Para dermatitis atópica leve en adultos, el tratamiento de primera línea es:\n\n**1. Hidratación intensiva (piedra angular)**\n• Emolientes sin fragancia, al menos 2x/día\n• Aplicar inmediatamente post-baño (3 minutos)\n• Preferir cremas o ungüentos sobre lociones\n\n**2. Corticosteroides tópicos de baja potencia**\n• Hidrocortisona 1% en áreas sensibles (cara, pliegues)\n• Betametasona 0.05% en tronco/extremidades si necesario\n• Aplicar solo en lesiones activas, no como mantenimiento\n\n**3. Control de desencadenantes**\n• Evitar jabones irritantes, ropa sintética, sudoración excesiva\n• Uñas cortas para prevenir excoriación\n\n**4. Antihistamínico** (si hay prurito nocturno intenso)\n• Cetirizina o loratadina\n\n¿Es un caso en particular o consulta general?",
+      created_at: ~N[2026-04-12 11:01:30]},
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: nil,
+      role: "user", content: "Consulta general, gracias. Una última cosa: cuándo escalar a inhibidores de calcineurina?",
+      created_at: ~N[2026-04-12 11:02:00]},
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: nil,
+      role: "assistant", content: "Escalar a inhibidores de calcineurina (tacrolimus, pimecrolimus) cuando:\n\n• **Respuesta insuficiente** a esteroides tópicos tras 2-4 semanas de tratamiento adecuado\n• **Áreas de riesgo** donde los esteroides están contraindicados a largo plazo: cara, párpados, pliegues, genitales\n• **Efecto rebote** frecuente con esteroides\n• Necesidad de **tratamiento de mantenimiento** a largo plazo\n\nTacrolimus 0.1% es de elección en adultos con DA moderada-severa. Pimecrolimus 1% para DA leve. Avisa a los pacientes del ardor inicial los primeros días.",
+      created_at: ~N[2026-04-12 11:03:10]},
+
+    # ── Dra. Maria Fernanda — Consultation-linked ───────────
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: c2.id,
+      role: "user", content: "Tengo un paciente con una mancha en la espalda, me describe algo asimétrico de color variado. Ayúdame con los criterios ABCDE.",
+      created_at: ~N[2026-04-06 14:15:00]},
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: c2.id,
+      role: "assistant", content: "Los criterios ABCDE para evaluación de lesiones pigmentadas:\n\n**A — Asimetría:** Un lado no es espejo del otro. ⚠️ Relevante en tu caso.\n\n**B — Bordes:** Irregulares, mal definidos, dentados o difusos.\n\n**C — Color:** Variación de tonos (marrón, negro, rojo, blanco, azul). ⚠️ Relevante en tu caso.\n\n**D — Diámetro:** >6mm (aunque los melanomas pueden ser menores).\n\n**E — Evolución:** Cambio en tamaño, forma, color, o síntomas nuevos (sangrado, prurito).\n\nCon asimetría + color variado, tienes al menos 2 criterios. Te recomendaría:\n1. Preguntar por evolución temporal y síntomas\n2. Dermatoscopía si disponible\n3. Si hay duda, referencia a dermatólogo para biopsia\n\n¿Tiene más criterios o historia de exposición solar importante?",
+      created_at: ~N[2026-04-06 14:16:30]},
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: c2.id,
+      role: "user", content: "El diámetro son como 8mm y dice que ha crecido en el último mes. Lo voy a referir.",
+      created_at: ~N[2026-04-06 14:17:00]},
+    %{id: Ecto.UUID.generate(), doctor_id: d2.id, consultation_id: c2.id,
+      role: "assistant", content: "Decisión correcta. Con A + C + D (>6mm) + E (crecimiento en 1 mes), tienes 4 de 5 criterios. La referencia urgente a dermatología para evaluación y posible biopsia excisional es la conducta adecuada. Documenta bien la descripción y el tiempo de evolución en la nota de referencia.",
+      created_at: ~N[2026-04-06 14:17:45]}
+  ]
+
+  Enum.each(doctor_messages, fn attrs ->
+    Repo.insert!(%DoctorAssistantMessage{} |> Ecto.Changeset.change(attrs), on_conflict: :nothing)
+  end)
+
+  IO.puts("  Created #{length(doctor_messages)} doctor assistant messages")
   IO.puts("HelloDoctor dev seed complete!")
 else
   IO.puts("Skipping dev sample data (prod or remote DB detected)")
