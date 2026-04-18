@@ -130,6 +130,7 @@ defmodule Ledgr.Domains.HelloDoctor do
         %{label: "P&L",            path: "#{prefix}/reports/pnl",      icon: :reports}
       ]},
       %{group: "Settings", items: [
+        %{label: "Specialties",         path: "#{prefix}/specialties",               icon: :customers},
         %{label: "Transactions",        path: "#{prefix}/transactions",              icon: :transactions},
         %{label: "Reconciliation",      path: "#{prefix}/reconciliation/accounting", icon: :reconciliation}
       ]}

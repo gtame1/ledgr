@@ -365,6 +365,10 @@ defmodule LedgrWeb.Router do
     get "/payments/:id/link", Domains.HelloDoctor.PaymentController, :link_form
     post "/payments/:id/link", Domains.HelloDoctor.PaymentController, :save_link
     post "/payments/:id/unlink", Domains.HelloDoctor.PaymentController, :unlink
+
+    # Specialties (admin-managed list)
+    resources "/specialties", Domains.HelloDoctor.SpecialtyController, only: [:index, :create, :delete]
+    patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
   end
 
   # ── API endpoints (core) ─────────────────────────────────────────────

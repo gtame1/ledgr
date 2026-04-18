@@ -48,8 +48,8 @@
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
             <option value="">Select specialty...</option>
-            <%= for specialty <- @specialty_options do %>
-              <option value={specialty} selected={@changeset.changes[:specialty] == specialty}><%= specialty %></option>
+            <%= for {label, value} <- @specialty_options do %>
+              <option value={value} selected={@changeset.changes[:specialty] == value}><%= label %></option>
             <% end %>
           </select>
         </div>

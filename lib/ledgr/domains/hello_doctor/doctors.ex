@@ -66,11 +66,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
   end
 
   def specialty_options do
-    Doctor
-    |> select([d], d.specialty)
-    |> distinct(true)
-    |> order_by(:specialty)
-    |> Repo.all()
+    Ledgr.Domains.HelloDoctor.Specialties.specialty_options()
   end
 
   def specialties, do: specialty_options()
