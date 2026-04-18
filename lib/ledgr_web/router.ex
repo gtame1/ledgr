@@ -352,7 +352,7 @@ defmodule LedgrWeb.Router do
     post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
 
     # Doctors (read-only — bot manages doctors)
-    resources "/doctors", Domains.HelloDoctor.DoctorController, only: [:index, :show, :new, :create]
+    resources "/doctors", Domains.HelloDoctor.DoctorController, only: [:index, :show, :new, :create, :edit, :update]
     post "/doctors/:id/toggle-status", Domains.HelloDoctor.DoctorController, :toggle_status
 
     # Patients (read-only — bot manages patients)

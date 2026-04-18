@@ -1,0 +1,115 @@
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/doctors/#{@doctor.id}")} class="hd-back">
+      &larr; Back to <%= @doctor.name %>
+    </.link>
+  </div>
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Edit Doctor</h1>
+  </div>
+
+  <div class="hd-form">
+    <div class="hd-card p-6">
+      <.form for={@changeset} action={dp(@domain_path_prefix, "/doctors/#{@doctor.id}")} method="post" class="space-y-5">
+        <input type="hidden" name="_method" value="put" />
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Full Name <span style="color: #dc2626;">*</span></label>
+          <input type="text" name="doctor[name]" value={Ecto.Changeset.get_field(@changeset, :name) || ""} required
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="Dr. Juan Pérez García" />
+          <%= if @changeset.action && @changeset.errors[:name] do %>
+            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:name], 0) %></p>
+          <% end %>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Phone <span style="color: #dc2626;">*</span></label>
+          <input type="tel" name="doctor[phone]" value={Ecto.Changeset.get_field(@changeset, :phone) || ""} required
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="+525512345678" />
+          <%= if @changeset.action && @changeset.errors[:phone] do %>
+            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:phone], 0) %></p>
+          <% end %>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Email</label>
+          <input type="email" name="doctor[email]" value={Ecto.Changeset.get_field(@changeset, :email) || ""}
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="doctor@hellodoctor.mx" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Specialty <span style="color: #dc2626;">*</span></label>
+          <select name="doctor[specialty]" required
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+            <option value="">Select specialty...</option>
+            <%= for {label, value} <- @specialty_options do %>
+              <option value={value} selected={Ecto.Changeset.get_field(@changeset, :specialty) == value}><%= label %></option>
+            <% end %>
+          </select>
+          <%= if @changeset.action && @changeset.errors[:specialty] do %>
+            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:specialty], 0) %></p>
+          <% end %>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Cédula Profesional</label>
+            <input type="text" name="doctor[cedula_profesional]" value={Ecto.Changeset.get_field(@changeset, :cedula_profesional) || ""}
+              class="w-full rounded-lg border px-4 py-2.5 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              placeholder="CED-12345678" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Years of Experience</label>
+            <input type="number" name="doctor[years_experience]" value={Ecto.Changeset.get_field(@changeset, :years_experience) || ""} min="0"
+              class="w-full rounded-lg border px-4 py-2.5 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              placeholder="5" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">University</label>
+          <input type="text" name="doctor[university]" value={Ecto.Changeset.get_field(@changeset, :university) || ""}
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="UNAM, IPN, Tec de Monterrey..." />
+        </div>
+
+        <div class="flex items-center gap-6 pt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="hidden" name="doctor[accepts_video_calls]" value="false" />
+            <input type="checkbox" name="doctor[accepts_video_calls]" value="true"
+              checked={Ecto.Changeset.get_field(@changeset, :accepts_video_calls)}
+              class="rounded"
+              style="accent-color: var(--accent);" />
+            <span class="text-sm" style="color: var(--text-main);">Accepts video calls</span>
+          </label>
+
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="hidden" name="doctor[is_available]" value="false" />
+            <input type="checkbox" name="doctor[is_available]" value="true"
+              checked={Ecto.Changeset.get_field(@changeset, :is_available)}
+              class="rounded"
+              style="accent-color: var(--accent);" />
+            <span class="text-sm" style="color: var(--text-main);">Available</span>
+          </label>
+        </div>
+
+        <div class="flex items-center gap-3 pt-3">
+          <button type="submit" class="hd-btn-primary">Save Changes</button>
+          <.link navigate={dp(@domain_path_prefix, "/doctors/#{@doctor.id}")} class="hd-btn-secondary">Cancel</.link>
+        </div>
+      </.form>
+    </div>
+  </div>
+</div>

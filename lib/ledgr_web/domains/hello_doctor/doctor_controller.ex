@@ -48,6 +48,35 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
     end
   end
 
+  def edit(conn, %{"id" => id}) do
+    doctor = Doctors.get_doctor!(id)
+    changeset = Doctors.change_doctor(doctor)
+
+    render(conn, :edit,
+      doctor: doctor,
+      changeset: changeset,
+      specialty_options: Doctors.specialty_options()
+    )
+  end
+
+  def update(conn, %{"id" => id, "doctor" => doctor_params}) do
+    doctor = Doctors.get_doctor!(id)
+
+    case Doctors.update_doctor(doctor, doctor_params) do
+      {:ok, doctor} ->
+        conn
+        |> put_flash(:info, "Doctor updated successfully.")
+        |> redirect(to: dp(conn, "/doctors/#{doctor.id}"))
+
+      {:error, changeset} ->
+        render(conn, :edit,
+          doctor: doctor,
+          changeset: changeset,
+          specialty_options: Doctors.specialty_options()
+        )
+    end
+  end
+
   def toggle_status(conn, %{"id" => id}) do
     doctor = Doctors.get_doctor!(id)
 
