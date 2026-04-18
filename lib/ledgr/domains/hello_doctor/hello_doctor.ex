@@ -120,6 +120,7 @@ defmodule Ledgr.Domains.HelloDoctor do
         %{label: "Dashboard",      path: prefix,                       icon: :dashboard},
         %{label: "Conversations",  path: "#{prefix}/conversations",    icon: :receipt},
         %{label: "Consultations",  path: "#{prefix}/consultations",    icon: :receipt},
+        %{label: "Doctor Chats",   path: "#{prefix}/doctor-chats",     icon: :receipt},
         %{label: "Doctors",        path: "#{prefix}/doctors",          icon: :customers},
         %{label: "Patients",       path: "#{prefix}/patients",         icon: :customers}
       ]},

@@ -347,6 +347,9 @@ defmodule LedgrWeb.Router do
     # Conversations (all WhatsApp conversations, including those without consultations)
     resources "/conversations", Domains.HelloDoctor.ConversationListController, only: [:index, :show]
 
+    # Doctor assistant chats
+    resources "/doctor-chats", Domains.HelloDoctor.DoctorChatController, only: [:index, :show]
+
     # Consultations (read-only — bot creates consultations)
     resources "/consultations", Domains.HelloDoctor.ConsultationController, only: [:index, :show]
     post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
