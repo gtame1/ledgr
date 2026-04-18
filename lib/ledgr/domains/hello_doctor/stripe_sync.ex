@@ -21,9 +21,12 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   @doc """
   Fetches recent completed checkout sessions from Stripe and upserts them
   into the local stripe_payments table. Returns {:ok, count_synced}.
+
+  Only sessions that contain a HelloDoctor product (matched by product ID) are
+  stored — everything else from the shared Stripe account is silently skipped.
   """
-  # Only sync payments created on or after 2026-01-01
-  @sync_from_unix 1_735_689_600
+  # Stripe product IDs that belong to HelloDoctor
+  @hellodoctor_product_ids ["prod_UHpGzvMsR5pRZb"]
 
   def sync_recent_payments(opts \\ []) do
     api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
@@ -36,8 +39,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
 
       params = %{
         limit: limit,
-        status: "complete",
-        created: %{gte: @sync_from_unix}
+        status: "complete"
       }
 
       case Stripe.Checkout.Session.list(params, api_key: api_key) do
@@ -111,59 +113,64 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   defp upsert_payment(session, api_key) do
     case Repo.get_by(StripePayment, stripe_session_id: session.id) do
       nil ->
-        # New payment — insert
-        amount_pesos = (session.amount_total || 0) / 100.0
-        customer_email = session.customer_details && session.customer_details.email
-        customer_name = session.customer_details && session.customer_details.name
-        # Bot sends conversation_id in metadata — look up the consultation via conversation
-        metadata = session.metadata || %{}
-        consultation_id =
-          cond do
-            metadata["consultation_id"] ->
-              metadata["consultation_id"]
-            metadata["conversation_id"] ->
-              find_consultation_by_conversation(metadata["conversation_id"])
-            true ->
-              nil
-          end
+        # New payment — check product ID before inserting
+        {product_name, line_item_product_ids} = fetch_line_item_info(session, api_key)
 
-        # Try to fetch actual Stripe fee
-        fee_cents = fetch_fee(session, api_key)
-        fee_pesos = if fee_cents, do: fee_cents / 100.0, else: nil
-
-        product_name = fetch_product_name(session, api_key)
-
-        attrs = %{
-          stripe_session_id: session.id,
-          stripe_payment_intent_id: session.payment_intent,
-          amount: amount_pesos,
-          currency: session.currency || "mxn",
-          status: "paid",
-          customer_email: customer_email,
-          customer_name: customer_name,
-          consultation_id: consultation_id,
-          stripe_fee: fee_pesos,
-          product_name: product_name,
-          paid_at: DateTime.from_unix!(session.created) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
-        }
-
-        case %StripePayment{}
-             |> StripePayment.changeset(attrs)
-             |> Repo.insert() do
-          {:ok, payment} ->
-            # If we have a consultation_id, update the consultation too
-            if consultation_id do
-              link_to_consultation(consultation_id, amount_pesos, session.id)
+        if hellodoctor_session?(line_item_product_ids) do
+          amount_pesos = (session.amount_total || 0) / 100.0
+          customer_email = session.customer_details && session.customer_details.email
+          customer_name = session.customer_details && session.customer_details.name
+          # Bot sends conversation_id in metadata — look up the consultation via conversation
+          metadata = session.metadata || %{}
+          consultation_id =
+            cond do
+              metadata["consultation_id"] ->
+                metadata["consultation_id"]
+              metadata["conversation_id"] ->
+                find_consultation_by_conversation(metadata["conversation_id"])
+              true ->
+                nil
             end
 
-            # Create accounting journal entry
-            create_payment_journal_entry(payment)
+          # Try to fetch actual Stripe fee
+          fee_cents = fetch_fee(session, api_key)
+          fee_pesos = if fee_cents, do: fee_cents / 100.0, else: nil
 
-            {:ok, payment}
+          attrs = %{
+            stripe_session_id: session.id,
+            stripe_payment_intent_id: session.payment_intent,
+            amount: amount_pesos,
+            currency: session.currency || "mxn",
+            status: "paid",
+            customer_email: customer_email,
+            customer_name: customer_name,
+            consultation_id: consultation_id,
+            stripe_fee: fee_pesos,
+            product_name: product_name,
+            paid_at: DateTime.from_unix!(session.created) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
+          }
 
-          {:error, changeset} ->
-            Logger.warning("[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}")
-            {:error, changeset}
+          case %StripePayment{}
+               |> StripePayment.changeset(attrs)
+               |> Repo.insert() do
+            {:ok, payment} ->
+              # If we have a consultation_id, update the consultation too
+              if consultation_id do
+                link_to_consultation(consultation_id, amount_pesos, session.id)
+              end
+
+              # Create accounting journal entry
+              create_payment_journal_entry(payment)
+
+              {:ok, payment}
+
+            {:error, changeset} ->
+              Logger.warning("[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}")
+              {:error, changeset}
+          end
+        else
+          Logger.debug("[HelloDoctor StripeSync] Skipping session #{session.id} — no HelloDoctor product found")
+          {:ok, :skipped}
         end
 
       _existing ->
@@ -271,24 +278,57 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     end
   end
 
-  defp fetch_product_name(session, api_key) do
+  # Returns {product_name_string_or_nil, [product_id, ...]} for a session.
+  # Fetches line items once so both product filtering and name extraction share
+  # the same API call.
+  defp fetch_line_item_info(session, api_key) do
     try do
       case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["line_items"]}, api_key: api_key) do
         {:ok, full_session} ->
           items = get_in(full_session, [:line_items, :data]) || []
-          items
-          |> Enum.map(& &1.description)
-          |> Enum.reject(&is_nil/1)
-          |> Enum.join(", ")
-          |> case do
-            "" -> nil
-            name -> name
-          end
-        _ -> nil
+
+          product_name =
+            items
+            |> Enum.map(& &1.description)
+            |> Enum.reject(&is_nil/1)
+            |> Enum.join(", ")
+            |> case do
+              "" -> nil
+              name -> name
+            end
+
+          product_ids =
+            items
+            |> Enum.map(fn item ->
+              price = item[:price] || item.price
+              price && (price[:product] || price.product)
+            end)
+            |> Enum.reject(&is_nil/1)
+            |> Enum.map(fn
+              pid when is_binary(pid) -> pid
+              %{id: id} -> id
+              _ -> nil
+            end)
+            |> Enum.reject(&is_nil/1)
+
+          {product_name, product_ids}
+
+        _ ->
+          {nil, []}
       end
     rescue
-      _ -> nil
+      _ -> {nil, []}
     end
+  end
+
+  # Backwards-compatible wrapper used by sync_payment_status/1 for backfilling
+  defp fetch_product_name(session, api_key) do
+    {product_name, _} = fetch_line_item_info(session, api_key)
+    product_name
+  end
+
+  defp hellodoctor_session?(product_ids) do
+    Enum.any?(product_ids, &(&1 in @hellodoctor_product_ids))
   end
 
   defp find_consultation_by_conversation(conversation_id) do
