@@ -37,7 +37,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   defp normalize_phone(changeset) do
     case get_change(changeset, :phone) do
       nil -> changeset
-      phone -> put_change(changeset, :phone, String.replace(phone, ~r/[^0-9+]/, ""))
+      phone -> put_change(changeset, :phone, String.replace(phone, ~r/[^0-9]/, ""))
     end
   end
 end
