@@ -256,6 +256,54 @@ end %>
       <% end %>
     </div>
 
+    <%!-- Direct Doctor Requests --%>
+    <div class="hd-card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="hd-card-title" style="margin-bottom: 0;">Direct Doctor Requests</div>
+        <span class="text-sm font-semibold" style="color: var(--accent);">
+          <%= fmt_pct.(m.direct_requests.targeted_rate) %> of consultations
+        </span>
+      </div>
+      <%= if m.direct_requests.total == 0 do %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">🎯</div>
+          <p>No consultations in this period</p>
+        </div>
+      <% else %>
+        <div class="flex gap-6 mb-4 text-sm" style="color: var(--text-muted);">
+          <span><%= m.direct_requests.targeted %> targeted / <%= m.direct_requests.total %> total consultations</span>
+        </div>
+        <%= if Enum.empty?(m.direct_requests.per_doctor) do %>
+          <p class="text-sm" style="color: var(--text-muted);">No per-doctor data available.</p>
+        <% else %>
+          <table class="hd-table w-full text-sm">
+            <thead>
+              <tr>
+                <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor</th>
+                <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Total</th>
+                <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Requested directly</th>
+                <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">% Direct</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for row <- m.direct_requests.per_doctor do %>
+                <tr class="border-t" style="border-color: var(--border-subtle);">
+                  <td class="p-2 font-medium" style="color: var(--text-main);"><%= row.name %></td>
+                  <td class="p-2 text-right" style="color: var(--text-muted);"><%= row.total %></td>
+                  <td class="p-2 text-right" style="color: var(--text-main);"><%= row.targeted || 0 %></td>
+                  <td class="p-2 text-right">
+                    <span class="font-semibold" style={"color: #{if row.targeted_rate > 0, do: "var(--accent)", else: "var(--text-muted)"};"}>
+                      <%= fmt_pct.(row.targeted_rate) %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      <% end %>
+    </div>
+
     <div class="hd-card p-5">
       <div class="flex items-center justify-between mb-2">
         <div class="hd-card-title" style="margin-bottom: 0;">Conversations per Patient</div>

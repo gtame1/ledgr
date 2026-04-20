@@ -25,6 +25,7 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations.Consultation do
     field :last_broadcast_at, :naive_datetime
     field :rejected_by_doctors, :string
     field :consultation_type, :string, default: "messaging"
+    field :targeted_doctor_id, :string
 
     belongs_to :patient, Ledgr.Domains.HelloDoctor.Patients.Patient
     belongs_to :doctor, Ledgr.Domains.HelloDoctor.Doctors.Doctor
@@ -39,7 +40,7 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations.Consultation do
   @payment_statuses ~w[pending paid confirmed failed refunded]
 
   @required ~w[id conversation_id patient_id status payment_status assigned_at]a
-  @optional ~w[doctor_id accepted_at completed_at duration_minutes doctor_notes payment_amount payment_confirmed_at audit_json patient_summary patient_rating patient_comment inactivity_ping_sent_at stripe_payment_intent_id last_broadcast_at rejected_by_doctors consultation_type]a
+  @optional ~w[doctor_id accepted_at completed_at duration_minutes doctor_notes payment_amount payment_confirmed_at audit_json patient_summary patient_rating patient_comment inactivity_ping_sent_at stripe_payment_intent_id last_broadcast_at rejected_by_doctors consultation_type targeted_doctor_id]a
 
   def changeset(consultation, attrs) do
     consultation

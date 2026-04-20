@@ -33,6 +33,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       prescription_mix: prescription_mix(start_date, end_date),
       conversations_per_patient: conversations_per_patient(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
+      direct_requests: direct_request_metrics(start_date, end_date),
       daily_series: daily_series(start_date, end_date),
       # Infrastructure
       db_size: db_size(),
@@ -284,6 +285,55 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         limit: ^limit
 
     Repo.all(query)
+  end
+
+  # ── Direct doctor requests ─────────────────────────────────────
+
+  @doc """
+  Returns overall % of consultations where the patient requested a specific
+  doctor (targeted_doctor_id IS NOT NULL), plus a per-doctor breakdown.
+  """
+  def direct_request_metrics(start_date, end_date) do
+    total =
+      Consultation
+      |> where_date_range(:assigned_at, start_date, end_date)
+      |> Repo.aggregate(:count)
+
+    targeted =
+      Consultation
+      |> where_date_range(:assigned_at, start_date, end_date)
+      |> where([c], not is_nil(c.targeted_doctor_id))
+      |> Repo.aggregate(:count)
+
+    per_doctor_query =
+      from d in Doctor,
+        join: c in Consultation,
+          on: c.doctor_id == d.id
+            and c.assigned_at >= ^to_naive_start(start_date)
+            and c.assigned_at <= ^to_naive_end(end_date),
+        group_by: d.id,
+        select: %{
+          id: d.id,
+          name: d.name,
+          total: count(c.id),
+          targeted: sum(fragment("CASE WHEN ? IS NOT NULL THEN 1 ELSE 0 END", c.targeted_doctor_id))
+        },
+        order_by: [desc: count(c.id)]
+
+    per_doctor =
+      per_doctor_query
+      |> Repo.all()
+      |> Enum.map(fn row ->
+        t = row.targeted || 0
+        Map.put(row, :targeted_rate, pct(t, row.total))
+      end)
+
+    %{
+      total: total,
+      targeted: targeted,
+      targeted_rate: pct(targeted, total),
+      per_doctor: per_doctor
+    }
   end
 
   # ── Daily time series ──────────────────────────────────────────
