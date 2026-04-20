@@ -70,7 +70,7 @@ defmodule LedgrWeb.Storefront.StripeWebhookController do
             send_resp(conn, 200, "ok")
 
           true ->
-            case Orders.create_orders_from_pending_checkout(pending, session.id) do
+            case Orders.create_orders_from_pending_checkout(pending, session.id, session.amount_total) do
               {:ok, _orders} ->
                 {:ok, _} = PendingCheckouts.mark_processed(pending)
                 Logger.info("Stripe webhook: created orders for session #{session.id}")

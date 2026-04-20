@@ -123,6 +123,19 @@ defmodule Ledgr.Release do
     IO.puts("==> Rollback complete. Run `bin/ledgr seed` to re-seed.")
   end
 
+  @doc """
+  One-off fix for Stripe orders whose OrderPayments double-counted shipping.
+  Delegates to `Ledgr.Domains.MrMunchMe.Orders.StripeShippingFix.run/2`.
+
+  Callable from a release shell:
+      bin/ledgr eval 'Ledgr.Release.fix_stripe_shipping_overpayment(225)'
+      bin/ledgr eval 'Ledgr.Release.fix_stripe_shipping_overpayment(225, fix: true)'
+  """
+  def fix_stripe_shipping_overpayment(order_id, opts \\ []) do
+    {:ok, _} = Application.ensure_all_started(@app)
+    Ledgr.Domains.MrMunchMe.Orders.StripeShippingFix.run(order_id, opts)
+  end
+
   # ── Private ──────────────────────────────────────────────
 
   defp rollback_mr_munch_me do

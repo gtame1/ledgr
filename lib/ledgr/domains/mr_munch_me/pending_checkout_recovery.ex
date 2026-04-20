@@ -64,7 +64,7 @@ defmodule Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery do
       {:ok, session} when session.payment_status == "paid" ->
         Logger.info("[PendingCheckoutRecovery] Recovering order for pending checkout #{pending.id}")
 
-        case Orders.create_orders_from_pending_checkout(pending, pending.stripe_session_id) do
+        case Orders.create_orders_from_pending_checkout(pending, pending.stripe_session_id, session.amount_total) do
           {:ok, orders} ->
             PendingCheckouts.mark_processed(pending)
             Logger.info("[PendingCheckoutRecovery] Created #{length(orders)} order(s) for pending checkout #{pending.id}")

@@ -936,7 +936,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
     - An `OrderPayment` with `method: "stripe"` and `paid_to_account_id` pointing
       to account 1005 (Stripe Receivable), which auto-creates the journal entry.
   """
-  def create_orders_from_pending_checkout(%PendingCheckout{} = pending, stripe_session_id) do
+  def create_orders_from_pending_checkout(%PendingCheckout{} = pending, stripe_session_id, stripe_amount_total_cents) do
     stripe_account = Accounting.get_account_by_code!("1005")
     default_location = Repo.get_by!(Location, code: "CASA_AG")
     customer = Customers.get_customer!(pending.customer_id)
@@ -950,38 +950,50 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
 
     delivery_type = checkout_attrs["delivery_type"] || "pickup"
 
-    customer_paid_shipping = delivery_type == "delivery"
-
     Repo.transaction(fn ->
-      Enum.map(pending.cart, fn {variant_id_str, quantity} ->
-        quantity = if is_integer(quantity), do: quantity, else: String.to_integer("#{quantity}")
-        {variant_id, _} = Integer.parse("#{variant_id_str}")
+      orders =
+        Enum.map(pending.cart, fn {variant_id_str, quantity} ->
+          quantity = if is_integer(quantity), do: quantity, else: String.to_integer("#{quantity}")
+          {variant_id, _} = Integer.parse("#{variant_id_str}")
 
-        order_attrs = %{
-          "customer_id" => customer.id,
-          "variant_id" => variant_id,
-          "quantity" => quantity,
-          "delivery_type" => delivery_type,
-          "delivery_date" => delivery_date,
-          "delivery_address" => checkout_attrs["delivery_address"],
-          "special_instructions" => checkout_attrs["special_instructions"],
-          "prep_location_id" => default_location.id,
-          "customer_paid_shipping" => customer_paid_shipping,
-          "stripe_checkout_session_id" => stripe_session_id,
-          "discount_type" => checkout_attrs["discount_type"],
-          "discount_value" => checkout_attrs["discount_value"]
-        }
+          order_attrs = %{
+            "customer_id" => customer.id,
+            "variant_id" => variant_id,
+            "quantity" => quantity,
+            "delivery_type" => delivery_type,
+            "delivery_date" => delivery_date,
+            "delivery_address" => checkout_attrs["delivery_address"],
+            "special_instructions" => checkout_attrs["special_instructions"],
+            "prep_location_id" => default_location.id,
+            # Shipping is not charged at checkout — it's collected separately later
+            # once the delivery cost is known, via create_shipping_payment/2.
+            "customer_paid_shipping" => false,
+            "stripe_checkout_session_id" => stripe_session_id,
+            "discount_type" => checkout_attrs["discount_type"],
+            "discount_value" => checkout_attrs["discount_value"]
+          }
 
-        order =
           case create_order(order_attrs) do
-            {:ok, o} -> o
+            {:ok, o} -> Repo.preload(o, [:variant, :order_payments])
             {:error, reason} -> Repo.rollback(reason)
           end
+        end)
 
-        order = Repo.preload(order, [:variant, :order_payments])
-        summary = payment_summary_from_preloaded(order)
-        amount_cents = summary.order_total_cents
+      # Allocate the actual Stripe amount across orders proportionally to their
+      # product totals. Stripe's amount_total is the source of truth — it already
+      # reflects any discounts applied in the session.
+      product_totals =
+        Enum.map(orders, fn o ->
+          %{product_total_cents: pt} = payment_summary_from_preloaded(o)
+          pt
+        end)
 
+      sum_products = Enum.sum(product_totals)
+      allocations = allocate_proportionally(stripe_amount_total_cents, product_totals, sum_products)
+
+      orders
+      |> Enum.zip(allocations)
+      |> Enum.each(fn {order, amount_cents} ->
         payment_attrs = %{
           "order_id" => order.id,
           "amount_cents" => amount_cents,
@@ -992,11 +1004,36 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         }
 
         case create_order_payment(payment_attrs) do
-          {:ok, _payment} -> order
+          {:ok, _payment} -> :ok
           {:error, reason} -> Repo.rollback(reason)
         end
       end)
+
+      orders
     end)
+  end
+
+  # Splits `total_cents` across N orders weighted by `weights`, assigning any
+  # rounding remainder to the last order so the sum exactly equals `total_cents`.
+  defp allocate_proportionally(total_cents, weights, sum_weights) when sum_weights > 0 do
+    n = length(weights)
+
+    {head, _} =
+      weights
+      |> Enum.take(n - 1)
+      |> Enum.map_reduce(0, fn w, acc ->
+        share = round(total_cents * w / sum_weights)
+        {share, acc + share}
+      end)
+
+    remainder = total_cents - Enum.sum(head)
+    head ++ [remainder]
+  end
+
+  defp allocate_proportionally(total_cents, weights, _sum_weights) do
+    # All weights zero (shouldn't happen, but don't divide by zero). Put everything
+    # on the first order so the money is at least recorded.
+    [total_cents | List.duplicate(0, length(weights) - 1)]
   end
 
   @doc """

@@ -295,7 +295,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         pending = PendingCheckouts.get_by_stripe_session(stripe_session_id)
 
         if pending && !PendingCheckouts.already_processed?(pending) do
-          case Orders.create_orders_from_pending_checkout(pending, stripe_session_id) do
+          case Orders.create_orders_from_pending_checkout(pending, stripe_session_id, session.amount_total) do
             {:ok, _} ->
               PendingCheckouts.mark_processed(pending)
               :ok
