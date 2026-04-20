@@ -74,6 +74,20 @@
               <%= if d.accepts_video_calls, do: "✅ Accepts video calls", else: "❌ No video calls" %>
             </div>
           </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Extension Code</div>
+            <div class="text-sm font-mono" style="color: var(--text-main);"><%= d.extension_code || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Terms Accepted</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if d.terms_accepted do %>
+                ✅ Accepted<%= if d.terms_accepted_at, do: " on #{Calendar.strftime(d.terms_accepted_at, "%b %d, %Y")}", else: "" %>
+              <% else %>
+                ❌ Not accepted
+              <% end %>
+            </div>
+          </div>
         </div>
       </div>
     </div>

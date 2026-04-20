@@ -85,6 +85,14 @@
             placeholder="UNAM, IPN, Tec de Monterrey..." />
         </div>
 
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Extension Code</label>
+          <input type="text" name="doctor[extension_code]" value={Ecto.Changeset.get_field(@changeset, :extension_code) || ""}
+            class="w-full rounded-lg border px-4 py-2.5 text-sm font-mono"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="e.g. EXT-01" />
+        </div>
+
         <div class="flex items-center gap-6 pt-1">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="hidden" name="doctor[accepts_video_calls]" value="false" />
@@ -102,6 +110,15 @@
               class="rounded"
               style="accent-color: var(--accent);" />
             <span class="text-sm" style="color: var(--text-main);">Available</span>
+          </label>
+
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="hidden" name="doctor[terms_accepted]" value="false" />
+            <input type="checkbox" name="doctor[terms_accepted]" value="true"
+              checked={Ecto.Changeset.get_field(@changeset, :terms_accepted)}
+              class="rounded"
+              style="accent-color: var(--accent);" />
+            <span class="text-sm" style="color: var(--text-main);">Terms accepted</span>
           </label>
         </div>
 

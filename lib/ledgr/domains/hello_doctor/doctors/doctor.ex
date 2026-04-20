@@ -16,6 +16,9 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     field :email, :string
     field :is_available, :boolean, default: true
     field :accepts_video_calls, :boolean, default: true
+    field :terms_accepted, :boolean, default: false
+    field :terms_accepted_at, :utc_datetime
+    field :extension_code, :string
 
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation
     has_many :prescriptions, Ledgr.Domains.HelloDoctor.Prescriptions.Prescription
@@ -24,7 +27,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   end
 
   @required ~w[id phone name specialty is_available]a
-  @optional ~w[cedula_profesional university years_experience email accepts_video_calls]a
+  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code]a
 
   def changeset(doctor, attrs) do
     doctor
