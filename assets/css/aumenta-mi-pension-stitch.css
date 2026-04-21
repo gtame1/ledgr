@@ -37,8 +37,9 @@
 
 /* ── Page wrapper ─────────────────────────────────────────── */
 
-[data-domain="aumenta-mi-pension"] .amp-page {
-  padding: 1.5rem 2rem;
+[data-domain="aumenta-mi-pension"] .amp-page,
+[data-domain="aumenta-mi-pension"] .hd-page {
+  padding: 2rem 2rem 1.5rem;
 }
 
 /* ── Top bar ──────────────────────────────────────────────── */

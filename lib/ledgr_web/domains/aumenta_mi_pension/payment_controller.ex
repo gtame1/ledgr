@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.PaymentController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.AumentaMiPension.StripePayments.StripePayment
+  alias Ledgr.Domains.AumentaMiPension.{StripeSync, StripeRefunds, PaymentLinking}
   alias Ledgr.Repo
 
   import Ecto.Query, warn: false
@@ -31,9 +32,17 @@ defmodule LedgrWeb.Domains.AumentaMiPension.PaymentController do
 
   def sync(conn, _params) do
     if Ledgr.Domains.AumentaMiPension.stripe_configured?() do
-      conn
-      |> put_flash(:error, "Sincronización de Stripe aún no implementada para este dominio.")
-      |> redirect(to: dp(conn, "/payments"))
+      case StripeSync.sync_recent_payments() do
+        {:ok, count} ->
+          conn
+          |> put_flash(:info, "Sincronizados #{count} pagos desde Stripe.")
+          |> redirect(to: dp(conn, "/payments"))
+
+        {:error, reason} ->
+          conn
+          |> put_flash(:error, "Error al sincronizar Stripe: #{inspect(reason)}")
+          |> redirect(to: dp(conn, "/payments"))
+      end
     else
       conn
       |> put_flash(:error, @not_configured_msg)
@@ -43,30 +52,69 @@ defmodule LedgrWeb.Domains.AumentaMiPension.PaymentController do
 
   def link_form(conn, %{"id" => id}) do
     payment = Repo.get!(StripePayment, id)
+    consultations = PaymentLinking.suggest_consultations(payment)
 
     render(conn, :link_form,
       payment: payment,
-      consultations: []
+      consultations: consultations
     )
+  end
+
+  def save_link(conn, %{"id" => id, "consultation_id" => consultation_id})
+      when consultation_id != "" do
+    case PaymentLinking.link_payment(id, consultation_id) do
+      {:ok, _payment} ->
+        conn
+        |> put_flash(:info, "Pago vinculado a la consulta.")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "No se pudo vincular: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/payments/#{id}/link"))
+    end
   end
 
   def save_link(conn, %{"id" => id}) do
     conn
-    |> put_flash(:error, @not_configured_msg)
+    |> put_flash(:error, "Selecciona una consulta.")
     |> redirect(to: dp(conn, "/payments/#{id}/link"))
   end
 
   def unlink(conn, %{"id" => id}) do
-    conn
-    |> put_flash(:error, @not_configured_msg)
-    |> redirect(to: dp(conn, "/payments/#{id}"))
+    case PaymentLinking.unlink_payment(id) do
+      {:ok, _payment} ->
+        conn
+        |> put_flash(:info, "Pago desvinculado.")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "No se pudo desvincular: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+    end
   end
 
   def check_status(conn, %{"id" => id}) do
     if Ledgr.Domains.AumentaMiPension.stripe_configured?() do
-      conn
-      |> put_flash(:error, "Verificación de estatus aún no implementada para este dominio.")
-      |> redirect(to: dp(conn, "/payments/#{id}"))
+      payment = Repo.get!(StripePayment, id)
+
+      case StripeSync.sync_payment_status(payment) do
+        {:ok, :updated, new_status} ->
+          conn
+          |> put_flash(:info, "Estatus actualizado: #{new_status}")
+          |> redirect(to: dp(conn, "/payments/#{id}"))
+
+        {:ok, :unchanged} ->
+          conn
+          |> put_flash(:info, "Sin cambios en el estatus.")
+          |> redirect(to: dp(conn, "/payments/#{id}"))
+
+        {:error, reason} ->
+          conn
+          |> put_flash(:error, "Error al verificar estatus: #{inspect(reason)}")
+          |> redirect(to: dp(conn, "/payments/#{id}"))
+      end
     else
       conn
       |> put_flash(:error, @not_configured_msg)
@@ -76,9 +124,19 @@ defmodule LedgrWeb.Domains.AumentaMiPension.PaymentController do
 
   def refund(conn, %{"id" => id}) do
     if Ledgr.Domains.AumentaMiPension.stripe_configured?() do
-      conn
-      |> put_flash(:error, "Reembolsos aún no implementados para este dominio.")
-      |> redirect(to: dp(conn, "/payments/#{id}"))
+      payment = Repo.get!(StripePayment, id)
+
+      case StripeRefunds.refund_payment(payment) do
+        {:ok, _updated} ->
+          conn
+          |> put_flash(:info, "Reembolso procesado correctamente.")
+          |> redirect(to: dp(conn, "/payments/#{id}"))
+
+        {:error, reason} ->
+          conn
+          |> put_flash(:error, "Error al reembolsar: #{inspect(reason)}")
+          |> redirect(to: dp(conn, "/payments/#{id}"))
+      end
     else
       conn
       |> put_flash(:error, @not_configured_msg)
