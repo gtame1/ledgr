@@ -207,12 +207,21 @@
                 <%= if not (domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe]) and function_exported?(domain, :nav_icons, 0) do %>
                   <%!-- Standard sidebar header: used by HelloDoctor, Aumenta Mi Pensión, and any new domain that implements `nav_icons/0`. --%>
                   <div class="app-sidebar-header">
-                    <div class="app-sidebar-title">
-                      <%= if theme[:sidebar_logo] do %>
-                        <img src={theme[:sidebar_logo]} alt={domain.name()} style="height: 28px; border-radius: 4px;" onerror="this.style.display='none'" />
-                      <% end %>
-                      <%= domain.name() %>
-                    </div>
+                    <%= cond do %>
+                      <% theme[:sidebar_logo_wide] -> %>
+                        <%!-- Wide wordmark: optional cream/white panel behind it so dark-on-light
+                             logos stay legible against the dark sidebar background. --%>
+                        <div class="app-sidebar-wordmark" style={if theme[:sidebar_logo_wide_bg], do: "background: #{theme[:sidebar_logo_wide_bg]};"}>
+                          <img src={theme[:sidebar_logo_wide]} alt={domain.name()} onerror="this.style.display='none'" />
+                        </div>
+                      <% theme[:sidebar_logo] -> %>
+                        <div class="app-sidebar-title">
+                          <img src={theme[:sidebar_logo]} alt={domain.name()} style="height: 28px; border-radius: 4px;" onerror="this.style.display='none'" />
+                          <%= domain.name() %>
+                        </div>
+                      <% true -> %>
+                        <div class="app-sidebar-title"><%= domain.name() %></div>
+                    <% end %>
                     <%= if function_exported?(domain, :sidebar_subtitle, 0) && domain.sidebar_subtitle() do %>
                       <div class="app-sidebar-subtitle"><%= domain.sidebar_subtitle() %></div>
                     <% end %>

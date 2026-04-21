@@ -67,6 +67,8 @@ defmodule Ledgr.Domains.AumentaMiPension do
       #   - login/auth  → horizontal-logo.png (full wordmark, wider banner)
       favicon: "/images/aumenta-mi-pension-logos/main-icon.png",
       sidebar_logo: "/images/aumenta-mi-pension-logos/white-icon.jpeg",
+      sidebar_logo_wide: "/images/aumenta-mi-pension-logos/horizontal-logo.png",
+      sidebar_logo_wide_bg: "#F5F2EA",
       card_logo: "/images/aumenta-mi-pension-logos/main-icon.png",
       auth_logo: "/images/aumenta-mi-pension-logos/horizontal-logo.png",
       # Stitch extended tokens

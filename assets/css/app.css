@@ -45,6 +45,21 @@
   margin-top: 0.15rem;
   padding-left: 1.75rem;
 }
+.app-sidebar-wordmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  min-height: 48px;
+}
+.app-sidebar-wordmark img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  max-height: 44px;
+  object-fit: contain;
+}
 .app-nav-flat {
   display: flex;
   flex-direction: column;
