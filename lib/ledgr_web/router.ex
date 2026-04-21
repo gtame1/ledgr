@@ -65,7 +65,16 @@ defmodule LedgrWeb.Router do
     pipe_through :api
 
     post "/hello-doctor-stripe", HelloDoctorStripeWebhookController, :handle
-    post "/aumenta-mi-pension-stripe", AumentaMiPensionStripeWebhookController, :handle
+  end
+
+  # AMP webhook lives under /app/aumenta-mi-pension/stripe to match the
+  # domain's path prefix. It's a *public* POST (no auth) despite the prefix
+  # — Stripe can't authenticate — and is defined in its own :api-pipelined
+  # scope so it stays outside the authenticated AMP area.
+  scope "/app/aumenta-mi-pension", LedgrWeb do
+    pipe_through :api
+
+    post "/stripe", AumentaMiPensionStripeWebhookController, :handle
   end
 
   # ── MrMunchMe: public auth routes ──────────────────────────────────
