@@ -1,0 +1,96 @@
+<% fmt_money = fn
+  nil -> "---"
+  amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"
+  amount when is_integer(amount) -> "$#{amount}"
+end %>
+
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Casos de Pensión</h1>
+  </div>
+
+  <%!-- Filters --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/pension-cases")} class="flex flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-[150px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Califica</label>
+        <select name="qualifies" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+          <option value="">Todos</option>
+          <option value="true" selected={@current_qualifies == "true"}>Sí califica</option>
+          <option value="false" selected={@current_qualifies == "false"}>No califica</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[180px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Modalidad Recomendada</label>
+        <select name="modalidad" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+          <option value="">Todas</option>
+          <%= for mod <- @modalidad_options do %>
+            <option value={mod} selected={@current_modalidad == mod}><%= mod %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Búsqueda</label>
+        <input type="text" name="search" value={@current_search} placeholder="Cliente, CURP, NSS..." class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+      </div>
+      <button type="submit" class="hd-btn-secondary">Filtrar</button>
+    </form>
+  </div>
+
+  <%!-- Pension Cases Table --%>
+  <div class="hd-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Cliente</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Edad</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Semanas</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Califica</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Modalidad</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Δ Pensión/mes</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Creado</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if Enum.empty?(@pension_cases) do %>
+            <tr><td colspan="8" class="p-6 text-center" style="color: var(--text-muted);">Sin casos de pensión.</td></tr>
+          <% else %>
+            <%= for pc <- @pension_cases do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-3">
+                  <.link navigate={dp(@domain_path_prefix, "/pension-cases/#{pc.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                    <%= if pc.customer, do: (pc.customer.full_name || pc.customer.display_name || "Desconocido"), else: "---" %>
+                  </.link>
+                  <%= if pc.customer && pc.customer.phone do %>
+                    <div class="text-xs" style="color: var(--text-muted);"><%= pc.customer.phone %></div>
+                  <% end %>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= pc.age || "---" %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= pc.weeks_contributed || "---" %></td>
+                <td class="p-3">
+                  <%= cond do
+                    pc.qualifies == true -> Phoenix.HTML.raw(~s(<span class="hd-badge hd-badge--active">Sí</span>))
+                    pc.qualifies == false -> Phoenix.HTML.raw(~s(<span class="hd-badge" style="background:#fee2e2;color:#991b1b;">No</span>))
+                    true -> Phoenix.HTML.raw(~s(<span class="hd-badge" style="background:#e5e7eb;color:#6b7280;">---</span>))
+                  end %>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= pc.recommended_modalidad || "---" %></td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--accent);">
+                  <%= if pc.simulation_delta_monthly, do: fmt_money.(pc.simulation_delta_monthly), else: "---" %>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  <%= if pc.created_at, do: Calendar.strftime(pc.created_at, "%b %d, %Y"), else: "---" %>
+                </td>
+                <td class="p-3 text-right">
+                  <.link navigate={dp(@domain_path_prefix, "/pension-cases/#{pc.id}")} class="text-sm font-medium" style="color: var(--accent);">Ver</.link>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

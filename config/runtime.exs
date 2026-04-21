@@ -80,6 +80,19 @@ if hello_doctor_url = System.get_env("HELLO_DOCTOR_DATABASE_URL") do
     priv: "priv/repos/hello_doctor"
 end
 
+if aumenta_mi_pension_url = System.get_env("AUMENTA_MI_PENSION_DATABASE_URL") do
+  db_uri = URI.parse(aumenta_mi_pension_url)
+
+  config :ledgr, Ledgr.Repos.AumentaMiPension,
+    url: aumenta_mi_pension_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(db_uri.host || "")
+    ],
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
+    priv: "priv/repos/aumenta_mi_pension"
+end
+
 # Domain hostname → slug mapping for production routing.
 # DomainPlug uses this to detect the active domain from the request Host header,
 # allowing each business to run on its own domain (e.g. volumestudio.com).
@@ -126,6 +139,15 @@ end
 
 if hd_webhook_secret = System.get_env("HELLO_DOCTOR_STRIPE_WEBHOOK_SECRET") do
   config :ledgr, hello_doctor_stripe_webhook_secret: hd_webhook_secret
+end
+
+# Aumenta Mi Pensión Stripe (separate account)
+if amp_stripe_key = System.get_env("AUMENTA_MI_PENSION_STRIPE_SECRET_KEY") do
+  config :ledgr, aumenta_mi_pension_stripe_api_key: amp_stripe_key
+end
+
+if amp_webhook_secret = System.get_env("AUMENTA_MI_PENSION_STRIPE_WEBHOOK_SECRET") do
+  config :ledgr, aumenta_mi_pension_stripe_webhook_secret: amp_webhook_secret
 end
 
 if config_env() == :prod do

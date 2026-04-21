@@ -20,10 +20,11 @@ defmodule Ledgr.Release do
 
   # Production seed files — real business data only, no dummy/sample records.
   @prod_seed_paths %{
-    Ledgr.Repos.MrMunchMe   => "priv/repos/mr_munch_me/seeds_prod.exs",
-    Ledgr.Repos.Viaxe       => "priv/repos/viaxe/seeds_prod.exs",
-    Ledgr.Repos.CasaTame    => "priv/repos/casa_tame/seeds_prod.exs",
-    Ledgr.Repos.HelloDoctor => "priv/repos/hello_doctor/seeds_prod.exs"
+    Ledgr.Repos.MrMunchMe       => "priv/repos/mr_munch_me/seeds_prod.exs",
+    Ledgr.Repos.Viaxe           => "priv/repos/viaxe/seeds_prod.exs",
+    Ledgr.Repos.CasaTame        => "priv/repos/casa_tame/seeds_prod.exs",
+    Ledgr.Repos.HelloDoctor     => "priv/repos/hello_doctor/seeds_prod.exs",
+    Ledgr.Repos.AumentaMiPension => "priv/repos/aumenta_mi_pension/seeds_prod.exs"
   }
 
   @doc """

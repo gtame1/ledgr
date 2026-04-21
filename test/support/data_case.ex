@@ -42,6 +42,7 @@ defmodule Ledgr.DataCase do
     pid4 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.LedgrHQ, shared: not tags[:async])
     pid5 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.CasaTame, shared: not tags[:async])
     pid6 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.HelloDoctor, shared: not tags[:async])
+    pid7 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.AumentaMiPension, shared: not tags[:async])
 
     on_exit(fn ->
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid1)
@@ -50,6 +51,7 @@ defmodule Ledgr.DataCase do
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid4)
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid5)
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid6)
+      Ecto.Adapters.SQL.Sandbox.stop_owner(pid7)
     end)
 
     # Default to MrMunchMe; domain tests override this in their own setup

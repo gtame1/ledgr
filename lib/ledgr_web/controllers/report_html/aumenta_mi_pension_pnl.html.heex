@@ -1,0 +1,185 @@
+<% fmt = fn cents ->
+  cents = cents || 0
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  "#{sign}$#{formatted}"
+end %>
+
+<%
+  total_revenue = @summary.total_revenue_cents || 0
+  total_cogs = @summary.total_cogs_cents || 0
+  gross_profit = @summary.gross_profit_cents || 0
+  total_opex = @summary.total_opex_cents || 0
+  operating_income = @summary.operating_income_cents || 0
+  net_income = @summary.net_income_cents || 0
+%>
+
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Profit & Loss</h1>
+      <p class="text-sm mt-1" style="color: var(--text-muted);">
+        <%= Calendar.strftime(@start_date, "%B %d, %Y") %> &mdash; <%= Calendar.strftime(@end_date, "%B %d, %Y") %>
+      </p>
+    </div>
+  </div>
+
+  <%!-- Date Range Picker --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/reports/pnl")} class="flex flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-[140px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">From</label>
+        <input type="date" name="start_date" value={@start_date} class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+      </div>
+      <div class="flex-1 min-w-[140px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">To</label>
+        <input type="date" name="end_date" value={@end_date} class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+      </div>
+      <button type="submit" class="hd-btn-secondary">Update</button>
+    </form>
+  </div>
+
+  <%!-- Income Statement (top to bottom) --%>
+  <div class="hd-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <%!-- ── Revenue ─────────────────────────────────────── --%>
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: #02ba97; background: rgba(2, 186, 151, 0.06);" colspan="2">Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for row <- @summary.revenue_accounts do %>
+            <tr class="border-t" style="border-color: var(--border-subtle);">
+              <td class="p-3 pl-6 text-sm" style="color: var(--text-main);"><%= row.code %> &mdash; <%= row.name %></td>
+              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.net_cents) %></td>
+            </tr>
+          <% end %>
+          <tr style="background: rgba(2, 186, 151, 0.04);">
+            <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total Revenue</td>
+            <td class="p-3 text-sm text-right font-bold" style="color: #16a34a;"><%= fmt.(total_revenue) %></td>
+          </tr>
+        </tbody>
+
+        <%!-- ── Cost of Goods Sold ──────────────────────────── --%>
+        <%= if @summary.cogs_accounts != [] do %>
+          <thead>
+            <tr>
+              <th class="text-left p-3 text-xs font-medium uppercase" style="color: #64748b; background: var(--table-header-bg);" colspan="2">Cost of Goods Sold</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for row <- @summary.cogs_accounts do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-3 pl-6 text-sm" style="color: var(--text-main);"><%= row.code %> &mdash; <%= row.name %></td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.net_cents) %></td>
+              </tr>
+            <% end %>
+            <tr style="background: var(--table-header-bg);">
+              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total COGS</td>
+              <td class="p-3 text-sm text-right font-bold" style="color: #dc2626;"><%= fmt.(total_cogs) %></td>
+            </tr>
+          </tbody>
+        <% end %>
+
+        <%!-- ── Gross Profit ────────────────────────────────── --%>
+        <tbody>
+          <tr style="background: var(--bg-surface); border-top: 2px solid var(--border-strong, #cbd5e1);">
+            <td class="p-4 text-base font-bold" style="color: var(--text-main);">Gross Profit</td>
+            <td class="p-4 text-base text-right font-bold" style={"color: #{if gross_profit >= 0, do: "#16a34a", else: "#dc2626"};"}>
+              <%= fmt.(gross_profit) %>
+            </td>
+          </tr>
+          <%= if total_revenue > 0 do %>
+            <tr>
+              <td class="px-4 pb-3 text-xs" style="color: var(--text-muted);">Gross Margin</td>
+              <td class="px-4 pb-3 text-xs text-right" style="color: var(--text-muted);">
+                <%= Float.round((@summary.gross_margin_percent || 0) * 1, 1) %>%
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+
+        <%!-- ── Operating Expenses ──────────────────────────── --%>
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: #dc2626; background: rgba(220, 38, 38, 0.04);" colspan="2">Operating Expenses</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for row <- @summary.operating_expense_accounts do %>
+            <tr class="border-t" style="border-color: var(--border-subtle);">
+              <td class="p-3 pl-6 text-sm" style="color: var(--text-main);"><%= row.code %> &mdash; <%= row.name %></td>
+              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.net_cents) %></td>
+            </tr>
+          <% end %>
+          <tr style="background: rgba(220, 38, 38, 0.04);">
+            <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total Operating Expenses</td>
+            <td class="p-3 text-sm text-right font-bold" style="color: #dc2626;"><%= fmt.(total_opex) %></td>
+          </tr>
+        </tbody>
+
+        <%!-- ── Operating Income ────────────────────────────── --%>
+        <tbody>
+          <tr style="border-top: 2px solid var(--border-strong, #cbd5e1);">
+            <td class="p-4 text-base font-bold" style="color: var(--text-main);">Operating Income</td>
+            <td class="p-4 text-base text-right font-bold" style={"color: #{if operating_income >= 0, do: "#16a34a", else: "#dc2626"};"}>
+              <%= fmt.(operating_income) %>
+            </td>
+          </tr>
+          <%= if total_revenue > 0 do %>
+            <tr>
+              <td class="px-4 pb-3 text-xs" style="color: var(--text-muted);">Operating Margin</td>
+              <td class="px-4 pb-3 text-xs text-right" style="color: var(--text-muted);">
+                <%= Float.round((@summary.operating_margin_percent || 0) * 1, 1) %>%
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+
+        <%!-- ── Net Income ──────────────────────────────────── --%>
+        <tbody>
+          <tr style="background: var(--bg-surface); border-top: 3px double var(--border-strong, #cbd5e1);">
+            <td class="p-4" style="color: var(--text-main);">
+              <div class="text-lg font-extrabold">Net Income</div>
+            </td>
+            <td class="p-4 text-right">
+              <div class="text-lg font-extrabold" style={"color: #{if net_income >= 0, do: "#16a34a", else: "#dc2626"};"}>
+                <%= fmt.(net_income) %>
+              </div>
+              <%= if total_revenue > 0 do %>
+                <div class="text-xs mt-0.5" style="color: var(--text-muted);">
+                  Net Margin: <%= Float.round((@summary.net_margin_percent || 0) * 1, 1) %>%
+                </div>
+              <% end %>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%!-- Summary KPI Cards --%>
+  <div class="hd-kpi-grid mt-6">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Revenue</div>
+      <div class="hd-kpi-value" style="color: #16a34a;"><%= fmt.(total_revenue) %></div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Gross Profit</div>
+      <div class="hd-kpi-value" style={"color: #{if gross_profit >= 0, do: "#16a34a", else: "#dc2626"};"}><%= fmt.(gross_profit) %></div>
+      <div class="hd-kpi-sub"><%= if total_revenue > 0, do: "#{Float.round((@summary.gross_margin_percent || 0) * 1, 1)}% margin", else: "" %></div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Operating Expenses</div>
+      <div class="hd-kpi-value" style="color: #dc2626;"><%= fmt.(total_opex) %></div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Net Income</div>
+      <div class="hd-kpi-value" style={"color: #{if net_income >= 0, do: "#16a34a", else: "#dc2626"};"}><%= fmt.(net_income) %></div>
+      <div class="hd-kpi-sub"><%= if total_revenue > 0, do: "#{Float.round((@summary.net_margin_percent || 0) * 1, 1)}% margin", else: "" %></div>
+    </div>
+  </div>
+</div>

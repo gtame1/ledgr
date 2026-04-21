@@ -65,6 +65,7 @@ defmodule LedgrWeb.Router do
     pipe_through :api
 
     post "/hello-doctor-stripe", HelloDoctorStripeWebhookController, :handle
+    post "/aumenta-mi-pension-stripe", AumentaMiPensionStripeWebhookController, :handle
   end
 
   # ── MrMunchMe: public auth routes ──────────────────────────────────
@@ -373,6 +374,43 @@ defmodule LedgrWeb.Router do
     # Specialties (admin-managed list)
     resources "/specialties", Domains.HelloDoctor.SpecialtyController, only: [:index, :create, :delete]
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
+  end
+
+  # ── Aumenta Mi Pensión: public auth routes ─────────────────────────
+  scope "/app/aumenta-mi-pension", LedgrWeb do
+    pipe_through :browser
+
+    get "/login", SessionController, :new
+    post "/login", SessionController, :create
+    delete "/logout", SessionController, :delete
+  end
+
+  # ── Aumenta Mi Pensión: protected routes ───────────────────────────
+  scope "/app/aumenta-mi-pension", LedgrWeb do
+    pipe_through [:browser, :require_auth]
+
+    core_routes_no_customers()
+
+    resources "/conversations", Domains.AumentaMiPension.ConversationListController, only: [:index, :show]
+    resources "/agent-chats", Domains.AumentaMiPension.AgentChatController, only: [:index, :show]
+
+    resources "/consultations", Domains.AumentaMiPension.ConsultationController, only: [:index, :show]
+    post "/consultations/:id/status", Domains.AumentaMiPension.ConsultationController, :update_status
+
+    resources "/agents", Domains.AumentaMiPension.AgentController, only: [:index, :show, :new, :create, :edit, :update]
+    post "/agents/:id/toggle-status", Domains.AumentaMiPension.AgentController, :toggle_status
+
+    resources "/customers", Domains.AumentaMiPension.CustomerController, only: [:index, :show]
+
+    resources "/pension-cases", Domains.AumentaMiPension.PensionCaseController, only: [:index, :show]
+
+    resources "/payments", Domains.AumentaMiPension.PaymentController, only: [:index, :show]
+    post "/payments/sync", Domains.AumentaMiPension.PaymentController, :sync
+    post "/payments/:id/refund", Domains.AumentaMiPension.PaymentController, :refund
+    post "/payments/:id/check-status", Domains.AumentaMiPension.PaymentController, :check_status
+    get "/payments/:id/link", Domains.AumentaMiPension.PaymentController, :link_form
+    post "/payments/:id/link", Domains.AumentaMiPension.PaymentController, :save_link
+    post "/payments/:id/unlink", Domains.AumentaMiPension.PaymentController, :unlink
   end
 
   # ── API endpoints (core) ─────────────────────────────────────────────

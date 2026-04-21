@@ -1,5 +1,5 @@
-/* Google Fonts — Inter + Manrope (Stitch) */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+/* Google Fonts — Inter + Manrope (Stitch) + DM Serif Display + Plus Jakarta Sans (AMP) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
 
 /* Tailwind CSS v4 */
 @import "tailwindcss";
@@ -15,6 +15,82 @@
 
 /* HelloDoctor Stitch design overrides */
 @import "./hello-doctor-stitch.css";
+
+/* Aumenta Mi Pensión Stitch design overrides */
+@import "./aumenta-mi-pension-stitch.css";
+
+/* ==============================
+   Standard sidebar + flat nav (default for all domains)
+   Driven by CSS vars set on :root in root.html.heex from domain.theme().
+   New domains get this look for free — no per-domain CSS needed.
+   ============================== */
+.app-sidebar-header {
+  padding: 1.25rem 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.75rem;
+}
+.app-sidebar-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--sidebar-text, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.app-sidebar-subtitle {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 0.15rem;
+  padding-left: 1.75rem;
+}
+.app-nav-flat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.app-nav-section-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 0.75rem 0.75rem 0.25rem;
+}
+.app-nav-section-label:first-child { padding-top: 0; }
+.app-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.app-nav-item:hover {
+  background: color-mix(in srgb, var(--sidebar-accent) 15%, transparent);
+  color: #ffffff;
+}
+.app-nav-item .material-symbols-outlined {
+  font-size: 1.25rem;
+  opacity: 0.6;
+}
+.app-nav-item:hover .material-symbols-outlined { opacity: 0.9; }
+.app-nav-item--active {
+  background: color-mix(in srgb, var(--sidebar-accent) 20%, transparent);
+  color: var(--sidebar-accent);
+  font-weight: 600;
+}
+.app-nav-item--active .material-symbols-outlined {
+  opacity: 1;
+  color: var(--sidebar-accent);
+}
 
 @layer components {
   /* ==============================

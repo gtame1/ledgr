@@ -1,0 +1,169 @@
+<% fmt = fn nil -> "---"; amount -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}" end %>
+
+<% c = @customer %>
+
+<div class="hd-page">
+  <div class="mb-6">
+    <.link navigate={dp(@domain_path_prefix, "/customers")} class="hd-back">
+      &larr; Volver a Clientes
+    </.link>
+  </div>
+
+  <%!-- Header --%>
+  <div class="flex items-center gap-4 mb-6">
+    <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style="background: var(--primary);">
+      <%= String.first((c.full_name || c.display_name || "?")) %>
+    </div>
+    <div class="flex-1">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);"><%= (c.full_name || c.display_name || "Desconocido") %></h1>
+      <div class="text-sm" style="color: var(--text-muted);">
+        <%= if c.date_of_birth, do: "Nacimiento: #{c.date_of_birth}" %>
+        <%= if c.gender, do: " · #{c.gender |> to_string() |> String.capitalize()}" %>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%!-- Customer Info --%>
+    <div>
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">Información del Cliente</h2>
+        <div class="space-y-3">
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Nombre Completo</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= c.full_name || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Nombre de Display</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= c.display_name || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Teléfono</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= c.phone || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Fecha de Nacimiento</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= c.date_of_birth || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Género</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= if c.gender, do: c.gender |> to_string() |> String.capitalize(), else: "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">CURP</div>
+            <div class="text-sm font-mono" style="color: var(--text-main);"><%= c.curp || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">NSS</div>
+            <div class="text-sm font-mono" style="color: var(--text-main);"><%= c.nss || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Semanas Cotizadas</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= c.weeks_contributed || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Último SBC Registrado</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= fmt.(c.last_registered_salary) %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Estatus Laboral</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= c.current_employment_status || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Última Cotización IMSS</div>
+            <div class="text-sm" style="color: var(--text-main);"><%= c.last_imss_contribution_date || "---" %></div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Ley 73</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= cond do
+                c.ley_73 == true -> "Sí"
+                c.ley_73 == false -> "No"
+                true -> "---"
+              end %>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Registrado</div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if c.created_at, do: Calendar.strftime(c.created_at, "%B %d, %Y"), else: "---" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Consultation History + Pension Cases --%>
+    <div class="lg:col-span-2 space-y-6">
+      <div class="hd-card">
+        <div class="flex items-center justify-between p-4 border-b" style="border-color: var(--border-subtle);">
+          <h2 class="text-lg font-semibold" style="color: var(--text-main);">Historial de Consultas</h2>
+        </div>
+        <%= if c.consultations && !Enum.empty?(c.consultations) do %>
+          <div class="overflow-x-auto">
+            <table class="hd-table w-full">
+              <thead>
+                <tr>
+                  <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fecha</th>
+                  <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Agente</th>
+                  <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Estatus</th>
+                  <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for cs <- c.consultations do %>
+                  <tr class="border-t cursor-pointer hover:bg-[rgba(2,186,151,0.04)]" style="border-color: var(--border-subtle);" onclick={"window.location='#{dp(@domain_path_prefix, "/consultations/#{cs.id}")}';"}>
+                    <td class="p-3 text-sm font-medium" style="color: var(--accent);">
+                      <%= if cs.assigned_at, do: Calendar.strftime(cs.assigned_at, "%b %d, %Y"), else: "---" %>
+                    </td>
+                    <td class="p-3 text-sm" style="color: var(--text-main);">
+                      <%= if cs.agent, do: cs.agent.name, else: "Sin asignar" %>
+                    </td>
+                    <td class="p-3">
+                      <span class={"hd-badge hd-badge--#{cs.status}"}><%= cs.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                    </td>
+                    <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(cs.payment_amount) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="p-6 text-center text-sm" style="color: var(--text-muted);">Sin consultas aún.</div>
+        <% end %>
+      </div>
+
+      <%!-- Pension Cases --%>
+      <%= if c.pension_cases && !Enum.empty?(c.pension_cases) do %>
+        <div class="hd-card">
+          <div class="p-4 border-b" style="border-color: var(--border-subtle);">
+            <h2 class="text-lg font-semibold" style="color: var(--text-main);">Casos de Pensión</h2>
+          </div>
+          <div class="divide-y" style="border-color: var(--border-subtle);">
+            <%= for pc <- c.pension_cases do %>
+              <.link navigate={dp(@domain_path_prefix, "/pension-cases/#{pc.id}")} class="block p-4 hover:bg-[rgba(2,186,151,0.04)]">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-medium" style="color: var(--text-main);">
+                      <%= pc.recommended_modalidad || "Sin modalidad recomendada" %>
+                    </div>
+                    <div class="text-xs mt-1" style="color: var(--text-muted);">
+                      <%= pc.qualification_reason || "---" %>
+                    </div>
+                  </div>
+                  <div>
+                    <%= cond do
+                      pc.qualifies == true -> Phoenix.HTML.raw(~s(<span class="hd-badge hd-badge--active">Califica</span>))
+                      pc.qualifies == false -> Phoenix.HTML.raw(~s(<span class="hd-badge" style="background:#fee2e2;color:#991b1b;">No Califica</span>))
+                      true -> Phoenix.HTML.raw(~s(<span class="hd-badge" style="background:#e5e7eb;color:#6b7280;">Desconocido</span>))
+                    end %>
+                  </div>
+                </div>
+              </.link>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

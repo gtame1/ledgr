@@ -12,9 +12,10 @@ defmodule LedgrWeb.ReportController do
   def dashboard(conn, params) do
     domain = Domain.current()
 
-    # HelloDoctor defaults to last 30 days; other domains keep "this month" default
+    # HelloDoctor / AumentaMiPension default to last 30 days; other domains keep "this month" default
     params =
-      if domain == Ledgr.Domains.HelloDoctor and not Map.has_key?(params, "period") and
+      if domain in [Ledgr.Domains.HelloDoctor, Ledgr.Domains.AumentaMiPension] and
+           not Map.has_key?(params, "period") and
            not Map.has_key?(params, "start_date") and not Map.has_key?(params, "all_dates") do
         Map.put(params, "period", "last_30_days")
       else
@@ -32,6 +33,7 @@ defmodule LedgrWeb.ReportController do
       domain == Ledgr.Domains.CasaTame      -> :casa_tame_dashboard
       domain == Ledgr.Domains.MrMunchMe     -> :mr_munch_me_dashboard
       domain == Ledgr.Domains.HelloDoctor   -> :hello_doctor_dashboard
+      domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_dashboard
       true                                   -> :dashboard
     end
 
@@ -58,6 +60,7 @@ defmodule LedgrWeb.ReportController do
       domain == Ledgr.Domains.CasaTame -> :casa_tame_pnl
       domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_pnl
       domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_pnl
+      domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_pnl
       true -> :pnl
     end
 
@@ -101,6 +104,7 @@ defmodule LedgrWeb.ReportController do
       Domain.current() == Ledgr.Domains.CasaTame -> :casa_tame_balance_sheet
       Domain.current() == Ledgr.Domains.MrMunchMe -> :mr_munch_me_balance_sheet
       Domain.current() == Ledgr.Domains.HelloDoctor -> :hello_doctor_balance_sheet
+      Domain.current() == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_balance_sheet
       true -> :balance_sheet
     end
 

@@ -139,6 +139,26 @@ defmodule Ledgr.Domains.HelloDoctor do
   end
 
   @impl Ledgr.Domain.DomainConfig
+  def sidebar_subtitle, do: "Salud 24/7"
+
+  @impl Ledgr.Domain.DomainConfig
+  def nav_icons do
+    %{
+      "Dashboard" => "dashboard",
+      "Conversations" => "chat",
+      "Consultations" => "medical_services",
+      "Doctors" => "stethoscope",
+      "Patients" => "group",
+      "Payments" => "payments",
+      "Expenses" => "receipt_long",
+      "Balance Sheet" => "account_balance",
+      "P&L" => "bar_chart",
+      "Transactions" => "list_alt",
+      "Reconciliation" => "fact_check"
+    }
+  end
+
+  @impl Ledgr.Domain.DomainConfig
   def seed_file, do: "priv/repos/hello_doctor/seeds/hello_doctor_seeds.exs"
 
   @impl Ledgr.Domain.DomainConfig

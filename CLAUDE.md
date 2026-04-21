@@ -31,3 +31,31 @@ When adding a new business domain (e.g. "Acme Co"), follow this checklist:
    ```
 
    `Ledgr.Repos.MrMunchMe` is the only always-on repo (it falls back to `DATABASE_URL`).
+
+6. **Register the repo ↔ domain mapping** in `lib/ledgr/repo.ex` (`repo_for_domain/1`). Domains without an explicit clause fall through to `Ledgr.Repos.MrMunchMe` — easy to miss and hard to debug (queries silently hit the wrong DB).
+
+7. **Wire the slug** in `lib/ledgr_web/plugs/domain_plug.ex`'s `@domain_slugs` map.
+
+## Standard sidebar + nav for new domains
+
+The default sidebar is a flat nav with Material Symbols icons, driven entirely by CSS vars from `domain.theme()`. **No per-domain CSS is needed** — just implement two optional callbacks:
+
+```elixir
+@impl Ledgr.Domain.DomainConfig
+def sidebar_subtitle, do: "Short tagline"
+
+@impl Ledgr.Domain.DomainConfig
+def nav_icons do
+  %{
+    "Dashboard" => "dashboard",
+    "Customers" => "group",
+    "Payments" => "payments"
+    # ... map every menu label to a Material Symbols name
+    # https://fonts.google.com/icons
+  }
+end
+```
+
+Active-item accent color comes from `theme().accent` (fallback `theme().primary`). Any domain that implements `nav_icons/0` automatically gets the standard look; domains without it fall back to the legacy dropdown nav.
+
+Reference implementations: `Ledgr.Domains.HelloDoctor`, `Ledgr.Domains.AumentaMiPension`.

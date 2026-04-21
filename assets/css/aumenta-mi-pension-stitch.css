@@ -1,0 +1,544 @@
+/* ============================================================
+   Aumenta Mi Pensión — Stitch Design Overrides
+   All rules scoped to [data-domain="aumenta-mi-pension"]
+   Brand: #1f3b6a (primary), #d4a93a (accent), #141414 (dark)
+   (placeholder palette — swap when branding ships)
+   ============================================================ */
+
+@layer components {
+
+/* ── Base ──────────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] {
+  overflow-x: hidden;
+}
+
+[data-domain="aumenta-mi-pension"] .content {
+  padding: 0 !important;
+  background: var(--bg, #f5f7f9);
+  overflow-x: hidden;
+}
+
+[data-domain="aumenta-mi-pension"] .content-body {
+  gap: 0 !important;
+  overflow-x: hidden;
+  padding: 0 2rem 2rem !important;
+}
+
+/* ── Typography ───────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] h1,
+[data-domain="aumenta-mi-pension"] h2,
+[data-domain="aumenta-mi-pension"] .amp-page-title {
+  font-family: var(--ct-font-headline, 'DM Serif Display'), sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+/* ── Page wrapper ─────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .amp-page {
+  padding: 1.5rem 2rem;
+}
+
+/* ── Top bar ──────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-topbar h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main, #141414);
+  margin: 0;
+}
+
+/* ── Filter bar ───────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 8px;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-filters select,
+[data-domain="aumenta-mi-pension"] .hd-filters input[type="text"],
+[data-domain="aumenta-mi-pension"] .hd-filters input[type="search"],
+[data-domain="aumenta-mi-pension"] .hd-filters input[type="date"] {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--bg, #f5f7f9);
+  color: var(--text-main, #141414);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-filters select:focus,
+[data-domain="aumenta-mi-pension"] .hd-filters input:focus {
+  outline: none;
+  border-color: #74C69D;
+  box-shadow: 0 0 0 2px rgba(2, 186, 151, 0.15);
+}
+
+/* ── Cards ─────────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 10px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 64, 88, 0.04);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-card-title {
+  font-family: var(--ct-font-headline, 'DM Serif Display'), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.75rem;
+}
+
+/* ── KPI Cards ─────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-kpi {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 10px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 64, 88, 0.04);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-kpi-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-kpi-value {
+  font-family: var(--ct-font-headline, 'DM Serif Display'), sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main, #141414);
+  letter-spacing: -0.02em;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-kpi-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+  margin-top: 0.25rem;
+}
+
+/* ── Table ──────────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-table thead th {
+  background: var(--table-header-bg, #f1f5f9);
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-table thead th:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-table thead th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-table tbody td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  color: var(--text-main, #141414);
+  vertical-align: middle;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-table tbody tr:hover {
+  background: rgba(2, 186, 151, 0.03);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Status badges ─────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--assigned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--in_progress {
+  background: #d0f5ed;
+  color: #065f46;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--pending_approval {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-badge--refunded {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: #74C69D;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-btn-primary:hover {
+  background: #029b7e;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--btn-secondary-bg, #e2e8f0);
+  color: var(--btn-secondary-text, #141414);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-btn-secondary:hover {
+  background: var(--btn-secondary-hover, #cbd5e1);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* ── Doctor card grid ──────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-doctor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-doctor-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: box-shadow 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-doctor-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 64, 88, 0.08);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-doctor-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2D6A4F, #74C69D);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+/* ── Two-column layout ─────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-two-col {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  [data-domain="aumenta-mi-pension"] .hd-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Stats row ─────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-stats-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-stat {
+  text-align: center;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-stat-value {
+  font-family: var(--ct-font-headline, 'DM Serif Display'), sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main, #141414);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ── Back link ─────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, #64748b);
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-back:hover {
+  color: #74C69D;
+}
+
+/* ── Forms ──────────────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-form {
+  max-width: 640px;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-form .hd-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── WhatsApp indicator ────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #25D366;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ── Flat sidebar nav ──────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-nav-flat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-item:hover {
+  background: rgba(2, 186, 151, 0.15);
+  color: #ffffff;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-item .material-symbols-outlined {
+  font-size: 1.25rem;
+  opacity: 0.6;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-item--active {
+  background: rgba(2, 186, 151, 0.2);
+  color: #74C69D;
+  font-weight: 600;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-item--active .material-symbols-outlined {
+  opacity: 1;
+  color: #74C69D;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-item:hover .material-symbols-outlined {
+  opacity: 0.9;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-section-label {
+  font-family: 'DM Serif Display', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 0.75rem 0.75rem 0.25rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-nav-section-label:first-child {
+  padding-top: 0;
+}
+
+/* ── Sidebar header ────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-sidebar-header {
+  padding: 1.25rem 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-sidebar-title {
+  font-family: 'DM Serif Display', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-domain="aumenta-mi-pension"] .hd-sidebar-subtitle {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 0.15rem;
+  padding-left: 1.75rem;
+}
+
+
+/* ── Empty state ───────────────────────────────────────────── */
+
+[data-domain="aumenta-mi-pension"] .hd-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted, #64748b);
+}
+
+[data-domain="aumenta-mi-pension"] .hd-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.4;
+}
+
+} /* end @layer components */

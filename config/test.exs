@@ -59,6 +59,15 @@ config :ledgr, Ledgr.Repos.HelloDoctor,
   pool_size: 5,
   priv: "priv/repos/hello_doctor"
 
+config :ledgr, Ledgr.Repos.AumentaMiPension,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_aumenta_mi_pension_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 5,
+  priv: "priv/repos/aumenta_mi_pension"
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :ledgr, LedgrWeb.Endpoint,

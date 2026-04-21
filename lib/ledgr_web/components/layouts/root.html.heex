@@ -43,6 +43,7 @@
           --sidebar-bg: <%= t.sidebar_bg %>;
           --sidebar-text: <%= t.sidebar_text %>;
           --sidebar-hover: <%= t.sidebar_hover %>;
+          --sidebar-accent: <%= t[:accent] || t.primary %>;
           --primary: <%= t.primary %>;
           --primary-soft: <%= t.primary_soft %>;
           --bg: <%= t[:bg] || "#fff7f2" %>;
@@ -203,13 +204,18 @@
                   <div class="mm-sidebar-subtitle">Artisan Snacks</div>
                 </div>
               <% else %>
-                <%= if domain == Ledgr.Domains.HelloDoctor do %>
-                  <div class="hd-sidebar-header">
-                    <div class="hd-sidebar-title">
-                      <img src={theme[:sidebar_logo]} alt="HelloDoctor" style="height: 28px; border-radius: 4px;" onerror="this.style.display='none'" />
-                      HelloDoctor
+                <%= if not (domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe]) and function_exported?(domain, :nav_icons, 0) do %>
+                  <%!-- Standard sidebar header: used by HelloDoctor, Aumenta Mi Pensión, and any new domain that implements `nav_icons/0`. --%>
+                  <div class="app-sidebar-header">
+                    <div class="app-sidebar-title">
+                      <%= if theme[:sidebar_logo] do %>
+                        <img src={theme[:sidebar_logo]} alt={domain.name()} style="height: 28px; border-radius: 4px;" onerror="this.style.display='none'" />
+                      <% end %>
+                      <%= domain.name() %>
                     </div>
-                    <div class="hd-sidebar-subtitle">Salud 24/7</div>
+                    <%= if function_exported?(domain, :sidebar_subtitle, 0) && domain.sidebar_subtitle() do %>
+                      <div class="app-sidebar-subtitle"><%= domain.sidebar_subtitle() %></div>
+                    <% end %>
                   </div>
                 <% else %>
                   <div class="sidebar-header">
@@ -334,33 +340,19 @@
                 <% end %>
               </div>
             <% else %>
-            <%= if domain == Ledgr.Domains.HelloDoctor do %>
-              <!-- HelloDoctor: flat nav with Material Symbols -->
-              <%
-                hd_nav_icons = %{
-                  "Dashboard" => "dashboard",
-                  "Conversations" => "chat",
-                  "Consultations" => "medical_services",
-                  "Doctors" => "stethoscope",
-                  "Patients" => "group",
-                  "Payments" => "payments",
-                  "Expenses" => "receipt_long",
-                  "Balance Sheet" => "account_balance",
-                  "P&L" => "bar_chart",
-                  "Transactions" => "list_alt",
-                  "Reconciliation" => "fact_check"
-                }
-              %>
-              <div class="hd-nav-flat">
+            <%= if function_exported?(domain, :nav_icons, 0) do %>
+              <%!-- Standard flat nav with Material Symbols. Default for new domains; domains opt in by implementing `nav_icons/0`. --%>
+              <% nav_icons = domain.nav_icons() %>
+              <div class="app-nav-flat">
                 <%= for group <- domain.menu_items() do %>
-                  <div class="hd-nav-section-label"><%= group.group %></div>
+                  <div class="app-nav-section-label"><%= group.group %></div>
                   <%= for item <- group.items do %>
                     <%
                       item_path = item.path |> String.split("?") |> hd()
                       is_active = if item_path == prefix, do: req_path == prefix, else: String.starts_with?(req_path, item_path)
-                      icon = hd_nav_icons[item.label] || "article"
+                      icon = Map.get(nav_icons, item.label, "article")
                     %>
-                    <.link navigate={item.path} class={"hd-nav-item#{if is_active, do: " hd-nav-item--active"}"}>
+                    <.link navigate={item.path} class={"app-nav-item#{if is_active, do: " app-nav-item--active"}"}>
                       <span class="material-symbols-outlined"><%= icon %></span>
                       <%= item.label %>
                     </.link>
@@ -397,7 +389,7 @@
             <% end %> <%!-- close MrMunchMe if/else --%>
 
             <!-- Core menu groups (shared across all domains, hidden when domain manages its own nav) -->
-            <%= unless domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe, Ledgr.Domains.HelloDoctor] do %>
+            <%= unless domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe] or function_exported?(domain, :nav_icons, 0) do %>
               <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reports/") or String.contains?(req_path, "/account-transactions"), do: "true"}>
                 <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
                   <span>Reports</span>

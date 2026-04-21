@@ -3,8 +3,8 @@
   <% theme = if domain, do: domain.theme(), else: %{} %>
 
   <div class="login-card-header">
-    <%= if theme[:card_logo] do %>
-      <img src={theme[:card_logo]} alt={domain.name()} class="login-logo" onerror="this.style.display='none'" />
+    <%= if theme[:auth_logo] || theme[:card_logo] do %>
+      <img src={theme[:auth_logo] || theme[:card_logo]} alt={domain.name()} class="login-logo" onerror="this.style.display='none'" />
     <% else %>
       <span class="login-app-logo"><%= if domain, do: domain.logo(), else: "" %></span>
       <h1 class="login-app-name"><%= if domain, do: domain.name(), else: "Ledgr" %></h1>

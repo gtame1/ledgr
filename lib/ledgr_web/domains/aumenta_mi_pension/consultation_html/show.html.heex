@@ -1,0 +1,350 @@
+<% fmt = fn
+  nil -> "---"
+  amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"
+  amount when is_integer(amount) -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}"
+end %>
+
+<% c = @consultation %>
+<% pension_case = if c.conversation, do: c.conversation.pension_case, else: nil %>
+<% messages = if c.conversation, do: c.conversation.messages || [], else: [] %>
+<% calls = c.calls || [] %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/consultations")} class="hd-back">
+      &larr; Volver a Consultas
+    </.link>
+  </div>
+
+  <%!-- Header --%>
+  <div class="flex items-center gap-3 mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Consulta</h1>
+    <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+    <%= if c.consultation_type && c.consultation_type != "messaging" do %>
+      <span class="hd-badge hd-badge--assigned"><%= c.consultation_type |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+    <% end %>
+    <%= if c.payment_status do %>
+      <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+    <% end %>
+  </div>
+
+  <div class="hd-two-col">
+    <%!-- Left Column --%>
+    <div class="space-y-6">
+
+      <%!-- Pension Case Summary --%>
+      <%= if pension_case do %>
+        <div class="hd-card p-5" style="border-left: 4px solid var(--accent);">
+          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--accent);">Caso de Pensión</h2>
+          <div class="text-sm leading-relaxed" style="color: var(--text-main);">
+            <%= if pension_case.ai_summary do %>
+              <div class="whitespace-pre-line mb-3"><%= pension_case.ai_summary %></div>
+            <% end %>
+            <div class="grid grid-cols-2 gap-3 mt-2">
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">Modalidad Recomendada</div>
+                <div class="text-sm font-medium"><%= pension_case.recommended_modalidad || "---" %></div>
+              </div>
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">Califica</div>
+                <div class="text-sm font-medium">
+                  <%= cond do
+                    pension_case.qualifies == true -> "Sí"
+                    pension_case.qualifies == false -> "No"
+                    true -> "---"
+                  end %>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <.link navigate={dp(@domain_path_prefix, "/pension-cases/#{pension_case.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                Ver caso completo →
+              </.link>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Agent Notes & Customer Summary --%>
+      <%= if c.agent_notes || c.customer_summary do %>
+        <div class="hd-card p-5">
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Notas del Agente</h2>
+          <%= if c.customer_summary do %>
+            <div class="mb-3">
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Resumen</div>
+              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= c.customer_summary %></div>
+            </div>
+          <% end %>
+          <%= if c.agent_notes do %>
+            <div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Notas</div>
+              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= c.agent_notes %></div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%!-- Video Call & Transcript --%>
+      <%= for call <- calls do %>
+        <div class="hd-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">Llamada</h2>
+            <%
+              call_badge = cond do
+                call.status in ["completed", "ended"] -> "completed"
+                call.status == "active" -> "in_progress"
+                true -> "pending"
+              end
+            %>
+            <span class={"hd-badge hd-badge--#{call_badge}"}>
+              <%= call.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %>
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <%= if call.started_at do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Inició</div>
+                <div class="text-sm" style="color: var(--text-main);"><%= Calendar.strftime(call.started_at, "%b %d, %Y %I:%M %p") %></div>
+              </div>
+            <% end %>
+            <%= if call.ended_at do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Terminó</div>
+                <div class="text-sm" style="color: var(--text-main);"><%= Calendar.strftime(call.ended_at, "%b %d, %Y %I:%M %p") %></div>
+              </div>
+            <% end %>
+            <%= if call.duration_seconds do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Duración</div>
+                <div class="text-sm font-medium" style="color: var(--text-main);"><%= div(call.duration_seconds, 60) %> min <%= rem(call.duration_seconds, 60) %> seg</div>
+              </div>
+            <% end %>
+            <%= if call.recording_url do %>
+              <div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Grabación</div>
+                <a href={call.recording_url} target="_blank" class="text-sm font-medium" style="color: var(--accent);">
+                  Ver grabación ↗
+                </a>
+              </div>
+            <% end %>
+          </div>
+
+          <%= if call.transcript_text do %>
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-xs font-semibold uppercase" style="color: var(--accent);">Transcripción</h3>
+                <%= if call.transcription_status do %>
+                  <span class="text-xs" style="color: var(--text-muted);"><%= call.transcription_status %></span>
+                <% end %>
+              </div>
+              <div class="text-sm whitespace-pre-line leading-relaxed p-4 rounded-lg max-h-[400px] overflow-y-auto" style="background: var(--bg); color: var(--text-main); border: 1px solid var(--border-subtle);">
+                <%= call.transcript_text %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%!-- Conversation Messages --%>
+      <%= if messages != [] do %>
+        <div class="hd-card p-5">
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Conversación
+            <span class="text-xs font-normal ml-1" style="color: var(--text-muted);">(<%= length(messages) %> mensajes)</span>
+          </h2>
+          <div class="space-y-3 max-h-[500px] overflow-y-auto">
+            <%= for msg <- Enum.sort_by(messages, & &1.created_at) do %>
+              <% is_customer = msg.role in ["user", "customer"] %>
+              <% is_agent = msg.role in ["agent"] %>
+              <% is_system = msg.role in ["assistant", "system", "bot"] %>
+              <div class={"flex #{if is_customer, do: "justify-end", else: "justify-start"}"}>
+                <%
+                  msg_bg = cond do
+                    is_customer -> "bg-[#dbe5f5]"
+                    is_agent -> "bg-[#fff2c6]"
+                    true -> "bg-[#f1f5f9]"
+                  end
+                  msg_color = cond do
+                    is_customer -> "#1f3b6a"
+                    is_agent -> "#8a6d00"
+                    true -> "#64748b"
+                  end
+                %>
+                <div class={"max-w-[80%] rounded-lg p-3 text-sm #{msg_bg}"}>
+                  <div class="text-xs font-semibold mb-1" style={"color: #{msg_color};"}>
+                    <%= cond do
+                      is_customer -> "Cliente"
+                      is_agent -> "Agente"
+                      is_system -> "Aumenta Mi Pensión AI"
+                      true -> msg.role |> String.capitalize()
+                    end %>
+                  </div>
+                  <div class="whitespace-pre-line" style="color: var(--text-main);"><%= msg.content %></div>
+                  <%= if msg.created_at do %>
+                    <div class="text-xs mt-1 opacity-60"><%= Calendar.strftime(msg.created_at, "%I:%M %p") %></div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <%!-- Right Column --%>
+    <div class="space-y-6">
+
+      <%!-- Details --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Detalles</h3>
+        <div class="space-y-3">
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Estatus</span>
+            <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Asignada</span>
+            <span style="color: var(--text-main);"><%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+          </div>
+          <%= if c.accepted_at do %>
+            <div class="flex justify-between text-sm">
+              <span style="color: var(--text-muted);">Aceptada</span>
+              <span style="color: var(--text-main);"><%= Calendar.strftime(c.accepted_at, "%b %d, %Y %I:%M %p") %></span>
+            </div>
+          <% end %>
+          <%= if c.completed_at do %>
+            <div class="flex justify-between text-sm">
+              <span style="color: var(--text-muted);">Completada</span>
+              <span style="color: var(--text-main);"><%= Calendar.strftime(c.completed_at, "%b %d, %Y %I:%M %p") %></span>
+            </div>
+          <% end %>
+          <%= if c.duration_minutes do %>
+            <div class="flex justify-between text-sm">
+              <span style="color: var(--text-muted);">Duración</span>
+              <span class="font-medium" style="color: var(--text-main);"><%= c.duration_minutes %> min</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%!-- Customer Card --%>
+      <%= if c.customer do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Cliente</h3>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--primary);">
+              <%= String.first(c.customer.full_name || c.customer.display_name || "?") %>
+            </div>
+            <div>
+              <.link navigate={dp(@domain_path_prefix, "/customers/#{c.customer.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                <%= c.customer.full_name || c.customer.display_name || "Desconocido" %>
+              </.link>
+              <div class="text-xs" style="color: var(--text-muted);"><%= c.customer.phone || "" %></div>
+            </div>
+          </div>
+          <div class="space-y-1 text-xs" style="color: var(--text-muted);">
+            <%= if c.customer.curp do %>
+              <div>CURP: <span class="font-mono"><%= c.customer.curp %></span></div>
+            <% end %>
+            <%= if c.customer.nss do %>
+              <div>NSS: <span class="font-mono"><%= c.customer.nss %></span></div>
+            <% end %>
+            <%= if c.customer.weeks_contributed do %>
+              <div>Semanas cotizadas: <%= c.customer.weeks_contributed %></div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Agent Card --%>
+      <%= if c.agent do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Agente</h3>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--accent);">
+              <%= String.first(c.agent.name) %>
+            </div>
+            <div>
+              <.link navigate={dp(@domain_path_prefix, "/agents/#{c.agent.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                <%= c.agent.name %>
+              </.link>
+              <div class="text-xs" style="color: var(--text-muted);"><%= c.agent.phone || "" %></div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Payment Card --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Pago</h3>
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Monto</span>
+            <span class="font-semibold text-lg" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Estatus</span>
+            <%= if c.payment_status do %>
+              <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+            <% else %>
+              <span style="color: var(--text-muted);">---</span>
+            <% end %>
+          </div>
+          <%= if c.payment_amount do %>
+            <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-subtle);">
+              <div class="flex justify-between text-xs mb-1">
+                <span style="color: var(--text-muted);">Comisión plataforma (15%)</span>
+                <span style="color: var(--accent);"><%= fmt.(c.payment_amount * 0.15) %></span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span style="color: var(--text-muted);">Pago al agente (85%)</span>
+                <span style="color: var(--text-main);"><%= fmt.(c.payment_amount * 0.85) %></span>
+              </div>
+            </div>
+          <% end %>
+          <%= if c.payment_confirmed_at do %>
+            <div class="text-xs mt-2" style="color: var(--text-muted);">
+              Confirmado: <%= Calendar.strftime(c.payment_confirmed_at, "%b %d, %Y %I:%M %p") %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%!-- Customer Review --%>
+      <%= if c.customer_rating || c.customer_comment do %>
+        <div class="hd-card p-5">
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Reseña del Cliente</h3>
+          <%= if c.customer_rating do %>
+            <div class="flex items-center gap-1 mb-2">
+              <%= for i <- 1..5 do %>
+                <span style={"color: #{if i <= c.customer_rating, do: "#f59e0b", else: "#e2e8f0"}; font-size: 1.25rem;"}>&#9733;</span>
+              <% end %>
+              <span class="text-sm font-medium ml-1" style="color: var(--text-main);"><%= c.customer_rating %>/5</span>
+            </div>
+          <% end %>
+          <%= if c.customer_comment do %>
+            <div class="text-sm italic" style="color: var(--text-main);">"<%= c.customer_comment %>"</div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%!-- Update Status --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Actualizar Estatus</h3>
+        <.form for={%{}} action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")} method="post" class="flex items-end gap-3">
+          <div class="flex-1">
+            <select name="status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+              <option value="pending" selected={to_string(c.status) == "pending"}>Pendiente</option>
+              <option value="assigned" selected={to_string(c.status) == "assigned"}>Asignada</option>
+              <option value="active" selected={to_string(c.status) == "active"}>Activa</option>
+              <option value="completed" selected={to_string(c.status) == "completed"}>Completada</option>
+              <option value="cancelled" selected={to_string(c.status) == "cancelled"}>Cancelada</option>
+            </select>
+          </div>
+          <button type="submit" class="hd-btn-primary">Actualizar</button>
+        </.form>
+      </div>
+    </div>
+  </div>
+</div>

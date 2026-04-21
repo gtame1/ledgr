@@ -93,4 +93,28 @@ defmodule Ledgr.Domain.DomainConfig do
               primary_soft: String.t(),
               accent: String.t()
             }
+
+  @doc """
+  Optional: sidebar subtitle shown under the app name (e.g. "Salud 24/7").
+
+  If not implemented, no subtitle is rendered.
+  """
+  @callback sidebar_subtitle() :: String.t() | nil
+
+  @doc """
+  Optional: map of menu-item label → Material Symbols icon name
+  (https://fonts.google.com/icons). Used by the standard flat nav.
+
+  Example:
+      %{
+        "Dashboard" => "dashboard",
+        "Customers" => "group",
+        "Payments" => "payments"
+      }
+
+  Labels without an entry fall back to a generic "article" icon.
+  """
+  @callback nav_icons() :: %{optional(String.t()) => String.t()}
+
+  @optional_callbacks sidebar_subtitle: 0, nav_icons: 0
 end

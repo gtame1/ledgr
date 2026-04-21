@@ -1,0 +1,65 @@
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Agentes</h1>
+    <.link navigate={dp(@domain_path_prefix, "/agents/new")} class="hd-btn-primary">+ Agregar Agente</.link>
+  </div>
+
+  <%!-- Filters --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/agents")} class="flex flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-[140px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Estatus</label>
+        <select name="status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+          <option value="">Todos</option>
+          <option value="active" selected={@current_status == "active"}>Disponibles</option>
+          <option value="inactive" selected={@current_status == "inactive"}>No disponibles</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Búsqueda</label>
+        <input type="text" name="search" value={@current_search} placeholder="Nombre del agente..." class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+      </div>
+      <button type="submit" class="hd-btn-secondary">Filtrar</button>
+    </form>
+  </div>
+
+  <%!-- Agent Cards Grid --%>
+  <%= if Enum.empty?(@agents) do %>
+    <div class="hd-card p-8 text-center" style="color: var(--text-muted);">No se encontraron agentes.</div>
+  <% else %>
+    <div class="hd-doctor-grid">
+      <%= for agent <- @agents do %>
+        <.link navigate={dp(@domain_path_prefix, "/agents/#{agent.id}")} class="hd-doctor-card block hover:shadow-md transition-shadow">
+          <div class="flex items-start gap-3 p-5">
+            <div class="hd-doctor-avatar flex-shrink-0">
+              <%= String.first(agent.name) %>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold truncate" style="color: var(--text-main);"><%= agent.name %></h3>
+                <%= if agent.is_available do %>
+                  <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                <% else %>
+                  <span class="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></span>
+                <% end %>
+              </div>
+              <%= if agent.is_available do %>
+                <span class="hd-badge hd-badge--active mt-1 inline-block">Disponible</span>
+              <% else %>
+                <span class="hd-badge mt-1 inline-block" style="background: #e5e7eb; color: #6b7280;">No disponible</span>
+              <% end %>
+              <div class="text-xs mt-1" style="color: var(--text-muted);">
+                <%= agent.phone || "---" %>
+              </div>
+              <%= if agent.email do %>
+                <div class="text-xs" style="color: var(--text-muted);">
+                  <%= agent.email %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </.link>
+      <% end %>
+    </div>
+  <% end %>
+</div>

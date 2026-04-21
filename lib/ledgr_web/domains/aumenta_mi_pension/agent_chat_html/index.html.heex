@@ -1,0 +1,82 @@
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Chats del Agente</h1>
+  </div>
+
+  <%!-- Search --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/agent-chats")} class="flex gap-3 items-end">
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Buscar agente</label>
+        <input type="text" name="search" value={@current_search} placeholder="Nombre del agente..."
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+      </div>
+      <button type="submit" class="hd-btn-secondary">Buscar</button>
+      <%= if @current_search != "" do %>
+        <.link navigate={dp(@domain_path_prefix, "/agent-chats")} class="hd-btn-secondary">Limpiar</.link>
+      <% end %>
+    </form>
+  </div>
+
+  <%!-- Table --%>
+  <div class="hd-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Agente</th>
+            <th class="text-center p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Mensajes</th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Última Actividad</th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if Enum.empty?(@threads) do %>
+            <tr>
+              <td colspan="4" class="p-8 text-center" style="color: var(--text-muted);">
+                Sin chats del asistente.
+              </td>
+            </tr>
+          <% else %>
+            <%= for t <- @threads do %>
+              <tr class="border-t cursor-pointer hover:bg-[rgba(31,59,106,0.04)]"
+                style="border-color: var(--border-subtle);"
+                onclick={"window.location='#{dp(@domain_path_prefix, "/agent-chats/#{t.agent_id}")}';"}>
+                <td class="p-3">
+                  <div class="flex items-center gap-2">
+                    <div class="hd-doctor-avatar" style="width: 2rem; height: 2rem; font-size: 0.85rem;">
+                      <%= String.first(t.agent_name) %>
+                    </div>
+                    <div>
+                      <div class="text-sm font-medium" style="color: var(--text-main);"><%= t.agent_name %></div>
+                      <%= if t.agent_available do %>
+                        <span class="text-xs" style="color: #16a34a;">● Disponible</span>
+                      <% else %>
+                        <span class="text-xs" style="color: var(--text-muted);">● No disponible</span>
+                      <% end %>
+                    </div>
+                  </div>
+                </td>
+                <td class="p-3 text-center">
+                  <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                    style="background: var(--primary-soft); color: var(--primary);">
+                    <%= t.message_count %>
+                  </span>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  <%= if t.last_message_at, do: Calendar.strftime(t.last_message_at, "%b %d, %Y %I:%M %p"), else: "—" %>
+                </td>
+                <td class="p-3 text-right">
+                  <.link navigate={dp(@domain_path_prefix, "/agent-chats/#{t.agent_id}")} class="text-sm font-medium" style="color: var(--accent);">
+                    Ver chat
+                  </.link>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -29,6 +29,7 @@ defmodule Ledgr.Repo do
   def repo_for_domain(Ledgr.Domains.LedgrHQ), do: Ledgr.Repos.LedgrHQ
   def repo_for_domain(Ledgr.Domains.CasaTame), do: Ledgr.Repos.CasaTame
   def repo_for_domain(Ledgr.Domains.HelloDoctor), do: Ledgr.Repos.HelloDoctor
+  def repo_for_domain(Ledgr.Domains.AumentaMiPension), do: Ledgr.Repos.AumentaMiPension
   def repo_for_domain(_), do: Ledgr.Repos.MrMunchMe
 
   @doc "Returns all configured repo modules."
@@ -71,7 +72,13 @@ defmodule Ledgr.Repo do
   def delete_all(queryable, opts \\ []), do: active_repo().delete_all(queryable, opts)
 
   # Preload / Reload
-  def preload(struct_or_structs, preloads, opts \\ []), do: active_repo().preload(struct_or_structs, preloads, opts)
+  # Force sync preload: Ecto's parallel preloader spawns Task.Supervised
+  # workers that don't inherit our :ledgr_repo process dictionary, so they'd
+  # fall back to the default repo. Running inline keeps everything on the
+  # caller's process, which has the active repo set by DomainPlug.
+  def preload(struct_or_structs, preloads, opts \\ []) do
+    active_repo().preload(struct_or_structs, preloads, Keyword.put_new(opts, :in_parallel, false))
+  end
   def reload(struct_or_structs, opts \\ []), do: active_repo().reload(struct_or_structs, opts)
   def reload!(struct_or_structs, opts \\ []), do: active_repo().reload!(struct_or_structs, opts)
 

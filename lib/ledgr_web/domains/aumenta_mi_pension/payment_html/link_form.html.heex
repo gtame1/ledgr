@@ -1,0 +1,73 @@
+<% fmt = fn
+  nil -> "---"
+  amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"
+  amount when is_integer(amount) -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}"
+end %>
+
+<% pay = @payment %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/payments/#{pay.id}")} class="hd-back">
+      &larr; Volver al Pago
+    </.link>
+  </div>
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Vincular Pago a Consulta</h1>
+  </div>
+
+  <div class="hd-card p-5 mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-sm" style="color: var(--text-muted);">Pago</div>
+        <div class="text-lg font-bold" style="color: var(--text-main);"><%= fmt.(pay.amount) %> MXN</div>
+        <div class="text-sm" style="color: var(--text-muted);">
+          <%= pay.customer_name || "Desconocido" %> &middot; <%= if pay.paid_at, do: Calendar.strftime(pay.paid_at, "%b %d, %Y %I:%M %p"), else: "---" %>
+        </div>
+      </div>
+      <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+    </div>
+  </div>
+
+  <%= if Enum.empty?(@consultations) do %>
+    <div class="hd-card p-8 text-center">
+      <div class="text-sm" style="color: var(--text-muted);">
+        No hay consultas pendientes para vincular.
+      </div>
+    </div>
+  <% else %>
+    <div class="hd-card overflow-hidden">
+      <div class="p-4" style="border-bottom: 1px solid var(--border-subtle);">
+        <div class="text-sm font-medium" style="color: var(--text-muted);">Selecciona una consulta para vincular:</div>
+      </div>
+      <div class="divide-y" style="border-color: var(--border-subtle);">
+        <%= for c <- @consultations do %>
+          <div class="flex items-center justify-between p-4 hover:bg-[rgba(31,59,106,0.03)]">
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium" style="color: var(--text-main);">
+                  <%= if c.customer, do: (c.customer.full_name || c.customer.display_name || "Desconocido"), else: "Desconocido" %>
+                </span>
+                <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+              </div>
+              <div class="text-xs mt-1" style="color: var(--text-muted);">
+                <%= if c.agent, do: c.agent.name, else: "Sin agente asignado" %>
+                &middot; <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y %I:%M %p"), else: "---" %>
+                <%= if c.payment_amount do %>
+                  &middot; <%= fmt.(c.payment_amount) %>
+                <% end %>
+              </div>
+            </div>
+            <form method="post" action={dp(@domain_path_prefix, "/payments/#{pay.id}/link")}>
+              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+              <input type="hidden" name="consultation_id" value={c.id} />
+              <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.35rem 0.75rem;">Vincular</button>
+            </form>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

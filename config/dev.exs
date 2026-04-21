@@ -61,6 +61,16 @@ config :ledgr, Ledgr.Repos.HelloDoctor,
   pool_size: 10,
   priv: "priv/repos/hello_doctor"
 
+config :ledgr, Ledgr.Repos.AumentaMiPension,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_aumenta_mi_pension_dev",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10,
+  priv: "priv/repos/aumenta_mi_pension"
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

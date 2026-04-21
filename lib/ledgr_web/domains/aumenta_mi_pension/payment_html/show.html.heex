@@ -1,0 +1,128 @@
+<% fmt = fn
+  nil -> "---"
+  amount when is_float(amount) -> "$#{:erlang.float_to_binary(amount, decimals: 2)}"
+  amount when is_integer(amount) -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}"
+end %>
+
+<% pay = @payment %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/payments")} class="hd-back">
+      &larr; Volver a Pagos
+    </.link>
+  </div>
+
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Detalles del Pago</h1>
+      <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= if pay.stripe_payment_intent_id do %>
+        <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/check-status")} method="post" class="hd-btn-secondary">
+          Verificar Estatus
+        </.link>
+      <% end %>
+      <%= if pay.status == "paid" && pay.stripe_payment_intent_id do %>
+        <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/refund")} method="post" class="hd-btn-danger"
+          data-confirm={"¿Seguro de reembolsar este pago? Esto emitirá un reembolso completo de #{fmt.(pay.amount)} MXN."}>
+          Reembolsar
+        </.link>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="hd-two-col">
+    <div class="space-y-6">
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">Desglose del Pago</h2>
+        <div class="space-y-3">
+          <div class="flex justify-between text-sm">
+            <span style="color: var(--text-muted);">Monto Total</span>
+            <span class="text-lg font-bold" style="color: var(--text-main);"><%= fmt.(pay.amount) %> <%= String.upcase(pay.currency || "mxn") %></span>
+          </div>
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+            <div class="flex justify-between text-sm mb-2">
+              <span style="color: var(--text-muted);">Comisión Plataforma (15%)</span>
+              <span class="font-medium" style="color: var(--accent);"><%= fmt.(pay.amount && pay.amount * 0.15) %></span>
+            </div>
+            <div class="flex justify-between text-sm mb-2">
+              <span style="color: var(--text-muted);">Pago Agente (85%)</span>
+              <span class="font-medium" style="color: var(--text-main);"><%= fmt.(pay.amount && pay.amount * 0.85) %></span>
+            </div>
+            <%= if pay.stripe_fee do %>
+              <div class="flex justify-between text-sm">
+                <span style="color: var(--text-muted);">Fee de Stripe</span>
+                <span class="font-medium" style="color: #dc2626;"><%= fmt.(pay.stripe_fee) %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <%= if pay.product_name do %>
+        <div class="hd-card p-5">
+          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--text-muted);">Producto</h2>
+          <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.product_name %></div>
+        </div>
+      <% end %>
+
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">Stripe</h2>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Session ID</span>
+            <span class="font-mono text-xs" style="color: var(--text-main);"><%= pay.stripe_session_id %></span>
+          </div>
+          <%= if pay.stripe_payment_intent_id do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Payment Intent</span>
+              <span class="font-mono text-xs" style="color: var(--text-main);"><%= pay.stripe_payment_intent_id %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Cliente</h3>
+        <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.customer_name || "Desconocido" %></div>
+        <%= if pay.customer_email do %>
+          <div class="text-sm" style="color: var(--text-muted);"><%= pay.customer_email %></div>
+        <% end %>
+      </div>
+
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Timeline</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Pagado</span>
+            <span style="color: var(--text-main);"><%= if pay.paid_at, do: Calendar.strftime(pay.paid_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Consulta</h3>
+        <%= if pay.consultation_id do %>
+          <div class="flex items-center gap-3">
+            <.link navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")} class="hd-btn-secondary flex-1 justify-center">
+              Ver Consulta
+            </.link>
+            <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/unlink")} method="post" class="text-xs" style="color: #dc2626;"
+              data-confirm="¿Desvincular este pago de su consulta?">
+              Desvincular
+            </.link>
+          </div>
+        <% else %>
+          <p class="text-sm mb-3" style="color: var(--text-muted);">Sin vincular a consulta.</p>
+          <.link navigate={dp(@domain_path_prefix, "/payments/#{pay.id}/link")} class="hd-btn-secondary">
+            Vincular a Consulta
+          </.link>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
