@@ -9,7 +9,7 @@ defmodule LedgrWeb.Router do
     plug LedgrWeb.Plugs.RequestLoggerPlug
     plug :fetch_live_flash
     plug :put_root_layout, html: {LedgrWeb.Layouts, :root}
-    plug :protect_from_forgery
+    plug LedgrWeb.Plugs.CSRFProtectionPlug
     plug :put_secure_browser_headers
     plug LedgrWeb.Plugs.DomainPlug
     plug LedgrWeb.Plugs.LedgrAccessPlug

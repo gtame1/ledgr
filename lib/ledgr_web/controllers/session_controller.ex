@@ -5,6 +5,7 @@ defmodule LedgrWeb.SessionController do
 
   def new(conn, _params) do
     conn
+    |> put_resp_header("cache-control", "no-store, no-cache, must-revalidate")
     |> assign(:hide_sidebar, true)
     |> render(:new, error_message: nil)
   end
