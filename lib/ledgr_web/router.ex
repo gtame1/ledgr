@@ -6,6 +6,7 @@ defmodule LedgrWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug LedgrWeb.Plugs.RequestLoggerPlug
     plug :fetch_live_flash
     plug :put_root_layout, html: {LedgrWeb.Layouts, :root}
     plug :protect_from_forgery
