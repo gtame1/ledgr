@@ -141,6 +141,23 @@ if hd_webhook_secret = System.get_env("HELLO_DOCTOR_STRIPE_WEBHOOK_SECRET") do
   config :ledgr, hello_doctor_stripe_webhook_secret: hd_webhook_secret
 end
 
+# HelloDoctor external billing API keys
+if key = System.get_env("HELLO_DOCTOR_OPENAI_API_KEY") do
+  config :ledgr, hello_doctor_openai_api_key: key
+end
+
+if key = System.get_env("HELLO_DOCTOR_WHEREBY_API_KEY") do
+  config :ledgr, hello_doctor_whereby_api_key: key
+end
+
+if key = System.get_env("HELLO_DOCTOR_AWS_ACCESS_KEY_ID") do
+  config :ledgr, hello_doctor_aws_access_key_id: key
+end
+
+if key = System.get_env("HELLO_DOCTOR_AWS_SECRET_ACCESS_KEY") do
+  config :ledgr, hello_doctor_aws_secret_access_key: key
+end
+
 # Aumenta Mi Pensión Stripe (separate account)
 if amp_stripe_key = System.get_env("AUMENTA_MI_PENSION_STRIPE_SECRET_KEY") do
   config :ledgr, aumenta_mi_pension_stripe_api_key: amp_stripe_key

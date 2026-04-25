@@ -389,6 +389,9 @@ defmodule LedgrWeb.Router do
     # Specialties (admin-managed list)
     resources "/specialties", Domains.HelloDoctor.SpecialtyController, only: [:index, :create, :delete]
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
+
+    # External billing sync
+    post "/billing/sync-costs", Domains.HelloDoctor.DashboardController, :sync_costs
   end
 
   # ── Aumenta Mi Pensión: public auth routes ─────────────────────────

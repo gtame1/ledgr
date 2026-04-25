@@ -1,6 +1,8 @@
 defmodule LedgrWeb.Domains.HelloDoctor.DashboardController do
   use LedgrWeb, :controller
 
+  alias Ledgr.Domains.HelloDoctor.BillingSync
+
   def index(conn, _params) do
     today = Ledgr.Domains.HelloDoctor.today()
     start_date = Date.beginning_of_month(today)
@@ -10,6 +12,29 @@ defmodule LedgrWeb.Domains.HelloDoctor.DashboardController do
     conn
     |> assign(:page_title, "Dashboard")
     |> render(:index, Map.to_list(metrics))
+  end
+
+  def sync_costs(conn, _params) do
+    results = BillingSync.sync_all()
+
+    messages =
+      Enum.flat_map(results, fn {service, result} ->
+        case result do
+          {:ok, :not_supported}        -> []
+          {:ok, %{rows_upserted: n}}   -> ["#{service}: #{n} rows synced"]
+          {:error, :not_configured}    -> ["#{service}: not configured (skipped)"]
+          {:error, reason}             -> ["#{service}: error — #{inspect(reason)}"]
+        end
+      end)
+
+    flash_msg =
+      if Enum.empty?(messages),
+        do:   "Nothing to sync.",
+        else: Enum.join(messages, " | ")
+
+    conn
+    |> put_flash(:info, flash_msg)
+    |> redirect(to: dp(conn, "/"))
   end
 end
 

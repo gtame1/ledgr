@@ -416,8 +416,82 @@ end %>
 
   <%!-- ═══ INFRASTRUCTURE ═══ --%>
   <div class="mb-8">
-    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Infrastructure</h2>
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted); letter-spacing: 0.05em;">Infrastructure &amp; Costs</h2>
+      <form action={dp(@domain_path_prefix, "/billing/sync-costs")} method="post">
+        <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+        <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
+          ↻ Sync costs
+        </button>
+      </form>
+    </div>
 
+    <%!-- External cost KPIs --%>
+    <div class="hd-kpi-grid mb-4">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Total Ext. Costs (period)</div>
+        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.total_usd, 2) %> <span class="text-base font-normal" style="color: var(--text-muted);">USD</span></div>
+        <div class="hd-kpi-sub">
+          <%= if m.infrastructure_costs.last_synced do %>
+            Last synced <%= Calendar.strftime(m.infrastructure_costs.last_synced, "%b %d") %>
+          <% else %>
+            Never synced — click Sync costs
+          <% end %>
+        </div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">OpenAI</div>
+        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.openai.total_usd, 4) %></div>
+        <div class="hd-kpi-sub">completions + embeddings</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Whereby</div>
+        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.whereby.total_usd, 4) %></div>
+        <div class="hd-kpi-sub">video meetings</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">AWS App Runner</div>
+        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.aws_app_runner.total_usd, 4) %></div>
+        <div class="hd-kpi-sub">compute hosting</div>
+      </div>
+    </div>
+
+    <%!-- Cost detail table --%>
+    <%= if Enum.empty?(m.infrastructure_costs.detail) do %>
+      <div class="hd-empty" style="padding: 1rem;">
+        <div class="hd-empty-icon">💻</div>
+        <p>No cost data — click <strong>Sync costs</strong> to pull from external services.</p>
+      </div>
+    <% else %>
+      <div class="hd-card mb-4" style="padding: 0; overflow: hidden;">
+        <table class="w-full text-sm">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+              <th class="text-left p-2 pl-4 text-xs font-medium uppercase" style="color: var(--text-muted);">Service</th>
+              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
+              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Model / Detail</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Units</th>
+              <th class="text-right p-2 pr-4 text-xs font-medium uppercase" style="color: var(--text-muted);">Cost (USD)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for row <- m.infrastructure_costs.detail do %>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td class="p-2 pl-4 font-medium"><%= row.service %></td>
+                <td class="p-2" style="color: var(--text-muted);"><%= row.date %></td>
+                <td class="p-2" style="color: var(--text-muted);"><%= row.model || "—" %></td>
+                <td class="p-2 text-right" style="color: var(--text-muted);">
+                  <%= if row.units, do: "#{Float.round(row.units * 1.0, 1)} #{row.unit_type || ""}", else: "—" %>
+                </td>
+                <td class="p-2 pr-4 text-right font-medium">$<%= Float.round(row.amount_usd, 6) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+
+    <%!-- Platform stats --%>
     <div class="hd-kpi-grid">
       <div class="hd-kpi">
         <div class="hd-kpi-label">Database Storage</div>

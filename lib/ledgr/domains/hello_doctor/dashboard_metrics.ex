@@ -18,6 +18,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
   alias Ledgr.Domains.HelloDoctor.Prescriptions.Prescription
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
+  alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
 
   @commission_rate 0.15
 
@@ -34,6 +35,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       conversations_per_patient: conversations_per_patient(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       direct_requests: direct_request_metrics(start_date, end_date),
+      infrastructure_costs: infrastructure_costs(start_date, end_date),
       daily_series: daily_series(start_date, end_date),
       # Infrastructure
       db_size: db_size(),
@@ -334,6 +336,48 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       targeted_rate: pct(targeted, total),
       per_doctor: per_doctor
     }
+  end
+
+  # ── Infrastructure costs ───────────────────────────────────────
+
+  @doc """
+  Aggregates external service costs for the given date range.
+  Returns totals per service and a combined total_usd.
+  """
+  def infrastructure_costs(start_date, end_date) do
+    rows =
+      ExternalCost
+      |> where([c], c.date >= ^start_date and c.date <= ^end_date)
+      |> group_by([c], c.service)
+      |> select([c], %{service: c.service, total_usd: sum(c.amount_usd), rows: count(c.id)})
+      |> Repo.all()
+
+    by_service = Map.new(rows, fn r -> {r.service, %{total_usd: to_float(r.total_usd), rows: r.rows}} end)
+
+    total_usd = Enum.reduce(rows, 0.0, fn r, acc -> acc + to_float(r.total_usd) end)
+
+    # Per-service detail rows for the period (for the cost breakdown table)
+    detail =
+      ExternalCost
+      |> where([c], c.date >= ^start_date and c.date <= ^end_date)
+      |> order_by([c], [asc: :service, asc: :date])
+      |> select([c], %{service: c.service, date: c.date, model: c.model, amount_usd: c.amount_usd, units: c.units, unit_type: c.unit_type})
+      |> Repo.all()
+
+    %{
+      total_usd: Float.round(total_usd, 4),
+      openai:       Map.get(by_service, "openai",        %{total_usd: 0.0, rows: 0}),
+      whereby:      Map.get(by_service, "whereby",       %{total_usd: 0.0, rows: 0}),
+      aws_app_runner: Map.get(by_service, "aws_app_runner", %{total_usd: 0.0, rows: 0}),
+      detail: detail,
+      last_synced: last_synced_at()
+    }
+  end
+
+  defp last_synced_at do
+    ExternalCost
+    |> select([c], max(c.synced_at))
+    |> Repo.one()
   end
 
   # ── Daily time series ──────────────────────────────────────────
