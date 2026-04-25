@@ -390,8 +390,14 @@ defmodule LedgrWeb.Router do
     resources "/specialties", Domains.HelloDoctor.SpecialtyController, only: [:index, :create, :delete]
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
 
-    # External billing sync
-    post "/billing/sync-costs", Domains.HelloDoctor.DashboardController, :sync_costs
+    # External billing sync + GL posting
+    post "/billing/sync-costs",   Domains.HelloDoctor.DashboardController,   :sync_costs
+    post "/billing/post-all-costs", Domains.HelloDoctor.DoctorPayoutController, :post_all_costs
+    post "/billing/post-cost/:id",  Domains.HelloDoctor.DoctorPayoutController, :post_cost
+
+    # Doctor payout report
+    get  "/doctor-payouts",                              Domains.HelloDoctor.DoctorPayoutController, :index
+    post "/doctor-payouts/:doctor_id/record-payout",     Domains.HelloDoctor.DoctorPayoutController, :record_payout
   end
 
   # ── Aumenta Mi Pensión: public auth routes ─────────────────────────

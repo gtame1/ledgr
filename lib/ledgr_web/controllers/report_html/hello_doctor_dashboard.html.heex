@@ -418,12 +418,20 @@ end %>
   <div class="mb-8">
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted); letter-spacing: 0.05em;">Infrastructure &amp; Costs</h2>
-      <form action={dp(@domain_path_prefix, "/billing/sync-costs")} method="post">
-        <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-        <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
-          ↻ Sync costs
-        </button>
-      </form>
+      <div class="flex gap-2">
+        <form action={dp(@domain_path_prefix, "/billing/sync-costs")} method="post">
+          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+          <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
+            ↻ Sync costs
+          </button>
+        </form>
+        <form action={dp(@domain_path_prefix, "/billing/post-all-costs")} method="post">
+          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+          <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; background: var(--accent); color: #fff;">
+            ↑ Post all to GL
+          </button>
+        </form>
+      </div>
     </div>
 
     <%!-- External cost KPIs --%>
@@ -471,7 +479,8 @@ end %>
               <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
               <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Model / Detail</th>
               <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Units</th>
-              <th class="text-right p-2 pr-4 text-xs font-medium uppercase" style="color: var(--text-muted);">Cost (USD)</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Cost (USD)</th>
+              <th class="text-right p-2 pr-4 text-xs font-medium uppercase" style="color: var(--text-muted);">GL</th>
             </tr>
           </thead>
           <tbody>
@@ -483,7 +492,19 @@ end %>
                 <td class="p-2 text-right" style="color: var(--text-muted);">
                   <%= if row.units, do: "#{Float.round(row.units * 1.0, 1)} #{row.unit_type || ""}", else: "—" %>
                 </td>
-                <td class="p-2 pr-4 text-right font-medium">$<%= Float.round(row.amount_usd, 6) %></td>
+                <td class="p-2 text-right font-medium">$<%= Float.round(row.amount_usd, 6) %></td>
+                <td class="p-2 pr-4 text-right">
+                  <%= if row.posted_at do %>
+                    <span class="text-xs font-medium" style="color: var(--accent);">✓ JE#<%= row.journal_entry_id %></span>
+                  <% else %>
+                    <form action={dp(@domain_path_prefix, "/billing/post-cost/#{row.id}")} method="post" style="display:inline;">
+                      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                      <button type="submit" class="hd-btn-sm" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">
+                        Post
+                      </button>
+                    </form>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>

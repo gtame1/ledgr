@@ -96,7 +96,13 @@ defmodule Ledgr.Domains.HelloDoctor do
       # Expenses
       payment_processing: "6000",
       refunds_expense: "6010",
-      operating_expense: "6020"
+      operating_expense: "6020",
+      technology_infrastructure: "6040",
+      ai_openai: "6041",
+      video_calls_whereby: "6042",
+      cloud_hosting_aws: "6043",
+      # Liabilities
+      ap_technology: "2300"
     }
   end
 
@@ -104,10 +110,11 @@ defmodule Ledgr.Domains.HelloDoctor do
   def journal_entry_types do
     [
       {"Consultation Payment", "consultation_payment"},
-      {"Doctor Payout", "doctor_payout"},
-      {"Refund", "refund"},
-      {"Commission", "commission"},
-      {"Operating Expense", "operating_expense"}
+      {"Doctor Payout",        "doctor_payout"},
+      {"Refund",               "refund"},
+      {"Commission",           "commission"},
+      {"Operating Expense",    "operating_expense"},
+      {"External Cost",        "external_cost"}
     ]
   end
 
@@ -125,10 +132,11 @@ defmodule Ledgr.Domains.HelloDoctor do
         %{label: "Patients",       path: "#{prefix}/patients",         icon: :customers}
       ]},
       %{group: "Finance", items: [
-        %{label: "Payments",       path: "#{prefix}/payments",         icon: :expenses},
-        %{label: "Expenses",       path: "#{prefix}/expenses",         icon: :expenses},
+        %{label: "Payments",       path: "#{prefix}/payments",              icon: :expenses},
+        %{label: "Expenses",       path: "#{prefix}/expenses",              icon: :expenses},
+        %{label: "Doctor Payouts", path: "#{prefix}/doctor-payouts",        icon: :expenses},
         %{label: "Balance Sheet",  path: "#{prefix}/reports/balance_sheet", icon: :reports},
-        %{label: "P&L",            path: "#{prefix}/reports/pnl",      icon: :reports}
+        %{label: "P&L",            path: "#{prefix}/reports/pnl",           icon: :reports}
       ]},
       %{group: "Settings", items: [
         %{label: "Specialties",         path: "#{prefix}/specialties",               icon: :customers},
@@ -151,6 +159,7 @@ defmodule Ledgr.Domains.HelloDoctor do
       "Patients" => "group",
       "Payments" => "payments",
       "Expenses" => "receipt_long",
+      "Doctor Payouts" => "account_balance_wallet",
       "Balance Sheet" => "account_balance",
       "P&L" => "bar_chart",
       "Transactions" => "list_alt",

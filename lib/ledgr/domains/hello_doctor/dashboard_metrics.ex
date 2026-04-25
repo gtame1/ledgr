@@ -361,7 +361,17 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       ExternalCost
       |> where([c], c.date >= ^start_date and c.date <= ^end_date)
       |> order_by([c], [asc: :service, asc: :date])
-      |> select([c], %{service: c.service, date: c.date, model: c.model, amount_usd: c.amount_usd, units: c.units, unit_type: c.unit_type})
+      |> select([c], %{
+        id:               c.id,
+        service:          c.service,
+        date:             c.date,
+        model:            c.model,
+        amount_usd:       c.amount_usd,
+        units:            c.units,
+        unit_type:        c.unit_type,
+        posted_at:        c.posted_at,
+        journal_entry_id: c.journal_entry_id
+      })
       |> Repo.all()
 
     %{
@@ -433,6 +443,62 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         revenue: to_float(Map.get(revenue_by_day, day, 0))
       }
     end)
+  end
+
+  # ── Doctor payout report ───────────────────────────────────────
+
+  @doc """
+  Returns per-doctor payout breakdown for the given period.
+  Shows total billed, doctor share (85%), and consultation count.
+  Sourced from StripePayments linked to consultations — only includes
+  consultations that have a linked paid Stripe payment.
+  """
+  def doctor_payout_report(start_date, end_date) do
+    per_doctor =
+      from d in Doctor,
+        join: c in Consultation,
+          on: c.doctor_id == d.id,
+        join: p in StripePayment,
+          on: p.consultation_id == c.id and p.status == "paid",
+        where: p.paid_at >= ^to_naive_start(start_date) and p.paid_at <= ^to_naive_end(end_date),
+        group_by: [d.id, d.name, d.specialty],
+        select: %{
+          id:                  d.id,
+          name:                d.name,
+          specialty:           d.specialty,
+          consultation_count:  count(c.id),
+          total_billed:        sum(p.amount),
+          doctor_share:        sum(p.amount) * 0.85,
+          stripe_fees:         sum(fragment("COALESCE(?, 0)", p.stripe_fee))
+        },
+        order_by: [desc: sum(p.amount)]
+
+    rows =
+      per_doctor
+      |> Repo.all()
+      |> Enum.map(fn row ->
+        total = to_float(row.total_billed)
+        share = to_float(row.doctor_share)
+        fees  = to_float(row.stripe_fees)
+        Map.merge(row, %{
+          total_billed:  total,
+          doctor_share:  Float.round(share, 2),
+          stripe_fees:   Float.round(fees, 2),
+          net_to_hd:     Float.round(total * 0.15 - fees, 2)
+        })
+      end)
+
+    total_billed = Enum.reduce(rows, 0.0, & &2 + &1.total_billed)
+    total_doctor_share = Enum.reduce(rows, 0.0, & &2 + &1.doctor_share)
+    total_stripe_fees  = Enum.reduce(rows, 0.0, & &2 + &1.stripe_fees)
+
+    %{
+      rows: rows,
+      total_billed:       Float.round(total_billed, 2),
+      total_doctor_share: Float.round(total_doctor_share, 2),
+      total_stripe_fees:  Float.round(total_stripe_fees, 2),
+      total_net_to_hd:    Float.round(total_billed * 0.15 - total_stripe_fees, 2)
+    }
   end
 
   # ── Helpers ────────────────────────────────────────────────────
