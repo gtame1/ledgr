@@ -1,19 +1,10 @@
 defmodule LedgrWeb.Domains.CasaTame.IncomeController do
   use LedgrWeb, :controller
-  require Logger
 
   alias Ledgr.Domains.CasaTame.Income
   alias Ledgr.Domains.CasaTame.Income.IncomeEntry
   alias Ledgr.Domains.CasaTame.Categories
   alias LedgrWeb.Helpers.MoneyHelper
-
-  # Debug plug — logs every request hitting this controller
-  plug :log_request
-
-  defp log_request(conn, _opts) do
-    Logger.info("[IncomeController] #{conn.method} #{conn.request_path} | params_keys=#{inspect(Map.keys(conn.params))} | domain=#{inspect(conn.assigns[:current_domain])} | prefix=#{inspect(conn.assigns[:domain_path_prefix])}")
-    conn
-  end
 
   def index(conn, params) do
     entries = Income.list_income_entries(
@@ -39,16 +30,13 @@ defmodule LedgrWeb.Domains.CasaTame.IncomeController do
   end
 
   def create(conn, %{"income_entry" => attrs}) do
-    Logger.info("[IncomeController.create] MATCHED income_entry clause | attrs_keys=#{inspect(Map.keys(attrs))}")
     attrs = MoneyHelper.convert_params_pesos_to_cents(attrs, [:amount_cents])
 
     case Income.create_income_entry_with_journal(attrs) do
       {:ok, entry} ->
-        Logger.info("[IncomeController.create] SUCCESS entry_id=#{entry.id}")
         conn |> put_flash(:info, "Income recorded.") |> redirect(to: dp(conn, "/income/#{entry.id}"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        Logger.warning("[IncomeController.create] VALIDATION FAILED errors=#{inspect(changeset.errors)}")
         changeset =
           changeset
           |> Map.put(:action, :insert)
@@ -57,12 +45,6 @@ defmodule LedgrWeb.Domains.CasaTame.IncomeController do
 
         render(conn, :new, [changeset: changeset, action: dp(conn, "/income")] ++ form_assigns())
     end
-  end
-
-  # Catch-all for debugging — if income_entry key is missing from params
-  def create(conn, params) do
-    Logger.error("[IncomeController.create] CATCH-ALL — income_entry key NOT in params | all_keys=#{inspect(Map.keys(params))} | full_params=#{inspect(params, limit: 500)}")
-    conn |> put_flash(:error, "Unexpected form data. Keys: #{inspect(Map.keys(params))}") |> redirect(to: dp(conn, "/income/new"))
   end
 
   def show(conn, %{"id" => id}) do

@@ -526,6 +526,54 @@ window.toggleDropdown = function(button) {
   }
 }
 
+// ==============================
+// Casa Tame: Same-Currency Transfer Filter
+// ==============================
+
+const initTransferCurrencyFilter = () => {
+  // Only active for Casa Tame domain
+  if (document.body.dataset.domain !== 'casa-tame') return
+
+  const fromSelect = document.getElementById('transfer_from_account_id')
+  const toSelect   = document.getElementById('transfer_to_account_id')
+  if (!fromSelect || !toSelect) return
+
+  const lockMsg = document.getElementById('ct-currency-lock-msg')
+
+  const filterToOptions = () => {
+    const selectedOpt = fromSelect.options[fromSelect.selectedIndex]
+    const fromCurrency = selectedOpt ? selectedOpt.dataset.currency : null
+
+    Array.from(toSelect.options).forEach(opt => {
+      if (!opt.value) return // skip the blank prompt option
+      const optCurrency = opt.dataset.currency
+      opt.disabled = !!(fromCurrency && optCurrency && optCurrency !== fromCurrency)
+      opt.style.color = opt.disabled ? 'transparent' : ''
+    })
+
+    // If the currently-selected "to" account is now disabled, clear it
+    const currentTo = toSelect.options[toSelect.selectedIndex]
+    if (currentTo && currentTo.disabled) toSelect.value = ''
+
+    // Update the lock hint below the "to" select
+    if (lockMsg) {
+      if (fromCurrency) {
+        lockMsg.textContent = `🔒 Locked to ${fromCurrency} accounts`
+        lockMsg.style.display = ''
+      } else {
+        lockMsg.style.display = 'none'
+      }
+    }
+  }
+
+  fromSelect.addEventListener('change', filterToOptions)
+  // Run immediately for edit form (pre-selected value)
+  filterToOptions()
+}
+
+document.addEventListener('DOMContentLoaded', initTransferCurrencyFilter)
+window.addEventListener('phx:page-loading-stop', initTransferCurrencyFilter)
+
 // Close action dropdowns (<details>) when clicking outside
 document.addEventListener("click", function(e) {
   document.querySelectorAll("details.action-dropdown[open]").forEach(function(el) {

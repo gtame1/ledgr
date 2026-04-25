@@ -143,9 +143,6 @@ defmodule Ledgr.Domains.AumentaMiPension do
   end
 
   @impl Ledgr.Domain.DomainConfig
-  def sidebar_subtitle, do: "Modalidad 40"
-
-  @impl Ledgr.Domain.DomainConfig
   def nav_icons do
     %{
       "Dashboard" => "dashboard",

@@ -304,7 +304,10 @@ defmodule LedgrWeb.Router do
 
     # Expenses (domain-specific with currency + categories)
     resources "/expenses", Domains.CasaTame.ExpenseController,
-      only: [:index, :new, :create, :show, :edit, :update, :delete]
+      only: [:index, :new, :create, :show, :edit, :update, :delete] do
+      resources "/attachments", Domains.CasaTame.ExpenseAttachmentController,
+        only: [:create, :delete]
+    end
 
     # Income
     resources "/income", Domains.CasaTame.IncomeController,

@@ -530,6 +530,29 @@ defmodule Ledgr.Core.Accounting do
     end)
   end
 
+  # Same as above but returns 3-tuples {label, id, currency} where currency is inferred
+  # from the account code prefix. Used by the transfer form to enable same-currency filtering.
+  def cash_or_payable_account_options_with_currency do
+    Repo.all(
+      from a in Account,
+        where: (a.type == "asset" and (a.is_cash == true or like(a.code, "11%"))) or a.type == "liability",
+        order_by: [asc: a.code]
+    )
+    |> Enum.map(fn a ->
+      {"#{a.code} – #{a.name}", a.id, infer_account_currency(a.code)}
+    end)
+  end
+
+  # Infer currency from Casa Tame account code prefix:
+  #   10xx, 20xx → USD   |   11xx, 21xx (and others) → MXN
+  defp infer_account_currency(code) do
+    case String.slice(code, 0, 2) do
+      "10" -> "USD"
+      "20" -> "USD"
+      _ -> "MXN"
+    end
+  end
+
   def transfer_account_options do
     from(a in Account,
       where: a.type == "asset",

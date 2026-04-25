@@ -30,7 +30,8 @@ defmodule LedgrWeb.TransferController do
 
     render(conn, :new,
       changeset: changeset,
-      account_options: Accounting.cash_or_payable_account_options()
+      account_options: Accounting.cash_or_payable_account_options(),
+      account_options_tagged: Accounting.cash_or_payable_account_options_with_currency()
     )
   end
 
@@ -46,7 +47,8 @@ defmodule LedgrWeb.TransferController do
 
         render(conn, :new,
           changeset: changeset,
-          account_options: Accounting.cash_or_payable_account_options()
+          account_options: Accounting.cash_or_payable_account_options(),
+          account_options_tagged: Accounting.cash_or_payable_account_options_with_currency()
         )
     end
   end
@@ -76,7 +78,8 @@ defmodule LedgrWeb.TransferController do
     render(conn, :edit,
       transfer: transfer,
       changeset: changeset,
-      account_options: Accounting.cash_or_payable_account_options()
+      account_options: Accounting.cash_or_payable_account_options(),
+      account_options_tagged: Accounting.cash_or_payable_account_options_with_currency()
     )
   end
 
@@ -95,7 +98,8 @@ defmodule LedgrWeb.TransferController do
         render(conn, :edit,
           transfer: transfer,
           changeset: changeset,
-          account_options: Accounting.cash_or_payable_account_options()
+          account_options: Accounting.cash_or_payable_account_options(),
+          account_options_tagged: Accounting.cash_or_payable_account_options_with_currency()
         )
     end
   end

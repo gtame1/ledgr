@@ -7,13 +7,15 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   alias Ledgr.Repo
 
   alias Ledgr.Domains.CasaTame.Expenses.CasaTameExpense, as: Expense
+  alias Ledgr.Domains.CasaTame.Expenses.ExpenseSplit
+  alias Ledgr.Domains.CasaTame.Expenses.ExpenseAttachment
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Accounting.JournalEntry
 
   def list_expenses(opts \\ []) do
     query =
       from e in Expense,
-        preload: [:expense_account, :paid_from_account, :expense_category],
+        preload: [:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account],
         order_by: [desc: e.date, desc: e.inserted_at]
 
     query
@@ -53,7 +55,37 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   def get_expense!(id) do
     Expense
     |> Repo.get!(id)
-    |> Repo.preload([:expense_account, :paid_from_account, :expense_category])
+    |> Repo.preload([:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account])
+  end
+
+  # ── Attachment helpers ─────────────────────────────────────────
+
+  def get_attachment!(id), do: Repo.get!(ExpenseAttachment, id)
+
+  def attach_receipt(expense_id, %Plug.Upload{} = upload) do
+    with {:ok, stored_path} <- Ledgr.Receipts.save(upload) do
+      %ExpenseAttachment{}
+      |> ExpenseAttachment.changeset(%{
+        expense_id: expense_id,
+        filename: upload.filename,
+        stored_path: stored_path,
+        content_type: upload.content_type,
+        file_size: file_size(upload.path)
+      })
+      |> Repo.insert()
+    end
+  end
+
+  def delete_attachment(%ExpenseAttachment{} = attachment) do
+    Ledgr.Receipts.delete(attachment.stored_path)
+    Repo.delete(attachment)
+  end
+
+  defp file_size(path) do
+    case File.stat(path) do
+      {:ok, %{size: size}} -> size
+      _ -> nil
+    end
   end
 
   def change_expense(%Expense{} = expense, attrs \\ %{}) do
@@ -68,6 +100,56 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
              |> Repo.insert(),
            {:ok, _entry} <- record_expense_journal(expense) do
         expense
+      else
+        {:error, changeset = %Ecto.Changeset{}} -> Repo.rollback(changeset)
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  @doc """
+  Creates an expense with multiple payment splits.
+  `splits` is a list of maps with `"account_id"` and `"amount_cents"` (already in cents).
+  The total expense amount is derived from the sum of split amounts.
+  """
+  def create_expense_with_splits(attrs, splits) when is_list(splits) and splits != [] do
+    total_cents = Enum.sum(Enum.map(splits, & &1["amount_cents"]))
+    first_account_id = hd(splits)["account_id"]
+
+    attrs =
+      attrs
+      |> Map.put("amount_cents", total_cents)
+      |> Map.put("paid_from_account_id", first_account_id)
+
+    Repo.transaction(fn ->
+      with {:ok, expense} <- %Expense{} |> Expense.changeset(attrs) |> Repo.insert(),
+           :ok <- insert_splits(expense, splits),
+           {:ok, _entry} <- record_expense_journal_splits(expense, splits) do
+        expense
+      else
+        {:error, changeset = %Ecto.Changeset{}} -> Repo.rollback(changeset)
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  @doc """
+  Updates an expense and replaces its payment splits.
+  """
+  def update_expense_with_splits(%Expense{} = expense, attrs, splits) when is_list(splits) and splits != [] do
+    total_cents = Enum.sum(Enum.map(splits, & &1["amount_cents"]))
+    first_account_id = hd(splits)["account_id"]
+
+    attrs =
+      attrs
+      |> Map.put("amount_cents", total_cents)
+      |> Map.put("paid_from_account_id", first_account_id)
+
+    Repo.transaction(fn ->
+      with {:ok, updated} <- expense |> Expense.changeset(attrs) |> Repo.update(),
+           :ok <- replace_splits(updated, splits),
+           {:ok, _entry} <- update_expense_journal_splits(updated, splits) do
+        updated
       else
         {:error, changeset = %Ecto.Changeset{}} -> Repo.rollback(changeset)
         {:error, reason} -> Repo.rollback(reason)
@@ -101,6 +183,27 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
       if journal_entry, do: Repo.delete!(journal_entry)
       Repo.delete!(expense)
     end)
+  end
+
+  # ── Split Helpers ──────────────────────────────────────────────
+
+  defp insert_splits(expense, splits) do
+    Enum.each(splits, fn split ->
+      %ExpenseSplit{}
+      |> ExpenseSplit.changeset(%{
+        expense_id: expense.id,
+        account_id: split["account_id"],
+        amount_cents: split["amount_cents"]
+      })
+      |> Repo.insert!()
+    end)
+
+    :ok
+  end
+
+  defp replace_splits(expense, splits) do
+    Repo.delete_all(from s in ExpenseSplit, where: s.expense_id == ^expense.id)
+    insert_splits(expense, splits)
   end
 
   # ── Journal Entry Helpers ──────────────────────────────────────
@@ -160,6 +263,68 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
       )
     else
       record_expense_journal(expense)
+    end
+  end
+
+  defp record_expense_journal_splits(expense, splits) do
+    lines = [
+      %{
+        account_id: expense.expense_account_id,
+        debit_cents: expense.amount_cents,
+        credit_cents: 0,
+        description: "Expense: #{expense.description}"
+      }
+      | Enum.map(splits, fn split ->
+          %{
+            account_id: split["account_id"],
+            debit_cents: 0,
+            credit_cents: split["amount_cents"],
+            description: "Paid from account"
+          }
+        end)
+    ]
+
+    Accounting.create_journal_entry_with_lines(
+      %{
+        date: expense.date,
+        entry_type: "personal_expense",
+        reference: "Expense ##{expense.id}",
+        description: expense.description,
+        payee: expense.payee
+      },
+      lines
+    )
+  end
+
+  defp update_expense_journal_splits(expense, splits) do
+    reference = "Expense ##{expense.id}"
+    je = from(j in JournalEntry, where: j.reference == ^reference) |> Repo.one()
+
+    lines = [
+      %{
+        account_id: expense.expense_account_id,
+        debit_cents: expense.amount_cents,
+        credit_cents: 0,
+        description: "Expense: #{expense.description}"
+      }
+      | Enum.map(splits, fn split ->
+          %{
+            account_id: split["account_id"],
+            debit_cents: 0,
+            credit_cents: split["amount_cents"],
+            description: "Paid from account"
+          }
+        end)
+    ]
+
+    if je do
+      Accounting.update_journal_entry_with_lines(
+        je,
+        %{date: expense.date, description: expense.description, payee: expense.payee},
+        lines
+      )
+    else
+      record_expense_journal_splits(expense, splits)
     end
   end
 

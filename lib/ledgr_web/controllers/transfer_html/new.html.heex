@@ -31,23 +31,48 @@
 
         <div class="form-block">
           <div class="field">
-            <.input
-              field={f[:from_account_id]}
-              type="select"
-              label="From account"
-              prompt="Select source account"
-              options={@account_options}
-            />
+            <div class="fieldset mb-2">
+              <label>
+                <span class="label mb-1">From account</span>
+                <select
+                  id={f[:from_account_id].id}
+                  name={f[:from_account_id].name}
+                  class="w-full select"
+                >
+                  <option value="">Select source account</option>
+                  <%= for {label, value, currency} <- @account_options_tagged do %>
+                    <option
+                      value={value}
+                      data-currency={currency}
+                      selected={to_string(f[:from_account_id].value) == to_string(value)}
+                    ><%= label %></option>
+                  <% end %>
+                </select>
+              </label>
+            </div>
           </div>
 
           <div class="field">
-            <.input
-              field={f[:to_account_id]}
-              type="select"
-              label="To account"
-              prompt="Select destination account"
-              options={@account_options}
-            />
+            <div class="fieldset mb-2">
+              <label>
+                <span class="label mb-1">To account</span>
+                <select
+                  id={f[:to_account_id].id}
+                  name={f[:to_account_id].name}
+                  class="w-full select"
+                >
+                  <option value="">Select destination account</option>
+                  <%= for {label, value, currency} <- @account_options_tagged do %>
+                    <option
+                      value={value}
+                      data-currency={currency}
+                      selected={to_string(f[:to_account_id].value) == to_string(value)}
+                    ><%= label %></option>
+                  <% end %>
+                </select>
+              </label>
+              <p id="ct-currency-lock-msg" class="ct-currency-lock-msg" style="display:none;"></p>
+            </div>
           </div>
 
           <div class="field">

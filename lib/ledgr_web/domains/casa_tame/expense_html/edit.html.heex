@@ -1,3 +1,24 @@
+<%
+  paid_from_json = Jason.encode!(@paid_from_account_options |> Enum.map(fn {label, id} ->
+    %{value: id, label: label,
+      currency: if(String.starts_with?(label, "USD"), do: "USD", else: "MXN")}
+  end))
+
+  # Build initial splits from existing expense splits (or fall back to single paid_from_account)
+  existing_splits =
+    if @expense.splits != [] do
+      Enum.map(@expense.splits, fn s ->
+        %{"account_id" => s.account_id, "amount_cents" => s.amount_cents}
+      end)
+    else
+      [%{"account_id" => @expense.paid_from_account_id, "amount_cents" => @expense.amount_cents}]
+    end
+
+  # On validation failure replay, prefer the submitted splits
+  display_splits = Map.get(assigns, :initial_splits, [])
+  display_splits = if display_splits != [], do: display_splits, else: existing_splits
+%>
+
 <section class="content">
   <div class="content-body">
     <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}")} style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -36,21 +57,28 @@
       <div class="field">
         <.input field={f[:expense_account_id]} type="searchable_select" label="Category" prompt="Search or select category..." options={@expense_account_options} />
       </div>
-      <div class="field">
-        <.input field={f[:paid_from_account_id]} type="select" label="Paid from" prompt="Select payment account" options={@paid_from_account_options} />
+
+      <div class="ct-form-section-label" style="margin-bottom: 0.25rem;">Currency</div>
+      <div class="field" style="margin-bottom: 1rem;">
+        <.input field={f[:currency]} type="select" label="" options={@currency_options} />
       </div>
 
-      <div class="ct-form-section-label">Amount</div>
-      <div class="ct-form-amount-card">
-        <div class="ct-form-amount-main">
-          <.input field={f[:amount_cents]} type="number" min="0" step="0.01" label="Amount" placeholder="0.00" />
-        </div>
-        <div class="field" style="margin-top: 0.75rem;">
-          <.input field={f[:currency]} type="select" label="Currency" options={@currency_options} />
-        </div>
+      <div class="ct-form-section-label" style="display: flex; align-items: center; justify-content: space-between;">
+        <span>Payment</span>
+        <span id="ct-split-remaining" class="ct-split-remaining" style="display: none;"></span>
       </div>
 
-      <button class="ct-form-save-btn" type="submit">Update Expense</button>
+      <div id="ct-splits-container" data-options={paid_from_json}>
+      </div>
+
+      <button type="button" id="ct-add-split" class="ct-add-split-btn">
+        + Add Split
+      </button>
+
+      <input type="hidden" name="expense[paid_from_account_id]" value="" />
+      <input type="hidden" name="expense[amount_cents]" value="0" />
+
+      <button class="ct-form-save-btn" type="submit" style="margin-top: 1.25rem;">Update Expense</button>
       <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}")} class="ct-form-cancel">Cancel</.link>
     </.form>
 
@@ -63,41 +91,122 @@
 </section>
 
 <script>
-  (function() {
-    const currencySelect = document.querySelector('[name="expense[currency]"]');
-    const paidFromSelect = document.querySelector('[name="expense[paid_from_account_id]"]');
-    if (!currencySelect || !paidFromSelect) return;
+(function() {
+  const container  = document.getElementById('ct-splits-container');
+  const addBtn     = document.getElementById('ct-add-split');
+  const remaining  = document.getElementById('ct-split-remaining');
+  const currencyEl = document.querySelector('[name="expense[currency]"]');
+  const allOptions = JSON.parse(container.dataset.options || '[]');
 
-    const allOptions = Array.from(paidFromSelect.options).map(opt => ({
-      value: opt.value,
-      text: opt.text,
-      selected: opt.selected
-    }));
+  const initialSplits = <%= raw(Jason.encode!(display_splits)) %>;
 
-    function filterPaidFrom() {
-      const currency = currencySelect.value;
-      const currentValue = paidFromSelect.value;
+  let splitCount = 0;
 
-      paidFromSelect.innerHTML = '';
+  function currencyOptions(currency) {
+    return allOptions.filter(o => o.currency === currency);
+  }
 
-      const prompt = document.createElement('option');
-      prompt.value = '';
-      prompt.textContent = 'Select payment account';
-      paidFromSelect.appendChild(prompt);
+  function buildSelect(index, selectedAccountId, currency) {
+    const opts = currencyOptions(currency);
+    const optionsHtml = opts.map(o => {
+      const sel = String(o.value) === String(selectedAccountId) ? ' selected' : '';
+      const label = o.label.replace(/^(USD|MXN): /, '');
+      return `<option value="${o.value}"${sel}>${label}</option>`;
+    }).join('');
+    return `<select name="expense[splits][${index}][account_id]" class="w-full select ct-split-select" required>
+      <option value="">Select account</option>
+      ${optionsHtml}
+    </select>`;
+  }
 
-      allOptions.forEach(opt => {
-        if (!opt.value) return;
-        if (opt.text.startsWith(currency + ':')) {
-          const option = document.createElement('option');
-          option.value = opt.value;
-          option.textContent = opt.text.replace(/^(USD|MXN): /, '');
-          if (opt.value === currentValue) option.selected = true;
-          paidFromSelect.appendChild(option);
-        }
-      });
+  function addRow(accountId, amountPesos) {
+    const index = splitCount++;
+    const currency = currencyEl ? currencyEl.value : 'MXN';
+    const row = document.createElement('div');
+    row.className = 'ct-split-row';
+    row.dataset.index = index;
+    row.innerHTML = `
+      <div class="ct-split-account">
+        <label class="label">From account</label>
+        ${buildSelect(index, accountId || '', currency)}
+      </div>
+      <div class="ct-split-amount">
+        <label class="label">Amount</label>
+        <input
+          type="number"
+          name="expense[splits][${index}][amount_cents]"
+          class="ct-split-amount-input"
+          step="0.01"
+          min="0.01"
+          placeholder="0.00"
+          value="${amountPesos || ''}"
+          required
+        />
+      </div>
+      <button type="button" class="ct-split-remove" title="Remove">×</button>
+    `;
+
+    row.querySelector('.ct-split-remove').addEventListener('click', () => {
+      row.remove();
+      updateRemaining();
+      enforceMinRows();
+    });
+
+    row.querySelector('.ct-split-amount-input').addEventListener('input', updateRemaining);
+
+    container.appendChild(row);
+    updateRemaining();
+    enforceMinRows();
+  }
+
+  function enforceMinRows() {
+    const rows = container.querySelectorAll('.ct-split-row');
+    rows.forEach(r => {
+      const btn = r.querySelector('.ct-split-remove');
+      if (btn) btn.style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
+    });
+  }
+
+  function updateRemaining() {
+    const rows = container.querySelectorAll('.ct-split-row');
+    if (rows.length > 1) {
+      const sum = Array.from(container.querySelectorAll('.ct-split-amount-input'))
+        .reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
+      remaining.textContent = `Total: $${sum.toFixed(2)}`;
+      remaining.style.display = '';
+    } else {
+      remaining.style.display = 'none';
     }
+  }
 
-    currencySelect.addEventListener('change', filterPaidFrom);
-    filterPaidFrom();
-  })();
+  function rebuildSelects(currency) {
+    container.querySelectorAll('.ct-split-row').forEach((row) => {
+      const sel = row.querySelector('.ct-split-select');
+      const currentVal = sel ? sel.value : '';
+      const opts = currencyOptions(currency);
+      let optHtml = '<option value="">Select account</option>' +
+        opts.map(o => {
+          const label = o.label.replace(/^(USD|MXN): /, '');
+          return `<option value="${o.value}"${String(o.value) === String(currentVal) ? ' selected' : ''}>${label}</option>`;
+        }).join('');
+      if (sel) sel.innerHTML = optHtml;
+    });
+  }
+
+  if (currencyEl) {
+    currencyEl.addEventListener('change', () => rebuildSelects(currencyEl.value));
+  }
+
+  addBtn.addEventListener('click', () => addRow('', ''));
+
+  // Seed existing splits
+  if (initialSplits.length > 0) {
+    initialSplits.forEach(s => {
+      const pesos = s.amount_cents > 0 ? (s.amount_cents / 100).toFixed(2) : '';
+      addRow(s.account_id, pesos);
+    });
+  } else {
+    addRow('', '');
+  }
+})();
 </script>

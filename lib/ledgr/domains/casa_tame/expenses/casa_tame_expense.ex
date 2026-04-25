@@ -8,6 +8,8 @@ defmodule Ledgr.Domains.CasaTame.Expenses.CasaTameExpense do
 
   alias Ledgr.Core.Accounting.Account
   alias Ledgr.Domains.CasaTame.Categories.ExpenseCategory
+  alias Ledgr.Domains.CasaTame.Expenses.ExpenseSplit
+  alias Ledgr.Domains.CasaTame.Expenses.ExpenseAttachment
 
   schema "expenses" do
     field :date, :date
@@ -21,6 +23,9 @@ defmodule Ledgr.Domains.CasaTame.Expenses.CasaTameExpense do
     belongs_to :expense_account, Account
     belongs_to :paid_from_account, Account
     belongs_to :expense_category, ExpenseCategory
+
+    has_many :splits, ExpenseSplit, foreign_key: :expense_id, on_delete: :delete_all
+    has_many :attachments, ExpenseAttachment, foreign_key: :expense_id, on_delete: :delete_all
 
     timestamps()
   end

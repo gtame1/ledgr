@@ -41,28 +41,33 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
     attrs = if params["amount"], do: %{"amount_cents" => params["amount"]}, else: %{}
     changeset = Expenses.change_expense(prefill, attrs)
 
+    # Pre-populate first split from bill payment query params if present
+    initial_splits =
+      if params["paid_from_account_id"] && params["paid_from_account_id"] != "" &&
+           params["amount"] && params["amount"] != "" do
+        [%{"account_id" => params["paid_from_account_id"], "amount_cents" => params["amount"]}]
+      else
+        []
+      end
+
     render(conn, :new,
-      [changeset: changeset, action: dp(conn, "/expenses"), from_bill: params["from_bill"]] ++ form_assigns()
+      [changeset: changeset, action: dp(conn, "/expenses"), from_bill: params["from_bill"], initial_splits: initial_splits] ++ form_assigns()
     )
   end
 
   def create(conn, %{"expense" => attrs}) do
-    attrs = MoneyHelper.convert_params_pesos_to_cents(attrs, [:amount_cents])
+    splits = parse_and_convert_splits(attrs)
+    attrs = Map.delete(attrs, "splits")
 
-    case Expenses.create_expense_with_journal(attrs) do
+    case Expenses.create_expense_with_splits(attrs, splits) do
       {:ok, expense} ->
         conn
         |> put_flash(:info, "Expense recorded.")
         |> redirect(to: dp(conn, "/expenses/#{expense.id}"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        changeset =
-          changeset
-          |> Map.put(:action, :insert)
-          |> Ecto.Changeset.put_change(:amount_cents,
-               MoneyHelper.cents_to_pesos(Ecto.Changeset.get_field(changeset, :amount_cents)))
-
-        render(conn, :new, [changeset: changeset, action: dp(conn, "/expenses")] ++ form_assigns())
+        changeset = Map.put(changeset, :action, :insert)
+        render(conn, :new, [changeset: changeset, action: dp(conn, "/expenses"), from_bill: nil, initial_splits: splits] ++ form_assigns())
     end
   end
 
@@ -73,8 +78,7 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
 
   def edit(conn, %{"id" => id}) do
     expense = Expenses.get_expense!(id)
-    attrs = %{"amount_cents" => MoneyHelper.cents_to_pesos(expense.amount_cents)}
-    changeset = Expenses.change_expense(expense, attrs)
+    changeset = Expenses.change_expense(expense, %{})
 
     render(conn, :edit,
       [expense: expense, changeset: changeset, action: dp(conn, "/expenses/#{expense.id}")] ++ form_assigns()
@@ -83,23 +87,20 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
 
   def update(conn, %{"id" => id, "expense" => attrs}) do
     expense = Expenses.get_expense!(id)
-    attrs = MoneyHelper.convert_params_pesos_to_cents(attrs, [:amount_cents])
+    splits = parse_and_convert_splits(attrs)
+    attrs = Map.delete(attrs, "splits")
 
-    case Expenses.update_expense_with_journal(expense, attrs) do
+    case Expenses.update_expense_with_splits(expense, attrs, splits) do
       {:ok, expense} ->
         conn
         |> put_flash(:info, "Expense updated.")
         |> redirect(to: dp(conn, "/expenses/#{expense.id}"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        changeset =
-          changeset
-          |> Map.put(:action, :update)
-          |> Ecto.Changeset.put_change(:amount_cents,
-               MoneyHelper.cents_to_pesos(Ecto.Changeset.get_field(changeset, :amount_cents)))
+        changeset = Map.put(changeset, :action, :update)
 
         render(conn, :edit,
-          [expense: expense, changeset: changeset, action: dp(conn, "/expenses/#{expense.id}")] ++ form_assigns()
+          [expense: expense, changeset: changeset, action: dp(conn, "/expenses/#{expense.id}"), initial_splits: splits] ++ form_assigns()
         )
     end
   end
@@ -171,6 +172,30 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
           end)
       end
     end)
+  end
+
+  # Parses expense[splits][N][account_id|amount_cents] from form params and converts
+  # amount_cents from pesos (string) to integer cents.
+  defp parse_and_convert_splits(attrs) do
+    case attrs["splits"] do
+      nil ->
+        []
+
+      splits_map ->
+        splits_map
+        |> Enum.sort_by(fn {k, _} -> String.to_integer(k) end)
+        |> Enum.map(fn {_, v} -> v end)
+        |> Enum.reject(fn s ->
+          s["account_id"] == "" or is_nil(s["account_id"]) or
+            s["amount_cents"] == "" or is_nil(s["amount_cents"])
+        end)
+        |> Enum.map(fn s ->
+          %{
+            "account_id" => s["account_id"],
+            "amount_cents" => MoneyHelper.pesos_to_cents(s["amount_cents"])
+          }
+        end)
+    end
   end
 
   # Only cash, bank, and credit card accounts — no fixed assets, loans, or AP

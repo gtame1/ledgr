@@ -7,6 +7,13 @@
     whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
     "#{sign}$#{whole_with_commas}.#{dec}"
   end
+
+  fmt_bytes = fn
+    nil -> ""
+    bytes when bytes < 1024 -> "#{bytes} B"
+    bytes when bytes < 1024 * 1024 -> "#{Float.round(bytes / 1024, 1)} KB"
+    bytes -> "#{Float.round(bytes / (1024 * 1024), 1)} MB"
+  end
 %>
 
 <section class="card">
@@ -32,9 +39,83 @@
       <%= fmt.(@expense.amount_cents) %>
     </li>
     <li><strong>Category:</strong> <%= @expense.expense_account && @expense.expense_account.name %></li>
-    <li><strong>Paid From:</strong> <%= @expense.paid_from_account && @expense.paid_from_account.name %></li>
+    <%= if @expense.splits != [] do %>
+      <li>
+        <strong>Paid from:</strong>
+        <ul style="margin: 0.25rem 0 0 1rem; list-style: disc;">
+          <%= for split <- @expense.splits do %>
+            <li style="font-size: 0.9rem;">
+              <%= split.account && split.account.name %> — <%= fmt.(split.amount_cents) %>
+            </li>
+          <% end %>
+        </ul>
+      </li>
+    <% else %>
+      <li><strong>Paid From:</strong> <%= @expense.paid_from_account && @expense.paid_from_account.name %></li>
+    <% end %>
     <%= if @expense.payee do %>
       <li><strong>Payee:</strong> <%= @expense.payee %></li>
     <% end %>
   </ul>
+</section>
+
+<!-- Receipts & Documents -->
+<section class="card" style="margin-top: 1rem;">
+  <h2 class="card-title" style="margin-bottom: 0.75rem;">Receipts & Documents</h2>
+
+  <%= if @expense.attachments == [] do %>
+    <p style="font-size: 0.85rem; color: var(--ct-on-surface-variant); margin-bottom: 0.75rem;">No receipts attached yet.</p>
+  <% else %>
+    <ul class="ct-attachment-list">
+      <%= for att <- @expense.attachments do %>
+        <li class="ct-attachment-row">
+          <div class="ct-attachment-icon">
+            <%= if String.starts_with?(att.content_type || "", "image/") do %>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <% else %>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <% end %>
+          </div>
+          <div class="ct-attachment-info">
+            <a href={Ledgr.Receipts.url_for(att.stored_path)} target="_blank" class="ct-attachment-name">
+              <%= att.filename %>
+            </a>
+            <%= if att.file_size do %>
+              <span class="ct-attachment-meta"><%= fmt_bytes.(att.file_size) %></span>
+            <% end %>
+          </div>
+          <.link
+            href={dp(@domain_path_prefix, "/expenses/#{@expense.id}/attachments/#{att.id}")}
+            method="delete"
+            data-confirm="Remove this receipt?"
+            class="ct-attachment-delete"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </.link>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <!-- Upload form -->
+  <form
+    action={dp(@domain_path_prefix, "/expenses/#{@expense.id}/attachments")}
+    method="post"
+    enctype="multipart/form-data"
+    style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem;"
+  >
+    <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+    <input
+      type="file"
+      name="attachment[file]"
+      accept="image/*,application/pdf"
+      style="flex: 1; font-size: 0.85rem;"
+    />
+    <button
+      type="submit"
+      style="background: #1B3022; color: #fbf9f4; border: none; border-radius: 0.5rem; padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap;"
+    >
+      Upload
+    </button>
+  </form>
 </section>
