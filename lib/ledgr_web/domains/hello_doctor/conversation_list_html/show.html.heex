@@ -102,7 +102,7 @@
                   </div>
                   <div class="whitespace-pre-line" style="color: var(--text-main);"><%= msg.content %></div>
                   <%= if msg.created_at do %>
-                    <div class="text-xs mt-1 opacity-60"><%= Calendar.strftime(msg.created_at, "%I:%M %p") %></div>
+                    <div class="text-xs mt-1 opacity-60"><%= fmt_time(msg.created_at) %></div>
                   <% end %>
                 </div>
               </div>

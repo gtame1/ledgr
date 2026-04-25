@@ -50,7 +50,7 @@
             </div>
             <span class="text-xs" style="color: var(--text-muted);">
               <%= length(messages) %> messages
-              · <%= Calendar.strftime(List.first(messages).created_at, "%b %d, %Y") %>
+              · <%= fmt_date(List.first(messages).created_at) %>
             </span>
           </div>
 
@@ -71,7 +71,7 @@
                     <%= if msg.tool_args && msg.tool_args != "" do %>
                       <span class="opacity-60 max-w-[300px] truncate"><%= msg.tool_args %></span>
                     <% end %>
-                    <span class="opacity-50"><%= Calendar.strftime(msg.created_at, "%I:%M %p") %></span>
+                    <span class="opacity-50"><%= fmt_time(msg.created_at) %></span>
                   </div>
                 </div>
               <% else %>
@@ -83,7 +83,7 @@
                     </div>
                     <div class="whitespace-pre-line leading-relaxed"><%= msg.content %></div>
                     <div class="text-xs mt-1.5 opacity-50 text-right">
-                      <%= Calendar.strftime(msg.created_at, "%I:%M %p") %>
+                      <%= fmt_time(msg.created_at) %>
                     </div>
                   </div>
                 </div>

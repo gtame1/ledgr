@@ -512,6 +512,21 @@ end %>
       </div>
     <% end %>
 
+    <%!-- FX rate setting --%>
+    <div class="hd-card mb-4 flex items-center gap-4" style="padding: 0.75rem 1rem;">
+      <span class="text-sm font-medium" style="color: var(--text-muted);">USD → MXN rate for GL posting:</span>
+      <form action={dp(@domain_path_prefix, "/settings/fx-rate")} method="post" class="flex items-center gap-2">
+        <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+        <input type="number" name="fx_rate" step="0.01" min="1"
+               value={@usd_mxn_rate}
+               class="hd-input text-sm" style="width: 6rem; padding: 0.25rem 0.5rem;" />
+        <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
+          Save rate
+        </button>
+      </form>
+      <span class="text-xs" style="color: var(--text-muted);">Applied when "Post to GL" runs.</span>
+    </div>
+
     <%!-- Platform stats --%>
     <div class="hd-kpi-grid">
       <div class="hd-kpi">

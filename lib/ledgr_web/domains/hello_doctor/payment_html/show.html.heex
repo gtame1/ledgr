@@ -99,7 +99,7 @@ end %>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Paid</span>
-            <span style="color: var(--text-main);"><%= if pay.paid_at, do: Calendar.strftime(pay.paid_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+            <span style="color: var(--text-main);"><%= fmt_datetime(pay.paid_at) || "---" %></span>
           </div>
         </div>
       </div>

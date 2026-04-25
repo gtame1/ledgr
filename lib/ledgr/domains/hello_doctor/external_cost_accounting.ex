@@ -18,6 +18,7 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
 
   alias Ledgr.Repo
   alias Ledgr.Core.Accounting
+  alias Ledgr.Core.Settings
   alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
 
   import Ecto.Query, warn: false
@@ -48,7 +49,7 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
   end
 
   def post_to_gl(%ExternalCost{} = cost) do
-    fx_rate = Application.get_env(:ledgr, :usd_mxn_rate) || 17.5
+    fx_rate = Settings.get_usd_mxn_rate()
     amount_mxn = cost.amount_usd * fx_rate
     amount_mxn_cents = round(amount_mxn * 100)
 

@@ -16,6 +16,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Domains.HelloDoctor.Consultations
+  alias Ledgr.Domains.HelloDoctor.StripeRefunds
   alias Ledgr.Core.Accounting
 
   @doc """
@@ -58,6 +59,53 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           {:error, err}
       end
     end
+  end
+
+  @doc """
+  Creates GL journal entries for any StripePayments that don't already have one.
+  Safe to run multiple times — skips payments whose Stripe session ID already
+  appears in a journal entry reference.
+  Returns {:ok, %{posted: N, skipped: N, errors: N}}.
+  """
+  def backfill_journal_entries do
+    import Ecto.Query, warn: false
+    alias Ledgr.Core.Accounting.JournalEntry
+
+    # Collect session IDs that already have a journal entry
+    posted_refs =
+      JournalEntry
+      |> where([je], like(je.reference, "Stripe %"))
+      |> select([je], je.reference)
+      |> Repo.all()
+      |> MapSet.new()
+
+    payments = Repo.all(StripePayment)
+
+    result =
+      Enum.reduce(payments, %{posted: 0, skipped: 0, errors: 0}, fn payment, acc ->
+        ref = "Stripe #{payment.stripe_session_id}"
+
+        cond do
+          MapSet.member?(posted_refs, ref) ->
+            %{acc | skipped: acc.skipped + 1}
+
+          payment.status == "refunded" ->
+            # Post the refund reversal instead
+            case StripeRefunds.create_refund_journal_entry(payment) do
+              {:ok, _} -> %{acc | posted: acc.posted + 1}
+              _        -> %{acc | errors: acc.errors + 1}
+            end
+
+          true ->
+            case create_payment_journal_entry(payment) do
+              {:ok, _} -> %{acc | posted: acc.posted + 1}
+              _        -> %{acc | errors: acc.errors + 1}
+            end
+        end
+      end)
+
+    Logger.info("[HelloDoctor StripeSync] Backfill complete: #{inspect(result)}")
+    {:ok, result}
   end
 
   @doc """
@@ -154,13 +202,15 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
                |> StripePayment.changeset(attrs)
                |> Repo.insert() do
             {:ok, payment} ->
-              # If we have a consultation_id, update the consultation too
               if consultation_id do
+                # link_to_consultation calls ConsultationAccounting.record_payment,
+                # which creates the full journal entry (revenue + fee + doctor payout).
+                # Do NOT also call create_payment_journal_entry or entries double up.
                 link_to_consultation(consultation_id, amount_pesos, session.id)
+              else
+                # No consultation linked — create a basic GL entry for the revenue.
+                create_payment_journal_entry(payment)
               end
-
-              # Create accounting journal entry
-              create_payment_journal_entry(payment)
 
               {:ok, payment}
 

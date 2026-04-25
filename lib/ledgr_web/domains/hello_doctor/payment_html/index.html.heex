@@ -7,9 +7,14 @@ end %>
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Payments</h1>
-    <.link href={dp(@domain_path_prefix, "/payments/sync")} method="post" class="hd-btn-primary">
-      Sync from Stripe
-    </.link>
+    <div class="flex gap-2">
+      <.link href={dp(@domain_path_prefix, "/payments/sync")} method="post" class="hd-btn-primary">
+        Sync from Stripe
+      </.link>
+      <.link href={dp(@domain_path_prefix, "/payments/backfill-gl")} method="post" class="hd-btn-secondary" data-confirm="This will create GL journal entries for any payments that don't have one yet. Continue?">
+        Backfill GL
+      </.link>
+    </div>
   </div>
 
   <%!-- KPI Cards --%>
@@ -68,7 +73,7 @@ end %>
               <% doctor_payout = pay.amount * 0.85 %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if pay.paid_at, do: Calendar.strftime(pay.paid_at, "%b %d, %Y"), else: "---" %>
+                  <%= fmt_date(pay.paid_at) || "---" %>
                 </td>
                 <td class="p-3">
                   <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.customer_name || "---" %></div>

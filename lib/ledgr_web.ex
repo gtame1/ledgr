@@ -89,6 +89,8 @@ defmodule LedgrWeb do
       import LedgrWeb.CoreComponents
       # Domain-scoped path helpers
       import LedgrWeb.Helpers.DomainHelpers
+      # Mexico City datetime formatters
+      import LedgrWeb.Helpers.DateTimeHelpers
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

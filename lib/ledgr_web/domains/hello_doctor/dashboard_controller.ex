@@ -2,8 +2,10 @@ defmodule LedgrWeb.Domains.HelloDoctor.DashboardController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.BillingSync
+  alias Ledgr.Core.Settings
 
   def index(conn, _params) do
+    conn = assign(conn, :usd_mxn_rate, Settings.get_usd_mxn_rate())
     today = Ledgr.Domains.HelloDoctor.today()
     start_date = Date.beginning_of_month(today)
     end_date = today
@@ -12,6 +14,21 @@ defmodule LedgrWeb.Domains.HelloDoctor.DashboardController do
     conn
     |> assign(:page_title, "Dashboard")
     |> render(:index, Map.to_list(metrics))
+  end
+
+  def update_fx_rate(conn, %{"fx_rate" => rate_str}) do
+    case Float.parse(rate_str) do
+      {rate, _} when rate > 0 ->
+        Settings.set_usd_mxn_rate(rate)
+        conn
+        |> put_flash(:info, "FX rate updated to #{rate} MXN/USD.")
+        |> redirect(to: dp(conn, "/"))
+
+      _ ->
+        conn
+        |> put_flash(:error, "Invalid rate — must be a positive number.")
+        |> redirect(to: dp(conn, "/"))
+    end
   end
 
   def sync_costs(conn, _params) do

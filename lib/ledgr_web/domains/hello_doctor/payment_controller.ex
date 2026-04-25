@@ -42,6 +42,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     end
   end
 
+  def backfill_gl(conn, _params) do
+    {:ok, %{posted: p, skipped: s, errors: e}} = StripeSync.backfill_journal_entries()
+
+    msg   = "GL backfill complete: #{p} posted, #{s} already had entries"
+    msg   = if e > 0, do: "#{msg}, #{e} errors (check logs)", else: msg
+    flash = if e > 0, do: :error, else: :info
+
+    conn
+    |> put_flash(flash, msg <> ".")
+    |> redirect(to: dp(conn, "/payments"))
+  end
+
   def link_form(conn, %{"id" => id}) do
     payment = Repo.get!(StripePayment, id)
     suggestions = Ledgr.Domains.HelloDoctor.PaymentLinking.suggest_consultations(payment)

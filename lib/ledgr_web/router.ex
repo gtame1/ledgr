@@ -379,7 +379,8 @@ defmodule LedgrWeb.Router do
 
     # Payments (queries consultations with payment data)
     resources "/payments", Domains.HelloDoctor.PaymentController, only: [:index, :show]
-    post "/payments/sync", Domains.HelloDoctor.PaymentController, :sync
+    post "/payments/sync",        Domains.HelloDoctor.PaymentController, :sync
+    post "/payments/backfill-gl", Domains.HelloDoctor.PaymentController, :backfill_gl
     post "/payments/:id/refund", Domains.HelloDoctor.PaymentController, :refund
     post "/payments/:id/check-status", Domains.HelloDoctor.PaymentController, :check_status
     get "/payments/:id/link", Domains.HelloDoctor.PaymentController, :link_form
@@ -389,6 +390,12 @@ defmodule LedgrWeb.Router do
     # Specialties (admin-managed list)
     resources "/specialties", Domains.HelloDoctor.SpecialtyController, only: [:index, :create, :delete]
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
+
+    # Expenses (shared controller, domain-scoped)
+    resources "/expenses", ExpenseController, except: [:show]
+
+    # FX rate setting
+    post "/settings/fx-rate",     Domains.HelloDoctor.DashboardController,   :update_fx_rate
 
     # External billing sync + GL posting
     post "/billing/sync-costs",   Domains.HelloDoctor.DashboardController,   :sync_costs

@@ -76,7 +76,7 @@
           <div>
             <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Registered</div>
             <div class="text-sm" style="color: var(--text-main);">
-              <%= if p.created_at, do: Calendar.strftime(p.created_at, "%B %d, %Y"), else: "---" %>
+              <%= fmt_date(p.created_at, "%B %d, %Y") || "---" %>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@
                 <%= for c <- p.consultations do %>
                   <tr class="border-t cursor-pointer hover:bg-[rgba(2,186,151,0.04)]" style="border-color: var(--border-subtle);" onclick={"window.location='#{dp(@domain_path_prefix, "/consultations/#{c.id}")}';"}>
                     <td class="p-3 text-sm font-medium" style="color: var(--accent);">
-                      <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                      <%= fmt_date(c.assigned_at) || "---" %>
                     </td>
                     <td class="p-3 text-sm" style="color: var(--text-main);">
                       <%= if c.doctor, do: c.doctor.name, else: "Unassigned" %>
@@ -146,7 +146,7 @@
                     <span>Specialty: <%= record.specialty %></span>
                   <% end %>
                   <%= if record.created_at do %>
-                    <span><%= Calendar.strftime(record.created_at, "%b %d, %Y") %></span>
+                    <span><%= fmt_date(record.created_at) %></span>
                   <% end %>
                 </div>
               </div>

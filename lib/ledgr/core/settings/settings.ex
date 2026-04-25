@@ -67,4 +67,26 @@ defmodule Ledgr.Core.Settings do
   def set_last_inventory_reconciled_date(%Date{} = date) do
     set("last_inventory_reconciled_date", Date.to_iso8601(date))
   end
+
+  @default_usd_mxn_rate 17.5
+
+  @doc """
+  Gets the configured USD → MXN exchange rate used when posting external
+  costs (OpenAI, Whereby, AWS) to the GL. Defaults to #{@default_usd_mxn_rate}.
+  """
+  def get_usd_mxn_rate do
+    case get("usd_mxn_rate") do
+      nil -> @default_usd_mxn_rate
+      val -> String.to_float(val)
+    end
+  end
+
+  @doc "Persists the USD → MXN exchange rate."
+  def set_usd_mxn_rate(rate) when is_float(rate) do
+    set("usd_mxn_rate", Float.to_string(rate))
+  end
+
+  def set_usd_mxn_rate(rate) when is_integer(rate) do
+    set("usd_mxn_rate", Float.to_string(rate * 1.0))
+  end
 end

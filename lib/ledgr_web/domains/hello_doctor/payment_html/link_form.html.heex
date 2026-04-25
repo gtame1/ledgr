@@ -24,7 +24,7 @@ end %>
         <div class="text-sm" style="color: var(--text-muted);">Payment</div>
         <div class="text-lg font-bold" style="color: var(--text-main);"><%= fmt.(pay.amount) %> MXN</div>
         <div class="text-sm" style="color: var(--text-muted);">
-          <%= pay.customer_name || "Unknown" %> &middot; <%= if pay.paid_at, do: Calendar.strftime(pay.paid_at, "%b %d, %Y %I:%M %p"), else: "---" %>
+          <%= pay.customer_name || "Unknown" %> &middot; <%= fmt_datetime(pay.paid_at) || "---" %>
         </div>
       </div>
       <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
@@ -55,7 +55,7 @@ end %>
               </div>
               <div class="text-xs mt-1" style="color: var(--text-muted);">
                 <%= if c.doctor, do: c.doctor.name, else: "No doctor assigned" %>
-                &middot; <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y %I:%M %p"), else: "---" %>
+                &middot; <%= fmt_datetime(c.assigned_at) || "---" %>
                 <%= if c.payment_amount do %>
                   &middot; <%= fmt.(c.payment_amount) %>
                 <% end %>

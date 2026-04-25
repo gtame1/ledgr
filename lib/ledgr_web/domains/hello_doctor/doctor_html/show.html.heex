@@ -82,7 +82,7 @@
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Terms Accepted</div>
             <div class="text-sm" style="color: var(--text-main);">
               <%= if d.terms_accepted do %>
-                ✅ Accepted<%= if d.terms_accepted_at, do: " on #{Calendar.strftime(d.terms_accepted_at, "%b %d, %Y")}", else: "" %>
+                ✅ Accepted<%= if d.terms_accepted_at, do: " on #{fmt_date(d.terms_accepted_at)}", else: "" %>
               <% else %>
                 ❌ Not accepted
               <% end %>
@@ -107,7 +107,7 @@
                 </.link>
                 <div class="flex items-center justify-between mt-1">
                   <span class="text-xs" style="color: var(--text-muted);">
-                    <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                    <%= fmt_date(c.assigned_at) || "---" %>
                   </span>
                   <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
                 </div>

@@ -96,10 +96,10 @@
                   <span class="text-sm font-medium" style="color: var(--text-main);"><%= length(conv.consultations) %></span>
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if conv.created_at, do: Calendar.strftime(conv.created_at, "%b %d, %Y %I:%M %p"), else: "---" %>
+                  <%= fmt_datetime(conv.created_at) || "---" %>
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if conv.last_message_at, do: Calendar.strftime(conv.last_message_at, "%b %d, %I:%M %p"), else: "---" %>
+                  <%= fmt_datetime(conv.last_message_at, "%b %d, %I:%M %p") || "---" %>
                 </td>
                 <td class="p-3 text-right">
                   <.link navigate={dp(@domain_path_prefix, "/conversations/#{conv.id}")} class="text-sm font-medium" style="color: var(--accent);">

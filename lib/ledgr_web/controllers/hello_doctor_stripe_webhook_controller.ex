@@ -4,6 +4,8 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
   require Logger
 
   alias Ledgr.Domains.HelloDoctor.StripeSync
+  alias Ledgr.Domains.HelloDoctor.StripeRefunds
+  alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
 
   @doc """
   Handles Stripe webhook events for HelloDoctor's separate Stripe account.
@@ -70,18 +72,25 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
       end
 
     if payment_intent_id do
-      alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
-
       case Ledgr.Repo.get_by(StripePayment, stripe_payment_intent_id: payment_intent_id) do
         nil ->
           Logger.warning("[HelloDoctor] Stripe webhook: charge.refunded for unknown payment_intent #{payment_intent_id}")
 
-        payment ->
-          payment
-          |> StripePayment.changeset(%{status: "refunded"})
-          |> Ledgr.Repo.update()
+        %StripePayment{status: "refunded"} = payment ->
+          # Already marked refunded (e.g. initiated from Ledgr UI) — skip status update
+          # but create the GL reversal if it doesn't exist yet.
+          Logger.info("[HelloDoctor] Stripe webhook: charge.refunded for already-refunded payment #{payment.id} — ensuring GL entry exists")
+          StripeRefunds.create_refund_journal_entry(payment)
 
-          Logger.info("[HelloDoctor] Stripe webhook: marked payment #{payment.id} as refunded (charge #{charge.id})")
+        payment ->
+          # Mark as refunded and post GL reversal in one go
+          {:ok, updated} =
+            payment
+            |> StripePayment.changeset(%{status: "refunded"})
+            |> Ledgr.Repo.update()
+
+          StripeRefunds.create_refund_journal_entry(updated)
+          Logger.info("[HelloDoctor] Stripe webhook: marked payment #{payment.id} as refunded and created GL reversal (charge #{charge.id})")
       end
     else
       Logger.warning("[HelloDoctor] Stripe webhook: charge.refunded with no payment_intent (charge #{charge.id})")

@@ -70,7 +70,14 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
     end
   end
 
-  defp create_refund_journal_entry(%StripePayment{} = payment) do
+  @doc """
+  Creates the reversal journal entry for a refunded payment.
+  Called both from refund_payment/1 (initiated in Ledgr) and from the
+  Stripe webhook when a refund originates outside Ledgr (e.g. from Stripe dashboard).
+  Safe to call multiple times — a duplicate reference check is not enforced here,
+  so callers should guard against calling it twice for the same payment.
+  """
+  def create_refund_journal_entry(%StripePayment{} = payment) do
     try do
       amount_cents = round(payment.amount * 100)
       doctor_payout_cents = round(amount_cents * 0.85)
