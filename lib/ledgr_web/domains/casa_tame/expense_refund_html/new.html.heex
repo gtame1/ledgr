@@ -1,0 +1,108 @@
+<%
+  fmt = fn cents when is_integer(cents) ->
+    sign = if cents < 0, do: "-", else: ""
+    amount = abs(cents) / 100
+    formatted = :erlang.float_to_binary(amount, decimals: 2)
+    [whole, dec] = String.split(formatted, ".")
+    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+    "#{sign}$#{whole_with_commas}.#{dec}"
+  end
+
+  max_amount = @remaining_cents / 100
+  max_str = :erlang.float_to_binary(max_amount, decimals: 2)
+%>
+
+<section class="content">
+  <div class="content-body">
+    <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}")}
+           style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Expense
+    </.link>
+
+    <header class="content-header" style="margin-top: 0.5rem;">
+      <div>
+        <div class="ct-hero-label" style="margin-bottom: 0.15rem;"><%= @expense.description %></div>
+        <h1 class="page-title">Record a Refund</h1>
+      </div>
+    </header>
+
+    <!-- Summary of original expense -->
+    <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1rem;">
+      <dl class="ct-detail-list" style="margin: 0;">
+        <div class="ct-detail-row" style="padding: 0.4rem 0;">
+          <dt>Original amount</dt>
+          <dd>
+            <span class={"ct-badge #{if @expense.currency == "USD", do: "ct-badge--usd", else: "ct-badge--mxn"}"}>
+              <%= @expense.currency %>
+            </span>
+            <strong><%= fmt.(@expense.amount_cents) %></strong>
+          </dd>
+        </div>
+        <div class="ct-detail-row" style="padding: 0.4rem 0; border-bottom: none;">
+          <dt>Remaining refundable</dt>
+          <dd><strong style="color: var(--ct-primary);"><%= fmt.(@remaining_cents) %></strong></dd>
+        </div>
+      </dl>
+    </div>
+
+    <.form :let={f} for={@changeset} as={:refund} action={@action} class="ct-form">
+      <%= if @changeset.action do %>
+        <div class="alert alert-danger" style="margin-bottom: 1rem;">
+          <p>Please check the fields below.</p>
+        </div>
+      <% end %>
+
+      <div class="ct-form-field">
+        <label class="ct-form-label" for="refund_date">Date</label>
+        <.input field={f[:date]} type="date" id="refund_date" class="ct-form-input" />
+      </div>
+
+      <div class="ct-form-field">
+        <label class="ct-form-label" for="refund_amount_cents">
+          Amount (<%= @expense.currency %>) — max <%= max_str %>
+        </label>
+        <.input
+          field={f[:amount_cents]}
+          type="number"
+          id="refund_amount_cents"
+          class="ct-form-input"
+          step="0.01"
+          min="0.01"
+          max={max_str}
+          placeholder="0.00"
+        />
+      </div>
+
+      <div class="ct-form-field">
+        <label class="ct-form-label" for="refund_refund_to_account_id">Refund received to</label>
+        <.input
+          field={f[:refund_to_account_id]}
+          type="select"
+          id="refund_refund_to_account_id"
+          class="ct-form-select"
+          options={@refund_to_account_options}
+          prompt="Select account…"
+        />
+      </div>
+
+      <div class="ct-form-field">
+        <label class="ct-form-label" for="refund_reason">Reason <span style="font-weight: 400; color: var(--ct-on-surface-variant);">(optional)</span></label>
+        <.input
+          field={f[:reason]}
+          type="text"
+          id="refund_reason"
+          class="ct-form-input"
+          placeholder="e.g. Amazon return, price adjustment, duplicate charge"
+        />
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.5rem;">
+        <button type="submit" class="ct-upload-submit">Record Refund</button>
+        <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}")} class="ct-form-cancel">
+          Cancel
+        </.link>
+      </div>
+    </.form>
+  </div>
+</section>

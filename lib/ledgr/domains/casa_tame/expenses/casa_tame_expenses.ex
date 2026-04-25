@@ -9,13 +9,14 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   alias Ledgr.Domains.CasaTame.Expenses.CasaTameExpense, as: Expense
   alias Ledgr.Domains.CasaTame.Expenses.ExpenseSplit
   alias Ledgr.Domains.CasaTame.Expenses.ExpenseAttachment
+  alias Ledgr.Domains.CasaTame.Expenses.ExpenseRefund
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Accounting.JournalEntry
 
   def list_expenses(opts \\ []) do
     query =
       from e in Expense,
-        preload: [:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account],
+        preload: [:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account, refunds: :refund_to_account],
         order_by: [desc: e.date, desc: e.inserted_at]
 
     query
@@ -55,7 +56,7 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   def get_expense!(id) do
     Expense
     |> Repo.get!(id)
-    |> Repo.preload([:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account])
+    |> Repo.preload([:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account, refunds: :refund_to_account])
   end
 
   # ── Attachment helpers ─────────────────────────────────────────
@@ -328,17 +329,32 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
     end
   end
 
-  @doc "Returns expense totals grouped by expense_account_id and currency."
+  @doc "Returns expense totals (net of refunds) grouped by expense_account_id and currency."
   def totals_by_account_and_currency(start_date, end_date) do
+    # Pre-aggregate refunds per expense account + currency in the same period
+    refunds_sub =
+      from r in ExpenseRefund,
+        join: e in Expense, on: r.expense_id == e.id,
+        join: a in assoc(e, :expense_account),
+        where: r.date >= ^start_date and r.date <= ^end_date,
+        group_by: [e.currency, a.id],
+        select: %{
+          currency: e.currency,
+          expense_account_id: a.id,
+          refunded_cents: coalesce(sum(r.amount_cents), 0)
+        }
+
     from(e in Expense,
       where: e.date >= ^start_date and e.date <= ^end_date,
       join: a in assoc(e, :expense_account),
+      left_join: r in subquery(refunds_sub),
+        on: r.expense_account_id == a.id and r.currency == e.currency,
       group_by: [e.currency, a.id, a.code, a.name],
       select: %{
         currency: e.currency,
         account_code: a.code,
         account_name: a.name,
-        total_cents: coalesce(sum(e.amount_cents), 0)
+        total_cents: coalesce(sum(e.amount_cents), 0) - coalesce(max(r.refunded_cents), 0)
       },
       order_by: [asc: a.code]
     )
@@ -346,7 +362,7 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   end
 
   def total_by_currency(start_date, end_date) do
-    results =
+    expense_results =
       from(e in Expense,
         where: e.date >= ^start_date and e.date <= ^end_date,
         group_by: e.currency,
@@ -355,9 +371,132 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
       |> Repo.all()
       |> Map.new()
 
+    refund_results =
+      from(r in ExpenseRefund,
+        where: r.date >= ^start_date and r.date <= ^end_date,
+        group_by: r.currency,
+        select: {r.currency, coalesce(sum(r.amount_cents), 0)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
     %{
-      usd: Map.get(results, "USD", 0),
-      mxn: Map.get(results, "MXN", 0)
+      usd: Map.get(expense_results, "USD", 0) - Map.get(refund_results, "USD", 0),
+      mxn: Map.get(expense_results, "MXN", 0) - Map.get(refund_results, "MXN", 0)
     }
   end
+
+  # ── Refund helpers ─────────────────────────────────────────────
+
+  def change_refund(%ExpenseRefund{} = refund, attrs \\ %{}) do
+    ExpenseRefund.changeset(refund, attrs)
+  end
+
+  @doc "Sum of all refund amounts for an expense (uses preloaded refunds if available)."
+  def total_refunded_cents(%Expense{refunds: refunds}) when is_list(refunds) do
+    Enum.sum(Enum.map(refunds, & &1.amount_cents))
+  end
+
+  def total_refunded_cents(%Expense{id: id}) do
+    from(r in ExpenseRefund,
+      where: r.expense_id == ^id,
+      select: coalesce(sum(r.amount_cents), 0)
+    )
+    |> Repo.one()
+  end
+
+  @doc """
+  Creates a refund for the given expense and posts a balancing journal entry:
+    DR refund_to_account_id  (money comes back)
+    CR expense_account_id    (reduces net spend in that category)
+
+  Returns {:ok, refund} or {:error, changeset}.
+  """
+  def create_refund(%Expense{} = expense, attrs) do
+    attrs =
+      attrs
+      |> Map.put("expense_id", expense.id)
+      |> Map.put("currency", expense.currency)
+
+    Repo.transaction(fn ->
+      already_refunded = total_refunded_cents(expense)
+      new_amount = parse_cents(attrs["amount_cents"])
+
+      if already_refunded + new_amount > expense.amount_cents do
+        remaining = expense.amount_cents - already_refunded
+
+        changeset =
+          %ExpenseRefund{}
+          |> ExpenseRefund.changeset(Map.put(attrs, "amount_cents", new_amount))
+          |> Ecto.Changeset.add_error(
+            :amount_cents,
+            "exceeds remaining refundable amount (#{remaining} cents)"
+          )
+
+        Repo.rollback(changeset)
+      else
+        with {:ok, refund} <-
+               %ExpenseRefund{}
+               |> ExpenseRefund.changeset(Map.put(attrs, "amount_cents", new_amount))
+               |> Repo.insert(),
+             {:ok, _entry} <- record_refund_journal(refund, expense) do
+          refund
+        else
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+      end
+    end)
+  end
+
+  @doc "Deletes a refund and its journal entry atomically."
+  def delete_refund(%ExpenseRefund{} = refund) do
+    Repo.transaction(fn ->
+      reference = "Expense Refund ##{refund.id}"
+
+      journal_entry =
+        from(je in JournalEntry, where: je.reference == ^reference)
+        |> Repo.one()
+
+      if journal_entry, do: Repo.delete!(journal_entry)
+      Repo.delete!(refund)
+    end)
+  end
+
+  defp record_refund_journal(%ExpenseRefund{} = refund, %Expense{} = expense) do
+    lines = [
+      %{
+        account_id: refund.refund_to_account_id,
+        debit_cents: refund.amount_cents,
+        credit_cents: 0,
+        description: "Refund received"
+      },
+      %{
+        account_id: expense.expense_account_id,
+        debit_cents: 0,
+        credit_cents: refund.amount_cents,
+        description: "Refund reduces expense: #{expense.description}"
+      }
+    ]
+
+    Accounting.create_journal_entry_with_lines(
+      %{
+        date: refund.date,
+        entry_type: "personal_refund",
+        reference: "Expense Refund ##{refund.id}",
+        description: "Refund for: #{expense.description}",
+        payee: nil
+      },
+      lines
+    )
+  end
+
+  # Accepts either an already-integer cents value or a decimal pesos string
+  defp parse_cents(value) when is_integer(value), do: value
+  defp parse_cents(value) when is_binary(value) do
+    case Float.parse(value) do
+      {float, _} -> round(float * 100)
+      :error -> 0
+    end
+  end
+  defp parse_cents(_), do: 0
 end

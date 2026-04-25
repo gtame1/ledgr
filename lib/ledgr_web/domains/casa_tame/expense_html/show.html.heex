@@ -1,4 +1,7 @@
 <%
+  total_refunded = Enum.sum(Enum.map(@expense.refunds, & &1.amount_cents))
+  net_cents = @expense.amount_cents - total_refunded
+
   fmt = fn cents when is_integer(cents) ->
     sign = if cents < 0, do: "-", else: ""
     amount = abs(cents) / 100
@@ -76,6 +79,49 @@
       </div>
     <% end %>
   </dl>
+
+  <!-- Refunds -->
+  <%= if @expense.refunds != [] do %>
+    <div class="ct-refunds-section">
+      <div class="ct-refunds-header">
+        <h3 class="ct-refunds-title">Refunds</h3>
+        <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/new")} class="ct-refund-add-link">
+          + Add refund
+        </.link>
+      </div>
+      <ul class="ct-refund-list">
+        <%= for refund <- @expense.refunds do %>
+          <li class="ct-refund-row">
+            <div class="ct-refund-info">
+              <span class="ct-refund-amount"><%= fmt.(refund.amount_cents) %></span>
+              <span class="ct-refund-meta">
+                <%= refund.date %> · <%= refund.refund_to_account && refund.refund_to_account.name %>
+                <%= if refund.reason do %> · <em><%= refund.reason %></em><% end %>
+              </span>
+            </div>
+            <.link
+              href={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/#{refund.id}")}
+              method="delete"
+              data-confirm="Remove this refund?"
+              class="ct-attachment-delete"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </.link>
+          </li>
+        <% end %>
+      </ul>
+      <div class="ct-refunds-summary">
+        <span>Total refunded: <strong><%= fmt.(total_refunded) %></strong></span>
+        <span class="ct-refunds-net">Net: <strong><%= fmt.(net_cents) %></strong></span>
+      </div>
+    </div>
+  <% else %>
+    <div class="ct-refunds-empty">
+      <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/new")} class="ct-refund-add-link">
+        ↩ Record a refund
+      </.link>
+    </div>
+  <% end %>
 </section>
 
 <!-- Receipts & Documents -->

@@ -307,6 +307,8 @@ defmodule LedgrWeb.Router do
       only: [:index, :new, :create, :show, :edit, :update, :delete] do
       resources "/attachments", Domains.CasaTame.ExpenseAttachmentController,
         only: [:create, :delete]
+      resources "/refunds", Domains.CasaTame.ExpenseRefundController,
+        only: [:new, :create, :delete]
     end
 
     # Income

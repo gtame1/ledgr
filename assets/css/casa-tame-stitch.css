@@ -1248,6 +1248,109 @@
   color: #9e4a4a;
 }
 
+/* ── Refunded badge (expense list) ──────────────────────── */
+
+[data-domain="casa-tame"] .ct-badge--refunded {
+  background: var(--ct-surface-container-high, #eae8e3);
+  color: var(--ct-on-surface-variant);
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  margin-left: 0.25rem;
+}
+
+/* ── Refunds section (expense show) ─────────────────────── */
+
+[data-domain="casa-tame"] .ct-refunds-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ct-outline-variant);
+}
+
+[data-domain="casa-tame"] .ct-refunds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+[data-domain="casa-tame"] .ct-refunds-title {
+  font-family: var(--ct-font-headline, 'Manrope'), sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ct-on-surface-variant);
+  margin: 0;
+}
+
+[data-domain="casa-tame"] .ct-refund-add-link {
+  font-size: 0.8rem;
+  color: var(--ct-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+[data-domain="casa-tame"] .ct-refund-add-link:hover {
+  text-decoration: underline;
+}
+
+[data-domain="casa-tame"] .ct-refund-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+[data-domain="casa-tame"] .ct-refund-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--ct-outline-variant);
+}
+
+[data-domain="casa-tame"] .ct-refund-info {
+  flex: 1;
+  min-width: 0;
+}
+
+[data-domain="casa-tame"] .ct-refund-amount {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ct-on-surface);
+  display: block;
+}
+
+[data-domain="casa-tame"] .ct-refund-meta {
+  font-size: 0.75rem;
+  color: var(--ct-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+[data-domain="casa-tame"] .ct-refunds-summary {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--ct-on-surface-variant);
+  margin-top: 0.6rem;
+  padding-top: 0.4rem;
+}
+
+[data-domain="casa-tame"] .ct-refunds-net strong {
+  color: var(--ct-on-surface);
+}
+
+[data-domain="casa-tame"] .ct-refunds-empty {
+  margin-top: 0.75rem;
+  text-align: right;
+}
+
 /* ── Expense detail card ─────────────────────────────────── */
 
 [data-domain="casa-tame"] .ct-detail-card {

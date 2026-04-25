@@ -124,6 +124,7 @@ defmodule Ledgr.Domains.CasaTame do
   def journal_entry_types do
     [
       {"Personal Expense", "personal_expense"},
+      {"Personal Refund",  "personal_refund"},
       {"Income", "income"},
       {"Investment Deposit", "investment_deposit"},
       {"Investment Withdrawal", "investment_withdrawal"},

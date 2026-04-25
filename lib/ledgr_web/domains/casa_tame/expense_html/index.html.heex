@@ -82,7 +82,12 @@
               </div>
               <div style="text-align: right;">
                 <div class="ct-expense-amount">-<%= fmt.(expense.amount_cents) %></div>
-                <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant);"><%= expense.currency %></div>
+                <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant);">
+                  <%= expense.currency %>
+                  <%= if expense.refunds != [] do %>
+                    <span class="ct-badge ct-badge--refunded">↩ refunded</span>
+                  <% end %>
+                </div>
               </div>
             </div>
           </.link>
