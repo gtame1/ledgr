@@ -31,7 +31,7 @@
     <.link navigate={dp(@domain_path_prefix, "/bills")} class="ct-quick-pill ct-quick-pill--primary" style="width: 100%; text-align: center; justify-content: center;">View Bill List</.link>
   </div>
 
-  <div class="calendar-month-title"><%= Calendar.strftime(@first_day, "%B %Y") %></div>
+  <div class="calendar-month-title"><%= fmt_date(@first_day, "%B %Y") %></div>
 
   <div class="calendar-grid">
     <div class="calendar-weekday">S</div>

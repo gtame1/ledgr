@@ -356,7 +356,7 @@
       </div>
       <div>
         <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9C8578;">Created</div>
-        <div style="font-size: 0.85rem; font-weight: 500;"><%= Calendar.strftime(to_mx_time(@order.inserted_at), "%b %d, %Y") %></div>
+        <div style="font-size: 0.85rem; font-weight: 500;"><%= fmt_date(@order.inserted_at, "%b %d, %Y") %></div>
       </div>
     </div>
     <%= if @order.special_instructions && @order.special_instructions != "" do %>

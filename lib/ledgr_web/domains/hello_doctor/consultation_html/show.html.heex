@@ -75,7 +75,9 @@ end %>
             <%= if mr.possible_conditions do %>
               <div class="col-span-2">
                 <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Possible Conditions</div>
-                <div class="text-sm" style="color: var(--text-main);"><%= mr.possible_conditions %></div>
+                <div class="text-sm" style="color: var(--text-main);">
+                  <.possible_conditions value={mr.possible_conditions} />
+                </div>
               </div>
             <% end %>
             <%= if mr.escalation_reason do %>

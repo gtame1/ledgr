@@ -44,6 +44,7 @@ defmodule LedgrWeb do
 
       import Plug.Conn
       import LedgrWeb.Helpers.DomainHelpers
+      import LedgrWeb.Helpers.DateTimeHelpers
 
       unquote(verified_routes())
     end
@@ -87,6 +88,7 @@ defmodule LedgrWeb do
       import Phoenix.HTML
       # Core UI components
       import LedgrWeb.CoreComponents
+      import LedgrWeb.MedicalComponents
       # Domain-scoped path helpers
       import LedgrWeb.Helpers.DomainHelpers
       # Mexico City datetime formatters

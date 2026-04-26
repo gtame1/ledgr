@@ -92,7 +92,7 @@
                   </div>
                   <div class="whitespace-pre-line" style="color: var(--text-main);"><%= msg.content %></div>
                   <%= if msg.created_at do %>
-                    <div class="text-xs mt-1 opacity-60"><%= Calendar.strftime(msg.created_at, "%I:%M %p") %></div>
+                    <div class="text-xs mt-1 opacity-60"><%= fmt_time(msg.created_at) %></div>
                   <% end %>
                 </div>
               </div>
@@ -175,11 +175,11 @@
           <% end %>
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Iniciada</span>
-            <span style="color: var(--text-main);"><%= if conv.created_at, do: Calendar.strftime(conv.created_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+            <span style="color: var(--text-main);"><%= fmt_datetime(conv.created_at) || "---" %></span>
           </div>
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Último Mensaje</span>
-            <span style="color: var(--text-main);"><%= if conv.last_message_at, do: Calendar.strftime(conv.last_message_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+            <span style="color: var(--text-main);"><%= fmt_datetime(conv.last_message_at) || "---" %></span>
           </div>
         </div>
       </div>
@@ -198,7 +198,7 @@
                 <div class="flex items-center justify-between">
                   <span class={"hd-badge hd-badge--#{cs.status}"}><%= cs.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
                   <span class="text-xs" style="color: var(--text-muted);">
-                    <%= if cs.assigned_at, do: Calendar.strftime(cs.assigned_at, "%b %d, %Y"), else: "---" %>
+                    <%= fmt_date(cs.assigned_at) || "---" %>
                   </span>
                 </div>
                 <%= if cs.payment_status do %>

@@ -110,8 +110,8 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
 
     fmt_dt = fn
       nil -> "—"
-      %DateTime{} = dt -> Calendar.strftime(dt, "%b %-d, %Y · %-I:%M %p")
-      %NaiveDateTime{} = ndt -> Calendar.strftime(ndt, "%b %-d, %Y · %-I:%M %p")
+      %DateTime{} = dt -> fmt_datetime(dt, "%b %-d, %Y · %-I:%M %p")
+      %NaiveDateTime{} = ndt -> fmt_datetime(ndt, "%b %-d, %Y · %-I:%M %p")
       other -> to_string(other)
     end
 
@@ -248,23 +248,16 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalHTML do
   def status_class("cancelled"), do: "status-unpaid"
   def status_class(_), do: ""
 
-  # Full datetime: "Mar 13, 2026 · 7:57 PM"
-  def format_datetime(%DateTime{} = dt),
-    do: Calendar.strftime(dt, "%b %-d, %Y · %-I:%M %p")
-
-  def format_datetime(%NaiveDateTime{} = ndt),
-    do: Calendar.strftime(ndt, "%b %-d, %Y · %-I:%M %p")
-
+  # Full datetime: "Mar 13, 2026 · 7:57 PM" (Mexico City time)
   def format_datetime(nil), do: "—"
+  def format_datetime(%DateTime{} = dt), do: fmt_datetime(dt, "%b %-d, %Y · %-I:%M %p")
+  def format_datetime(%NaiveDateTime{} = ndt), do: fmt_datetime(ndt, "%b %-d, %Y · %-I:%M %p")
   def format_datetime(other), do: to_string(other)
 
   # Date only: "Mar 13, 2026" — for compact table displays
-  def format_date(%DateTime{} = dt),
-    do: Calendar.strftime(dt, "%b %-d, %Y")
-
-  def format_date(%NaiveDateTime{} = ndt),
-    do: Calendar.strftime(ndt, "%b %-d, %Y")
-
   def format_date(nil), do: "—"
+  def format_date(%Date{} = d), do: fmt_date(d, "%b %-d, %Y")
+  def format_date(%DateTime{} = dt), do: fmt_date(dt, "%b %-d, %Y")
+  def format_date(%NaiveDateTime{} = ndt), do: fmt_date(ndt, "%b %-d, %Y")
   def format_date(other), do: to_string(other)
 end

@@ -86,7 +86,7 @@
           <div>
             <div class="text-xs uppercase font-medium" style="color: var(--text-muted);">Registrado</div>
             <div class="text-sm" style="color: var(--text-main);">
-              <%= if c.created_at, do: Calendar.strftime(c.created_at, "%B %d, %Y"), else: "---" %>
+              <%= fmt_date(c.created_at, "%B %d, %Y") || "---" %>
             </div>
           </div>
         </div>
@@ -114,7 +114,7 @@
                 <%= for cs <- c.consultations do %>
                   <tr class="border-t cursor-pointer hover:bg-[rgba(2,186,151,0.04)]" style="border-color: var(--border-subtle);" onclick={"window.location='#{dp(@domain_path_prefix, "/consultations/#{cs.id}")}';"}>
                     <td class="p-3 text-sm font-medium" style="color: var(--accent);">
-                      <%= if cs.assigned_at, do: Calendar.strftime(cs.assigned_at, "%b %d, %Y"), else: "---" %>
+                      <%= fmt_date(cs.assigned_at) || "---" %>
                     </td>
                     <td class="p-3 text-sm" style="color: var(--text-main);">
                       <%= if cs.agent, do: cs.agent.name, else: "Sin asignar" %>

@@ -48,7 +48,7 @@
   <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
     <div class="detail-item">
       <span class="label">Date &amp; Time</span>
-      <span><%= Calendar.strftime(@consultation.scheduled_at, "%b %d, %Y · %H:%M") %></span>
+      <span><%= fmt_datetime(@consultation.scheduled_at, "%b %d, %Y · %H:%M") %></span>
     </div>
     <div class="detail-item">
       <span class="label">Duration</span>
@@ -72,7 +72,7 @@
       <span class="label">Paid</span>
       <span>
         <%= if @consultation.paid_at do %>
-          <span class="status-badge status-paid">Paid <%= Calendar.strftime(@consultation.paid_at, "%b %d, %Y") %></span>
+          <span class="status-badge status-paid">Paid <%= fmt_date(@consultation.paid_at) %></span>
         <% else %>
           <span class="status-badge status-unpaid">Unpaid</span>
         <% end %>

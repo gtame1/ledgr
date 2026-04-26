@@ -718,8 +718,13 @@ defmodule LedgrWeb.CoreComponents do
     end
   end
 
-  @doc "Converts a UTC NaiveDateTime to Mexico City time (UTC-6)."
-  def to_mx_time(%NaiveDateTime{} = dt), do: NaiveDateTime.add(dt, -6 * 3600, :second)
+  @doc "Converts a UTC NaiveDateTime to a Mexico City DateTime."
+  def to_mx_time(%NaiveDateTime{} = dt) do
+    dt
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.shift_zone!("America/Mexico_City")
+  end
+
   def to_mx_time(other), do: other
 
   def filters_active?(filters) do

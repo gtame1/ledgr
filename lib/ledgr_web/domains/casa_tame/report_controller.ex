@@ -25,7 +25,7 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
         expenses = Expenses.total_by_currency(month_start, month_end)
 
         %{
-          label: Calendar.strftime(month_start, "%b %Y"),
+          label: fmt_date(month_start, "%b %Y"),
           income_mxn: income.mxn,
           expense_mxn: expenses.mxn,
           savings_mxn: income.mxn - expenses.mxn,

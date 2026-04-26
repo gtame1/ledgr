@@ -37,7 +37,7 @@
               <option value="">Select a session…</option>
               <%= for session <- @sessions do %>
                 <option value={session.id}>
-                  <%= Calendar.strftime(session.scheduled_at, "%b %d, %Y %H:%M") %> — <%= session.name %>
+                  <%= fmt_datetime(session.scheduled_at, "%b %d, %Y %H:%M") %> — <%= session.name %>
                   <%= if session.instructor, do: "· #{session.instructor.name}", else: "" %>
                 </option>
               <% end %>

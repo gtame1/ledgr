@@ -11,7 +11,7 @@
   <section class="card">
       <h2 class="card-title">Create New Recipe Version</h2>
       <p class="card-subtitle">
-        Creating a new version of this recipe. The original recipe (effective from <%= Calendar.strftime(@original_recipe.effective_date, "%Y-%m-%d") %>) will remain unchanged for historical accuracy.
+        Creating a new version of this recipe. The original recipe (effective from <%= fmt_date(@original_recipe.effective_date, "%Y-%m-%d") %>) will remain unchanged for historical accuracy.
       </p>
 
       <div class="alert alert-info" style="margin-bottom: 1.5rem;">
@@ -108,7 +108,7 @@
               type="date"
               label="Effective Date"
             />
-            <p class="field-help">This new recipe version will be used for orders on or after this date. The original recipe (effective <%= Calendar.strftime(@original_recipe.effective_date, "%Y-%m-%d") %>) will remain for historical orders.</p>
+            <p class="field-help">This new recipe version will be used for orders on or after this date. The original recipe (effective <%= fmt_date(@original_recipe.effective_date, "%Y-%m-%d") %>) will remain for historical orders.</p>
           </div>
 
           <div class="field">

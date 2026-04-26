@@ -23,7 +23,7 @@
       <div class="card" style="padding: 0.75rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
           <span style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 1rem;">
-            <%= Calendar.strftime(@first_day, "%B %Y") %>
+            <%= fmt_date(@first_day, "%B %Y") %>
           </span>
         </div>
         <div class="ct-mini-calendar">
@@ -120,7 +120,7 @@
       <div class="card" style="padding: 1rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
           <span class="ct-hero-label">Today's Schedule</span>
-          <span style="font-size: 0.7rem; color: var(--ct-on-surface-variant);"><%= Calendar.strftime(@today, "%b %d") %></span>
+          <span style="font-size: 0.7rem; color: var(--ct-on-surface-variant);"><%= fmt_date(@today, "%b %d") %></span>
         </div>
         <%= for bill <- @today_bills do %>
           <div class="ct-bill-row">
@@ -161,7 +161,7 @@
             label = cond do
               days_until == 1 -> "Tomorrow"
               days_until <= 7 -> "in #{days_until} days"
-              true -> Calendar.strftime(bill.next_due_date, "%b %d")
+              true -> fmt_date(bill.next_due_date, "%b %d")
             end
           %>
           <div class="ct-bill-row">
@@ -205,7 +205,7 @@
                 <div style="font-weight: 500; font-size: 0.9rem; text-decoration: line-through;"><%= bill.name %></div>
                 <div style="font-size: 0.7rem; color: var(--ct-on-surface-variant); display: flex; gap: 0.35rem; align-items: center;">
                   <span class="ct-badge" style="font-size: 0.6rem; background: #d0e9d4; color: #1B3022;">Paid</span>
-                  <span>&middot; <%= Calendar.strftime(bill.last_paid_date, "%b %d") %></span>
+                  <span>&middot; <%= fmt_date(bill.last_paid_date, "%b %d") %></span>
                 </div>
               </div>
             </div>

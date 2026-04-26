@@ -66,7 +66,7 @@
                 </td>
                 <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y"), else: "---" %>
+                  <%= fmt_date(c.assigned_at) || "---" %>
                 </td>
                 <td class="p-3 text-right">
                   <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">

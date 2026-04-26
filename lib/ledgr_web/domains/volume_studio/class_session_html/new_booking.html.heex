@@ -7,7 +7,7 @@
         <h2 class="card-title">Add Booking</h2>
         <p class="card-subtitle">
           <%= @session.name %> ·
-          <%= Calendar.strftime(@session.scheduled_at, "%b %d, %Y %H:%M") %>
+          <%= fmt_datetime(@session.scheduled_at, "%b %d, %Y %H:%M") %>
         </p>
       </div>
       <.link navigate={dp(@domain_path_prefix, "/class-sessions/#{@session.id}")} class="btn">

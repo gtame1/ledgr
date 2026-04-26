@@ -68,7 +68,7 @@
       %>
       <%= for date <- sorted_dates do %>
         <div class="ct-expense-date-header">
-          <%= Calendar.strftime(date, "%A, %b %d") |> String.upcase() %>
+          <%= fmt_date(date, "%A, %b %d") |> String.upcase() %>
         </div>
         <%= for entry <- grouped[date] do %>
           <.link navigate={dp(@domain_path_prefix, "/income/#{entry.id}")} style="text-decoration: none; color: inherit;">

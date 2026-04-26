@@ -486,7 +486,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         _ -> delivery_type
       end
 
-    date_str = if delivery_date, do: Calendar.strftime(delivery_date, "%d/%m/%Y"), else: "—"
+    date_str = if delivery_date, do: fmt_date(delivery_date, "%d/%m/%Y"), else: "—"
 
     {intro, payment_line} =
       if payment_method == "cod" do
@@ -537,10 +537,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
   defp maybe_add_error(errors, true, field, message), do: Map.put(errors, field, message)
   defp maybe_add_error(errors, false, _field, _message), do: errors
 
-  # Mexico City is permanently UTC-6 (DST abolished in 2023)
-  defp mexico_city_now do
-    DateTime.add(DateTime.utc_now(), -6 * 3600, :second)
-  end
+  defp mexico_city_now, do: DateTime.now!("America/Mexico_City")
 
   # Minimum delivery date: at least 36 hours from now
   defp min_delivery_date do

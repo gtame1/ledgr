@@ -307,17 +307,13 @@ defmodule LedgrWeb.Domains.VolumeStudio.ClassSessionHTML do
     if month == 12, do: %{year: year + 1, month: 1}, else: %{year: year, month: month + 1}
   end
 
-  def format_time(%DateTime{} = dt),      do: Calendar.strftime(dt, "%-I:%M %p")
-  def format_time(%NaiveDateTime{} = ndt), do: Calendar.strftime(ndt, "%-I:%M %p")
   def format_time(nil),                    do: ""
+  def format_time(%DateTime{} = dt),       do: fmt_time(dt, "%-I:%M %p")
+  def format_time(%NaiveDateTime{} = ndt), do: fmt_time(ndt, "%-I:%M %p")
   def format_time(_),                      do: ""
 
-  def format_datetime(%DateTime{} = dt),
-    do: Calendar.strftime(dt, "%b %-d, %Y · %-I:%M %p")
-
-  def format_datetime(%NaiveDateTime{} = ndt),
-    do: Calendar.strftime(ndt, "%b %-d, %Y · %-I:%M %p")
-
   def format_datetime(nil), do: "—"
+  def format_datetime(%DateTime{} = dt), do: fmt_datetime(dt, "%b %-d, %Y · %-I:%M %p")
+  def format_datetime(%NaiveDateTime{} = ndt), do: fmt_datetime(ndt, "%b %-d, %Y · %-I:%M %p")
   def format_datetime(other), do: to_string(other)
 end

@@ -3,6 +3,7 @@ defmodule LedgrWeb.ReportController do
 
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Reporting
+  alias Ledgr.Core.Settings
   alias Ledgr.Domain
 
   def mr_munch_me_more(conn, _params) do
@@ -43,7 +44,8 @@ defmodule LedgrWeb.ReportController do
       end_date: end_date,
       earliest_date: earliest_date,
       latest_date: latest_date,
-      current_period: params["period"]
+      current_period: params["period"],
+      usd_mxn_rate: Settings.get_usd_mxn_rate()
     )
   end
 

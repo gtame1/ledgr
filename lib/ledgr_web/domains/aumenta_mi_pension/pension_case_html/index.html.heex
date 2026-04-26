@@ -81,7 +81,7 @@ end %>
                   <%= if pc.simulation_delta_monthly, do: fmt_money.(pc.simulation_delta_monthly), else: "---" %>
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if pc.created_at, do: Calendar.strftime(pc.created_at, "%b %d, %Y"), else: "---" %>
+                  <%= fmt_date(pc.created_at) || "---" %>
                 </td>
                 <td class="p-3 text-right">
                   <.link navigate={dp(@domain_path_prefix, "/pension-cases/#{pc.id}")} class="text-sm font-medium" style="color: var(--accent);">Ver</.link>

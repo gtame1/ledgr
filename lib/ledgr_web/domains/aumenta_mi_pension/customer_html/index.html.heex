@@ -45,7 +45,7 @@
                 <td class="p-3 text-sm font-mono" style="color: var(--text-main);"><%= customer.nss || "---" %></td>
                 <td class="p-3 text-sm" style="color: var(--text-main);"><%= customer.weeks_contributed || "---" %></td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if customer.created_at, do: Calendar.strftime(customer.created_at, "%b %d, %Y"), else: "---" %>
+                  <%= fmt_date(customer.created_at) || "---" %>
                 </td>
                 <td class="p-3 text-right">
                   <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")} class="text-sm font-medium" style="color: var(--accent);">Ver</.link>

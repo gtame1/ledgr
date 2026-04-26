@@ -237,7 +237,7 @@ end %>
           <tbody>
             <%= for row <- Enum.reverse(daily_series) do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
-                <td class="p-3 text-sm" style="color: var(--text-main);"><%= Calendar.strftime(row.date, "%b %d, %Y") %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);"><%= fmt_date(row.date, "%b %d, %Y") %></td>
                 <td class="p-3 text-sm text-right" style="color: var(--text-main);"><%= row.conversations %></td>
                 <td class="p-3 text-sm text-right" style="color: var(--text-main);"><%= row.consultations %></td>
                 <td class="p-3 text-sm text-right" style="color: var(--text-main);"><%= row.paid %></td>

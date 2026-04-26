@@ -105,13 +105,13 @@ end %>
             <%= if call.started_at do %>
               <div>
                 <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Inició</div>
-                <div class="text-sm" style="color: var(--text-main);"><%= Calendar.strftime(call.started_at, "%b %d, %Y %I:%M %p") %></div>
+                <div class="text-sm" style="color: var(--text-main);"><%= fmt_datetime(call.started_at) %></div>
               </div>
             <% end %>
             <%= if call.ended_at do %>
               <div>
                 <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Terminó</div>
-                <div class="text-sm" style="color: var(--text-main);"><%= Calendar.strftime(call.ended_at, "%b %d, %Y %I:%M %p") %></div>
+                <div class="text-sm" style="color: var(--text-main);"><%= fmt_datetime(call.ended_at) %></div>
               </div>
             <% end %>
             <%= if call.duration_seconds do %>
@@ -182,7 +182,7 @@ end %>
                   </div>
                   <div class="whitespace-pre-line" style="color: var(--text-main);"><%= msg.content %></div>
                   <%= if msg.created_at do %>
-                    <div class="text-xs mt-1 opacity-60"><%= Calendar.strftime(msg.created_at, "%I:%M %p") %></div>
+                    <div class="text-xs mt-1 opacity-60"><%= fmt_time(msg.created_at) %></div>
                   <% end %>
                 </div>
               </div>
@@ -205,18 +205,18 @@ end %>
           </div>
           <div class="flex justify-between text-sm">
             <span style="color: var(--text-muted);">Asignada</span>
-            <span style="color: var(--text-main);"><%= if c.assigned_at, do: Calendar.strftime(c.assigned_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+            <span style="color: var(--text-main);"><%= fmt_datetime(c.assigned_at) || "---" %></span>
           </div>
           <%= if c.accepted_at do %>
             <div class="flex justify-between text-sm">
               <span style="color: var(--text-muted);">Aceptada</span>
-              <span style="color: var(--text-main);"><%= Calendar.strftime(c.accepted_at, "%b %d, %Y %I:%M %p") %></span>
+              <span style="color: var(--text-main);"><%= fmt_datetime(c.accepted_at) %></span>
             </div>
           <% end %>
           <%= if c.completed_at do %>
             <div class="flex justify-between text-sm">
               <span style="color: var(--text-muted);">Completada</span>
-              <span style="color: var(--text-main);"><%= Calendar.strftime(c.completed_at, "%b %d, %Y %I:%M %p") %></span>
+              <span style="color: var(--text-main);"><%= fmt_datetime(c.completed_at) %></span>
             </div>
           <% end %>
           <%= if c.duration_minutes do %>
@@ -305,7 +305,7 @@ end %>
           <% end %>
           <%= if c.payment_confirmed_at do %>
             <div class="text-xs mt-2" style="color: var(--text-muted);">
-              Confirmado: <%= Calendar.strftime(c.payment_confirmed_at, "%b %d, %Y %I:%M %p") %>
+              Confirmado: <%= fmt_datetime(c.payment_confirmed_at) %>
             </div>
           <% end %>
         </div>

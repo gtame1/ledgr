@@ -244,7 +244,7 @@
             <tr style={if booking.status in ["cancelled", "no_show"], do: "opacity: 0.45;", else: ""}>
               <td style="white-space: nowrap; font-size: 0.875rem;">
                 <%= if booking.class_session do %>
-                  <%= Calendar.strftime(booking.class_session.scheduled_at, "%b %d, %Y %H:%M") %>
+                  <%= fmt_datetime(booking.class_session.scheduled_at, "%b %d, %Y %H:%M") %>
                 <% else %>
                   —
                 <% end %>

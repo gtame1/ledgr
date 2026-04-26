@@ -44,7 +44,7 @@
             <tr>
               <td><%= c.customer.name %></td>
               <td><%= c.instructor.name %></td>
-              <td style="white-space: nowrap;"><%= Calendar.strftime(c.scheduled_at, "%b %d, %Y · %H:%M") %></td>
+              <td style="white-space: nowrap;"><%= fmt_datetime(c.scheduled_at, "%b %d, %Y · %H:%M") %></td>
               <td><%= format_currency(c.amount_cents) %></td>
               <td>
                 <span class={"status-badge #{status_class(c.status)}"}>

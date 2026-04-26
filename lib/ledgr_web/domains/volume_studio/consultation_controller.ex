@@ -230,8 +230,8 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationHTML do
   def status_class("no_show"),   do: "status-unpaid"
   def status_class(_),           do: ""
 
-  def format_datetime(%DateTime{} = dt),
-    do: Calendar.strftime(dt, "%b %-d, %Y · %-I:%M %p")
   def format_datetime(nil), do: "—"
+  def format_datetime(%DateTime{} = dt), do: fmt_datetime(dt, "%b %-d, %Y · %-I:%M %p")
+  def format_datetime(%NaiveDateTime{} = ndt), do: fmt_datetime(ndt, "%b %-d, %Y · %-I:%M %p")
   def format_datetime(other), do: to_string(other)
 end

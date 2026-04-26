@@ -48,7 +48,7 @@
         </div>
         <div class="detail-row">
           <dt class="detail-label">Member Since</dt>
-          <dd class="detail-value"><%= Calendar.strftime(to_mx_time(@customer.inserted_at), "%B %d, %Y") %></dd>
+          <dd class="detail-value"><%= fmt_date(@customer.inserted_at, "%B %d, %Y") %></dd>
         </div>
       </dl>
     </section>

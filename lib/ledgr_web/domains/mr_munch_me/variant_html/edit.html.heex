@@ -109,7 +109,7 @@
     Recipe
     <%= if @current_recipe do %>
       <span style="font-size: 0.8rem; font-weight: 400; color: #6b7280; margin-left: 0.5rem;">
-        (current: <%= Calendar.strftime(@current_recipe.effective_date, "%Y-%m-%d") %> · <%= length(@current_recipe.recipe_lines || []) %> ingredients)
+        (current: <%= fmt_date(@current_recipe.effective_date, "%Y-%m-%d") %> · <%= length(@current_recipe.recipe_lines || []) %> ingredients)
       </span>
     <% end %>
   </h2>

@@ -46,7 +46,7 @@
             <div>
               <div style="font-weight: 500; font-size: 0.85rem; color: #3A2A1F;"><%= recipe.variant.name %></div>
               <div style="font-size: 0.65rem; color: #9C8578; display: flex; align-items: center; gap: 0.5rem; margin-top: 0.1rem;">
-                <span>Since <%= Calendar.strftime(recipe.effective_date, "%b %d, %Y") %></span>
+                <span>Since <%= fmt_date(recipe.effective_date, "%b %d, %Y") %></span>
                 <span><%= length(recipe.recipe_lines || []) %> ingredients</span>
                 <%= if Map.has_key?(@recipe_versions_by_variant, recipe.variant_id) do %>
                   <% versions = @recipe_versions_by_variant[recipe.variant_id] %>

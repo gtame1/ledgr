@@ -20,7 +20,7 @@ end %>
     <div>
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Profit & Loss</h1>
       <p class="text-sm mt-1" style="color: var(--text-muted);">
-        <%= Calendar.strftime(@start_date, "%B %d, %Y") %> &mdash; <%= Calendar.strftime(@end_date, "%B %d, %Y") %>
+        <%= fmt_date(@start_date, "%B %d, %Y") %> &mdash; <%= fmt_date(@end_date, "%B %d, %Y") %>
       </p>
     </div>
   </div>

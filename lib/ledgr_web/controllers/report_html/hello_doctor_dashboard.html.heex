@@ -17,7 +17,7 @@ end %>
 
 <%!-- Chart data preparation --%>
 <% daily = m.daily_series %>
-<% day_labels = Enum.map(daily, fn d -> Calendar.strftime(d.date, "%b %d") end) %>
+<% day_labels = Enum.map(daily, fn d -> fmt_date(d.date, "%b %d") end) %>
 
 <% funnel_chart = %{
   format: "number",
@@ -136,7 +136,7 @@ end %>
     <div>
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Dashboard</h1>
       <p class="text-sm mt-1" style="color: var(--text-muted);">
-        <%= Calendar.strftime(@start_date, "%b %d, %Y") %> &mdash; <%= Calendar.strftime(@end_date, "%b %d, %Y") %>
+        <%= fmt_date(@start_date, "%b %d, %Y") %> &mdash; <%= fmt_date(@end_date, "%b %d, %Y") %>
       </p>
     </div>
     <div class="flex gap-1 p-1 rounded-lg" style="background: var(--bg-surface); border: 1px solid var(--border-subtle);">
@@ -441,7 +441,7 @@ end %>
         <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.total_usd, 2) %> <span class="text-base font-normal" style="color: var(--text-muted);">USD</span></div>
         <div class="hd-kpi-sub">
           <%= if m.infrastructure_costs.last_synced do %>
-            Last synced <%= Calendar.strftime(m.infrastructure_costs.last_synced, "%b %d") %>
+            Last synced <%= fmt_date(m.infrastructure_costs.last_synced, "%b %d") %>
           <% else %>
             Never synced — click Sync costs
           <% end %>

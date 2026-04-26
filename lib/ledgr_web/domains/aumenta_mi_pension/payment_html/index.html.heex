@@ -67,7 +67,7 @@ end %>
               <% agent_payout = (pay.amount || 0) * 0.85 %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= if pay.paid_at, do: Calendar.strftime(pay.paid_at, "%b %d, %Y"), else: "---" %>
+                  <%= fmt_date(pay.paid_at) || "---" %>
                 </td>
                 <td class="p-3">
                   <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.customer_name || "---" %></div>

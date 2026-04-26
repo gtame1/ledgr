@@ -38,7 +38,7 @@ end %>
               <% total_cents = Enum.reduce(entry.journal_lines, 0, fn line, acc -> acc + (line.debit_cents || 0) end) %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= Calendar.strftime(entry.date, "%b %d, %Y") %>
+                  <%= fmt_date(entry.date, "%b %d, %Y") %>
                 </td>
                 <td class="p-3 text-sm font-medium" style="color: var(--text-main);">
                   <%= entry.description || "---" %>

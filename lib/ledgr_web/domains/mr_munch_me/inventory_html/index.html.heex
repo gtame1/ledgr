@@ -222,7 +222,7 @@
                   m.movement_type == "return" -> "mm-status--delivered"
                   true -> "mm-status--canceled"
                 end}"} style="font-size: 0.55rem;"><%= String.capitalize(m.movement_type || "") %></span>
-                <span style="font-size: 0.65rem; color: #9C8578;"><%= m.movement_date |> Calendar.strftime("%b %d") %></span>
+                <span style="font-size: 0.65rem; color: #9C8578;"><%= fmt_date(m.movement_date, "%b %d") %></span>
               </div>
               <div style="font-weight: 500; font-size: 0.85rem; color: #3A2A1F;">
                 <%= m.ingredient && m.ingredient.name %>

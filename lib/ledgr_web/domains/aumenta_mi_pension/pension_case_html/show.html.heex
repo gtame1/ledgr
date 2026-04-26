@@ -115,7 +115,7 @@ end %>
               </a>
               <%= if pc.simulation_sent_at do %>
                 <span class="text-xs ml-3" style="color: var(--text-muted);">
-                  Enviada: <%= Calendar.strftime(pc.simulation_sent_at, "%b %d, %Y %I:%M %p") %>
+                  Enviada: <%= fmt_datetime(pc.simulation_sent_at) %>
                 </span>
               <% end %>
             </div>
@@ -235,11 +235,11 @@ end %>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Creado</span>
-            <span style="color: var(--text-main);"><%= if pc.created_at, do: Calendar.strftime(pc.created_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+            <span style="color: var(--text-main);"><%= fmt_datetime(pc.created_at) || "---" %></span>
           </div>
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Actualizado</span>
-            <span style="color: var(--text-main);"><%= if pc.updated_at, do: Calendar.strftime(pc.updated_at, "%b %d, %Y %I:%M %p"), else: "---" %></span>
+            <span style="color: var(--text-main);"><%= fmt_datetime(pc.updated_at) || "---" %></span>
           </div>
         </div>
       </div>

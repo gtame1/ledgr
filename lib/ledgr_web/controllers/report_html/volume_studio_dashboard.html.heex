@@ -87,7 +87,7 @@
                     </.link>
                   </td>
                   <td><%= if session.instructor, do: session.instructor.name, else: "—" %></td>
-                  <td><%= Calendar.strftime(session.scheduled_at, "%b %d, %Y · %H:%M") %></td>
+                  <td><%= fmt_datetime(session.scheduled_at, "%b %d, %Y · %H:%M") %></td>
                   <td class="numeric"><%= session.duration_minutes %> min</td>
                   <td class="numeric"><%= session.capacity || "—" %></td>
                 </tr>

@@ -29,7 +29,7 @@
   </div>
 
   <div class="calendar-month-title">
-    <%= Calendar.strftime(@first_day, "%B %Y") %>
+    <%= fmt_date(@first_day, "%B %Y") %>
   </div>
 
   <div class="calendar-grid">
@@ -57,7 +57,7 @@
             url: dp(@domain_path_prefix, "/class-sessions/#{s.id}")
           }
         end))
-        day_label = Calendar.strftime(date, "%A, %B %-d")
+        day_label = fmt_date(date, "%A, %B %-d")
       %>
       <div class={[
         "calendar-day",
