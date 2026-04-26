@@ -54,7 +54,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           existing_count = Enum.count(results, &match?({:ok, :already_exists}, &1))
           skipped_count  = Enum.count(results, &match?({:ok, :skipped}, &1))
 
-          Logger.info("[HelloDoctor StripeSync] Synced #{new_count} new, #{existing_count} already existed, #{skipped_count} skipped (non-HD product)")
+          Logger.info("[HelloDoctor StripeSync] Synced #{new_count} new, #{existing_count} already existed, #{skipped_count} skipped (non-HD product). Total sessions fetched: #{length(sessions)}")
           {:ok, new_count, existing_count}
 
         {:error, err} ->
@@ -167,6 +167,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         # New payment — check product ID before inserting
         {product_name, line_item_product_ids} = fetch_line_item_info(session, api_key)
 
+        Logger.debug("[HelloDoctor StripeSync] Session #{session.id} product_ids=#{inspect(line_item_product_ids)}")
+
         if hellodoctor_session?(line_item_product_ids) do
           amount_pesos = (session.amount_total || 0) / 100.0
           customer_email = session.customer_details && session.customer_details.email
@@ -222,7 +224,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
               {:error, changeset}
           end
         else
-          Logger.debug("[HelloDoctor StripeSync] Skipping session #{session.id} — no HelloDoctor product found")
+          Logger.warning("[HelloDoctor StripeSync] Skipping session #{session.id} — product_ids=#{inspect(line_item_product_ids)} did not match #{inspect(@hellodoctor_product_ids)}")
           {:ok, :skipped}
         end
 
@@ -395,6 +397,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     product_name
   end
 
+  # Returns true if any product matches the known HelloDoctor product IDs.
+  # Also returns true when product_ids is empty — this means we couldn't fetch
+  # line items (API error, no price, etc.) so we accept rather than silently drop.
+  defp hellodoctor_session?([]), do: true
   defp hellodoctor_session?(product_ids) do
     Enum.any?(product_ids, &(&1 in @hellodoctor_product_ids))
   end
