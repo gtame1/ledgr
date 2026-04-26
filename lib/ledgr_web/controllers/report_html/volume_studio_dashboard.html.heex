@@ -34,7 +34,9 @@
 
         <div class="metric-card">
           <div class="metric-label">Net Income (Period)</div>
-          <div class="metric-value"><%= format_currency(m.pnl.net_income_cents || 0) %></div>
+          <div class="metric-value" style={"color: #{if (m.pnl.net_income_cents || 0) >= 0, do: "var(--vs-green, #16a34a)", else: "var(--vs-red, #dc2626)"};"}>
+            <%= format_currency(m.pnl.net_income_cents || 0) %>
+          </div>
         </div>
       </div>
     </section>
@@ -64,7 +66,9 @@
 
         <div class="metric-card">
           <div class="metric-label">Net Income</div>
-          <div class="metric-value"><%= format_currency(pnl.net_income_cents || 0) %></div>
+          <div class="metric-value" style={"color: #{if (pnl.net_income_cents || 0) >= 0, do: "var(--vs-green, #16a34a)", else: "var(--vs-red, #dc2626)"};"}>
+            <%= format_currency(pnl.net_income_cents || 0) %>
+          </div>
         </div>
       </div>
     </section>

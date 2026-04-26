@@ -227,6 +227,15 @@ defmodule LedgrWeb.Router do
     get  "/consultations/:id/payment/new", Domains.VolumeStudio.ConsultationController, :new_payment
     post "/consultations/:id/payment",     Domains.VolumeStudio.ConsultationController, :record_payment
 
+    # Partner investments dashboard (recording forms still live at /investments/* via core_routes)
+    get "/partner-investments", Domains.VolumeStudio.PartnerInvestmentController, :index
+
+    # Partner splits (revenue/expense attribution)
+    get  "/partner-splits/breakdown", Domains.VolumeStudio.PartnerSplitController, :breakdown
+    get  "/partner-splits/expenses", Domains.VolumeStudio.PartnerSplitController, :expenses
+    post "/partner-splits/expenses/:expense_id/assign", Domains.VolumeStudio.PartnerSplitController, :assign_expense
+    resources "/partner-splits", Domains.VolumeStudio.PartnerSplitController, only: [:index, :new, :create, :edit, :update, :delete]
+
     # Studio spaces & rental agreements
     resources "/spaces", Domains.VolumeStudio.SpaceController, only: [:index, :new, :create, :edit, :update, :delete]
     resources "/space-rentals", Domains.VolumeStudio.SpaceRentalController, only: [:index, :show, :new, :create, :edit, :update]

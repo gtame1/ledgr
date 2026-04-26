@@ -123,16 +123,19 @@ defmodule Ledgr.Domains.VolumeStudio do
 
     [
       %{group: "Main Menu", items: [
-        %{label: "Dashboard",     path: prefix,                                  icon: :dashboard},
-        %{label: "Subscriptions", path: "#{prefix}/subscriptions?status=active", icon: :subscriptions},
-        %{label: "Consultations", path: "#{prefix}/consultations",               icon: :documents},
-        %{label: "Rentals",       path: "#{prefix}/space-rentals",               icon: :receipt},
-        %{label: "Expenses",      path: "#{prefix}/expenses",                    icon: :expenses}
+        %{label: "Dashboard",           path: prefix,                                  icon: :dashboard},
+        %{label: "Subscriptions",       path: "#{prefix}/subscriptions?status=active", icon: :subscriptions},
+        %{label: "Consultations",       path: "#{prefix}/consultations",               icon: :documents},
+        %{label: "Rentals",             path: "#{prefix}/space-rentals",               icon: :receipt},
+        %{label: "Expenses",            path: "#{prefix}/expenses",                    icon: :expenses},
+        %{label: "Partner Investments", path: "#{prefix}/partner-investments",         icon: :reports},
+        %{label: "Partner Breakdown",   path: "#{prefix}/partner-splits/breakdown",    icon: :reports}
       ]},
       %{group: "Catalog", items: [
         %{label: "Members",            path: "#{prefix}/customers",          icon: :customers},
         %{label: "Subscription Plans", path: "#{prefix}/subscription-plans", icon: :services},
-        %{label: "Spaces",             path: "#{prefix}/spaces",             icon: :services}
+        %{label: "Spaces",             path: "#{prefix}/spaces",             icon: :services},
+        %{label: "Partner Splits",     path: "#{prefix}/partner-splits",     icon: :users}
       ]}
     ]
   end
@@ -145,9 +148,12 @@ defmodule Ledgr.Domains.VolumeStudio do
       "Consultations" => "medical_services",
       "Rentals" => "key",
       "Expenses" => "receipt_long",
+      "Partner Investments" => "savings",
+      "Partner Breakdown" => "insights",
       "Members" => "group",
       "Subscription Plans" => "loyalty",
-      "Spaces" => "meeting_room"
+      "Spaces" => "meeting_room",
+      "Partner Splits" => "pie_chart"
     }
   end
 

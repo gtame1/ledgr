@@ -19,6 +19,9 @@
 /* Aumenta Mi Pensión Stitch design overrides */
 @import "./aumenta-mi-pension-stitch.css";
 
+/* Volume Studio Stitch design overrides */
+@import "./volume-studio-stitch.css";
+
 /* ==============================
    Standard sidebar + flat nav (default for all domains)
    Driven by CSS vars set on :root in root.html.heex from domain.theme().

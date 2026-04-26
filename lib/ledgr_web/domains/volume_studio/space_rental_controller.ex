@@ -4,6 +4,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
   alias Ledgr.Domains.VolumeStudio.Spaces
   alias Ledgr.Domains.VolumeStudio.Spaces.SpaceRental
   alias Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting
+  alias Ledgr.Domains.VolumeStudio.PartnerSplits
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Customers
   alias LedgrWeb.Helpers.MoneyHelper
@@ -23,12 +24,11 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
 
   def new(conn, _params) do
     changeset = Spaces.change_space_rental(%SpaceRental{})
-    spaces = Spaces.list_active_spaces()
-    customers = customer_options()
     render(conn, :new,
       changeset: changeset,
-      spaces: spaces,
-      customers: customers,
+      spaces: Spaces.list_active_spaces(),
+      customers: customer_options(),
+      partner_split_options: PartnerSplits.split_options(),
       action: dp(conn, "/space-rentals")
     )
   end
@@ -43,12 +43,11 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
         |> redirect(to: dp(conn, "/space-rentals/#{rental.id}"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        spaces = Spaces.list_active_spaces()
-        customers = customer_options()
         render(conn, :new,
           changeset: changeset,
-          spaces: spaces,
-          customers: customers,
+          spaces: Spaces.list_active_spaces(),
+          customers: customer_options(),
+          partner_split_options: PartnerSplits.split_options(),
           action: dp(conn, "/space-rentals")
         )
     end
@@ -61,13 +60,12 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
       "discount_cents" => MoneyHelper.cents_to_pesos(rental.discount_cents || 0)
     }
     changeset = Spaces.change_space_rental(rental, attrs)
-    spaces = Spaces.list_active_spaces()
-    customers = customer_options()
     render(conn, :edit,
       rental: rental,
       changeset: changeset,
-      spaces: spaces,
-      customers: customers,
+      spaces: Spaces.list_active_spaces(),
+      customers: customer_options(),
+      partner_split_options: PartnerSplits.split_options(),
       action: dp(conn, "/space-rentals/#{id}")
     )
   end
@@ -83,13 +81,12 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
         |> redirect(to: dp(conn, "/space-rentals/#{rental.id}"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        spaces = Spaces.list_active_spaces()
-        customers = customer_options()
         render(conn, :edit,
           rental: rental,
           changeset: changeset,
-          spaces: spaces,
-          customers: customers,
+          spaces: Spaces.list_active_spaces(),
+          customers: customer_options(),
+          partner_split_options: PartnerSplits.split_options(),
           action: dp(conn, "/space-rentals/#{id}")
         )
     end

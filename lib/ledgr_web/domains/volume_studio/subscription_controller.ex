@@ -4,6 +4,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
   alias Ledgr.Domains.VolumeStudio.Subscriptions
   alias Ledgr.Domains.VolumeStudio.Subscriptions.Subscription
   alias Ledgr.Domains.VolumeStudio.SubscriptionPlans
+  alias Ledgr.Domains.VolumeStudio.PartnerSplits
   alias Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Customers
@@ -16,10 +17,13 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
     status = if current_plan_type, do: nil, else: params["status"]
 
     subscriptions = Subscriptions.list_subscriptions(status: status, plan_type: db_plan_type)
+    counts = Subscriptions.status_counts()
+
     render(conn, :index,
       subscriptions: subscriptions,
       current_status: status,
-      current_plan_type: current_plan_type
+      current_plan_type: current_plan_type,
+      status_counts: counts
     )
   end
 
@@ -77,11 +81,13 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
     customer_changeset = Customers.change_customer(%Customer{})
     customers = customer_options()
     plans = SubscriptionPlans.list_active_subscription_plans()
+    partner_split_options = PartnerSplits.split_options()
     render(conn, :new,
       changeset:               changeset,
       customer_changeset:      customer_changeset,
       customers:               customers,
       plans:                   plans,
+      partner_split_options:   partner_split_options,
       mode:                    mode,
       preselected_customer_id: preselected_customer_id,
       action:                  dp(conn, "/subscriptions")
@@ -119,6 +125,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
           customer_changeset: customer_changeset,
           customers: customers,
           plans: plans,
+          partner_split_options: PartnerSplits.split_options(),
           mode: "new",
           action: dp(conn, "/subscriptions")
         )
@@ -131,6 +138,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
           customer_changeset: Customers.change_customer(%Customer{}),
           customers: customers,
           plans: plans,
+          partner_split_options: PartnerSplits.split_options(),
           mode: mode,
           action: dp(conn, "/subscriptions")
         )
@@ -142,11 +150,13 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
     changeset = Subscriptions.change_subscription(subscription)
     customers = customer_options()
     plans = SubscriptionPlans.list_active_subscription_plans()
+    partner_split_options = PartnerSplits.split_options()
     render(conn, :edit,
       subscription: subscription,
       changeset: changeset,
       customers: customers,
       plans: plans,
+      partner_split_options: partner_split_options,
       action: dp(conn, "/subscriptions/#{id}")
     )
   end
@@ -168,6 +178,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
           changeset: changeset,
           customers: customers,
           plans: plans,
+          partner_split_options: PartnerSplits.split_options(),
           action: dp(conn, "/subscriptions/#{id}")
         )
     end
@@ -536,6 +547,28 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionHTML do
   def plan_type_badge("membership"), do: "status-paid"
   def plan_type_badge("extra"),      do: "status-extra"
   def plan_type_badge(_),            do: ""
+
+  @doc "Returns the initials (1-2 chars uppercase) for a name."
+  def initials(nil), do: "?"
+  def initials(""), do: "?"
+  def initials(name) when is_binary(name) do
+    name
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map(&String.first/1)
+    |> Enum.join()
+    |> String.upcase()
+  end
+
+  @doc "Returns a payment summary tuple for the subscription list row: {paid_cents, total_cents, percent_paid (0-100)}."
+  def payment_progress(sub) do
+    plan  = sub.subscription_plan
+    base  = if plan, do: max(plan.price_cents - (sub.discount_cents || 0), 0), else: 0
+    total = base + (sub.iva_cents || 0)
+    paid  = sub.paid_cents || 0
+    pct   = if total > 0, do: min(100, round(paid * 100 / total)), else: 100
+    {paid, total, pct}
+  end
 
   @doc "Returns {label, css_class} for the payment status badge shown in the subscriptions list."
   def payment_status(sub) do

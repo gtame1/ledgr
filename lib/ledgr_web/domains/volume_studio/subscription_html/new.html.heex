@@ -152,6 +152,11 @@
             {"Expired", "expired"}
           ]} />
         </div>
+        <div class="field">
+          <label>Partner Split <small style="font-weight: normal;">(optional)</small></label>
+          <.input type="select" field={f[:partner_split_id]}
+            options={[{"— unattributed —", ""} | @partner_split_options]} />
+        </div>
       </div>
     </div>
 

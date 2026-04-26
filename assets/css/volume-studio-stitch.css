@@ -1,0 +1,536 @@
+/* ============================================================
+   Volume Studio — Stitch Design Overrides
+   All rules scoped to [data-domain="volume-studio"]
+   Brand: slate #546B7D sidebar, cream #F8F3EA bg, gold #E8B86F accent
+   ============================================================ */
+
+@layer components {
+
+/* ── Base palette tokens ────────────────────────────────────── */
+
+[data-domain="volume-studio"] {
+  --vs-slate: #546B7D;
+  --vs-slate-hover: #42566B;
+  --vs-cream: #F8F3EA;
+  --vs-cream-2: #F0EBE0;
+  --vs-border-subtle: #E2D9CC;
+  --vs-border-strong: #C8BFAF;
+  --vs-text: #282828;
+  --vs-text-muted: #706A62;
+  --vs-gold: #E8B86F;
+  --vs-green: #16a34a;
+  --vs-green-soft: #dcfce7;
+  --vs-green-text: #15803d;
+  --vs-red: #dc2626;
+  --vs-red-soft: #fee2e2;
+  --vs-red-text: #b91c1c;
+  --vs-amber: #d97706;
+  --vs-amber-soft: #fef3c7;
+  --vs-amber-text: #b45309;
+  --vs-violet: #7c3aed;
+  --vs-violet-soft: #ede9fe;
+  --vs-violet-text: #6d28d9;
+  --vs-grey-soft: #f3f4f6;
+  --vs-grey-text: #4b5563;
+}
+
+/* ── Page chrome ────────────────────────────────────────────── */
+
+[data-domain="volume-studio"] .content {
+  background: var(--vs-cream);
+  padding: 0;
+}
+
+[data-domain="volume-studio"] .content-body {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem 2.5rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+[data-domain="volume-studio"] .content-header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem 0.5rem;
+  width: 100%;
+}
+
+[data-domain="volume-studio"] .page-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--vs-text);
+  margin: 0;
+}
+
+[data-domain="volume-studio"] .content-header .card-subtitle,
+[data-domain="volume-studio"] .content-header > p {
+  font-size: 0.9rem;
+  color: var(--vs-text-muted);
+  margin: 0.25rem 0 0;
+}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+
+[data-domain="volume-studio"] .card {
+  background: #ffffff;
+  border: 1px solid var(--vs-border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(40, 40, 40, 0.04);
+  padding: 1.25rem 1.5rem;
+}
+
+[data-domain="volume-studio"] .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+[data-domain="volume-studio"] .card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--vs-text);
+  margin: 0;
+}
+
+[data-domain="volume-studio"] .card-subtitle {
+  font-size: 0.85rem;
+  color: var(--vs-text-muted);
+  margin: 0.15rem 0 0;
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+
+[data-domain="volume-studio"] .btn {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--vs-border-strong);
+  background: #ffffff;
+  color: var(--vs-text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  cursor: pointer;
+}
+
+[data-domain="volume-studio"] .btn:hover {
+  background: var(--vs-cream-2);
+  border-color: var(--vs-text-muted);
+}
+
+[data-domain="volume-studio"] .btn.primary,
+[data-domain="volume-studio"] button[type="submit"].primary {
+  background: var(--vs-slate);
+  border-color: var(--vs-slate);
+  color: var(--vs-cream);
+}
+
+[data-domain="volume-studio"] .btn.primary:hover {
+  background: var(--vs-slate-hover);
+  border-color: var(--vs-slate-hover);
+}
+
+[data-domain="volume-studio"] .btn.danger {
+  background: #ffffff;
+  color: var(--vs-red);
+  border-color: var(--vs-red);
+}
+
+[data-domain="volume-studio"] .btn.danger:hover {
+  background: var(--vs-red-soft);
+}
+
+[data-domain="volume-studio"] .btn.btn-sm,
+[data-domain="volume-studio"] .btn.sm {
+  font-size: 0.82rem;
+  padding: 0.4rem 0.75rem;
+}
+
+/* ── Inputs ────────────────────────────────────────────────── */
+
+[data-domain="volume-studio"] .form-input,
+[data-domain="volume-studio"] input[type="text"],
+[data-domain="volume-studio"] input[type="number"],
+[data-domain="volume-studio"] input[type="email"],
+[data-domain="volume-studio"] input[type="date"],
+[data-domain="volume-studio"] input[type="datetime-local"],
+[data-domain="volume-studio"] input[type="search"],
+[data-domain="volume-studio"] input[type="tel"],
+[data-domain="volume-studio"] select,
+[data-domain="volume-studio"] textarea {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--vs-border-strong);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--vs-text);
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+[data-domain="volume-studio"] .form-input:focus,
+[data-domain="volume-studio"] input:focus,
+[data-domain="volume-studio"] select:focus,
+[data-domain="volume-studio"] textarea:focus {
+  outline: none;
+  border-color: var(--vs-slate);
+  box-shadow: 0 0 0 3px rgba(84, 107, 125, 0.15);
+}
+
+[data-domain="volume-studio"] .field label,
+[data-domain="volume-studio"] label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--vs-text-muted);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Tables ────────────────────────────────────────────────── */
+
+[data-domain="volume-studio"] .table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+[data-domain="volume-studio"] .table thead th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vs-text-muted);
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--vs-border-subtle);
+  background: transparent;
+}
+
+[data-domain="volume-studio"] .table tbody td {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--vs-border-subtle);
+  color: var(--vs-text);
+  vertical-align: middle;
+}
+
+[data-domain="volume-studio"] .table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+[data-domain="volume-studio"] .table tbody tr:hover {
+  background: var(--vs-cream-2);
+}
+
+[data-domain="volume-studio"] .table .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-domain="volume-studio"] .table-wrapper {
+  overflow-x: auto;
+}
+
+/* ── Status badges (pills) ─────────────────────────────────── */
+
+[data-domain="volume-studio"] .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--vs-grey-soft);
+  color: var(--vs-grey-text);
+  white-space: nowrap;
+}
+
+[data-domain="volume-studio"] .status-badge.status-paid,
+[data-domain="volume-studio"] .status-badge.status-active,
+[data-domain="volume-studio"] .status-badge.status-success {
+  background: var(--vs-green-soft);
+  color: var(--vs-green-text);
+}
+
+[data-domain="volume-studio"] .status-badge.status-unpaid,
+[data-domain="volume-studio"] .status-badge.status-cancelled,
+[data-domain="volume-studio"] .status-badge.status-danger {
+  background: var(--vs-red-soft);
+  color: var(--vs-red-text);
+}
+
+[data-domain="volume-studio"] .status-badge.status-partial,
+[data-domain="volume-studio"] .status-badge.status-paused,
+[data-domain="volume-studio"] .status-badge.status-pending {
+  background: var(--vs-amber-soft);
+  color: var(--vs-amber-text);
+}
+
+[data-domain="volume-studio"] .status-badge.status-promo {
+  background: var(--vs-violet-soft);
+  color: var(--vs-violet-text);
+}
+
+[data-domain="volume-studio"] .status-badge.status-extra {
+  background: var(--vs-grey-soft);
+  color: var(--vs-grey-text);
+}
+
+/* Plan-type specific badges (used in subscriptions) */
+[data-domain="volume-studio"] .plan-type-membership { background: var(--vs-green-soft); color: var(--vs-green-text); }
+[data-domain="volume-studio"] .plan-type-package    { background: var(--vs-amber-soft); color: var(--vs-amber-text); }
+[data-domain="volume-studio"] .plan-type-promo      { background: var(--vs-violet-soft); color: var(--vs-violet-text); }
+[data-domain="volume-studio"] .plan-type-extra      { background: var(--vs-grey-soft); color: var(--vs-grey-text); }
+
+/* ── Metric cards (Dashboard / Investments / Breakdown) ────── */
+
+[data-domain="volume-studio"] .dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+[data-domain="volume-studio"] .metric-card {
+  background: var(--vs-cream-2);
+  border: 1px solid var(--vs-border-subtle);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+}
+
+[data-domain="volume-studio"] .metric-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vs-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+[data-domain="volume-studio"] .metric-value {
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--vs-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+[data-domain="volume-studio"] .metric-sub {
+  font-size: 0.78rem;
+  color: var(--vs-text-muted);
+  margin-top: 0.35rem;
+}
+
+/* Featured slate metric card (e.g. Total Net Capital headline) */
+[data-domain="volume-studio"] .metric-card--featured {
+  background: var(--vs-slate);
+  border-color: var(--vs-slate);
+  color: var(--vs-cream);
+}
+
+[data-domain="volume-studio"] .metric-card--featured .metric-label {
+  color: rgba(248, 243, 234, 0.7);
+}
+
+[data-domain="volume-studio"] .metric-card--featured .metric-value {
+  color: var(--vs-cream);
+}
+
+[data-domain="volume-studio"] .metric-card--featured .metric-sub {
+  color: rgba(248, 243, 234, 0.7);
+}
+
+/* ── Filter chip row (subscriptions index) ─────────────────── */
+
+[data-domain="volume-studio"] .vs-filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+[data-domain="volume-studio"] .vs-filter-tab {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--vs-border-subtle);
+  background: #ffffff;
+  color: var(--vs-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+[data-domain="volume-studio"] .vs-filter-tab:hover {
+  border-color: var(--vs-text-muted);
+}
+
+[data-domain="volume-studio"] .vs-filter-tab.is-active {
+  background: var(--vs-slate);
+  color: var(--vs-cream);
+  border-color: var(--vs-slate);
+}
+
+[data-domain="volume-studio"] .vs-filter-tab .count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+}
+
+[data-domain="volume-studio"] .vs-filter-tab.is-active .count {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Avatar circle ─────────────────────────────────────────── */
+
+[data-domain="volume-studio"] .vs-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--vs-slate);
+  color: var(--vs-cream);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+[data-domain="volume-studio"] .vs-avatar--lg { width: 48px; height: 48px; font-size: 0.9rem; }
+
+[data-domain="volume-studio"] .vs-member-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+[data-domain="volume-studio"] .vs-member-cell .name {
+  font-weight: 600;
+  color: var(--vs-text);
+  line-height: 1.2;
+}
+
+[data-domain="volume-studio"] .vs-member-cell .meta {
+  font-size: 0.78rem;
+  color: var(--vs-text-muted);
+  line-height: 1.2;
+  margin-top: 0.1rem;
+}
+
+/* ── Payment progress (subscription rows) ───────────────────── */
+
+[data-domain="volume-studio"] .vs-payment-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 140px;
+}
+
+[data-domain="volume-studio"] .vs-payment-cell .amounts {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--vs-text);
+}
+
+[data-domain="volume-studio"] .vs-payment-bar {
+  height: 4px;
+  background: var(--vs-border-subtle);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+[data-domain="volume-studio"] .vs-payment-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--vs-green);
+  border-radius: 999px;
+}
+
+[data-domain="volume-studio"] .vs-payment-bar.is-partial > span {
+  background: var(--vs-amber);
+}
+
+[data-domain="volume-studio"] .vs-payment-bar.is-overdue > span {
+  background: var(--vs-red);
+}
+
+/* ── Form sections ─────────────────────────────────────────── */
+
+[data-domain="volume-studio"] .form-section-title,
+[data-domain="volume-studio"] .vs-form-section {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vs-text-muted);
+  margin: 1.25rem 0 0.65rem;
+}
+
+[data-domain="volume-studio"] .form-grid,
+[data-domain="volume-studio"] .form-block {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem 1.25rem;
+}
+
+[data-domain="volume-studio"] .field { margin: 0; }
+[data-domain="volume-studio"] .field.full { grid-column: 1 / -1; }
+
+[data-domain="volume-studio"] .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--vs-border-subtle);
+}
+
+/* ── Mobile adaptations ────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  [data-domain="volume-studio"] .content-header {
+    padding: 1.25rem 1rem 0.25rem;
+  }
+  [data-domain="volume-studio"] .content-body {
+    padding: 0 1rem 1.5rem !important;
+    gap: 1rem;
+  }
+  [data-domain="volume-studio"] .page-title {
+    font-size: 1.4rem;
+  }
+  [data-domain="volume-studio"] .card {
+    padding: 1rem;
+    border-radius: 14px;
+  }
+  [data-domain="volume-studio"] .dashboard-metrics {
+    grid-template-columns: 1fr;
+  }
+  [data-domain="volume-studio"] .form-grid,
+  [data-domain="volume-studio"] .form-block {
+    grid-template-columns: 1fr;
+  }
+}
+
+}  /* end @layer components */

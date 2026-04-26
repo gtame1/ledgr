@@ -1,0 +1,58 @@
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">Expense Attribution</h1>
+    <p class="card-subtitle">Assign a partner split to each expense. Unattributed expenses fall outside per-partner reporting.</p>
+  </header>
+
+  <div class="content-body">
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent expenses</h2>
+        <.link navigate={dp(@domain_path_prefix, "/partner-splits")} class="btn">Back to splits</.link>
+      </div>
+
+      <div class="table-wrapper" style="margin-top: 1rem;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Category</th>
+              <th style="min-width: 220px;">Partner Split</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= if Enum.empty?(@expenses) do %>
+              <tr><td colspan="5" style="color: var(--text-muted); font-style: italic;">No expenses recorded yet.</td></tr>
+            <% else %>
+              <%= for expense <- @expenses do %>
+                <tr>
+                  <td style="white-space: nowrap;"><%= Calendar.strftime(expense.date, "%b %d, %Y") %></td>
+                  <td><%= expense.description %></td>
+                  <td><%= format_currency(expense.amount_cents) %></td>
+                  <td style="color: var(--text-muted);"><%= expense.category || "—" %></td>
+                  <td>
+                    <.form for={%{}} as={:assignment}
+                      action={dp(@domain_path_prefix, "/partner-splits/expenses/#{expense.id}/assign")}
+                      style="display: flex; gap: 0.5rem; align-items: center;">
+                      <select name="partner_split_id" class="form-input" style="flex: 1;">
+                        <option value="">— unattributed —</option>
+                        <%= for {label, id} <- @split_options do %>
+                          <option value={id} selected={Map.get(@assignments, expense.id) == id}>
+                            <%= label %>
+                          </option>
+                        <% end %>
+                      </select>
+                      <button type="submit" class="btn btn-sm primary">Save</button>
+                    </.form>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</section>

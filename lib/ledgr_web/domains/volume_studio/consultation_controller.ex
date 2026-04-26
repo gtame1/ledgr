@@ -4,6 +4,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
   alias Ledgr.Domains.VolumeStudio.Consultations
   alias Ledgr.Domains.VolumeStudio.Consultations.Consultation
   alias Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting
+  alias Ledgr.Domains.VolumeStudio.PartnerSplits
   alias Ledgr.Core.{Customers, Accounting}
   alias LedgrWeb.Helpers.MoneyHelper
 
@@ -25,6 +26,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
     render(conn, :new,
       changeset: changeset,
       customers: customers,
+      partner_split_options: PartnerSplits.split_options(),
       action: dp(conn, "/consultations")
     )
   end
@@ -60,6 +62,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
       consultation: consultation,
       changeset: changeset,
       customers: customers,
+      partner_split_options: PartnerSplits.split_options(),
       action: dp(conn, "/consultations/#{id}")
     )
   end

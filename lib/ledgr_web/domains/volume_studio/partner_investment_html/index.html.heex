@@ -1,0 +1,148 @@
+<section class="content">
+  <header class="content-header">
+    <h1 class="page-title">Partner Investments</h1>
+    <p class="card-subtitle">Capital contributions and withdrawals by partner.</p>
+  </header>
+
+  <div class="content-body">
+
+    <%!-- ── Top metrics row ─────────────────────────────────────────── --%>
+    <section class="card">
+      <div class="dashboard-metrics">
+        <div class="metric-card metric-card--featured">
+          <div class="metric-label">Total Net Capital</div>
+          <div class="metric-value"><%= format_currency(@total_net_cents) %></div>
+          <div class="metric-sub">In − Out across all partners</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Owner's Equity</div>
+          <div class="metric-value"><%= format_currency(@equity_summary.owners_equity_cents) %></div>
+          <div class="metric-sub">Account 3000</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Retained Earnings</div>
+          <div class="metric-value"><%= format_currency(@equity_summary.retained_earnings_cents) %></div>
+          <div class="metric-sub">Account 3050</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">YTD Net Income</div>
+          <div class="metric-value" style={"color: #{if @equity_summary.current_net_income_cents >= 0, do: "var(--vs-green, #16a34a)", else: "var(--vs-red, #dc2626)"};"}>
+            <%= format_currency(@equity_summary.current_net_income_cents) %>
+          </div>
+          <div class="metric-sub">Since last year-end close</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <.link navigate={dp(@domain_path_prefix, "/investments/new")} class="btn primary">
+          + Record Contribution
+        </.link>
+        <.link navigate={dp(@domain_path_prefix, "/investments/withdrawal")} class="btn">
+          − Record Withdrawal
+        </.link>
+      </div>
+    </section>
+
+    <%!-- ── Per-partner breakdown ──────────────────────────────────── --%>
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">By Partner</h2>
+      </div>
+
+      <%= if Enum.empty?(@summaries) do %>
+        <p style="color: var(--text-muted); font-style: italic; margin-top: 0.75rem;">
+          No partners yet. Add partners through the database to start tracking investments.
+        </p>
+      <% else %>
+        <div class="table-wrapper" style="margin-top: 0.75rem;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Partner</th>
+                <th class="numeric">Contributions</th>
+                <th class="numeric">Withdrawals</th>
+                <th class="numeric">Net Capital</th>
+                <th class="numeric"># entries</th>
+                <th>Last activity</th>
+                <th class="numeric">Default fee rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for s <- @summaries do %>
+                <tr>
+                  <td>
+                    <div class="vs-member-cell">
+                      <span class="vs-avatar"><%= LedgrWeb.Domains.VolumeStudio.SubscriptionHTML.initials(s.partner.name) %></span>
+                      <div>
+                        <div class="name"><%= s.partner.name %></div>
+                        <%= if s.partner.email do %>
+                          <div class="meta"><%= s.partner.email %></div>
+                        <% end %>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="numeric" style="color: #16a34a;"><%= format_currency(s.total_in_cents) %></td>
+                  <td class="numeric" style="color: #dc2626;"><%= format_currency(s.total_out_cents) %></td>
+                  <td class="numeric"><strong><%= format_currency(s.net_cents) %></strong></td>
+                  <td class="numeric"><%= s.contribution_count %></td>
+                  <td><%= fmt_short_date(s.last_activity_on) %></td>
+                  <td class="numeric">
+                    <%= if (s.partner.default_fee_rate || 0) > 0 do %>
+                      <%= :erlang.float_to_binary(s.partner.default_fee_rate / 100, decimals: 2) %>%
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+
+    <%!-- ── Activity timeline ──────────────────────────────────────── --%>
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent activity</h2>
+        <p class="card-subtitle">Last 50 contributions and withdrawals.</p>
+      </div>
+
+      <%= if Enum.empty?(@activity) do %>
+        <p style="color: var(--text-muted); font-style: italic; margin-top: 0.75rem;">No activity yet.</p>
+      <% else %>
+        <div class="table-wrapper" style="margin-top: 0.75rem;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Partner</th>
+                <th>Type</th>
+                <th class="numeric">Amount</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for c <- @activity do %>
+                <% {label, badge_class} = direction_label(c.direction) %>
+                <tr>
+                  <td style="white-space: nowrap;"><%= fmt_short_date(c.date) %></td>
+                  <td><%= c.partner.name %></td>
+                  <td><span class={"status-badge #{badge_class}"}><%= label %></span></td>
+                  <td class="numeric">
+                    <%= if c.direction == "out" do %>
+                      <span style="color: #dc2626;">−<%= format_currency(c.amount_cents) %></span>
+                    <% else %>
+                      <span style="color: #16a34a;"><%= format_currency(c.amount_cents) %></span>
+                    <% end %>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 0.875rem;"><%= c.note || "—" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+  </div>
+</section>

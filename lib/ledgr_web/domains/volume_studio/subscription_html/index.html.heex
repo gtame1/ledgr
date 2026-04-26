@@ -1,89 +1,128 @@
-<section class="card">
-  <div class="card-header">
-    <h2 class="card-title">Subscriptions</h2>
-    <p class="card-subtitle">Member subscription management</p>
-  </div>
-
-  <div class="actions" style="margin-bottom: 0.75rem;">
+<section class="content">
+  <header class="content-header" style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
+    <div>
+      <h1 class="page-title">Subscriptions</h1>
+      <p class="card-subtitle">All member memberships and packages.</p>
+    </div>
     <.link navigate={dp(@domain_path_prefix, "/subscriptions/new")} class="btn primary">
       + New Subscription
     </.link>
-  </div>
+  </header>
 
-  <div class="tab-bar" style="margin-bottom: 1rem;">
-    <%= for {label, value} <- [{"All", nil}, {"Active", "active"}, {"Paused", "paused"}, {"Completed", "completed"}, {"Cancelled", "cancelled"}, {"Expired", "expired"}] do %>
-      <.link
-        navigate={dp(@domain_path_prefix, if(value, do: "/subscriptions?status=#{value}", else: "/subscriptions"))}
-        class={"tab-item#{if is_nil(@current_plan_type) and @current_status == value, do: " active", else: ""}"}
-      >
-        <%= label %>
-      </.link>
-    <% end %>
-    <span class="tab-divider" style="margin: 0 0.25rem; color: var(--border-strong);">|</span>
-    <%= for {label, pt} <- [{"Memberships", "membership"}, {"Packages", "package"}, {"Promos", "promo"}, {"Extras", "extra"}] do %>
-      <.link
-        navigate={dp(@domain_path_prefix, "/subscriptions?plan_type=#{pt}")}
-        class={"tab-item#{if @current_plan_type == pt, do: " active", else: ""}"}
-      >
-        <%= label %>
-      </.link>
-    <% end %>
-  </div>
-
-  <div class="table-wrapper">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Member</th>
-          <th>Plan</th>
-          <th>Period</th>
-          <%= if @current_plan_type != "extra" do %>
-            <th>Classes Used</th>
-          <% end %>
-          <th>Payment</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <%= if Enum.empty?(@subscriptions) do %>
-          <tr>
-            <td colspan={if @current_plan_type == "extra", do: "6", else: "7"}>No subscriptions found.</td>
-          </tr>
-        <% else %>
-          <%= for sub <- @subscriptions do %>
-            <tr>
-              <td><%= sub.customer.name %></td>
-              <td><%= sub.subscription_plan.name %></td>
-              <td style="white-space: nowrap;">
-                <%= sub.starts_on %> → <%= sub.ends_on %>
-              </td>
-              <%= if @current_plan_type != "extra" do %>
-                <td>
-                  <%= sub.classes_used %>
-                  <%= if sub.subscription_plan.class_limit do %>
-                    / <%= sub.subscription_plan.class_limit %>
-                  <% end %>
-                </td>
-              <% end %>
-              <td>
-                <% {pay_label, pay_class} = payment_status(sub) %>
-                <span class={"status-badge #{pay_class}"}><%= pay_label %></span>
-              </td>
-              <td>
-                <span class={"status-badge #{status_class(sub.status)}"}>
-                  <%= String.capitalize(sub.status) %>
-                </span>
-              </td>
-              <td>
-                <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")} class="btn btn-sm">
-                  View
-                </.link>
-              </td>
-            </tr>
-          <% end %>
+  <div class="content-body">
+    <%!-- ── Filter card ─────────────────────────────────────── --%>
+    <section class="card">
+      <div class="vs-filter-tabs">
+        <% all_count = Map.values(@status_counts) |> Enum.sum() %>
+        <%= for {label, value, count} <- [
+              {"Active", "active", Map.get(@status_counts, "active", 0)},
+              {"Paused", "paused", Map.get(@status_counts, "paused", 0)},
+              {"Expired", "expired", Map.get(@status_counts, "expired", 0)},
+              {"Cancelled", "cancelled", Map.get(@status_counts, "cancelled", 0)},
+              {"Completed", "completed", Map.get(@status_counts, "completed", 0)},
+              {"All", nil, all_count}
+            ] do %>
+          <% is_active = is_nil(@current_plan_type) and @current_status == value %>
+          <.link
+            navigate={dp(@domain_path_prefix, if(value, do: "/subscriptions?status=#{value}", else: "/subscriptions"))}
+            class={"vs-filter-tab#{if is_active, do: " is-active"}"}
+          >
+            <%= label %>
+            <%= if count > 0 do %>
+              <span class="count"><%= count %></span>
+            <% end %>
+          </.link>
         <% end %>
-      </tbody>
-    </table>
+
+        <span style="width: 1px; height: 22px; background: var(--vs-border-subtle); margin: 0 0.4rem;"></span>
+
+        <%= for {label, pt} <- [{"Memberships", "membership"}, {"Packages", "package"}, {"Promos", "promo"}, {"Extras", "extra"}] do %>
+          <.link
+            navigate={dp(@domain_path_prefix, "/subscriptions?plan_type=#{pt}")}
+            class={"vs-filter-tab#{if @current_plan_type == pt, do: " is-active"}"}
+          >
+            <%= label %>
+          </.link>
+        <% end %>
+      </div>
+    </section>
+
+    <%!-- ── Subscriptions table card ───────────────────────── --%>
+    <section class="card">
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Period</th>
+              <th>Payment</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= if Enum.empty?(@subscriptions) do %>
+              <tr>
+                <td colspan="6" style="color: var(--vs-text-muted); font-style: italic; padding: 2rem 1rem; text-align: center;">
+                  No subscriptions found for this filter.
+                </td>
+              </tr>
+            <% else %>
+              <%= for sub <- @subscriptions do %>
+                <% {paid, total, pct} = payment_progress(sub) %>
+                <% bar_state = cond do
+                  pct >= 100 -> ""
+                  pct > 0 -> "is-partial"
+                  true -> "is-overdue"
+                end %>
+                <tr>
+                  <td>
+                    <div class="vs-member-cell">
+                      <span class="vs-avatar"><%= initials(sub.customer.name) %></span>
+                      <div>
+                        <div class="name"><%= sub.customer.name %></div>
+                        <%= if sub.customer.phone do %>
+                          <div class="meta"><%= sub.customer.phone %></div>
+                        <% end %>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-weight: 500;"><%= sub.subscription_plan.name %></div>
+                    <span class={"status-badge plan-type-#{sub.subscription_plan.plan_type}"} style="margin-top: 0.2rem;">
+                      <%= String.capitalize(sub.subscription_plan.plan_type) %>
+                    </span>
+                  </td>
+                  <td>
+                    <span class={"status-badge #{status_class(sub.status)}"}>
+                      <%= String.capitalize(sub.status) %>
+                    </span>
+                  </td>
+                  <td style="white-space: nowrap; font-size: 0.85rem; color: var(--vs-text-muted);">
+                    <%= sub.starts_on %><%= if sub.ends_on, do: " → #{sub.ends_on}" %>
+                  </td>
+                  <td>
+                    <div class="vs-payment-cell">
+                      <div class="amounts">
+                        <%= format_currency(paid) %> <span style="color: var(--vs-text-muted);">/ <%= format_currency(total) %></span>
+                      </div>
+                      <div class={"vs-payment-bar #{bar_state}"}>
+                        <span style={"width: #{pct}%;"}></span>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="text-align: right;">
+                    <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")} class="btn btn-sm">
+                      View
+                    </.link>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 </section>

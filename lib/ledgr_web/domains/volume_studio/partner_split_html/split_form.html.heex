@@ -1,0 +1,141 @@
+<.form for={@changeset} action={@action} as={:partner_split} :let={f}>
+  <div class="form-grid">
+    <div class="form-block">
+      <div class="field">
+        <.input type="text" field={f[:name]} label="Name *" placeholder="e.g. 50/50 A+B, Studio split" />
+      </div>
+
+      <div class="field full">
+        <.input type="text" field={f[:notes]} label="Notes" placeholder="When to use this split" />
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.95rem; margin: 1.25rem 0 0.5rem;">Allocation</h3>
+  <p class="card-subtitle" style="margin-bottom: 0.75rem;">Add a row per partner. Percentages must sum to exactly 100%.</p>
+
+  <div id="split-lines" style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <.inputs_for :let={line_form} field={f[:lines]}>
+      <div class="split-line-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 0.75rem; align-items: end;">
+        <div class="field" style="margin: 0;">
+          <.input
+            type="select"
+            field={line_form[:partner_id]}
+            label={if line_form.index == 0, do: "Partner", else: nil}
+            options={[{"— select partner —", ""} | @partner_options]}
+          />
+        </div>
+        <div class="field" style="margin: 0;">
+          <.input
+            type="number"
+            name={"partner_split[lines][#{line_form.index}][share_pct]"}
+            id={"partner_split_lines_#{line_form.index}_share_pct"}
+            value={share_pct_value(line_form)}
+            label={if line_form.index == 0, do: "Share (%)", else: nil}
+            step="0.01"
+            min="0"
+            max="100"
+            placeholder="e.g. 50"
+          />
+        </div>
+        <div style="margin: 0;">
+          <button type="button" class="btn btn-sm" data-remove-row aria-label="Remove row" style="padding: 0.5rem 0.65rem;">×</button>
+        </div>
+      </div>
+    </.inputs_for>
+  </div>
+
+  <div style="margin-top: 0.75rem;">
+    <button type="button" id="add-split-line" class="btn btn-sm">+ Add partner</button>
+    <span id="split-running-total" style="margin-left: 1rem; font-size: 0.85rem; color: var(--text-muted);"></span>
+  </div>
+
+  <%= if error = Keyword.get(f.errors, :lines) do %>
+    <p style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem;">
+      <%= LedgrWeb.CoreComponents.translate_error(error) %>
+    </p>
+  <% end %>
+
+  <div class="form-actions" style="margin-top: 1.25rem;">
+    <button type="submit" class="btn primary">Save</button>
+    <.link navigate={dp(@domain_path_prefix, "/partner-splits")} class="btn">Cancel</.link>
+  </div>
+</.form>
+
+<template id="split-line-template">
+  <div class="split-line-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 0.75rem; align-items: end;">
+    <div class="field" style="margin: 0;">
+      <select name="partner_split[lines][__INDEX__][partner_id]" class="form-input">
+        <option value="">— select partner —</option>
+        <%= for {label, id} <- @partner_options do %>
+          <option value={id}><%= label %></option>
+        <% end %>
+      </select>
+    </div>
+    <div class="field" style="margin: 0;">
+      <input type="number" name="partner_split[lines][__INDEX__][share_pct]"
+             step="0.01" min="0" max="100" placeholder="e.g. 50" class="form-input" />
+    </div>
+    <div style="margin: 0;">
+      <button type="button" class="btn btn-sm" data-remove-row aria-label="Remove row" style="padding: 0.5rem 0.65rem;">×</button>
+    </div>
+  </div>
+</template>
+
+<script>
+  (function() {
+    var container = document.getElementById('split-lines');
+    var addBtn = document.getElementById('add-split-line');
+    var template = document.getElementById('split-line-template');
+    var totalLabel = document.getElementById('split-running-total');
+    if (!container || !addBtn || !template) return;
+
+    function nextIndex() {
+      var rows = container.querySelectorAll('.split-line-row');
+      var max = -1;
+      rows.forEach(function(row) {
+        var input = row.querySelector('input[name*="[share_pct]"], select[name*="[partner_id]"]');
+        if (!input) return;
+        var match = input.name.match(/\[lines\]\[(\d+)\]/);
+        if (match) {
+          var n = parseInt(match[1], 10);
+          if (n > max) max = n;
+        }
+      });
+      return max + 1;
+    }
+
+    function recomputeTotal() {
+      var inputs = container.querySelectorAll('input[name*="[share_pct]"]');
+      var total = 0;
+      inputs.forEach(function(i) {
+        var v = parseFloat(i.value);
+        if (!isNaN(v)) total += v;
+      });
+      var rounded = Math.round(total * 100) / 100;
+      totalLabel.textContent = 'Total: ' + rounded + '%';
+      totalLabel.style.color = (rounded === 100) ? '#16a34a' : (rounded > 100 ? '#dc2626' : 'var(--text-muted)');
+    }
+
+    addBtn.addEventListener('click', function() {
+      var html = template.innerHTML.replace(/__INDEX__/g, nextIndex());
+      var wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      container.appendChild(wrapper.firstElementChild);
+      recomputeTotal();
+    });
+
+    container.addEventListener('click', function(e) {
+      if (e.target.matches('[data-remove-row]')) {
+        e.target.closest('.split-line-row').remove();
+        recomputeTotal();
+      }
+    });
+
+    container.addEventListener('input', function(e) {
+      if (e.target.matches('input[name*="[share_pct]"]')) recomputeTotal();
+    });
+
+    recomputeTotal();
+  })();
+</script>

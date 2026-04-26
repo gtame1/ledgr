@@ -35,6 +35,17 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
     |> Repo.all()
   end
 
+  @doc "Returns a map of status string => count for non-deleted subscriptions."
+  def status_counts do
+    from(s in Subscription,
+      where: is_nil(s.deleted_at),
+      group_by: s.status,
+      select: {s.status, count(s.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
   @doc "Gets a single subscription with customer and plan preloaded. Raises if not found."
   def get_subscription!(id) do
     from(s in Subscription, where: s.id == ^id and is_nil(s.deleted_at))

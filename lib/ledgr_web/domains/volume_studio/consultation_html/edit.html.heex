@@ -43,6 +43,11 @@
               ]} />
             </div>
 
+            <div class="field">
+              <.input type="select" field={f[:partner_split_id]} label="Partner Split"
+                options={[{"— unattributed —", ""} | @partner_split_options]} />
+            </div>
+
             <div class="field full">
               <.input type="textarea" field={f[:notes]} label="Notes" />
             </div>

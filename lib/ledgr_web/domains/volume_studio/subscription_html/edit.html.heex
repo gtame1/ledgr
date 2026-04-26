@@ -37,6 +37,12 @@
           ]} />
         </div>
 
+        <div class="field">
+          <label>Partner Split</label>
+          <.input type="select" field={f[:partner_split_id]}
+            options={[{"— unattributed —", ""} | @partner_split_options]} />
+        </div>
+
         <div class="field" style="grid-column: 1 / -1;">
           <label>Notes</label>
           <.input type="textarea" field={f[:notes]} />

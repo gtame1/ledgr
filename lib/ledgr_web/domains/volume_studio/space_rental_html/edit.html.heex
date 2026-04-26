@@ -102,6 +102,15 @@
           </div>
         </div>
 
+        <%!-- Partner attribution --%>
+        <div class="form-section-title">Partner attribution</div>
+        <div class="form-block" style="margin-bottom: 1.25rem;">
+          <div class="field">
+            <.input type="select" field={f[:partner_split_id]} label="Partner Split (optional)"
+              options={[{"— unattributed —", ""} | @partner_split_options]} />
+          </div>
+        </div>
+
         <%!-- Notes --%>
         <div class="form-section-title">Notes</div>
         <div class="form-block" style="margin-bottom: 1.25rem;">
