@@ -28,15 +28,25 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSyncWorker do
 
   @impl true
   def handle_info(:sync, state) do
-    Ledgr.Repo.put_active_repo(Ledgr.Repos.HelloDoctor)
-
-    pull_results = BillingSync.sync_all()
-    Logger.info("[HelloDoctor.BillingSyncWorker] sync_all: #{inspect(pull_results)}")
-
-    post_results = ExternalCostAccounting.post_all_unposted()
-    Logger.info("[HelloDoctor.BillingSyncWorker] post_all_unposted: #{inspect(post_results)}")
-
+    # Always reschedule first so a crash in the sync body never stops the
+    # 15-day cadence and never trips the supervisor's restart-intensity
+    # threshold (which would take down the whole app).
     schedule_sync(@sync_interval)
+
+    try do
+      Ledgr.Repo.put_active_repo(Ledgr.Repos.HelloDoctor)
+
+      pull_results = BillingSync.sync_all()
+      Logger.info("[HelloDoctor.BillingSyncWorker] sync_all: #{inspect(pull_results)}")
+
+      post_results = ExternalCostAccounting.post_all_unposted()
+      Logger.info("[HelloDoctor.BillingSyncWorker] post_all_unposted: #{inspect(post_results)}")
+    rescue
+      e ->
+        Logger.error("[HelloDoctor.BillingSyncWorker] sync failed: #{Exception.message(e)}")
+        Logger.error(Exception.format(:error, e, __STACKTRACE__))
+    end
+
     {:noreply, state}
   end
 
