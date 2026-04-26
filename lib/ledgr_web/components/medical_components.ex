@@ -35,12 +35,12 @@ defmodule LedgrWeb.MedicalComponents do
           <span class="text-sm font-medium" style="color: var(--text-main);">
             {c["condition"]}
           </span>
-          <%= if c["icd10"] do %>
+          <%= if present?(c["icd10"]) do %>
             <span class="text-xs px-1.5 py-0.5 rounded font-mono" style="background: rgba(0,0,0,0.04); color: var(--text-muted);">
               {c["icd10"]}
             </span>
           <% end %>
-          <%= if c["confidence"] do %>
+          <%= if present?(c["confidence"]) do %>
             <span class={"text-xs px-2 py-0.5 rounded-full font-medium #{confidence_class(c["confidence"])}"}>
               {String.capitalize(to_string(c["confidence"]))}
             </span>
@@ -52,6 +52,12 @@ defmodule LedgrWeb.MedicalComponents do
     <% end %>
     """
   end
+
+  defp present?(nil), do: false
+  defp present?(""), do: false
+  defp present?("null"), do: false
+  defp present?("undefined"), do: false
+  defp present?(_), do: true
 
   defp confidence_class("high"), do: "bg-emerald-100 text-emerald-800"
   defp confidence_class("medium"), do: "bg-amber-100 text-amber-800"
