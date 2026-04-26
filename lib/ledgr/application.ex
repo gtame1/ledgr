@@ -79,6 +79,11 @@ defmodule Ledgr.Application do
       (if @mix_env != :test and Ledgr.Repos.CasaTame in optional_repos,
         do: [Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker],
         else: []) ++
+      # Pull HelloDoctor external billing (OpenAI, Whereby, AWS) every 15 days
+      # and post the new costs to the GL. Skip in :test.
+      (if @mix_env != :test and Ledgr.Repos.HelloDoctor in optional_repos,
+        do: [Ledgr.Domains.HelloDoctor.BillingSyncWorker],
+        else: []) ++
       [
         # Start to serve requests, typically the last entry
         LedgrWeb.Endpoint
