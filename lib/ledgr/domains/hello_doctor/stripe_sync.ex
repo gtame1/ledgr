@@ -354,7 +354,13 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     try do
       case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["line_items"]}, api_key: api_key) do
         {:ok, full_session} ->
-          items = get_in(full_session, [:line_items, :data]) || []
+          # stripity_stripe v3 returns structs — use direct field access, not get_in/2
+          items =
+            case full_session.line_items do
+              %{data: data} when is_list(data) -> data
+              data when is_list(data) -> data
+              _ -> []
+            end
 
           product_name =
             items
@@ -369,10 +375,12 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           product_ids =
             items
             |> Enum.map(fn item ->
-              case Map.get(item, :price) do
+              price = Map.get(item, :price) || (is_map(item) && Map.get(item, "price"))
+              case price do
                 nil -> nil
-                price ->
-                  case Map.get(price, :product) do
+                _ ->
+                  product = Map.get(price, :product) || Map.get(price, "product")
+                  case product do
                     pid when is_binary(pid) -> pid
                     %{id: id} -> id
                     _ -> nil
@@ -381,13 +389,17 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             end)
             |> Enum.reject(&is_nil/1)
 
+          Logger.debug("[HelloDoctor StripeSync] Session #{session.id} items=#{length(items)} product_ids=#{inspect(product_ids)}")
           {product_name, product_ids}
 
-        _ ->
+        {:error, err} ->
+          Logger.warning("[HelloDoctor StripeSync] Failed to retrieve line items for session #{session.id}: #{inspect(err)}")
           {nil, []}
       end
     rescue
-      _ -> {nil, []}
+      e ->
+        Logger.warning("[HelloDoctor StripeSync] Exception fetching line items for #{session.id}: #{inspect(e)}")
+        {nil, []}
     end
   end
 
@@ -397,10 +409,6 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     product_name
   end
 
-  # Returns true if any product matches the known HelloDoctor product IDs.
-  # Also returns true when product_ids is empty — this means we couldn't fetch
-  # line items (API error, no price, etc.) so we accept rather than silently drop.
-  defp hellodoctor_session?([]), do: true
   defp hellodoctor_session?(product_ids) do
     Enum.any?(product_ids, &(&1 in @hellodoctor_product_ids))
   end
