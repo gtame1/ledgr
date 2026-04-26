@@ -45,14 +45,17 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
 
       case Stripe.Checkout.Session.list(params, api_key: api_key) do
         {:ok, %{data: sessions}} ->
-          synced =
+          results =
             sessions
             |> Enum.filter(&(&1.payment_status in ["paid", "unpaid"]))
             |> Enum.map(&upsert_payment(&1, api_key))
-            |> Enum.count(&match?({:ok, %StripePayment{}}, &1))
 
-          Logger.info("[HelloDoctor StripeSync] Synced #{synced} payments from Stripe")
-          {:ok, synced}
+          new_count      = Enum.count(results, &match?({:ok, %StripePayment{}}, &1))
+          existing_count = Enum.count(results, &match?({:ok, :already_exists}, &1))
+          skipped_count  = Enum.count(results, &match?({:ok, :skipped}, &1))
+
+          Logger.info("[HelloDoctor StripeSync] Synced #{new_count} new, #{existing_count} already existed, #{skipped_count} skipped (non-HD product)")
+          {:ok, new_count, existing_count}
 
         {:error, err} ->
           Logger.error("[HelloDoctor StripeSync] Failed to fetch sessions: #{inspect(err)}")

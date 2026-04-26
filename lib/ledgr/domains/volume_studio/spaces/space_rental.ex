@@ -4,11 +4,13 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces.SpaceRental do
 
   alias Ledgr.Domains.VolumeStudio.Spaces.Space
   alias Ledgr.Domains.VolumeStudio.Spaces.SpaceRentalPayment
+  alias Ledgr.Domains.VolumeStudio.PartnerSplits.PartnerSplit
   alias Ledgr.Core.Customers.Customer
 
   schema "space_rentals" do
     belongs_to :space, Space
     belongs_to :customer, Customer
+    belongs_to :partner_split, PartnerSplit
     has_many :payments, SpaceRentalPayment, foreign_key: :space_rental_id
 
     field :renter_name, :string
@@ -30,7 +32,7 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces.SpaceRental do
 
   @required_fields [:space_id, :renter_name, :amount_cents]
   @optional_fields [:customer_id, :renter_phone, :renter_email, :starts_at, :ends_at,
-                    :status, :discount_cents, :paid_at, :notes]
+                    :status, :discount_cents, :paid_at, :notes, :partner_split_id]
 
   @valid_statuses ~w(confirmed active completed cancelled)
 

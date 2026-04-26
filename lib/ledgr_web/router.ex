@@ -206,24 +206,9 @@ defmodule LedgrWeb.Router do
     # Customers (studio members)
     resources "/customers", CustomerController
 
-    # Class sessions with check-in
-    get "/class-sessions/calendar", Domains.VolumeStudio.ClassSessionController, :calendar
-    resources "/class-sessions", Domains.VolumeStudio.ClassSessionController, only: [:index, :show, :new, :create, :edit, :update, :delete]
-    post "/class-sessions/:id/checkin/:booking_id", Domains.VolumeStudio.ClassSessionController, :checkin
-    get  "/class-sessions/:id/bookings/new",        Domains.VolumeStudio.ClassSessionController, :new_booking
-    post "/class-sessions/:id/bookings",            Domains.VolumeStudio.ClassSessionController, :create_booking
-    post "/class-sessions/:id/bookings/:booking_id/cancel",     Domains.VolumeStudio.ClassSessionController, :cancel_booking
-    post "/class-sessions/:id/bookings/:booking_id/attendance", Domains.VolumeStudio.ClassSessionController, :mark_attendance
-    post "/class-sessions/:id/status",                          Domains.VolumeStudio.ClassSessionController, :update_status
-
-    # Instructors
-    resources "/instructors", Domains.VolumeStudio.InstructorController, only: [:index, :new, :create, :edit, :update, :delete]
-
     # Subscription plans & member subscriptions
     resources "/subscription-plans", Domains.VolumeStudio.SubscriptionPlanController, only: [:index, :new, :create, :edit, :update, :delete]
     resources "/subscriptions", Domains.VolumeStudio.SubscriptionController, only: [:index, :show, :new, :create, :edit, :update]
-    get  "/subscriptions/:id/bookings/new", Domains.VolumeStudio.SubscriptionController, :new_booking
-    post "/subscriptions/:id/bookings",     Domains.VolumeStudio.SubscriptionController, :create_booking
     get  "/subscriptions/:id/payment/new", Domains.VolumeStudio.SubscriptionController, :new_payment
     post "/subscriptions/:id/payment", Domains.VolumeStudio.SubscriptionController, :record_payment
     get  "/subscriptions/:id/payment/:entry_id/edit", Domains.VolumeStudio.SubscriptionController, :edit_payment
@@ -247,10 +232,6 @@ defmodule LedgrWeb.Router do
     resources "/space-rentals", Domains.VolumeStudio.SpaceRentalController, only: [:index, :show, :new, :create, :edit, :update]
     get  "/space-rentals/:id/payment/new", Domains.VolumeStudio.SpaceRentalController, :new_payment
     post "/space-rentals/:id/payment",     Domains.VolumeStudio.SpaceRentalController, :record_payment
-
-    # Quick Sale (extra / one-time items — step 1: create subscription)
-    get  "/quick-sale/new", Domains.VolumeStudio.QuickSaleController, :new
-    post "/quick-sale",     Domains.VolumeStudio.QuickSaleController, :create
   end
 
   # ── Ledgr HQ: public auth routes ───────────────────────────────────

@@ -4,10 +4,12 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions.Subscription do
 
   alias Ledgr.Core.Customers.Customer
   alias Ledgr.Domains.VolumeStudio.SubscriptionPlans.SubscriptionPlan
+  alias Ledgr.Domains.VolumeStudio.PartnerSplits.PartnerSplit
 
   schema "subscriptions" do
     belongs_to :customer, Customer
     belongs_to :subscription_plan, SubscriptionPlan
+    belongs_to :partner_split, PartnerSplit
 
     field :starts_on, :date
     field :ends_on, :date
@@ -25,7 +27,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions.Subscription do
   end
 
   @required_fields [:customer_id, :subscription_plan_id, :starts_on, :ends_on]
-  @optional_fields [:status, :classes_used, :deferred_revenue_cents, :recognized_revenue_cents, :discount_cents, :iva_cents, :paid_cents, :notes]
+  @optional_fields [:status, :classes_used, :deferred_revenue_cents, :recognized_revenue_cents, :discount_cents, :iva_cents, :paid_cents, :notes, :partner_split_id]
 
   @valid_statuses ~w(active paused cancelled expired completed)
 

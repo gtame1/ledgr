@@ -5,18 +5,8 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
 
   alias Ledgr.Core.Accounting
   alias Ledgr.Repo
-  alias Ledgr.Domains.VolumeStudio.{
-    SubscriptionPlans,
-    Subscriptions,
-    Instructors,
-    ClassSessions,
-    Consultations,
-    Spaces
-  }
   alias Ledgr.Domains.VolumeStudio.SubscriptionPlans.SubscriptionPlan
   alias Ledgr.Domains.VolumeStudio.Subscriptions.Subscription
-  alias Ledgr.Domains.VolumeStudio.Instructors.Instructor
-  alias Ledgr.Domains.VolumeStudio.ClassSessions.{ClassSession, ClassBooking}
   alias Ledgr.Domains.VolumeStudio.Consultations.Consultation
   alias Ledgr.Domains.VolumeStudio.Spaces.{Space, SpaceRental}
 
@@ -99,64 +89,6 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
     )
   end
 
-  @doc "Creates an instructor."
-  def instructor_fixture(attrs \\ %{}) do
-    {:ok, instructor} =
-      %Instructor{}
-      |> Instructor.changeset(
-        Enum.into(attrs, %{
-          name: "Instructor #{System.unique_integer([:positive])}",
-          active: true
-        })
-      )
-      |> Repo.insert()
-
-    instructor
-  end
-
-  @doc "Creates a class session."
-  def session_fixture(attrs \\ %{}) do
-    instructor = attrs[:instructor] || instructor_fixture()
-
-    {:ok, session} =
-      %ClassSession{}
-      |> ClassSession.changeset(
-        attrs
-        |> Map.drop([:instructor])
-        |> Enum.into(%{
-          name: "Yoga Class #{System.unique_integer([:positive])}",
-          instructor_id: instructor.id,
-          scheduled_at: DateTime.utc_now() |> DateTime.add(3600, :second) |> DateTime.truncate(:second),
-          capacity: 20,
-          status: "scheduled"
-        })
-      )
-      |> Repo.insert()
-
-    session
-  end
-
-  @doc "Creates a class booking."
-  def booking_fixture(attrs \\ %{}) do
-    customer_id = attrs[:customer_id] || begin_customer()
-    session = attrs[:session] || session_fixture()
-
-    {:ok, booking} =
-      %ClassBooking{}
-      |> ClassBooking.changeset(
-        attrs
-        |> Map.drop([:session])
-        |> Enum.into(%{
-          customer_id: customer_id,
-          class_session_id: session.id,
-          status: "booked"
-        })
-      )
-      |> Repo.insert()
-
-    booking
-  end
-
   @doc "Creates a subscription (no IVA by default)."
   def subscription_fixture(attrs \\ %{}) do
     customer_id = attrs[:customer_id] || begin_customer()
@@ -184,16 +116,13 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
   @doc "Creates a consultation."
   def consultation_fixture(attrs \\ %{}) do
     customer_id = attrs[:customer_id] || begin_customer()
-    instructor = attrs[:instructor] || instructor_fixture()
 
     {:ok, consultation} =
       %Consultation{}
       |> Consultation.changeset(
-        attrs
-        |> Map.drop([:instructor])
-        |> Enum.into(%{
+        Enum.into(attrs, %{
           customer_id: customer_id,
-          instructor_id: instructor.id,
+          instructor_name: "Nutritionist #{System.unique_integer([:positive])}",
           scheduled_at: DateTime.utc_now() |> DateTime.add(86400, :second) |> DateTime.truncate(:second),
           amount_cents: 80000,
           status: "scheduled"

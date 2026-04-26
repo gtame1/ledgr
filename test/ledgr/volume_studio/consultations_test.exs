@@ -47,12 +47,11 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
   end
 
   describe "get_consultation!/1" do
-    test "returns consultation with customer and instructor preloaded" do
+    test "returns consultation with customer preloaded" do
       consultation = consultation_fixture()
       found = Consultations.get_consultation!(consultation.id)
       assert found.id == consultation.id
       assert found.customer != nil
-      assert found.instructor != nil
     end
 
     test "raises if not found" do
@@ -64,19 +63,19 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
 
   describe "create_consultation/1" do
     test "creates with valid attrs" do
-      instructor = instructor_fixture()
       customer_id = create_customer()
       scheduled_at = DateTime.utc_now() |> DateTime.add(86400) |> DateTime.truncate(:second)
 
       attrs = %{
         customer_id: customer_id,
-        instructor_id: instructor.id,
+        instructor_name: "Dr. Test",
         scheduled_at: scheduled_at,
         amount_cents: 80000
       }
 
       assert {:ok, %Consultation{} = c} = Consultations.create_consultation(attrs)
       assert c.amount_cents == 80000
+      assert c.instructor_name == "Dr. Test"
     end
 
     test "returns error with missing required fields" do
@@ -84,12 +83,10 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
     end
 
     test "returns error with invalid amount" do
-      instructor = instructor_fixture()
       customer_id = create_customer()
 
       attrs = %{
         customer_id: customer_id,
-        instructor_id: instructor.id,
         scheduled_at: DateTime.utc_now() |> DateTime.truncate(:second),
         amount_cents: 0
       }

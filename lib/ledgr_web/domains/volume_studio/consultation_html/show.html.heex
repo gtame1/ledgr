@@ -3,7 +3,7 @@
     <div>
       <h2 class="card-title"><%= @consultation.customer.name %></h2>
       <p class="card-subtitle">
-        <%= @consultation.instructor.name %> ·
+        <%= @consultation.instructor_name || "—" %> ·
         <span class={"status-badge #{status_class(@consultation.status)}"}>
           <%= String.capitalize(@consultation.status) %>
         </span>

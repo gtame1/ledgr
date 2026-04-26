@@ -30,9 +30,16 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
 
   def sync(conn, _params) do
     case StripeSync.sync_recent_payments(limit: 50) do
-      {:ok, count} ->
+      {:ok, new_count, existing_count} ->
+        msg =
+          cond do
+            new_count > 0 -> "#{new_count} new payment(s) synced from Stripe."
+            existing_count > 0 -> "All #{existing_count} payments already up to date."
+            true -> "No HelloDoctor payments found in Stripe."
+          end
+
         conn
-        |> put_flash(:info, "Synced #{count} payments from Stripe.")
+        |> put_flash(:info, msg)
         |> redirect(to: dp(conn, "/payments"))
 
       {:error, reason} ->

@@ -4,7 +4,6 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
   alias Ledgr.Domains.VolumeStudio.Subscriptions
   alias Ledgr.Domains.VolumeStudio.Subscriptions.Subscription
   alias Ledgr.Domains.VolumeStudio.SubscriptionPlans
-  alias Ledgr.Domains.VolumeStudio.ClassSessions
   alias Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Customers
@@ -29,12 +28,10 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
     subscription = maybe_auto_expire(subscription)
     summary      = Subscriptions.payment_summary(subscription)
     payments     = Subscriptions.list_payments_for_subscription(subscription)
-    bookings     = Subscriptions.list_bookings_for_subscription(subscription)
     render(conn, :show,
       subscription: subscription,
       summary:      summary,
-      payments:     payments,
-      bookings:     bookings
+      payments:     payments
     )
   end
 
@@ -173,49 +170,6 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionController do
           plans: plans,
           action: dp(conn, "/subscriptions/#{id}")
         )
-    end
-  end
-
-  def new_booking(conn, %{"id" => id}) do
-    subscription = Subscriptions.get_subscription!(id)
-    sessions =
-      ClassSessions.list_class_sessions(status: "scheduled")
-      |> Enum.reverse()
-    render(conn, :new_booking,
-      subscription: subscription,
-      sessions:     sessions,
-      action:       dp(conn, "/subscriptions/#{id}/bookings")
-    )
-  end
-
-  def create_booking(conn, %{"id" => id, "booking" => params}) do
-    subscription = Subscriptions.get_subscription!(id)
-
-    case Subscriptions.get_soonest_expiring_subscription(subscription.customer_id) do
-      nil ->
-        conn
-        |> put_flash(:error, "No active subscription with available classes found for this member.")
-        |> redirect(to: dp(conn, "/subscriptions/#{id}"))
-
-      target_sub ->
-        attrs = %{
-          class_session_id: params["class_session_id"],
-          customer_id:      subscription.customer_id,
-          subscription_id:  target_sub.id,
-          status:           "booked"
-        }
-
-        case ClassSessions.create_booking(attrs) do
-          {:ok, _booking} ->
-            conn
-            |> put_flash(:info, "Booking created and counted under \"#{target_sub.subscription_plan.name}\" (expires #{target_sub.ends_on}).")
-            |> redirect(to: dp(conn, "/subscriptions/#{id}"))
-
-          {:error, _changeset} ->
-            conn
-            |> put_flash(:error, "Could not create booking. The member may already be booked for this session.")
-            |> redirect(to: dp(conn, "/subscriptions/#{id}/bookings/new"))
-        end
     end
   end
 
@@ -582,12 +536,6 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionHTML do
   def plan_type_badge("membership"), do: "status-paid"
   def plan_type_badge("extra"),      do: "status-extra"
   def plan_type_badge(_),            do: ""
-
-  def booking_status_class("checked_in"), do: "status-paid"
-  def booking_status_class("booked"), do: "status-partial"
-  def booking_status_class("cancelled"), do: "status-unpaid"
-  def booking_status_class("no_show"), do: "status-unpaid"
-  def booking_status_class(_), do: ""
 
   @doc "Returns {label, css_class} for the payment status badge shown in the subscriptions list."
   def payment_status(sub) do

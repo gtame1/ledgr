@@ -43,7 +43,7 @@
           <%= for c <- @consultations do %>
             <tr>
               <td><%= c.customer.name %></td>
-              <td><%= c.instructor.name %></td>
+              <td><%= c.instructor_name || "—" %></td>
               <td style="white-space: nowrap;"><%= fmt_datetime(c.scheduled_at, "%b %d, %Y · %H:%M") %></td>
               <td><%= format_currency(c.amount_cents) %></td>
               <td>

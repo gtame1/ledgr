@@ -2,7 +2,7 @@
   <header class="content-header">
     <h1 class="page-title">Dashboard</h1>
     <p class="card-subtitle">
-      Overview of studio operations and financials for the selected period.
+      Financial overview for the selected period.
     </p>
   </header>
 
@@ -33,73 +33,10 @@
         </div>
 
         <div class="metric-card">
-          <div class="metric-label">Classes (Period)</div>
-          <div class="metric-value"><%= m.period_sessions_count %></div>
-        </div>
-
-        <div class="metric-card">
           <div class="metric-label">Net Income (Period)</div>
           <div class="metric-value"><%= format_currency(m.pnl.net_income_cents || 0) %></div>
         </div>
       </div>
-
-      <div style="margin-top: 1.25rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-        <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Classes this period:</span>
-        <%= for {label, key, color} <- [{"Scheduled", "scheduled", "#546B7D"}, {"Completed", "completed", "#16a34a"}, {"Cancelled", "cancelled", "#9ca3af"}] do %>
-          <span style={"display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.83rem; color: var(--text-main);"}>
-            <span style={"display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #{color}; flex-shrink: 0;"}></span>
-            <%= label %>: <strong><%= Map.get(m.sessions_by_status, key, 0) %></strong>
-          </span>
-        <% end %>
-      </div>
-    </section>
-
-    <!-- Upcoming Classes (next 7 days) -->
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <h2 class="card-title">Upcoming Classes</h2>
-          <p class="card-subtitle">Scheduled sessions in the next 7 days.</p>
-        </div>
-        <.link navigate={dp(@domain_path_prefix, "/class-sessions/calendar")} class="btn sm">
-          Calendar view
-        </.link>
-      </div>
-
-      <%= if m.upcoming_sessions && m.upcoming_sessions != [] do %>
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Class</th>
-                <th>Instructor</th>
-                <th>Date &amp; Time</th>
-                <th class="numeric">Duration</th>
-                <th class="numeric">Capacity</th>
-              </tr>
-            </thead>
-            <tbody>
-              <%= for session <- m.upcoming_sessions do %>
-                <tr>
-                  <td>
-                    <.link navigate={dp(@domain_path_prefix, "/class-sessions/#{session.id}")}>
-                      <%= session.name %>
-                    </.link>
-                  </td>
-                  <td><%= if session.instructor, do: session.instructor.name, else: "—" %></td>
-                  <td><%= fmt_datetime(session.scheduled_at, "%b %d, %Y · %H:%M") %></td>
-                  <td class="numeric"><%= session.duration_minutes %> min</td>
-                  <td class="numeric"><%= session.capacity || "—" %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% else %>
-        <p style="color: var(--text-muted); font-style: italic;">
-          No classes scheduled in the next 7 days.
-        </p>
-      <% end %>
     </section>
 
     <!-- Financial Summary (P&L) -->

@@ -9,7 +9,6 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   alias Ledgr.Domains.VolumeStudio.Subscriptions.Subscription
   alias Ledgr.Domains.VolumeStudio.SubscriptionPlans.SubscriptionPlan
   alias Ledgr.Domains.VolumeStudio.Accounting.VolumeStudioAccounting
-  alias Ledgr.Domains.VolumeStudio.ClassSessions.ClassBooking
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Accounting.JournalEntry
 
@@ -326,19 +325,6 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
       where: like(je.reference, ^prefix),
       order_by: [desc: je.date, desc: je.inserted_at],
       preload: [journal_lines: :account]
-    )
-    |> Repo.all()
-  end
-
-  @doc """
-  Returns all class bookings linked to a subscription, newest first.
-  Each booking has :class_session preloaded.
-  """
-  def list_bookings_for_subscription(%Subscription{id: sub_id}) do
-    from(cb in ClassBooking,
-      where: cb.subscription_id == ^sub_id,
-      order_by: [desc: cb.inserted_at],
-      preload: [class_session: :instructor]
     )
     |> Repo.all()
   end

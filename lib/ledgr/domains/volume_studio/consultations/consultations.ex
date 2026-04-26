@@ -29,14 +29,14 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations do
     |> maybe_filter_from(from_dt)
     |> maybe_filter_to(to_dt)
     |> order_by(desc: :scheduled_at)
-    |> preload([:customer, :instructor])
+    |> preload([:customer])
     |> Repo.all()
   end
 
-  @doc "Gets a single consultation with customer and instructor preloaded. Raises if not found."
+  @doc "Gets a single consultation with customer preloaded. Raises if not found."
   def get_consultation!(id) do
     from(c in Consultation, where: c.id == ^id and is_nil(c.deleted_at))
-    |> preload([:customer, :instructor])
+    |> preload([:customer])
     |> Repo.one!()
   end
 

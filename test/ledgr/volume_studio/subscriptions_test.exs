@@ -374,14 +374,6 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
     end
   end
 
-  describe "list_bookings_for_subscription/1" do
-    test "returns empty list when no bookings" do
-      sub = subscription_fixture()
-      bookings = Subscriptions.list_bookings_for_subscription(sub)
-      assert bookings == []
-    end
-  end
-
   describe "change_subscription/2" do
     test "returns a changeset" do
       sub = subscription_fixture()

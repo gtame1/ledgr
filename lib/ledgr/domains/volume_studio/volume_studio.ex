@@ -9,7 +9,7 @@ defmodule Ledgr.Domains.VolumeStudio do
   - Subscriptions: multi-tier plans with class limits (deferred revenue → monthly/per-class recognition)
   - Consultations: diet consultation appointments (one-off)
   - Space rentals: studio space rented out to nutritionists
-  - Partner fees: per-session fees collected from partners/instructors (account 4040)
+  - Partner fees: per-session fees collected from partners (account 4040)
   """
 
   @behaviour Ledgr.Domain.DomainConfig
@@ -42,7 +42,7 @@ defmodule Ledgr.Domains.VolumeStudio do
       sidebar_hover: "#42566B",
       primary: "#546B7D",
       primary_soft: "#EDF0F4",
-      accent: "#546B7D",
+      accent: "#E8B86F",
       bg: "#F8F3EA",
       bg_surface: "#F0EBE0",
       border_subtle: "#E2D9CC",
@@ -123,24 +123,32 @@ defmodule Ledgr.Domains.VolumeStudio do
 
     [
       %{group: "Main Menu", items: [
-        %{label: "Dashboard",      path: prefix,                                       icon: :dashboard},
-        %{label: "Class Sessions", path: "#{prefix}/class-sessions?status=scheduled", icon: :bookings},
-        %{label: "Class Calendar", path: "#{prefix}/class-sessions/calendar",         icon: :bookings},
-        %{label: "Subscriptions",  path: "#{prefix}/subscriptions?status=active",     icon: :subscriptions},
-        %{label: "Quick Sale",     path: "#{prefix}/quick-sale/new",                  icon: :receipt}
+        %{label: "Dashboard",     path: prefix,                                  icon: :dashboard},
+        %{label: "Subscriptions", path: "#{prefix}/subscriptions?status=active", icon: :subscriptions},
+        %{label: "Consultations", path: "#{prefix}/consultations",               icon: :documents},
+        %{label: "Rentals",       path: "#{prefix}/space-rentals",               icon: :receipt},
+        %{label: "Expenses",      path: "#{prefix}/expenses",                    icon: :expenses}
       ]},
-      %{group: "Studio & Spaces", items: [
-        %{label: "Members",             path: "#{prefix}/customers",           icon: :customers},
-        %{label: "Instructors",         path: "#{prefix}/instructors",         icon: :users},
-        %{label: "Consultations",       path: "#{prefix}/consultations",       icon: :documents},
-        %{label: "Subscription Plans",  path: "#{prefix}/subscription-plans",  icon: :services},
-        %{label: "Spaces",              path: "#{prefix}/spaces",              icon: :services},
-        %{label: "Rentals",             path: "#{prefix}/space-rentals",       icon: :receipt}
-      ]},
-      %{group: "Finance", items: [
-        %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
+      %{group: "Catalog", items: [
+        %{label: "Members",            path: "#{prefix}/customers",          icon: :customers},
+        %{label: "Subscription Plans", path: "#{prefix}/subscription-plans", icon: :services},
+        %{label: "Spaces",             path: "#{prefix}/spaces",             icon: :services}
       ]}
     ]
+  end
+
+  @impl Ledgr.Domain.DomainConfig
+  def nav_icons do
+    %{
+      "Dashboard" => "dashboard",
+      "Subscriptions" => "card_membership",
+      "Consultations" => "medical_services",
+      "Rentals" => "key",
+      "Expenses" => "receipt_long",
+      "Members" => "group",
+      "Subscription Plans" => "loyalty",
+      "Spaces" => "meeting_room"
+    }
   end
 
   @impl Ledgr.Domain.DomainConfig
@@ -157,14 +165,10 @@ defmodule Ledgr.Domains.VolumeStudio do
     import Ecto.Query
     alias Ledgr.Repo
     alias Ledgr.Domains.VolumeStudio.Subscriptions.Subscription
-    alias Ledgr.Domains.VolumeStudio.ClassSessions.ClassBooking
     alias Ledgr.Domains.VolumeStudio.Consultations.Consultation
     alias Ledgr.Domains.VolumeStudio.Spaces.SpaceRental
 
     from(r in Subscription, where: r.customer_id == ^customer_id and is_nil(r.deleted_at))
-    |> Repo.update_all(set: [deleted_at: now, updated_at: now])
-
-    from(r in ClassBooking, where: r.customer_id == ^customer_id and is_nil(r.deleted_at))
     |> Repo.update_all(set: [deleted_at: now, updated_at: now])
 
     from(r in Consultation, where: r.customer_id == ^customer_id and is_nil(r.deleted_at))
@@ -194,21 +198,12 @@ defmodule Ledgr.Domains.VolumeStudio do
 
   @impl Ledgr.Domain.DashboardProvider
   def dashboard_metrics(start_date, end_date) do
-    alias Ledgr.Domains.VolumeStudio.{ClassSessions, Subscriptions}
+    alias Ledgr.Domains.VolumeStudio.Subscriptions
 
     pnl = Ledgr.Core.Accounting.profit_and_loss(start_date, end_date)
 
     today        = LedgrWeb.Helpers.DomainHelpers.today_mx()
-    next_7_days  = Date.add(today, 7)
     next_30_days = Date.add(today, 30)
-
-    from_dt        = DateTime.new!(today, ~T[00:00:00], "Etc/UTC")
-    to_7_dt        = DateTime.new!(next_7_days, ~T[23:59:59], "Etc/UTC")
-    period_from_dt = DateTime.new!(start_date, ~T[00:00:00], "Etc/UTC")
-    period_to_dt   = DateTime.new!(end_date, ~T[23:59:59], "Etc/UTC")
-
-    upcoming_sessions = ClassSessions.list_class_sessions(from: from_dt, to: to_7_dt, status: "scheduled")
-    period_sessions   = ClassSessions.list_class_sessions(from: period_from_dt, to: period_to_dt)
 
     active_subs = Subscriptions.list_subscriptions(status: "active")
 
@@ -219,18 +214,10 @@ defmodule Ledgr.Domains.VolumeStudio do
           Date.compare(sub.ends_on, next_30_days) != :gt
       end)
 
-    sessions_by_status =
-      period_sessions
-      |> Enum.group_by(& &1.status)
-      |> Map.new(fn {k, v} -> {k, length(v)} end)
-
     %{
       pnl: pnl,
-      upcoming_sessions: upcoming_sessions,
       active_subscriptions_count: length(active_subs),
-      expiring_soon_count: expiring_soon_count,
-      period_sessions_count: length(period_sessions),
-      sessions_by_status: sessions_by_status
+      expiring_soon_count: expiring_soon_count
     }
   end
 

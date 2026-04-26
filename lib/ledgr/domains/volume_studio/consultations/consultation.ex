@@ -3,12 +3,13 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations.Consultation do
   import Ecto.Changeset
 
   alias Ledgr.Core.Customers.Customer
-  alias Ledgr.Domains.VolumeStudio.Instructors.Instructor
+  alias Ledgr.Domains.VolumeStudio.PartnerSplits.PartnerSplit
 
   schema "consultations" do
     belongs_to :customer, Customer
-    belongs_to :instructor, Instructor
+    belongs_to :partner_split, PartnerSplit
 
+    field :instructor_name, :string
     field :scheduled_at, :utc_datetime
     field :duration_minutes, :integer, default: 60
     field :status, :string, default: "scheduled"
@@ -21,8 +22,8 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations.Consultation do
     timestamps(type: :utc_datetime)
   end
 
-  @required_fields [:customer_id, :instructor_id, :amount_cents, :scheduled_at]
-  @optional_fields [:duration_minutes, :status, :notes, :iva_cents, :paid_at]
+  @required_fields [:customer_id, :amount_cents, :scheduled_at]
+  @optional_fields [:instructor_name, :duration_minutes, :status, :notes, :iva_cents, :paid_at, :partner_split_id]
 
   @valid_statuses ~w(scheduled completed cancelled no_show)
 
@@ -35,7 +36,6 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations.Consultation do
     |> validate_number(:iva_cents, greater_than_or_equal_to: 0)
     |> validate_number(:duration_minutes, greater_than: 0)
     |> foreign_key_constraint(:customer_id)
-    |> foreign_key_constraint(:instructor_id)
   end
 
   @doc "Total amount including IVA"

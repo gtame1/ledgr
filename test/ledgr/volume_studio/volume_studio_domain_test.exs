@@ -105,11 +105,8 @@ defmodule Ledgr.Domains.VolumeStudioDomainTest do
       result = VolumeStudio.dashboard_metrics(today, today)
 
       assert Map.has_key?(result, :pnl)
-      assert Map.has_key?(result, :upcoming_sessions)
       assert Map.has_key?(result, :active_subscriptions_count)
       assert Map.has_key?(result, :expiring_soon_count)
-      assert Map.has_key?(result, :period_sessions_count)
-      assert Map.has_key?(result, :sessions_by_status)
     end
 
     test "dashboard_metrics/2 counts active subscriptions" do
