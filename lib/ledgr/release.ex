@@ -207,14 +207,7 @@ defmodule Ledgr.Release do
   # GenServers or connection pools. Used by migrate/0 so that
   # Ecto.Migrator.with_repo/2 can start each repo temporarily — with its
   # own minimal pool — rather than competing with the full supervision tree.
-  #
-  # Explicitly starts :ssl and :postgrex so their supervision trees
-  # (including Postgrex.SCRAM.LockedCache) are available when the migrator
-  # opens connections — without this the SCRAM auth handshake races against
-  # the cache GenServer's startup and crashes intermittently.
   defp load_app do
     Application.load(@app)
-    {:ok, _} = Application.ensure_all_started(:ssl)
-    {:ok, _} = Application.ensure_all_started(:postgrex)
   end
 end
