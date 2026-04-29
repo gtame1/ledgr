@@ -1,4 +1,3 @@
-
 <% d = @doctor %>
 
 <div class="hd-page">
@@ -11,27 +10,34 @@
   <%!-- Header --%>
   <div class="flex items-center gap-4 mb-6">
     <div class="hd-doctor-avatar text-2xl" style="width: 4rem; height: 4rem;">
-      <%= String.first(d.name) %>
+      {String.first(d.name)}
     </div>
     <div>
       <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold" style="color: var(--text-main);"><%= d.name %></h1>
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);">{d.name}</h1>
         <%= if d.is_available do %>
           <span class="hd-badge hd-badge--active">Available</span>
         <% else %>
           <span class="hd-badge" style="background: #e5e7eb; color: #6b7280;">Unavailable</span>
         <% end %>
       </div>
-      <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium" style="background: rgba(2, 186, 151, 0.1); color: var(--accent);">
-        <%= d.specialty %>
+      <span
+        class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium"
+        style="background: rgba(2, 186, 151, 0.1); color: var(--accent);"
+      >
+        {d.specialty}
       </span>
     </div>
     <div class="ml-auto flex items-center gap-2">
       <.link navigate={dp(@domain_path_prefix, "/doctors/#{d.id}/edit")} class="hd-btn-secondary">
         Edit Doctor
       </.link>
-      <.link href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle-status")} method="post" class="hd-btn-primary">
-        <%= if d.is_available, do: "Set Unavailable", else: "Set Available" %>
+      <.link
+        href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle-status")}
+        method="post"
+        class="hd-btn-primary"
+      >
+        {if d.is_available, do: "Set Unavailable", else: "Set Available"}
       </.link>
     </div>
   </div>
@@ -40,49 +46,75 @@
     <%!-- Info Card --%>
     <div class="lg:col-span-2">
       <div class="hd-card p-5">
-        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Doctor Information</h2>
+        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">
+          Doctor Information
+        </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Phone</div>
-            <div class="text-sm" style="color: var(--text-main);"><%= d.phone || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Phone
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">{d.phone || "---"}</div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Email</div>
-            <div class="text-sm" style="color: var(--text-main);"><%= d.email || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Email
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">{d.email || "---"}</div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Cedula Profesional</div>
-            <div class="text-sm font-mono" style="color: var(--text-main);"><%= d.cedula_profesional || "---" %></div>
-          </div>
-          <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">University</div>
-            <div class="text-sm" style="color: var(--text-main);"><%= d.university || "---" %></div>
-          </div>
-          <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Years of Experience</div>
-            <div class="text-sm" style="color: var(--text-main);">
-              <%= if d.years_experience, do: "#{d.years_experience} years", else: "---" %>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Cedula Profesional
+            </div>
+            <div class="text-sm font-mono" style="color: var(--text-main);">
+              {d.cedula_profesional || "---"}
             </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Specialty</div>
-            <div class="text-sm" style="color: var(--text-main);"><%= d.specialty || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              University
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">{d.university || "---"}</div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Video Calls</div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Years of Experience
+            </div>
             <div class="text-sm" style="color: var(--text-main);">
-              <%= if d.accepts_video_calls, do: "✅ Accepts video calls", else: "❌ No video calls" %>
+              {if d.years_experience, do: "#{d.years_experience} years", else: "---"}
             </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Extension Code</div>
-            <div class="text-sm font-mono" style="color: var(--text-main);"><%= d.extension_code || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Specialty
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">{d.specialty || "---"}</div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Terms Accepted</div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Video Calls
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">
+              {if d.accepts_video_calls, do: "✅ Accepts video calls", else: "❌ No video calls"}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Extension Code
+            </div>
+            <div class="text-sm font-mono" style="color: var(--text-main);">
+              {d.extension_code || "---"}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Terms Accepted
+            </div>
             <div class="text-sm" style="color: var(--text-main);">
               <%= if d.terms_accepted do %>
-                ✅ Accepted<%= if d.terms_accepted_at, do: " on #{fmt_date(d.terms_accepted_at)}", else: "" %>
+                ✅ Accepted{if d.terms_accepted_at,
+                  do: " on #{fmt_date(d.terms_accepted_at)}",
+                  else: ""}
               <% else %>
                 ❌ Not accepted
               <% end %>
@@ -92,30 +124,96 @@
       </div>
     </div>
 
+    <%!-- Prescrypto Card --%>
+    <div class="lg:col-span-2">
+      <div class="hd-card p-5 mt-6">
+        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Prescrypto</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Medic ID
+            </div>
+            <div class="text-sm font-mono" style="color: var(--text-main);">
+              {d.prescrypto_medic_id || "Not synced"}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Cédula de especialidad
+            </div>
+            <div class="text-sm font-mono" style="color: var(--text-main);">
+              {d.prescrypto_specialty_no || "---"}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Specialty Verified
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">
+              {if d.prescrypto_specialty_verified, do: "✅", else: "❌"}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Synced At
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">
+              {if d.prescrypto_synced_at, do: fmt_date(d.prescrypto_synced_at), else: "---"}
+            </div>
+          </div>
+        </div>
+        <%= if is_nil(d.prescrypto_medic_id) && !is_nil(d.email) && !is_nil(d.cedula_profesional) do %>
+          <div class="mt-4">
+            <.link
+              href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
+              method="post"
+              class="hd-btn-secondary"
+            >
+              Retry Prescrypto Sync
+            </.link>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-0">
     <%!-- Recent Consultations --%>
     <div>
       <div class="hd-card">
         <div class="p-4 border-b" style="border-color: var(--border-subtle);">
-          <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">Recent Consultations</h3>
+          <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+            Recent Consultations
+          </h3>
         </div>
         <%= if d.consultations && !Enum.empty?(d.consultations) do %>
           <div class="divide-y" style="border-color: var(--border-subtle);">
             <%= for c <- Enum.take(d.consultations, 10) do %>
               <div class="p-3">
-                <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                  <%= if c.patient, do: (c.patient.full_name || c.patient.display_name || "Unknown"), else: "Patient" %>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")}
+                  class="text-sm font-medium"
+                  style="color: var(--accent);"
+                >
+                  {if c.patient,
+                    do: c.patient.full_name || c.patient.display_name || "Unknown",
+                    else: "Patient"}
                 </.link>
                 <div class="flex items-center justify-between mt-1">
                   <span class="text-xs" style="color: var(--text-muted);">
-                    <%= fmt_date(c.assigned_at) || "---" %>
+                    {fmt_date(c.assigned_at) || "---"}
                   </span>
-                  <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                  <span class={"hd-badge hd-badge--#{c.status}"}>
+                    {c.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+                  </span>
                 </div>
               </div>
             <% end %>
           </div>
         <% else %>
-          <div class="p-4 text-center text-sm" style="color: var(--text-muted);">No consultations yet.</div>
+          <div class="p-4 text-center text-sm" style="color: var(--text-muted);">
+            No consultations yet.
+          </div>
         <% end %>
       </div>
     </div>

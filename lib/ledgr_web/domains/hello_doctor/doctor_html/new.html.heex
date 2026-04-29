@@ -11,78 +11,151 @@
 
   <div class="hd-form">
     <div class="hd-card p-6">
-      <.form for={@changeset} action={dp(@domain_path_prefix, "/doctors")} method="post" class="space-y-5">
+      <.form
+        for={@changeset}
+        action={dp(@domain_path_prefix, "/doctors")}
+        method="post"
+        class="space-y-5"
+      >
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Full Name <span style="color: #dc2626;">*</span></label>
-          <input type="text" name="doctor[name]" value={@changeset.changes[:name] || ""} required
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Full Name <span style="color: #dc2626;">*</span>
+          </label>
+          <input
+            type="text"
+            name="doctor[name]"
+            value={@changeset.changes[:name] || ""}
+            required
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="Dr. Juan Pérez García" />
+            placeholder="Dr. Juan Pérez García"
+          />
           <%= if @changeset.action && @changeset.errors[:name] do %>
-            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:name], 0) %></p>
+            <p class="text-xs mt-1" style="color: #dc2626;">
+              {elem(@changeset.errors[:name], 0)}
+            </p>
           <% end %>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Phone <span style="color: #dc2626;">*</span></label>
-          <input type="tel" name="doctor[phone]" value={@changeset.changes[:phone] || ""} required
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Phone <span style="color: #dc2626;">*</span>
+          </label>
+          <input
+            type="tel"
+            name="doctor[phone]"
+            value={@changeset.changes[:phone] || ""}
+            required
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="+525512345678" />
+            placeholder="+525512345678"
+          />
           <%= if @changeset.action && @changeset.errors[:phone] do %>
-            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:phone], 0) %></p>
+            <p class="text-xs mt-1" style="color: #dc2626;">
+              {elem(@changeset.errors[:phone], 0)}
+            </p>
           <% end %>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Email</label>
-          <input type="email" name="doctor[email]" value={@changeset.changes[:email] || ""}
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Email
+          </label>
+          <input
+            type="email"
+            name="doctor[email]"
+            value={@changeset.changes[:email] || ""}
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="doctor@hellodoctor.mx" />
+            placeholder="doctor@hellodoctor.mx"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Specialty <span style="color: #dc2626;">*</span></label>
-          <select name="doctor[specialty]" required
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Specialty <span style="color: #dc2626;">*</span>
+          </label>
+          <select
+            name="doctor[specialty]"
+            required
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
-            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          >
             <option value="">Select specialty...</option>
             <%= for {label, value} <- @specialty_options do %>
-              <option value={value} selected={@changeset.changes[:specialty] == value}><%= label %></option>
+              <option value={value} selected={@changeset.changes[:specialty] == value}>
+                {label}
+              </option>
             <% end %>
           </select>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Cédula Profesional</label>
-            <input type="text" name="doctor[cedula_profesional]" value={@changeset.changes[:cedula_profesional] || ""}
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+              Cédula Profesional
+            </label>
+            <input
+              type="text"
+              name="doctor[cedula_profesional]"
+              value={@changeset.changes[:cedula_profesional] || ""}
               class="w-full rounded-lg border px-4 py-2.5 text-sm"
               style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-              placeholder="CED-12345678" />
+              placeholder="CED-12345678"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Years of Experience</label>
-            <input type="number" name="doctor[years_experience]" value={@changeset.changes[:years_experience] || ""} min="0"
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+              Cédula de especialidad
+            </label>
+            <input
+              type="text"
+              name="doctor[prescrypto_specialty_no]"
+              value={@changeset.changes[:prescrypto_specialty_no] || ""}
               class="w-full rounded-lg border px-4 py-2.5 text-sm"
               style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-              placeholder="5" />
+              placeholder="ESP-12345678"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+              Years of Experience
+            </label>
+            <input
+              type="number"
+              name="doctor[years_experience]"
+              value={@changeset.changes[:years_experience] || ""}
+              min="0"
+              class="w-full rounded-lg border px-4 py-2.5 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              placeholder="5"
+            />
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">University</label>
-          <input type="text" name="doctor[university]" value={@changeset.changes[:university] || ""}
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            University
+          </label>
+          <input
+            type="text"
+            name="doctor[university]"
+            value={@changeset.changes[:university] || ""}
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="UNAM, IPN, Tec de Monterrey..." />
+            placeholder="UNAM, IPN, Tec de Monterrey..."
+          />
         </div>
 
         <div class="flex items-center gap-3 pt-3">
           <button type="submit" class="hd-btn-primary">Save Doctor</button>
-          <.link navigate={dp(@domain_path_prefix, "/doctors")} class="hd-btn-secondary">Cancel</.link>
+          <.link navigate={dp(@domain_path_prefix, "/doctors")} class="hd-btn-secondary">
+            Cancel
+          </.link>
         </div>
       </.form>
     </div>

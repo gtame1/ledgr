@@ -36,6 +36,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
   def create(conn, %{"doctor" => doctor_params}) do
     case Doctors.create_doctor(doctor_params) do
       {:ok, doctor} ->
+        conn =
+          if is_nil(doctor.prescrypto_medic_id) do
+            put_flash(
+              conn,
+              :warning,
+              "Doctor created, but Prescrypto sync failed — retry from the doctor page."
+            )
+          else
+            conn
+          end
+
         conn
         |> put_flash(:info, "Doctor created successfully.")
         |> redirect(to: dp(conn, "/doctors/#{doctor.id}"))
@@ -47,6 +58,42 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
         )
     end
   end
+
+  def retry_prescrypto_sync(conn, %{"id" => id}) do
+    doctor = Doctors.get_doctor!(id)
+
+    case Ledgr.Domains.HelloDoctor.Prescrypto.create_medic(doctor) do
+      {:ok, %{prescrypto_medic_id: medic_id, prescrypto_token: medic_token}} ->
+        {:ok, _} =
+          Doctors.update_doctor(doctor, %{
+            prescrypto_medic_id: medic_id,
+            prescrypto_token: medic_token,
+            prescrypto_synced_at: DateTime.utc_now()
+          })
+
+        conn
+        |> put_flash(:info, "Prescrypto sync successful (medic ##{medic_id}).")
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+
+      {:error, {:api_error, _status, errors}} ->
+        conn
+        |> put_flash(:error, "Prescrypto sync failed: #{format_prescrypto_errors(errors)}")
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Prescrypto sync failed: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+    end
+  end
+
+  defp format_prescrypto_errors(errors) when is_map(errors) do
+    errors
+    |> Enum.map(fn {field, msgs} -> "#{field}: #{Enum.join(List.wrap(msgs), ", ")}" end)
+    |> Enum.join("; ")
+  end
+
+  defp format_prescrypto_errors(other), do: inspect(other)
 
   def edit(conn, %{"id" => id}) do
     doctor = Doctors.get_doctor!(id)
@@ -89,11 +136,13 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
         |> redirect(to: dp(conn, "/doctors/#{doctor.id}"))
 
       {:error, changeset} ->
-        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-          Enum.reduce(opts, msg, fn {k, v}, acc ->
-            String.replace(acc, "%{#{k}}", to_string(v))
+        errors =
+          Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+            Enum.reduce(opts, msg, fn {k, v}, acc ->
+              String.replace(acc, "%{#{k}}", to_string(v))
+            end)
           end)
-        end)
+
         conn
         |> put_flash(:error, "Failed to update availability: #{inspect(errors)}")
         |> redirect(to: dp(conn, "/doctors/#{id}"))

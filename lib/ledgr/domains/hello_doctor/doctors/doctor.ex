@@ -19,6 +19,11 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     field :terms_accepted, :boolean, default: false
     field :terms_accepted_at, :utc_datetime
     field :extension_code, :string
+    field :prescrypto_medic_id, :integer
+    field :prescrypto_token, :string
+    field :prescrypto_specialty_no, :string
+    field :prescrypto_specialty_verified, :boolean, default: false
+    field :prescrypto_synced_at, :utc_datetime
 
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation
     has_many :prescriptions, Ledgr.Domains.HelloDoctor.Prescriptions.Prescription
@@ -27,7 +32,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   end
 
   @required ~w[id phone name specialty is_available]a
-  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code]a
+  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at]a
 
   def changeset(doctor, attrs) do
     doctor

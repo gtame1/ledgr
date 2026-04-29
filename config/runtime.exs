@@ -167,6 +167,11 @@ if amp_webhook_secret = System.get_env("AUMENTA_MI_PENSION_STRIPE_WEBHOOK_SECRET
   config :ledgr, aumenta_mi_pension_stripe_webhook_secret: amp_webhook_secret
 end
 
+config :ledgr, :prescrypto,
+  base_url: System.get_env("PRESCRYPTO_BASE_URL", "https://integration.prescrypto.com/"),
+  token: System.get_env("PRESCRYPTO_TOKEN"),
+  enabled: System.get_env("PRESCRYPTO_TOKEN") != nil
+
 if config_env() == :prod do
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||
@@ -177,6 +182,6 @@ if config_env() == :prod do
 
   config :ledgr, LedgrWeb.Endpoint,
     url: [host: host, scheme: "https", port: 443],
-    http: [ip: {0,0,0,0,0,0,0,0}, port: port],
+    http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: port],
     secret_key_base: secret_key_base
 end

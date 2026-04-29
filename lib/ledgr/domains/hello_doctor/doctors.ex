@@ -1,4 +1,5 @@
 defmodule Ledgr.Domains.HelloDoctor.Doctors do
+  require Logger
   import Ecto.Query, warn: false
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
@@ -19,9 +20,52 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
   end
 
   def create_doctor(attrs) do
-    %Doctor{}
-    |> Doctor.changeset(Map.put_new(attrs, "id", Ecto.UUID.generate()))
-    |> Repo.insert()
+    result =
+      %Doctor{}
+      |> Doctor.changeset(Map.put_new(attrs, "id", Ecto.UUID.generate()))
+      |> Repo.insert()
+
+    case result do
+      {:ok, doctor} ->
+        doctor = maybe_sync_prescrypto(doctor)
+        {:ok, doctor}
+
+      error ->
+        error
+    end
+  end
+
+  defp maybe_sync_prescrypto(%Doctor{email: nil} = doctor) do
+    Logger.info("[Prescrypto] Skipping sync for doctor #{doctor.id} — email missing")
+    doctor
+  end
+
+  defp maybe_sync_prescrypto(%Doctor{cedula_profesional: nil} = doctor) do
+    Logger.info("[Prescrypto] Skipping sync for doctor #{doctor.id} — cedula_profesional missing")
+    doctor
+  end
+
+  defp maybe_sync_prescrypto(doctor) do
+    alias Ledgr.Domains.HelloDoctor.Prescrypto
+
+    case Prescrypto.create_medic(doctor) do
+      {:ok, %{prescrypto_medic_id: medic_id, prescrypto_token: medic_token}} ->
+        case update_doctor(doctor, %{
+               prescrypto_medic_id: medic_id,
+               prescrypto_token: medic_token,
+               prescrypto_synced_at: DateTime.utc_now()
+             }) do
+          {:ok, updated} -> updated
+          {:error, _} -> doctor
+        end
+
+      {:error, reason} when reason != :disabled ->
+        Logger.warning("[Prescrypto] Sync failed for doctor #{doctor.id}: #{inspect(reason)}")
+        doctor
+
+      {:error, :disabled} ->
+        doctor
+    end
   end
 
   def update_doctor(%Doctor{} = doctor, attrs) do
@@ -38,8 +82,12 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
     update_doctor(doctor, %{is_available: !doctor.is_available})
   end
 
-  def count_by_status(:active), do: Doctor |> where([d], d.is_available == true) |> Repo.aggregate(:count)
-  def count_by_status(:inactive), do: Doctor |> where([d], d.is_available == false) |> Repo.aggregate(:count)
+  def count_by_status(:active),
+    do: Doctor |> where([d], d.is_available == true) |> Repo.aggregate(:count)
+
+  def count_by_status(:inactive),
+    do: Doctor |> where([d], d.is_available == false) |> Repo.aggregate(:count)
+
   def count_by_status(_), do: Repo.aggregate(Doctor, :count)
 
   def count_all, do: Repo.aggregate(Doctor, :count)
@@ -83,6 +131,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
 
   defp maybe_search(query, nil), do: query
   defp maybe_search(query, ""), do: query
+
   defp maybe_search(query, search) do
     term = "%#{search}%"
     where(query, [d], ilike(d.name, ^term) or ilike(d.phone, ^term) or ilike(d.email, ^term))

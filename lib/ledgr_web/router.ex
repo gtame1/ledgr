@@ -99,47 +99,84 @@ defmodule LedgrWeb.Router do
     get "/orders/:id/stripe-link", Domains.MrMunchMe.OrderController, :stripe_link
     get "/orders/:id/shipping-link", Domains.MrMunchMe.OrderController, :shipping_link
     post "/orders/:id/shipping-link", Domains.MrMunchMe.OrderController, :create_shipping_link
-    resources "/orders", Domains.MrMunchMe.OrderController, only: [:index, :show, :new, :create, :edit, :update]
+
+    resources "/orders", Domains.MrMunchMe.OrderController,
+      only: [:index, :show, :new, :create, :edit, :update]
+
     post "/orders/:id/status", Domains.MrMunchMe.OrderController, :update_status
     post "/orders/:id/ingredients", Domains.MrMunchMe.OrderController, :update_ingredients
     get "/orders/:id/payments/new", Domains.MrMunchMe.OrderController, :new_payment
     post "/orders/:id/payments", Domains.MrMunchMe.OrderController, :create_payment
 
-    resources "/order_payments", Domains.MrMunchMe.OrderPaymentController, only: [:index, :show, :edit, :update, :delete]
+    resources "/order_payments", Domains.MrMunchMe.OrderPaymentController,
+      only: [:index, :show, :edit, :update, :delete]
 
     get "/inventory", Domains.MrMunchMe.InventoryController, :index
-    get  "/inventory/purchases/new", Domains.MrMunchMe.InventoryController, :new_purchase
-    post "/inventory/purchases",     Domains.MrMunchMe.InventoryController, :create_purchase
-    get  "/inventory/purchases/:id/edit", Domains.MrMunchMe.InventoryController, :edit_purchase
-    put  "/inventory/purchases/:id", Domains.MrMunchMe.InventoryController, :update_purchase
+    get "/inventory/purchases/new", Domains.MrMunchMe.InventoryController, :new_purchase
+    post "/inventory/purchases", Domains.MrMunchMe.InventoryController, :create_purchase
+    get "/inventory/purchases/:id/edit", Domains.MrMunchMe.InventoryController, :edit_purchase
+    put "/inventory/purchases/:id", Domains.MrMunchMe.InventoryController, :update_purchase
     delete "/inventory/purchases/:id", Domains.MrMunchMe.InventoryController, :delete_purchase
-    post "/inventory/purchases/:id/return", Domains.MrMunchMe.InventoryController, :return_purchase
-    get  "/inventory/movements/new", Domains.MrMunchMe.InventoryController, :new_movement
-    post "/inventory/movements",     Domains.MrMunchMe.InventoryController, :create_movement
-    get  "/inventory/movements/:id/edit", Domains.MrMunchMe.InventoryController, :edit_movement
-    put  "/inventory/movements/:id", Domains.MrMunchMe.InventoryController, :update_movement
+
+    post "/inventory/purchases/:id/return",
+         Domains.MrMunchMe.InventoryController,
+         :return_purchase
+
+    get "/inventory/movements/new", Domains.MrMunchMe.InventoryController, :new_movement
+    post "/inventory/movements", Domains.MrMunchMe.InventoryController, :create_movement
+    get "/inventory/movements/:id/edit", Domains.MrMunchMe.InventoryController, :edit_movement
+    put "/inventory/movements/:id", Domains.MrMunchMe.InventoryController, :update_movement
     delete "/inventory/movements/:id", Domains.MrMunchMe.InventoryController, :delete_movement
     get "/inventory/requirements", Domains.MrMunchMe.InventoryController, :requirements
 
-    resources "/products", Domains.MrMunchMe.ProductController, only: [:index, :new, :create, :edit, :update, :delete]
+    resources "/products", Domains.MrMunchMe.ProductController,
+      only: [:index, :new, :create, :edit, :update, :delete]
+
     patch "/products/:id/toggle_active", Domains.MrMunchMe.ProductController, :toggle_active
     patch "/products/:id/move_up", Domains.MrMunchMe.ProductController, :move_up
     patch "/products/:id/move_down", Domains.MrMunchMe.ProductController, :move_down
-    post "/products/:product_id/images", Domains.MrMunchMe.ProductController, :upload_gallery_image
-    delete "/products/:product_id/images/:image_id", Domains.MrMunchMe.ProductController, :delete_gallery_image
-    resources "/products/:product_id/variants", Domains.MrMunchMe.VariantController, only: [:new, :create, :edit, :update, :delete]
-    post "/products/:product_id/variants/:variant_id/recipe", Domains.MrMunchMe.VariantController, :save_recipe
-    resources "/discount-codes", Domains.MrMunchMe.DiscountCodeController, only: [:index, :new, :create, :edit, :update, :delete]
-    patch "/discount-codes/:id/toggle-active", Domains.MrMunchMe.DiscountCodeController, :toggle_active
-    resources "/ingredients", Domains.MrMunchMe.IngredientController, only: [:index, :new, :create, :edit, :update, :delete]
-    resources "/recipes", Domains.MrMunchMe.RecipeController, only: [:index, :new, :create, :show, :edit, :delete]
+
+    post "/products/:product_id/images",
+         Domains.MrMunchMe.ProductController,
+         :upload_gallery_image
+
+    delete "/products/:product_id/images/:image_id",
+           Domains.MrMunchMe.ProductController,
+           :delete_gallery_image
+
+    resources "/products/:product_id/variants", Domains.MrMunchMe.VariantController,
+      only: [:new, :create, :edit, :update, :delete]
+
+    post "/products/:product_id/variants/:variant_id/recipe",
+         Domains.MrMunchMe.VariantController,
+         :save_recipe
+
+    resources "/discount-codes", Domains.MrMunchMe.DiscountCodeController,
+      only: [:index, :new, :create, :edit, :update, :delete]
+
+    patch "/discount-codes/:id/toggle-active",
+          Domains.MrMunchMe.DiscountCodeController,
+          :toggle_active
+
+    resources "/ingredients", Domains.MrMunchMe.IngredientController,
+      only: [:index, :new, :create, :edit, :update, :delete]
+
+    resources "/recipes", Domains.MrMunchMe.RecipeController,
+      only: [:index, :new, :create, :show, :edit, :delete]
+
     post "/recipes/new_version/:id", Domains.MrMunchMe.RecipeController, :create_new_version
 
     # Inventory reconciliation (MrMunchMe-specific)
     get "/reconciliation/inventory", ReconciliationController, :inventory_index
     post "/reconciliation/inventory/adjust", ReconciliationController, :inventory_adjust
-    post "/reconciliation/inventory/reconcile_all", ReconciliationController, :inventory_reconcile_all
-    post "/reconciliation/inventory/quick_transfer", ReconciliationController, :inventory_quick_transfer
+
+    post "/reconciliation/inventory/reconcile_all",
+         ReconciliationController,
+         :inventory_reconcile_all
+
+    post "/reconciliation/inventory/quick_transfer",
+         ReconciliationController,
+         :inventory_quick_transfer
   end
 
   # ── Viaxe: public auth routes ──────────────────────────────────────
@@ -164,7 +201,10 @@ defmodule LedgrWeb.Router do
       post "/visas", Domains.Viaxe.VisaController, :create
       delete "/visas/:visa_id", Domains.Viaxe.VisaController, :delete
       post "/loyalty_programs", Domains.Viaxe.LoyaltyProgramController, :create
-      delete "/loyalty_programs/:loyalty_program_id", Domains.Viaxe.LoyaltyProgramController, :delete
+
+      delete "/loyalty_programs/:loyalty_program_id",
+             Domains.Viaxe.LoyaltyProgramController,
+             :delete
     end
 
     # Trips (umbrella container for related bookings)
@@ -172,11 +212,14 @@ defmodule LedgrWeb.Router do
     get "/trips/:id/calendar", Domains.Viaxe.TripController, :calendar
 
     # Bookings (with type-specific details)
-    resources "/bookings", Domains.Viaxe.BookingController, only: [:index, :show, :new, :create, :edit, :update, :delete]
+    resources "/bookings", Domains.Viaxe.BookingController,
+      only: [:index, :show, :new, :create, :edit, :update, :delete]
+
     post "/bookings/:id/status", Domains.Viaxe.BookingController, :update_status
 
     # Services catalog
-    resources "/services", Domains.Viaxe.ServiceController, only: [:index, :new, :create, :edit, :update, :delete]
+    resources "/services", Domains.Viaxe.ServiceController,
+      only: [:index, :new, :create, :edit, :update, :delete]
 
     # Suppliers (with location info)
     resources "/suppliers", Domains.Viaxe.SupplierController
@@ -207,40 +250,80 @@ defmodule LedgrWeb.Router do
     resources "/customers", CustomerController
 
     # Subscription plans & member subscriptions
-    resources "/subscription-plans", Domains.VolumeStudio.SubscriptionPlanController, only: [:index, :new, :create, :edit, :update, :delete]
-    resources "/subscriptions", Domains.VolumeStudio.SubscriptionController, only: [:index, :show, :new, :create, :edit, :update]
-    get  "/subscriptions/:id/payment/new", Domains.VolumeStudio.SubscriptionController, :new_payment
-    post "/subscriptions/:id/payment", Domains.VolumeStudio.SubscriptionController, :record_payment
-    get  "/subscriptions/:id/payment/:entry_id/edit", Domains.VolumeStudio.SubscriptionController, :edit_payment
-    put  "/subscriptions/:id/payment/:entry_id", Domains.VolumeStudio.SubscriptionController, :update_payment
-    delete "/subscriptions/:id/payment/:entry_id", Domains.VolumeStudio.SubscriptionController, :delete_payment
-    get  "/subscriptions/:id/cancel", Domains.VolumeStudio.SubscriptionController, :new_cancel
+    resources "/subscription-plans", Domains.VolumeStudio.SubscriptionPlanController,
+      only: [:index, :new, :create, :edit, :update, :delete]
+
+    resources "/subscriptions", Domains.VolumeStudio.SubscriptionController,
+      only: [:index, :show, :new, :create, :edit, :update]
+
+    get "/subscriptions/:id/payment/new",
+        Domains.VolumeStudio.SubscriptionController,
+        :new_payment
+
+    post "/subscriptions/:id/payment",
+         Domains.VolumeStudio.SubscriptionController,
+         :record_payment
+
+    get "/subscriptions/:id/payment/:entry_id/edit",
+        Domains.VolumeStudio.SubscriptionController,
+        :edit_payment
+
+    put "/subscriptions/:id/payment/:entry_id",
+        Domains.VolumeStudio.SubscriptionController,
+        :update_payment
+
+    delete "/subscriptions/:id/payment/:entry_id",
+           Domains.VolumeStudio.SubscriptionController,
+           :delete_payment
+
+    get "/subscriptions/:id/cancel", Domains.VolumeStudio.SubscriptionController, :new_cancel
     post "/subscriptions/:id/cancel", Domains.VolumeStudio.SubscriptionController, :cancel
     post "/subscriptions/:id/status", Domains.VolumeStudio.SubscriptionController, :update_status
     post "/subscriptions/:id/redeem", Domains.VolumeStudio.SubscriptionController, :redeem
-    get  "/subscriptions/:id/reactivate", Domains.VolumeStudio.SubscriptionController, :new_reactivate
+
+    get "/subscriptions/:id/reactivate",
+        Domains.VolumeStudio.SubscriptionController,
+        :new_reactivate
+
     post "/subscriptions/:id/reactivate", Domains.VolumeStudio.SubscriptionController, :reactivate
 
     # Diet consultations
-    resources "/consultations", Domains.VolumeStudio.ConsultationController, only: [:index, :show, :new, :create, :edit, :update]
-    post "/consultations/:id/status",      Domains.VolumeStudio.ConsultationController, :update_status
-    get  "/consultations/:id/payment/new", Domains.VolumeStudio.ConsultationController, :new_payment
-    post "/consultations/:id/payment",     Domains.VolumeStudio.ConsultationController, :record_payment
+    resources "/consultations", Domains.VolumeStudio.ConsultationController,
+      only: [:index, :show, :new, :create, :edit, :update]
+
+    post "/consultations/:id/status", Domains.VolumeStudio.ConsultationController, :update_status
+
+    get "/consultations/:id/payment/new",
+        Domains.VolumeStudio.ConsultationController,
+        :new_payment
+
+    post "/consultations/:id/payment",
+         Domains.VolumeStudio.ConsultationController,
+         :record_payment
 
     # Partner investments dashboard (recording forms still live at /investments/* via core_routes)
     get "/partner-investments", Domains.VolumeStudio.PartnerInvestmentController, :index
 
     # Partner splits (revenue/expense attribution)
-    get  "/partner-splits/breakdown", Domains.VolumeStudio.PartnerSplitController, :breakdown
-    get  "/partner-splits/expenses", Domains.VolumeStudio.PartnerSplitController, :expenses
-    post "/partner-splits/expenses/:expense_id/assign", Domains.VolumeStudio.PartnerSplitController, :assign_expense
-    resources "/partner-splits", Domains.VolumeStudio.PartnerSplitController, only: [:index, :new, :create, :edit, :update, :delete]
+    get "/partner-splits/breakdown", Domains.VolumeStudio.PartnerSplitController, :breakdown
+    get "/partner-splits/expenses", Domains.VolumeStudio.PartnerSplitController, :expenses
+
+    post "/partner-splits/expenses/:expense_id/assign",
+         Domains.VolumeStudio.PartnerSplitController,
+         :assign_expense
+
+    resources "/partner-splits", Domains.VolumeStudio.PartnerSplitController,
+      only: [:index, :new, :create, :edit, :update, :delete]
 
     # Studio spaces & rental agreements
-    resources "/spaces", Domains.VolumeStudio.SpaceController, only: [:index, :new, :create, :edit, :update, :delete]
-    resources "/space-rentals", Domains.VolumeStudio.SpaceRentalController, only: [:index, :show, :new, :create, :edit, :update]
-    get  "/space-rentals/:id/payment/new", Domains.VolumeStudio.SpaceRentalController, :new_payment
-    post "/space-rentals/:id/payment",     Domains.VolumeStudio.SpaceRentalController, :record_payment
+    resources "/spaces", Domains.VolumeStudio.SpaceController,
+      only: [:index, :new, :create, :edit, :update, :delete]
+
+    resources "/space-rentals", Domains.VolumeStudio.SpaceRentalController,
+      only: [:index, :show, :new, :create, :edit, :update]
+
+    get "/space-rentals/:id/payment/new", Domains.VolumeStudio.SpaceRentalController, :new_payment
+    post "/space-rentals/:id/payment", Domains.VolumeStudio.SpaceRentalController, :record_payment
   end
 
   # ── Ledgr HQ: public auth routes ───────────────────────────────────
@@ -269,11 +352,15 @@ defmodule LedgrWeb.Router do
     # Client subscriptions
     resources "/client-subscriptions", Domains.LedgrHQ.ClientSubscriptionController,
       only: [:index, :show, :new, :create, :edit, :update]
-    post "/client-subscriptions/:id/status", Domains.LedgrHQ.ClientSubscriptionController, :update_status
+
+    post "/client-subscriptions/:id/status",
+         Domains.LedgrHQ.ClientSubscriptionController,
+         :update_status
 
     # Costs
     resources "/costs", Domains.LedgrHQ.CostController,
       only: [:index, :new, :create, :edit, :update, :delete]
+
     patch "/costs/:id/toggle_active", Domains.LedgrHQ.CostController, :toggle_active
   end
 
@@ -297,6 +384,7 @@ defmodule LedgrWeb.Router do
       only: [:index, :new, :create, :show, :edit, :update, :delete] do
       resources "/attachments", Domains.CasaTame.ExpenseAttachmentController,
         only: [:create, :delete]
+
       resources "/refunds", Domains.CasaTame.ExpenseRefundController,
         only: [:new, :create, :delete]
     end
@@ -312,7 +400,10 @@ defmodule LedgrWeb.Router do
     # Investment accounts (read-only list + record movements)
     get "/investment-accounts", Domains.CasaTame.InvestmentAccountController, :index
     get "/investment-accounts/:id", Domains.CasaTame.InvestmentAccountController, :show
-    post "/investment-accounts/:id/movements", Domains.CasaTame.InvestmentAccountController, :create_movement
+
+    post "/investment-accounts/:id/movements",
+         Domains.CasaTame.InvestmentAccountController,
+         :create_movement
 
     # Debt accounts (read-only list + record movements)
     get "/debt-accounts", Domains.CasaTame.DebtAccountController, :index
@@ -321,7 +412,10 @@ defmodule LedgrWeb.Router do
 
     # Bills & recurring payments
     get "/bills/calendar", Domains.CasaTame.BillController, :calendar
-    resources "/bills", Domains.CasaTame.BillController, only: [:index, :new, :create, :edit, :update, :delete]
+
+    resources "/bills", Domains.CasaTame.BillController,
+      only: [:index, :new, :create, :edit, :update, :delete]
+
     post "/bills/:id/mark-paid", Domains.CasaTame.BillController, :mark_paid
 
     # FX Transfers (cross-currency)
@@ -351,7 +445,8 @@ defmodule LedgrWeb.Router do
     core_routes_no_customers()
 
     # Conversations (all WhatsApp conversations, including those without consultations)
-    resources "/conversations", Domains.HelloDoctor.ConversationListController, only: [:index, :show]
+    resources "/conversations", Domains.HelloDoctor.ConversationListController,
+      only: [:index, :show]
 
     # Doctor assistant chats
     resources "/doctor-chats", Domains.HelloDoctor.DoctorChatController, only: [:index, :show]
@@ -361,15 +456,21 @@ defmodule LedgrWeb.Router do
     post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
 
     # Doctors (read-only — bot manages doctors)
-    resources "/doctors", Domains.HelloDoctor.DoctorController, only: [:index, :show, :new, :create, :edit, :update]
+    resources "/doctors", Domains.HelloDoctor.DoctorController,
+      only: [:index, :show, :new, :create, :edit, :update]
+
     post "/doctors/:id/toggle-status", Domains.HelloDoctor.DoctorController, :toggle_status
+
+    post "/doctors/:id/retry-prescrypto",
+         Domains.HelloDoctor.DoctorController,
+         :retry_prescrypto_sync
 
     # Patients (read-only — bot manages patients)
     resources "/patients", Domains.HelloDoctor.PatientController, only: [:index, :show]
 
     # Payments (queries consultations with payment data)
     resources "/payments", Domains.HelloDoctor.PaymentController, only: [:index, :show]
-    post "/payments/sync",        Domains.HelloDoctor.PaymentController, :sync
+    post "/payments/sync", Domains.HelloDoctor.PaymentController, :sync
     post "/payments/backfill-gl", Domains.HelloDoctor.PaymentController, :backfill_gl
     post "/payments/:id/refund", Domains.HelloDoctor.PaymentController, :refund
     post "/payments/:id/check-status", Domains.HelloDoctor.PaymentController, :check_status
@@ -378,23 +479,28 @@ defmodule LedgrWeb.Router do
     post "/payments/:id/unlink", Domains.HelloDoctor.PaymentController, :unlink
 
     # Specialties (admin-managed list)
-    resources "/specialties", Domains.HelloDoctor.SpecialtyController, only: [:index, :create, :delete]
+    resources "/specialties", Domains.HelloDoctor.SpecialtyController,
+      only: [:index, :create, :delete]
+
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
 
     # Expenses (shared controller, domain-scoped)
     resources "/expenses", ExpenseController, except: [:show]
 
     # FX rate setting
-    post "/settings/fx-rate",     Domains.HelloDoctor.DashboardController,   :update_fx_rate
+    post "/settings/fx-rate", Domains.HelloDoctor.DashboardController, :update_fx_rate
 
     # External billing sync + GL posting
-    post "/billing/sync-costs",   Domains.HelloDoctor.DashboardController,   :sync_costs
+    post "/billing/sync-costs", Domains.HelloDoctor.DashboardController, :sync_costs
     post "/billing/post-all-costs", Domains.HelloDoctor.DoctorPayoutController, :post_all_costs
-    post "/billing/post-cost/:id",  Domains.HelloDoctor.DoctorPayoutController, :post_cost
+    post "/billing/post-cost/:id", Domains.HelloDoctor.DoctorPayoutController, :post_cost
 
     # Doctor payout report
-    get  "/doctor-payouts",                              Domains.HelloDoctor.DoctorPayoutController, :index
-    post "/doctor-payouts/:doctor_id/record-payout",     Domains.HelloDoctor.DoctorPayoutController, :record_payout
+    get "/doctor-payouts", Domains.HelloDoctor.DoctorPayoutController, :index
+
+    post "/doctor-payouts/:doctor_id/record-payout",
+         Domains.HelloDoctor.DoctorPayoutController,
+         :record_payout
   end
 
   # ── Aumenta Mi Pensión: public auth routes ─────────────────────────
@@ -412,18 +518,27 @@ defmodule LedgrWeb.Router do
 
     core_routes_no_customers()
 
-    resources "/conversations", Domains.AumentaMiPension.ConversationListController, only: [:index, :show]
+    resources "/conversations", Domains.AumentaMiPension.ConversationListController,
+      only: [:index, :show]
+
     resources "/agent-chats", Domains.AumentaMiPension.AgentChatController, only: [:index, :show]
 
-    resources "/consultations", Domains.AumentaMiPension.ConsultationController, only: [:index, :show]
-    post "/consultations/:id/status", Domains.AumentaMiPension.ConsultationController, :update_status
+    resources "/consultations", Domains.AumentaMiPension.ConsultationController,
+      only: [:index, :show]
 
-    resources "/agents", Domains.AumentaMiPension.AgentController, only: [:index, :show, :new, :create, :edit, :update]
+    post "/consultations/:id/status",
+         Domains.AumentaMiPension.ConsultationController,
+         :update_status
+
+    resources "/agents", Domains.AumentaMiPension.AgentController,
+      only: [:index, :show, :new, :create, :edit, :update]
+
     post "/agents/:id/toggle-status", Domains.AumentaMiPension.AgentController, :toggle_status
 
     resources "/customers", Domains.AumentaMiPension.CustomerController, only: [:index, :show]
 
-    resources "/pension-cases", Domains.AumentaMiPension.PensionCaseController, only: [:index, :show]
+    resources "/pension-cases", Domains.AumentaMiPension.PensionCaseController,
+      only: [:index, :show]
 
     resources "/payments", Domains.AumentaMiPension.PaymentController, only: [:index, :show]
     post "/payments/sync", Domains.AumentaMiPension.PaymentController, :sync
