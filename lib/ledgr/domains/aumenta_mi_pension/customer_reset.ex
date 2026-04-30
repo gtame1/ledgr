@@ -17,11 +17,19 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
           fields (full_name, CURP, NSS, weeks contributed, terms acceptance,
           etc.). The bot will re-ask everything from scratch on next message.
 
-  ## Stripe payments
+  ## Payment records — never auto-deleted
 
-  Local `stripe_payments` rows have their `consultation_id` pointer NULLed
-  (they remain in the Payments report but become unlinked from the
-  now-deleted consultations).
+  If the customer has any rows in the upstream `payments` table (real Stripe
+  transactions tracked by the bot service), the reset is **refused** with
+  `{:error, {:has_payments, n}}`. We don't auto-delete financial records:
+  the money already moved at Stripe, and silent local deletion would break
+  reconciliation. Callers should refund through the proper flow (which
+  leaves the row but flips `status='refunded'`) and then escalate for a
+  manual scrub if a true wipe is required.
+
+  Local `stripe_payments` rows (Ledgr-owned) have their `consultation_id`
+  pointer NULLed during reset — they remain in the Payments report but
+  become unlinked from the now-deleted consultations.
 
   ## Phase 1 caveat
 
@@ -51,6 +59,17 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
 
       payments_exists? = table_exists?("payments")
 
+      payments_count =
+        if payments_exists?, do: count_in("payments", "conversation_id", conv_ids), else: 0
+
+      # Refuse to wipe a customer that has upstream financial records. Money
+      # rows shouldn't disappear because someone clicked "reset". Caller
+      # should refund through the proper flow first (or escalate for a manual
+      # scrub) and then retry.
+      if payments_count > 0 do
+        Repo.rollback({:has_payments, payments_count})
+      end
+
       counts = %{
         level: level,
         customer_id: customer_id,
@@ -60,8 +79,7 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
         messages: count_in("messages", "conversation_id", conv_ids),
         outbound_messages: count_in("outbound_messages", "conversation_id", conv_ids),
         pension_cases: count_in("pension_cases", "conversation_id", conv_ids),
-        payments:
-          if(payments_exists?, do: count_in("payments", "conversation_id", conv_ids), else: 0),
+        payments: 0,
         stripe_payments_unlinked: count_stripe_payments_for(cons_ids)
       }
 
@@ -72,12 +90,6 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
       delete_in("pension_cases", "conversation_id", conv_ids)
       delete_in("messages", "conversation_id", conv_ids)
       delete_in("outbound_messages", "conversation_id", conv_ids)
-
-      # `payments` is upstream-owned and only exists in some environments
-      # (prod has it, dev branch doesn't). Skip when absent.
-      if payments_exists? do
-        delete_in("payments", "conversation_id", conv_ids)
-      end
 
       Repo.active_repo().query!(
         "DELETE FROM conversations WHERE customer_id = $1",

@@ -51,6 +51,14 @@ defmodule LedgrWeb.Domains.AumentaMiPension.CustomerController do
             )
             |> redirect(to: dp(conn, "/customers/#{id}"))
 
+          {:error, {:has_payments, n}} ->
+            conn
+            |> put_flash(
+              :error,
+              "Reinicio bloqueado: este cliente tiene #{n} pago(s) registrado(s) en el bot. Reembolsa primero desde la sección Pagos, o pídele a ingeniería que limpie manualmente. No borramos registros financieros automáticamente."
+            )
+            |> redirect(to: dp(conn, "/customers/#{id}"))
+
           {:error, reason} ->
             conn
             |> put_flash(:error, "Error al reiniciar: #{inspect(reason)}")
