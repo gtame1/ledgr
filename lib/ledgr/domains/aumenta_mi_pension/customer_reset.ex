@@ -49,6 +49,8 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
       conv_ids = lookup_conversation_ids(customer_id)
       cons_ids = lookup_consultation_ids(conv_ids)
 
+      payments_exists? = table_exists?("payments")
+
       counts = %{
         level: level,
         customer_id: customer_id,
@@ -58,6 +60,8 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
         messages: count_in("messages", "conversation_id", conv_ids),
         outbound_messages: count_in("outbound_messages", "conversation_id", conv_ids),
         pension_cases: count_in("pension_cases", "conversation_id", conv_ids),
+        payments:
+          if(payments_exists?, do: count_in("payments", "conversation_id", conv_ids), else: 0),
         stripe_payments_unlinked: count_stripe_payments_for(cons_ids)
       }
 
@@ -68,6 +72,12 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
       delete_in("pension_cases", "conversation_id", conv_ids)
       delete_in("messages", "conversation_id", conv_ids)
       delete_in("outbound_messages", "conversation_id", conv_ids)
+
+      # `payments` is upstream-owned and only exists in some environments
+      # (prod has it, dev branch doesn't). Skip when absent.
+      if payments_exists? do
+        delete_in("payments", "conversation_id", conv_ids)
+      end
 
       Repo.active_repo().query!(
         "DELETE FROM conversations WHERE customer_id = $1",
@@ -110,6 +120,16 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
       )
 
     Enum.map(rows, fn [id] -> id end)
+  end
+
+  defp table_exists?(table) do
+    {:ok, %{num_rows: n}} =
+      Repo.active_repo().query(
+        "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1",
+        [table]
+      )
+
+    n > 0
   end
 
   defp count_in(_table, _col, []), do: 0

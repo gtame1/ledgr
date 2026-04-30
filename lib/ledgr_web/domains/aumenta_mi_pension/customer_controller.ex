@@ -47,7 +47,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.CustomerController do
             conn
             |> put_flash(
               :info,
-              "Cliente reiniciado (#{level_label}). Conversaciones: #{c.conversations}, mensajes: #{c.messages}, consultas: #{c.consultations}, pension cases: #{c.pension_cases}, outbound: #{c.outbound_messages}, llamadas: #{c.consultation_calls}, pagos desvinculados: #{c.stripe_payments_unlinked}."
+              "Cliente reiniciado (#{level_label}). Conversaciones: #{c.conversations}, mensajes: #{c.messages}, consultas: #{c.consultations}, pension cases: #{c.pension_cases}, outbound: #{c.outbound_messages}, llamadas: #{c.consultation_calls}, payments (upstream): #{c.payments}, pagos Ledgr desvinculados: #{c.stripe_payments_unlinked}."
             )
             |> redirect(to: dp(conn, "/customers/#{id}"))
 
