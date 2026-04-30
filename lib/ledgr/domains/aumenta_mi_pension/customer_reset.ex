@@ -17,19 +17,25 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
           fields (full_name, CURP, NSS, weeks contributed, terms acceptance,
           etc.). The bot will re-ask everything from scratch on next message.
 
-  ## Payment records — never auto-deleted
+  ## Payment records — preserved
 
-  If the customer has any rows in the upstream `payments` table (real Stripe
-  transactions tracked by the bot service), the reset is **refused** with
-  `{:error, {:has_payments, n}}`. We don't auto-delete financial records:
-  the money already moved at Stripe, and silent local deletion would break
-  reconciliation. Callers should refund through the proper flow (which
-  leaves the row but flips `status='refunded'`) and then escalate for a
-  manual scrub if a true wipe is required.
+  The upstream `payments` table holds real Stripe transactions; its
+  `conversation_id` is NOT NULL and the FK has no CASCADE. We **never
+  delete payment rows**. To keep them, we also have to keep the
+  conversation rows they reference — and by extension everything chained
+  off those conversations (messages, consultations, pension_cases on the
+  *paid* conversations).
 
-  Local `stripe_payments` rows (Ledgr-owned) have their `consultation_id`
-  pointer NULLed during reset — they remain in the Payments report but
-  become unlinked from the now-deleted consultations.
+  Reset therefore deletes only **non-paid conversations** and their
+  dependents. The customer ends up with a slim history of just their
+  paid conversations preserved as audit trail; everything else is wiped.
+  On the bot's next message the customer is recognized but unpaid
+  conversations are gone.
+
+  Local `stripe_payments` rows (Ledgr-owned) tied to deleted consultations
+  have their `consultation_id` pointer NULLed — they remain in the
+  Payments report but become unlinked. Stripe payments tied to *kept*
+  consultations are untouched.
 
   ## Phase 1 caveat
 
@@ -54,47 +60,47 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
   """
   def reset(customer_id, level) when is_binary(customer_id) and level in @valid_levels do
     Repo.transaction(fn ->
-      conv_ids = lookup_conversation_ids(customer_id)
-      cons_ids = lookup_consultation_ids(conv_ids)
-
+      all_conv_ids = lookup_conversation_ids(customer_id)
       payments_exists? = table_exists?("payments")
 
-      payments_count =
-        if payments_exists?, do: count_in("payments", "conversation_id", conv_ids), else: 0
+      paid_conv_ids =
+        if payments_exists?,
+          do: lookup_paid_conversation_ids(all_conv_ids),
+          else: []
 
-      # Refuse to wipe a customer that has upstream financial records. Money
-      # rows shouldn't disappear because someone clicked "reset". Caller
-      # should refund through the proper flow first (or escalate for a manual
-      # scrub) and then retry.
-      if payments_count > 0 do
-        Repo.rollback({:has_payments, payments_count})
-      end
+      # Conversations we may safely delete: those with no payment row.
+      wipe_conv_ids = all_conv_ids -- paid_conv_ids
+
+      # Consultations to delete: only those tied to wiped conversations.
+      cons_ids = lookup_consultation_ids(wipe_conv_ids)
 
       counts = %{
         level: level,
         customer_id: customer_id,
-        conversations: length(conv_ids),
+        conversations_total: length(all_conv_ids),
+        conversations_kept_paid: length(paid_conv_ids),
+        conversations_deleted: length(wipe_conv_ids),
         consultations: length(cons_ids),
         consultation_calls: count_in("consultation_calls", "consultation_id", cons_ids),
-        messages: count_in("messages", "conversation_id", conv_ids),
-        outbound_messages: count_in("outbound_messages", "conversation_id", conv_ids),
-        pension_cases: count_in("pension_cases", "conversation_id", conv_ids),
-        payments: 0,
+        messages: count_in("messages", "conversation_id", wipe_conv_ids),
+        outbound_messages: count_in("outbound_messages", "conversation_id", wipe_conv_ids),
+        pension_cases: count_in("pension_cases", "conversation_id", wipe_conv_ids),
+        payments_preserved:
+          if(payments_exists?,
+            do: count_in("payments", "conversation_id", paid_conv_ids),
+            else: 0
+          ),
         stripe_payments_unlinked: count_stripe_payments_for(cons_ids)
       }
 
       # Order matters: children before parents (no CASCADE on FKs).
       unlink_stripe_payments(cons_ids)
       delete_in("consultation_calls", "consultation_id", cons_ids)
-      delete_in("consultations", "conversation_id", conv_ids)
-      delete_in("pension_cases", "conversation_id", conv_ids)
-      delete_in("messages", "conversation_id", conv_ids)
-      delete_in("outbound_messages", "conversation_id", conv_ids)
-
-      Repo.active_repo().query!(
-        "DELETE FROM conversations WHERE customer_id = $1",
-        [customer_id]
-      )
+      delete_in("consultations", "id", cons_ids)
+      delete_in("pension_cases", "conversation_id", wipe_conv_ids)
+      delete_in("messages", "conversation_id", wipe_conv_ids)
+      delete_in("outbound_messages", "conversation_id", wipe_conv_ids)
+      delete_in("conversations", "id", wipe_conv_ids)
 
       if level == :onboarding do
         nullify_onboarding(customer_id)
@@ -128,6 +134,18 @@ defmodule Ledgr.Domains.AumentaMiPension.CustomerReset do
     {:ok, %{rows: rows}} =
       Repo.active_repo().query(
         "SELECT id FROM consultations WHERE conversation_id = ANY($1)",
+        [conv_ids]
+      )
+
+    Enum.map(rows, fn [id] -> id end)
+  end
+
+  defp lookup_paid_conversation_ids([]), do: []
+
+  defp lookup_paid_conversation_ids(conv_ids) do
+    {:ok, %{rows: rows}} =
+      Repo.active_repo().query(
+        "SELECT DISTINCT conversation_id FROM payments WHERE conversation_id = ANY($1)",
         [conv_ids]
       )
 

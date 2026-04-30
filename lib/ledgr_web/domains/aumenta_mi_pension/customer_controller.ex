@@ -44,18 +44,17 @@ defmodule LedgrWeb.Domains.AumentaMiPension.CustomerController do
                 :onboarding -> "onboarding completo"
               end
 
+            paid_note =
+              if c.conversations_kept_paid > 0 do
+                " #{c.conversations_kept_paid} conversación(es) con pagos preservada(s) (#{c.payments_preserved} pago(s))."
+              else
+                ""
+              end
+
             conn
             |> put_flash(
               :info,
-              "Cliente reiniciado (#{level_label}). Conversaciones: #{c.conversations}, mensajes: #{c.messages}, consultas: #{c.consultations}, pension cases: #{c.pension_cases}, outbound: #{c.outbound_messages}, llamadas: #{c.consultation_calls}, payments (upstream): #{c.payments}, pagos Ledgr desvinculados: #{c.stripe_payments_unlinked}."
-            )
-            |> redirect(to: dp(conn, "/customers/#{id}"))
-
-          {:error, {:has_payments, n}} ->
-            conn
-            |> put_flash(
-              :error,
-              "Reinicio bloqueado: este cliente tiene #{n} pago(s) registrado(s) en el bot. Reembolsa primero desde la sección Pagos, o pídele a ingeniería que limpie manualmente. No borramos registros financieros automáticamente."
+              "Cliente reiniciado (#{level_label}). Conversaciones eliminadas: #{c.conversations_deleted}/#{c.conversations_total}, mensajes: #{c.messages}, consultas: #{c.consultations}, pension cases: #{c.pension_cases}, outbound: #{c.outbound_messages}, llamadas: #{c.consultation_calls}, pagos Ledgr desvinculados: #{c.stripe_payments_unlinked}.#{paid_note}"
             )
             |> redirect(to: dp(conn, "/customers/#{id}"))
 

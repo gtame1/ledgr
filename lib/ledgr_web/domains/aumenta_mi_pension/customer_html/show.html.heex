@@ -276,9 +276,11 @@ end %>
       Reiniciar cliente
     </h2>
     <p class="text-sm mb-3" style="color: var(--text-muted);">
-      Borra el historial del bot para este cliente. La fila del cliente y los
-      pagos en Ledgr se conservan; los pagos quedan desvinculados de las
-      consultas eliminadas. <strong>Esta acción no se puede deshacer.</strong>
+      Borra el historial del bot para este cliente. <strong>Las conversaciones
+      con pagos se preservan</strong> (junto con sus mensajes y consultas, ya
+      que están vinculadas a registros financieros). Las demás conversaciones,
+      consultas, mensajes y pension cases se eliminan. La fila del cliente
+      permanece. <strong>Esta acción no se puede deshacer.</strong>
     </p>
 
     <form
