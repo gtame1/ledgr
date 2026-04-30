@@ -480,9 +480,10 @@ defmodule LedgrWeb.Router do
 
     # Specialties (admin-managed list)
     resources "/specialties", Domains.HelloDoctor.SpecialtyController,
-      only: [:index, :create, :delete]
+      only: [:index, :create, :delete, :update]
 
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
+    post "/specialties/import-prescrypto", Domains.HelloDoctor.SpecialtyController, :import_prescrypto
 
     # Expenses (shared controller, domain-scoped)
     resources "/expenses", ExpenseController, except: [:show]
@@ -536,6 +537,7 @@ defmodule LedgrWeb.Router do
     post "/agents/:id/toggle-status", Domains.AumentaMiPension.AgentController, :toggle_status
 
     resources "/customers", Domains.AumentaMiPension.CustomerController, only: [:index, :show]
+    post "/customers/:id/reset", Domains.AumentaMiPension.CustomerController, :reset
 
     resources "/pension-cases", Domains.AumentaMiPension.PensionCaseController,
       only: [:index, :show]
