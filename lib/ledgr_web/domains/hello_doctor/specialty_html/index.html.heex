@@ -2,99 +2,104 @@
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Medical Specialties</h1>
-      <p class="text-sm mt-1" style="color: var(--text-muted);">Manage the specialties available when adding a doctor.</p>
+      <p class="text-sm mt-1" style="color: var(--text-muted);">
+        Synced from Prescrypto on each page load. Toggle active/inactive to control
+        which specialties appear when adding doctors.
+      </p>
     </div>
+    <span class="text-sm font-medium px-3 py-1.5 rounded-full"
+      style="background: rgba(2,186,151,0.1); color: var(--accent);">
+      {length(@specialties)} specialties
+    </span>
   </div>
 
   <%= if Phoenix.Flash.get(@flash, :info) do %>
-    <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium" style="background: #d1fae5; color: #065f46;">
-      <%= Phoenix.Flash.get(@flash, :info) %>
+    <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium"
+      style="background: #d1fae5; color: #065f46;">
+      {Phoenix.Flash.get(@flash, :info)}
     </div>
   <% end %>
   <%= if Phoenix.Flash.get(@flash, :error) do %>
-    <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium" style="background: #fee2e2; color: #991b1b;">
-      <%= Phoenix.Flash.get(@flash, :error) %>
+    <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium"
+      style="background: #fee2e2; color: #991b1b;">
+      {Phoenix.Flash.get(@flash, :error)}
     </div>
   <% end %>
 
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-    <%!-- Add new specialty form --%>
-    <div class="hd-card p-5">
-      <h2 class="text-sm font-semibold mb-4" style="color: var(--text-main);">Add Specialty</h2>
-      <.form for={@changeset} action={dp(@domain_path_prefix, "/specialties")} method="post" class="space-y-3">
-        <div>
-          <input
-            type="text"
-            name="specialty[name]"
-            value={@changeset.changes[:name] || ""}
-            placeholder="e.g. Alergología"
-            required
-            class="w-full rounded-lg border px-3 py-2 text-sm"
-            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
-          <%= if @changeset.action && @changeset.errors[:name] do %>
-            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:name], 0) %></p>
-          <% end %>
-        </div>
-        <button type="submit" class="hd-btn-primary w-full">Add Specialty</button>
-      </.form>
+  <div class="hd-card overflow-hidden">
+    <%!-- Column headers --%>
+    <div class="grid grid-cols-12 px-5 py-2 border-b text-xs font-semibold uppercase"
+      style="border-color: var(--border-subtle); color: var(--text-muted);">
+      <div class="col-span-1">Status</div>
+      <div class="col-span-7">Name</div>
+      <div class="col-span-2 text-center">Prescrypto ID</div>
+      <div class="col-span-2"></div>
     </div>
 
-    <%!-- Specialties list --%>
-    <div class="lg:col-span-2 hd-card overflow-hidden">
-      <div class="px-5 py-4 border-b" style="border-color: var(--border-subtle);">
-        <span class="text-sm font-semibold" style="color: var(--text-main);">
-          <%= length(@specialties) %> specialties
-        </span>
-      </div>
+    <ul class="divide-y" style="divide-color: var(--border-subtle);">
+      <%= for s <- @specialties do %>
+        <li class="grid grid-cols-12 items-center px-5 py-2.5 gap-2">
+          <%!-- Status badge --%>
+          <div class="col-span-1">
+            <%= if s.is_active do %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style="background: #d1fae5; color: #065f46;">
+                Active
+              </span>
+            <% else %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style="background: #f3f4f6; color: #6b7280;">
+                Inactive
+              </span>
+            <% end %>
+          </div>
 
-      <ul class="divide-y" style="divide-color: var(--border-subtle);">
-        <%= for s <- @specialties do %>
-          <li class="flex items-center justify-between px-5 py-3">
-            <div class="flex items-center gap-3">
-              <%= if s.is_active do %>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                  style="background: #d1fae5; color: #065f46;">Active</span>
-              <% else %>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                  style="background: #f3f4f6; color: #6b7280;">Inactive</span>
-              <% end %>
-              <span class="text-sm font-medium" style="color: var(--text-main);"><%= s.name %></span>
-            </div>
+          <%!-- Name --%>
+          <div class="col-span-7">
+            <span class="text-sm font-medium" style="color: var(--text-main);">{s.name}</span>
+          </div>
 
-            <div class="flex items-center gap-2">
-              <%!-- Toggle active/inactive --%>
-              <.form for={%{}} action={dp(@domain_path_prefix, "/specialties/#{s.id}/toggle")} method="post">
-                <input type="hidden" name="_method" value="patch" />
-                <button type="submit"
-                  class="text-xs px-2.5 py-1 rounded border"
-                  style="border-color: var(--border-subtle); color: var(--text-muted); background: transparent;"
-                  title={if s.is_active, do: "Deactivate", else: "Activate"}>
-                  <%= if s.is_active, do: "Deactivate", else: "Activate" %>
-                </button>
-              </.form>
+          <%!-- Prescrypto ID --%>
+          <div class="col-span-2 text-center">
+            <%= if s.prescrypto_specialty_id do %>
+              <span class="text-xs font-mono px-2 py-0.5 rounded"
+                style="background: rgba(2,186,151,0.1); color: var(--accent);">
+                #{s.prescrypto_specialty_id}
+              </span>
+            <% else %>
+              <span class="text-xs" style="color: var(--text-muted);">—</span>
+            <% end %>
+          </div>
 
-              <%!-- Delete --%>
-              <.form for={%{}} action={dp(@domain_path_prefix, "/specialties/#{s.id}")} method="post"
-                onsubmit={"return confirm('Delete #{s.name}? This cannot be undone.')"}>
-                <input type="hidden" name="_method" value="delete" />
-                <button type="submit"
-                  class="text-xs px-2.5 py-1 rounded border"
-                  style="border-color: #fecaca; color: #dc2626; background: transparent;">
-                  Delete
-                </button>
-              </.form>
-            </div>
-          </li>
-        <% end %>
+          <%!-- Actions --%>
+          <div class="col-span-2 flex items-center justify-end gap-2">
+            <.form for={%{}} action={dp(@domain_path_prefix, "/specialties/#{s.id}/toggle")} method="post">
+              <input type="hidden" name="_method" value="patch" />
+              <button type="submit"
+                class="text-xs px-2.5 py-1 rounded border"
+                style="border-color: var(--border-subtle); color: var(--text-muted); background: transparent;">
+                {if s.is_active, do: "Deactivate", else: "Activate"}
+              </button>
+            </.form>
 
-        <%= if @specialties == [] do %>
-          <li class="px-5 py-8 text-center text-sm" style="color: var(--text-muted);">
-            No specialties yet. Add one using the form.
-          </li>
-        <% end %>
-      </ul>
-    </div>
+            <.form for={%{}} action={dp(@domain_path_prefix, "/specialties/#{s.id}")} method="post"
+              onsubmit={"return confirm('Remove #{s.name}? It will return on next page load if it exists in Prescrypto.')"}>
+              <input type="hidden" name="_method" value="delete" />
+              <button type="submit"
+                class="text-xs px-2.5 py-1 rounded border"
+                style="border-color: #fecaca; color: #dc2626; background: transparent;">
+                Remove
+              </button>
+            </.form>
+          </div>
+        </li>
+      <% end %>
 
+      <%= if @specialties == [] do %>
+        <li class="px-5 py-10 text-center text-sm" style="color: var(--text-muted);">
+          No specialties loaded yet. This page will sync from Prescrypto automatically.
+        </li>
+      <% end %>
+    </ul>
   </div>
 </div>

@@ -26,6 +26,12 @@ defmodule Ledgr.Domains.HelloDoctor.Specialties do
 
   def delete_specialty(%Specialty{} = specialty), do: Repo.delete(specialty)
 
+  def update_specialty(%Specialty{} = specialty, attrs) do
+    specialty
+    |> Specialty.changeset(attrs)
+    |> Repo.update()
+  end
+
   def toggle_specialty(%Specialty{} = specialty) do
     specialty
     |> Specialty.changeset(%{is_active: !specialty.is_active})
@@ -41,4 +47,47 @@ defmodule Ledgr.Domains.HelloDoctor.Specialties do
     list_active_specialties()
     |> Enum.map(&{&1.name, &1.name})
   end
+
+  @doc """
+  Replaces the entire specialties table with the Prescrypto catalog.
+  Preserves each specialty's is_active flag if it was previously set.
+  Returns the number of rows inserted.
+  """
+  def replace_from_prescrypto(prescrypto_specialties) when is_list(prescrypto_specialties) do
+    # Snapshot existing is_active state keyed by prescrypto_specialty_id
+    active_states =
+      Specialty
+      |> select([s], {s.prescrypto_specialty_id, s.is_active})
+      |> Repo.all()
+      |> Map.new()
+
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    rows =
+      Enum.map(prescrypto_specialties, fn %{id: id, name: name} ->
+        %{
+          name: name,
+          prescrypto_specialty_id: id,
+          is_active: Map.get(active_states, id, true),
+          created_at: now
+        }
+      end)
+
+    Repo.delete_all(Specialty)
+    {count, _} = Repo.insert_all(Specialty, rows)
+    count
+  end
+
+  @doc """
+  Returns the Prescrypto specialty ID for the given specialty name, or nil if
+  the specialty doesn't exist or has no Prescrypto ID mapped yet.
+  """
+  def prescrypto_specialty_id_for(name) when is_binary(name) do
+    Specialty
+    |> where([s], s.name == ^name)
+    |> select([s], s.prescrypto_specialty_id)
+    |> Repo.one()
+  end
+
+  def prescrypto_specialty_id_for(_), do: nil
 end

@@ -42,14 +42,15 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <%!-- Info Card --%>
-    <div class="lg:col-span-2">
-      <div class="hd-card p-5">
-        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <%!-- Left column: Info + Prescrypto --%>
+    <div class="lg:col-span-2 flex flex-col gap-6">
+      <%!-- Info Card --%>
+      <div class="hd-card p-6">
+        <h2 class="text-lg font-semibold mb-5" style="color: var(--text-main);">
           Doctor Information
         </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
               Phone
@@ -122,13 +123,11 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <%!-- Prescrypto Card --%>
-    <div class="lg:col-span-2">
-      <div class="hd-card p-5 mt-6">
-        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Prescrypto</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <%!-- Prescrypto Card --%>
+      <div class="hd-card p-6">
+        <h2 class="text-lg font-semibold mb-5" style="color: var(--text-main);">Prescrypto</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
               Medic ID
@@ -163,7 +162,7 @@
           </div>
         </div>
         <%= if is_nil(d.prescrypto_medic_id) && !is_nil(d.email) && !is_nil(d.cedula_profesional) do %>
-          <div class="mt-4">
+          <div class="mt-5">
             <.link
               href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
               method="post"
@@ -175,11 +174,9 @@
         <% end %>
       </div>
     </div>
-  </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-0">
-    <%!-- Recent Consultations --%>
-    <div>
+    <%!-- Right sidebar: Recent Consultations --%>
+    <div class="lg:col-span-1">
       <div class="hd-card">
         <div class="p-4 border-b" style="border-color: var(--border-subtle);">
           <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">

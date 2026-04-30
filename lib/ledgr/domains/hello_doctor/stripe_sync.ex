@@ -50,11 +50,14 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             |> Enum.filter(&(&1.payment_status in ["paid", "unpaid"]))
             |> Enum.map(&upsert_payment(&1, api_key))
 
-          new_count      = Enum.count(results, &match?({:ok, %StripePayment{}}, &1))
+          new_count = Enum.count(results, &match?({:ok, %StripePayment{}}, &1))
           existing_count = Enum.count(results, &match?({:ok, :already_exists}, &1))
-          skipped_count  = Enum.count(results, &match?({:ok, :skipped}, &1))
+          skipped_count = Enum.count(results, &match?({:ok, :skipped}, &1))
 
-          Logger.info("[HelloDoctor StripeSync] Synced #{new_count} new, #{existing_count} already existed, #{skipped_count} skipped (non-HD product). Total sessions fetched: #{length(sessions)}")
+          Logger.info(
+            "[HelloDoctor StripeSync] Synced #{new_count} new, #{existing_count} already existed, #{skipped_count} skipped (non-HD product). Total sessions fetched: #{length(sessions)}"
+          )
+
           {:ok, new_count, existing_count}
 
         {:error, err} ->
@@ -96,13 +99,13 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             # Post the refund reversal instead
             case StripeRefunds.create_refund_journal_entry(payment) do
               {:ok, _} -> %{acc | posted: acc.posted + 1}
-              _        -> %{acc | errors: acc.errors + 1}
+              _ -> %{acc | errors: acc.errors + 1}
             end
 
           true ->
             case create_payment_journal_entry(payment) do
               {:ok, _} -> %{acc | posted: acc.posted + 1}
-              _        -> %{acc | errors: acc.errors + 1}
+              _ -> %{acc | errors: acc.errors + 1}
             end
         end
       end)
@@ -119,8 +122,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
 
     with pi_id when not is_nil(pi_id) <- payment.stripe_payment_intent_id,
-         {:ok, pi} <- Stripe.PaymentIntent.retrieve(pi_id, %{expand: ["latest_charge"]}, api_key: api_key) do
+         {:ok, pi} <-
+           Stripe.PaymentIntent.retrieve(pi_id, %{expand: ["latest_charge"]}, api_key: api_key) do
       charge = pi.latest_charge
+
       stripe_status =
         cond do
           charge && Map.get(charge, :refunded) == true -> "refunded"
@@ -141,7 +146,11 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
 
       if stripe_status != payment.status || product_name do
         payment |> StripePayment.changeset(updates) |> Repo.update()
-        Logger.info("[HelloDoctor StripeSync] Payment #{payment.id} updated: status=#{stripe_status}, product=#{product_name || "unchanged"}")
+
+        Logger.info(
+          "[HelloDoctor StripeSync] Payment #{payment.id} updated: status=#{stripe_status}, product=#{product_name || "unchanged"}"
+        )
+
         {:ok, :updated, stripe_status}
       else
         {:ok, :unchanged}
@@ -167,7 +176,9 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         # New payment — check product ID before inserting
         {product_name, line_item_product_ids} = fetch_line_item_info(session, api_key)
 
-        Logger.debug("[HelloDoctor StripeSync] Session #{session.id} product_ids=#{inspect(line_item_product_ids)}")
+        Logger.debug(
+          "[HelloDoctor StripeSync] Session #{session.id} product_ids=#{inspect(line_item_product_ids)}"
+        )
 
         if hellodoctor_session?(line_item_product_ids) do
           amount_pesos = (session.amount_total || 0) / 100.0
@@ -175,12 +186,15 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           customer_name = session.customer_details && session.customer_details.name
           # Bot sends conversation_id in metadata — look up the consultation via conversation
           metadata = session.metadata || %{}
+
           consultation_id =
             cond do
               metadata["consultation_id"] ->
                 metadata["consultation_id"]
+
               metadata["conversation_id"] ->
                 find_consultation_by_conversation(metadata["conversation_id"])
+
               true ->
                 nil
             end
@@ -200,7 +214,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             consultation_id: consultation_id,
             stripe_fee: fee_pesos,
             product_name: product_name,
-            paid_at: DateTime.from_unix!(session.created) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
+            paid_at:
+              DateTime.from_unix!(session.created)
+              |> DateTime.to_naive()
+              |> NaiveDateTime.truncate(:second)
           }
 
           case %StripePayment{}
@@ -220,11 +237,17 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
               {:ok, payment}
 
             {:error, changeset} ->
-              Logger.warning("[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}")
+              Logger.warning(
+                "[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}"
+              )
+
               {:error, changeset}
           end
         else
-          Logger.warning("[HelloDoctor StripeSync] Skipping session #{session.id} — product_ids=#{inspect(line_item_product_ids)} did not match #{inspect(@hellodoctor_product_ids)}")
+          Logger.warning(
+            "[HelloDoctor StripeSync] Skipping session #{session.id} — product_ids=#{inspect(line_item_product_ids)} did not match #{inspect(@hellodoctor_product_ids)}"
+          )
+
           {:ok, :skipped}
         end
 
@@ -236,7 +259,9 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
 
   defp link_to_consultation(consultation_id, amount_pesos, session_id) do
     case Consultations.get_consultation(consultation_id) do
-      nil -> :ok
+      nil ->
+        :ok
+
       consultation ->
         Consultations.record_stripe_payment(consultation, %{
           payment_amount: amount_pesos,
@@ -256,15 +281,24 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         date: payment.paid_at |> NaiveDateTime.to_date(),
         entry_type: "consultation_payment",
         reference: "Stripe #{payment.stripe_session_id}",
-        description: "Payment from #{payment.customer_name || payment.customer_email || "patient"}",
+        description:
+          "Payment from #{payment.customer_name || payment.customer_email || "patient"}",
         payee: payment.customer_name || payment.customer_email
       }
 
       lines = [
-        %{account_id: stripe_receivable.id, debit_cents: amount_cents, credit_cents: 0,
-          description: "Stripe payment received"},
-        %{account_id: consultation_revenue.id, debit_cents: 0, credit_cents: amount_cents,
-          description: "Consultation revenue"}
+        %{
+          account_id: stripe_receivable.id,
+          debit_cents: amount_cents,
+          credit_cents: 0,
+          description: "Stripe payment received"
+        },
+        %{
+          account_id: consultation_revenue.id,
+          debit_cents: 0,
+          credit_cents: amount_cents,
+          description: "Consultation revenue"
+        }
       ]
 
       # Add fee lines if we have the fee
@@ -273,12 +307,21 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           fee_cents = round(payment.stripe_fee * 100)
           processing = Accounting.get_account_by_code!("6000")
 
-          lines ++ [
-            %{account_id: processing.id, debit_cents: fee_cents, credit_cents: 0,
-              description: "Stripe processing fee"},
-            %{account_id: stripe_receivable.id, debit_cents: 0, credit_cents: fee_cents,
-              description: "Stripe fee deducted from receivable"}
-          ]
+          lines ++
+            [
+              %{
+                account_id: processing.id,
+                debit_cents: fee_cents,
+                credit_cents: 0,
+                description: "Stripe processing fee"
+              },
+              %{
+                account_id: stripe_receivable.id,
+                debit_cents: 0,
+                credit_cents: fee_cents,
+                description: "Stripe fee deducted from receivable"
+              }
+            ]
         else
           lines
         end
@@ -290,12 +333,21 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         if doctor_payable_account do
           doctor_payout_cents = round(amount_cents * 0.85)
 
-          lines ++ [
-            %{account_id: consultation_revenue.id, debit_cents: doctor_payout_cents, credit_cents: 0,
-              description: "Doctor's share (85%)"},
-            %{account_id: doctor_payable_account.id, debit_cents: 0, credit_cents: doctor_payout_cents,
-              description: "Owed to doctor"}
-          ]
+          lines ++
+            [
+              %{
+                account_id: consultation_revenue.id,
+                debit_cents: doctor_payout_cents,
+                credit_cents: 0,
+                description: "Doctor's share (85%)"
+              },
+              %{
+                account_id: doctor_payable_account.id,
+                debit_cents: 0,
+                credit_cents: doctor_payout_cents,
+                description: "Owed to doctor"
+              }
+            ]
         else
           lines
         end
@@ -303,7 +355,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
       Accounting.create_journal_entry_with_lines(entry_attrs, lines)
     rescue
       e ->
-        Logger.warning("[HelloDoctor StripeSync] Failed to create journal entry for payment #{payment.id}: #{inspect(e)}")
+        Logger.warning(
+          "[HelloDoctor StripeSync] Failed to create journal entry for payment #{payment.id}: #{inspect(e)}"
+        )
+
         :ok
     end
   end
@@ -312,7 +367,9 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   defp fetch_fee_and_status(session, api_key) do
     if session.payment_intent do
       try do
-        case Stripe.PaymentIntent.retrieve(session.payment_intent, %{expand: ["latest_charge"]}, api_key: api_key) do
+        case Stripe.PaymentIntent.retrieve(session.payment_intent, %{expand: ["latest_charge"]},
+               api_key: api_key
+             ) do
           {:ok, pi} ->
             charge = pi.latest_charge
 
@@ -326,9 +383,11 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
               end
 
             bt_id = charge && Map.get(charge, :balance_transaction)
+
             fee =
               if bt_id do
                 bt_id = if is_binary(bt_id), do: bt_id, else: bt_id.id
+
                 case Stripe.BalanceTransaction.retrieve(bt_id, %{}, api_key: api_key) do
                   {:ok, bt} -> bt.fee
                   _ -> nil
@@ -337,7 +396,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
 
             {fee, status}
 
-          _ -> {nil, "paid"}
+          _ ->
+            {nil, "paid"}
         end
       rescue
         _ -> {nil, "paid"}
@@ -352,7 +412,9 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   # the same API call.
   defp fetch_line_item_info(session, api_key) do
     try do
-      case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["line_items"]}, api_key: api_key) do
+      case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["line_items"]},
+             api_key: api_key
+           ) do
         {:ok, full_session} ->
           # stripity_stripe v3 returns structs — use direct field access, not get_in/2
           items =
@@ -376,10 +438,14 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             items
             |> Enum.map(fn item ->
               price = Map.get(item, :price) || (is_map(item) && Map.get(item, "price"))
+
               case price do
-                nil -> nil
+                nil ->
+                  nil
+
                 _ ->
                   product = Map.get(price, :product) || Map.get(price, "product")
+
                   case product do
                     pid when is_binary(pid) -> pid
                     %{id: id} -> id
@@ -389,16 +455,25 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             end)
             |> Enum.reject(&is_nil/1)
 
-          Logger.debug("[HelloDoctor StripeSync] Session #{session.id} items=#{length(items)} product_ids=#{inspect(product_ids)}")
+          Logger.debug(
+            "[HelloDoctor StripeSync] Session #{session.id} items=#{length(items)} product_ids=#{inspect(product_ids)}"
+          )
+
           {product_name, product_ids}
 
         {:error, err} ->
-          Logger.warning("[HelloDoctor StripeSync] Failed to retrieve line items for session #{session.id}: #{inspect(err)}")
+          Logger.warning(
+            "[HelloDoctor StripeSync] Failed to retrieve line items for session #{session.id}: #{inspect(err)}"
+          )
+
           {nil, []}
       end
     rescue
       e ->
-        Logger.warning("[HelloDoctor StripeSync] Exception fetching line items for #{session.id}: #{inspect(e)}")
+        Logger.warning(
+          "[HelloDoctor StripeSync] Exception fetching line items for #{session.id}: #{inspect(e)}"
+        )
+
         {nil, []}
     end
   end

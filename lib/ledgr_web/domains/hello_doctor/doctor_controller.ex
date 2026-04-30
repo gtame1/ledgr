@@ -80,6 +80,30 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
         |> put_flash(:error, "Prescrypto sync failed: #{format_prescrypto_errors(errors)}")
         |> redirect(to: dp(conn, "/doctors/#{id}"))
 
+      {:error, :missing_specialty_no} ->
+        conn
+        |> put_flash(
+          :error,
+          "Prescrypto sync failed: this doctor has no Cédula de Especialidad. Add it via Edit Doctor."
+        )
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+
+      {:error, :missing_cedula} ->
+        conn
+        |> put_flash(
+          :error,
+          "Prescrypto sync failed: this doctor has no Cédula Profesional. Add it via Edit Doctor."
+        )
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+
+      {:error, :missing_email} ->
+        conn
+        |> put_flash(
+          :error,
+          "Prescrypto sync failed: this doctor has no email address. Add it via Edit Doctor."
+        )
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+
       {:error, reason} ->
         conn
         |> put_flash(:error, "Prescrypto sync failed: #{inspect(reason)}")

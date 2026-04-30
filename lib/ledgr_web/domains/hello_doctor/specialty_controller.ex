@@ -2,25 +2,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.SpecialtyController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.Specialties
-  alias Ledgr.Domains.HelloDoctor.Specialties.Specialty
+  alias Ledgr.Domains.HelloDoctor.Prescrypto
 
   def index(conn, _params) do
-    specialties = Specialties.list_specialties()
-    changeset = Specialties.change_specialty(%Specialty{})
-    render(conn, :index, specialties: specialties, changeset: changeset)
-  end
-
-  def create(conn, %{"specialty" => params}) do
-    case Specialties.create_specialty(params) do
-      {:ok, _} ->
-        conn
-        |> put_flash(:info, "Specialty added.")
-        |> redirect(to: dp(conn, "/specialties"))
-
-      {:error, changeset} ->
-        specialties = Specialties.list_specialties()
-        render(conn, :index, specialties: specialties, changeset: changeset)
+    # Sync Prescrypto catalog into local DB on every admin page load.
+    # Falls back silently if the API is unreachable — we show whatever is cached.
+    case Prescrypto.fetch_all_specialties() do
+      {:ok, catalog} -> Specialties.replace_from_prescrypto(catalog)
+      _ -> :ok
     end
+
+    specialties = Specialties.list_specialties()
+    render(conn, :index, specialties: specialties)
   end
 
   def delete(conn, %{"id" => id}) do

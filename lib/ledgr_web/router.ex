@@ -478,12 +478,11 @@ defmodule LedgrWeb.Router do
     post "/payments/:id/link", Domains.HelloDoctor.PaymentController, :save_link
     post "/payments/:id/unlink", Domains.HelloDoctor.PaymentController, :unlink
 
-    # Specialties (admin-managed list)
+    # Specialties — synced from Prescrypto catalog on every page load
     resources "/specialties", Domains.HelloDoctor.SpecialtyController,
-      only: [:index, :create, :delete, :update]
+      only: [:index, :delete]
 
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
-    post "/specialties/import-prescrypto", Domains.HelloDoctor.SpecialtyController, :import_prescrypto
 
     # Expenses (shared controller, domain-scoped)
     resources "/expenses", ExpenseController, except: [:show]

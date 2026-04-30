@@ -167,10 +167,14 @@ if amp_webhook_secret = System.get_env("AUMENTA_MI_PENSION_STRIPE_WEBHOOK_SECRET
   config :ledgr, aumenta_mi_pension_stripe_webhook_secret: amp_webhook_secret
 end
 
-config :ledgr, :prescrypto,
-  base_url: System.get_env("PRESCRYPTO_BASE_URL", "https://integration.prescrypto.com/"),
-  token: System.get_env("PRESCRYPTO_TOKEN"),
-  enabled: System.get_env("PRESCRYPTO_TOKEN") != nil
+# Prescrypto digital prescriptions — only override when env var is explicitly set
+# (dev uses dev.secret.exs with the sandbox token; prod sets PRESCRYPTO_TOKEN)
+if token = System.get_env("PRESCRYPTO_TOKEN") do
+  config :ledgr, :prescrypto,
+    base_url: System.get_env("PRESCRYPTO_BASE_URL", "https://integration.prescrypto.com/"),
+    token: token,
+    enabled: true
+end
 
 if config_env() == :prod do
   secret_key_base =
