@@ -159,17 +159,21 @@ defmodule LedgrWeb.Domains.MrMunchMe.ApiController do
   defp serialize_stock_item(item) do
     %{
       id: item.id,
-      ingredient: item.ingredient && %{
-        id: item.ingredient.id,
-        code: item.ingredient.code,
-        name: item.ingredient.name,
-        unit: item.ingredient.unit
-      },
-      location: item.location && %{
-        id: item.location.id,
-        code: item.location.code,
-        name: item.location.name
-      },
+      ingredient:
+        item.ingredient &&
+          %{
+            id: item.ingredient.id,
+            code: item.ingredient.code,
+            name: item.ingredient.name,
+            unit: item.ingredient.unit
+          },
+      location:
+        item.location &&
+          %{
+            id: item.location.id,
+            code: item.location.code,
+            name: item.location.name
+          },
       quantity_on_hand: item.quantity_on_hand,
       avg_cost_per_unit_cents: item.avg_cost_per_unit_cents,
       value_cents: Inventory.inventory_item_value_cents(item.ingredient_id, item.location_id)

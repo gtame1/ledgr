@@ -15,15 +15,20 @@
 
   <%!-- Period Selector --%>
   <div style="margin-bottom: 1rem;">
-    <.period_selector action={dp(@domain_path_prefix, "/")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
+    <.period_selector
+      action={dp(@domain_path_prefix, "/")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
   </div>
 
   <%!-- Hero Revenue Card --%>
   <div class="mm-hero-card" style="margin-bottom: 1rem;">
     <div class="mm-hero-label">Revenue</div>
-    <div class="mm-hero-value"><%= format_currency(m.revenue_cents) %></div>
+    <div class="mm-hero-value">{format_currency(m.revenue_cents)}</div>
     <div class="mm-hero-sublabel">
-      <%= m.delivered_orders %> orders delivered · <%= m.total_units %> units
+      {m.delivered_orders} orders delivered · {m.total_units} units
     </div>
   </div>
 
@@ -31,125 +36,159 @@
   <div class="mm-stats-grid" style="margin-bottom: 1.25rem;">
     <div class="mm-stat-card">
       <div class="mm-stat-label">Orders Today</div>
-      <div class="mm-stat-value"><%= m.delivered_orders %></div>
+      <div class="mm-stat-value">{m.delivered_orders}</div>
       <div style="display: flex; gap: 0.25rem; margin-top: 0.35rem; flex-wrap: wrap;">
         <% new_count = Map.get(m.orders_by_status, "new_order", 0) %>
         <% prep_count = Map.get(m.orders_by_status, "in_prep", 0) %>
         <% ready_count = Map.get(m.orders_by_status, "ready", 0) %>
         <%= if new_count > 0 do %>
-          <span class="mm-status mm-status--new_order"><%= new_count %> new</span>
+          <span class="mm-status mm-status--new_order">{new_count} new</span>
         <% end %>
         <%= if prep_count > 0 do %>
-          <span class="mm-status mm-status--in_prep"><%= prep_count %> prep</span>
+          <span class="mm-status mm-status--in_prep">{prep_count} prep</span>
         <% end %>
         <%= if ready_count > 0 do %>
-          <span class="mm-status mm-status--ready"><%= ready_count %> ready</span>
+          <span class="mm-status mm-status--ready">{ready_count} ready</span>
         <% end %>
       </div>
     </div>
 
     <div class="mm-stat-card">
       <div class="mm-stat-label">Avg Order Value</div>
-      <div class="mm-stat-value" style="font-size: 1.25rem;"><%= format_currency(m.avg_order_value_cents) %></div>
+      <div class="mm-stat-value" style="font-size: 1.25rem;">
+        {format_currency(m.avg_order_value_cents)}
+      </div>
     </div>
 
     <div class="mm-stat-card">
       <div class="mm-stat-label">Inventory Value</div>
-      <div class="mm-stat-value" style="font-size: 1.25rem;"><%= format_currency(m.inventory_summary.total_value_cents || 0) %></div>
+      <div class="mm-stat-value" style="font-size: 1.25rem;">
+        {format_currency(m.inventory_summary.total_value_cents || 0)}
+      </div>
       <div style="font-size: 0.65rem; color: #9C8578; margin-top: 0.2rem;">
-        <%= m.inventory_summary.total_items || 0 %> items in stock
+        {m.inventory_summary.total_items || 0} items in stock
       </div>
     </div>
 
     <div class="mm-stat-card">
       <div class="mm-stat-label">Net Income</div>
-      <div class="mm-stat-value" style="font-size: 1.25rem;"><%= format_currency(m.pnl.net_income_cents || 0) %></div>
+      <div class="mm-stat-value" style="font-size: 1.25rem;">
+        {format_currency(m.pnl.net_income_cents || 0)}
+      </div>
     </div>
   </div>
 
   <%!-- Quick Actions --%>
   <div class="mm-quick-actions" style="margin-bottom: 1.5rem;">
-    <.link navigate={dp(@domain_path_prefix, "/orders/new")} class="mm-quick-pill mm-quick-pill--primary">
+    <.link
+      navigate={dp(@domain_path_prefix, "/orders/new")}
+      class="mm-quick-pill mm-quick-pill--primary"
+    >
       <span class="material-symbols-outlined" style="font-size: 1rem;">add</span> New Order
     </.link>
     <.link navigate={dp(@domain_path_prefix, "/inventory/purchases/new")} class="mm-quick-pill">
-      <span class="material-symbols-outlined" style="font-size: 1rem;">shopping_cart</span> New Purchase
+      <span class="material-symbols-outlined" style="font-size: 1rem;">shopping_cart</span>
+      New Purchase
     </.link>
     <.link navigate={dp(@domain_path_prefix, "/inventory/requirements")} class="mm-quick-pill">
-      <span class="material-symbols-outlined" style="font-size: 1rem;">checklist</span> Shopping List
+      <span class="material-symbols-outlined" style="font-size: 1rem;">checklist</span>
+      Shopping List
     </.link>
   </div>
 
   <%!-- Desktop: two-column layout for Sales + Inventory/Financial --%>
   <div class="mm-desktop-2col">
-  <div>
-  <%!-- Sales per Product --%>
-  <div class="mm-section-title">Sales by Product</div>
-  <%= if m.orders_by_product && m.orders_by_product != [] do %>
-    <%= for product <- m.orders_by_product do %>
-      <div class="mm-order-card" style="margin-bottom: 0.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <h3 style="font-weight: 600; font-size: 0.875rem; color: #3A2A1F;"><%= product.product_name %></h3>
-            <p style="font-size: 0.7rem; color: #9C8578; margin-top: 0.15rem;">
-              <%= product.unit_count %> units sold
-            </p>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.95rem; color: #3A2A1F;">
-              <%= format_currency(product.revenue_cents || 0) %>
+    <div>
+      <%!-- Sales per Product --%>
+      <div class="mm-section-title">Sales by Product</div>
+      <%= if m.orders_by_product && m.orders_by_product != [] do %>
+        <%= for product <- m.orders_by_product do %>
+          <div class="mm-order-card" style="margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-weight: 600; font-size: 0.875rem; color: #3A2A1F;">
+                  {product.product_name}
+                </h3>
+                <p style="font-size: 0.7rem; color: #9C8578; margin-top: 0.15rem;">
+                  {product.unit_count} units sold
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.95rem; color: #3A2A1F;">
+                  {format_currency(product.revenue_cents || 0)}
+                </div>
+                <% margin =
+                  if (product.revenue_cents || 0) > 0,
+                    do:
+                      Float.round(
+                        (product.gross_profit_cents || 0) / (product.revenue_cents || 1) * 100,
+                        1
+                      ),
+                    else: 0.0 %>
+                <div style="font-size: 0.65rem; color: #8ca681; font-weight: 600; margin-top: 0.1rem;">
+                  {margin}% margin
+                </div>
+              </div>
             </div>
-            <% margin = if (product.revenue_cents || 0) > 0, do: Float.round((product.gross_profit_cents || 0) / (product.revenue_cents || 1) * 100, 1), else: 0.0 %>
-            <div style="font-size: 0.65rem; color: #8ca681; font-weight: 600; margin-top: 0.1rem;">
-              <%= margin %>% margin
-            </div>
           </div>
-        </div>
-      </div>
-    <% end %>
-  <% else %>
-    <div class="mm-order-card" style="text-align: center; padding: 1.5rem; color: #9C8578;">
-      <span class="material-symbols-outlined" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">inventory_2</span>
-      No orders for this period.
-    </div>
-  <% end %>
-
-  </div> <%!-- close left column --%>
-  <div> <%!-- right column --%>
-  <%!-- Inventory by Type --%>
-  <% inv = m.inventory_summary %>
-  <%= if inv.by_type && inv.by_type != [] do %>
-    <div class="mm-section-title" style="margin-top: 1.25rem;">Inventory by Type</div>
-    <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: none;">
-      <%= for {type, data} <- Enum.sort(inv.by_type) do %>
-        <div class="mm-stat-card" style="min-width: 130px; flex-shrink: 0;">
-          <div class="mm-stat-label"><%= String.capitalize(to_string(type)) %></div>
-          <div class="mm-stat-value" style="font-size: 1.1rem;"><%= data.count %></div>
-          <div style="font-size: 0.65rem; color: #9C8578; margin-top: 0.15rem;">
-            <%= format_currency(data.total_value_cents) %>
-          </div>
+        <% end %>
+      <% else %>
+        <div class="mm-order-card" style="text-align: center; padding: 1.5rem; color: #9C8578;">
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;"
+          >
+            inventory_2
+          </span>
+          No orders for this period.
         </div>
       <% end %>
     </div>
-  <% end %>
+    <%!-- close left column --%>
+    <div>
+      <%!-- right column --%>
+      <%!-- Inventory by Type --%>
+      <% inv = m.inventory_summary %>
+      <%= if inv.by_type && inv.by_type != [] do %>
+        <div class="mm-section-title" style="margin-top: 1.25rem;">Inventory by Type</div>
+        <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: none;">
+          <%= for {type, data} <- Enum.sort(inv.by_type) do %>
+            <div class="mm-stat-card" style="min-width: 130px; flex-shrink: 0;">
+              <div class="mm-stat-label">{String.capitalize(to_string(type))}</div>
+              <div class="mm-stat-value" style="font-size: 1.1rem;">{data.count}</div>
+              <div style="font-size: 0.65rem; color: #9C8578; margin-top: 0.15rem;">
+                {format_currency(data.total_value_cents)}
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
 
-  <%!-- Financial Summary --%>
-  <div class="mm-section-title" style="margin-top: 1.25rem;">Financial Summary</div>
-  <div class="mm-order-card" style="margin-bottom: 2rem;">
-    <% pnl = m.pnl %>
-    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #F0E2D6;">
-      <span style="font-size: 0.85rem; color: #9C8578;">Revenue</span>
-      <span style="font-size: 0.85rem; font-weight: 600; color: #3A2A1F;"><%= format_currency(pnl.total_revenue_cents || 0) %></span>
+      <%!-- Financial Summary --%>
+      <div class="mm-section-title" style="margin-top: 1.25rem;">Financial Summary</div>
+      <div class="mm-order-card" style="margin-bottom: 2rem;">
+        <% pnl = m.pnl %>
+        <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #F0E2D6;">
+          <span style="font-size: 0.85rem; color: #9C8578;">Revenue</span>
+          <span style="font-size: 0.85rem; font-weight: 600; color: #3A2A1F;">
+            {format_currency(pnl.total_revenue_cents || 0)}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #F0E2D6;">
+          <span style="font-size: 0.85rem; color: #9C8578;">COGS</span>
+          <span style="font-size: 0.85rem; font-weight: 600; color: #3A2A1F;">
+            {format_currency(pnl.total_cogs_cents || 0)}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #3A2A1F;">Net Income</span>
+          <span style="font-family: 'Manrope', sans-serif; font-size: 1rem; font-weight: 800; color: #5C3D2E;">
+            {format_currency(pnl.net_income_cents || 0)}
+          </span>
+        </div>
+      </div>
     </div>
-    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #F0E2D6;">
-      <span style="font-size: 0.85rem; color: #9C8578;">COGS</span>
-      <span style="font-size: 0.85rem; font-weight: 600; color: #3A2A1F;"><%= format_currency(pnl.total_cogs_cents || 0) %></span>
-    </div>
-    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
-      <span style="font-size: 0.85rem; font-weight: 700; color: #3A2A1F;">Net Income</span>
-      <span style="font-family: 'Manrope', sans-serif; font-size: 1rem; font-weight: 800; color: #5C3D2E;"><%= format_currency(pnl.net_income_cents || 0) %></span>
-    </div>
+    <%!-- close right column --%>
   </div>
-  </div> <%!-- close right column --%>
-  </div> <%!-- close mm-desktop-2col --%>
+  <%!-- close mm-desktop-2col --%>
 </div>

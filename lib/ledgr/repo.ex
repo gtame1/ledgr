@@ -34,7 +34,14 @@ defmodule Ledgr.Repo do
 
   @doc "Returns all configured repo modules."
   def all_repos do
-    [Ledgr.Repos.MrMunchMe, Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame, Ledgr.Repos.HelloDoctor]
+    [
+      Ledgr.Repos.MrMunchMe,
+      Ledgr.Repos.Viaxe,
+      Ledgr.Repos.VolumeStudio,
+      Ledgr.Repos.LedgrHQ,
+      Ledgr.Repos.CasaTame,
+      Ledgr.Repos.HelloDoctor
+    ]
   end
 
   # ── Ecto.Repo delegations ──────────────────────────────────────────
@@ -43,8 +50,13 @@ defmodule Ledgr.Repo do
   def all(queryable, opts \\ []), do: active_repo().all(queryable, opts)
   def one(queryable, opts \\ []), do: active_repo().one(queryable, opts)
   def one!(queryable, opts \\ []), do: active_repo().one!(queryable, opts)
-  def aggregate(queryable, aggregate, opts \\ []), do: active_repo().aggregate(queryable, aggregate, opts)
-  def aggregate(queryable, aggregate, field, opts), do: active_repo().aggregate(queryable, aggregate, field, opts)
+
+  def aggregate(queryable, aggregate, opts \\ []),
+    do: active_repo().aggregate(queryable, aggregate, opts)
+
+  def aggregate(queryable, aggregate, field, opts),
+    do: active_repo().aggregate(queryable, aggregate, field, opts)
+
   def exists?(queryable, opts \\ []), do: active_repo().exists?(queryable, opts)
   def stream(queryable, opts \\ []), do: active_repo().stream(queryable, opts)
 
@@ -56,19 +68,31 @@ defmodule Ledgr.Repo do
 
   # Insert
   def insert(struct_or_changeset, opts \\ []), do: active_repo().insert(struct_or_changeset, opts)
-  def insert!(struct_or_changeset, opts \\ []), do: active_repo().insert!(struct_or_changeset, opts)
-  def insert_all(schema_or_source, entries, opts \\ []), do: active_repo().insert_all(schema_or_source, entries, opts)
+
+  def insert!(struct_or_changeset, opts \\ []),
+    do: active_repo().insert!(struct_or_changeset, opts)
+
+  def insert_all(schema_or_source, entries, opts \\ []),
+    do: active_repo().insert_all(schema_or_source, entries, opts)
+
   def insert_or_update(changeset, opts \\ []), do: active_repo().insert_or_update(changeset, opts)
-  def insert_or_update!(changeset, opts \\ []), do: active_repo().insert_or_update!(changeset, opts)
+
+  def insert_or_update!(changeset, opts \\ []),
+    do: active_repo().insert_or_update!(changeset, opts)
 
   # Update
   def update(changeset, opts \\ []), do: active_repo().update(changeset, opts)
   def update!(changeset, opts \\ []), do: active_repo().update!(changeset, opts)
-  def update_all(queryable, updates, opts \\ []), do: active_repo().update_all(queryable, updates, opts)
+
+  def update_all(queryable, updates, opts \\ []),
+    do: active_repo().update_all(queryable, updates, opts)
 
   # Delete
   def delete(struct_or_changeset, opts \\ []), do: active_repo().delete(struct_or_changeset, opts)
-  def delete!(struct_or_changeset, opts \\ []), do: active_repo().delete!(struct_or_changeset, opts)
+
+  def delete!(struct_or_changeset, opts \\ []),
+    do: active_repo().delete!(struct_or_changeset, opts)
+
   def delete_all(queryable, opts \\ []), do: active_repo().delete_all(queryable, opts)
 
   # Preload / Reload
@@ -79,6 +103,7 @@ defmodule Ledgr.Repo do
   def preload(struct_or_structs, preloads, opts \\ []) do
     active_repo().preload(struct_or_structs, preloads, Keyword.put_new(opts, :in_parallel, false))
   end
+
   def reload(struct_or_structs, opts \\ []), do: active_repo().reload(struct_or_structs, opts)
   def reload!(struct_or_structs, opts \\ []), do: active_repo().reload!(struct_or_structs, opts)
 

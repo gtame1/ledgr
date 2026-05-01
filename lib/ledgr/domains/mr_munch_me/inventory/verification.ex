@@ -45,7 +45,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
 
           [
             "Inventory mismatch: #{ingredient_name} @ #{location_name} - " <>
-            "System: #{item.quantity_on_hand}, Calculated: #{calculated_qty}"
+              "System: #{item.quantity_on_hand}, Calculated: #{calculated_qty}"
             | acc
           ]
         else
@@ -86,12 +86,13 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
     # Count orders currently in prep (have order_in_prep but no order_delivered)
     orders_in_prep = count_orders_in_prep()
 
-    {:ok, %{
-      wip_balance: wip_balance,
-      total_debits: debits,
-      total_credits: credits,
-      orders_in_prep: orders_in_prep
-    }}
+    {:ok,
+     %{
+       wip_balance: wip_balance,
+       total_debits: debits,
+       total_credits: credits,
+       orders_in_prep: orders_in_prep
+     }}
   end
 
   defp count_orders_in_prep do
@@ -146,13 +147,19 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
     issues =
       Enum.reduce(account_type_map, [], fn {account_code, inv_type, label}, acc ->
         case Repo.get_by(Account, code: account_code) do
-          nil -> acc  # Account doesn't exist, skip
+          # Account doesn't exist, skip
+          nil ->
+            acc
+
           account ->
             inventory_value = calculate_inventory_value_by_type(inv_type)
             account_balance = get_account_balance(account.id)
 
             if abs(inventory_value - account_balance) >= 100 do
-              ["#{label} mismatch: Items=#{format_currency(inventory_value)}, Account=#{format_currency(account_balance)}, Difference=#{format_currency(abs(inventory_value - account_balance))}" | acc]
+              [
+                "#{label} mismatch: Items=#{format_currency(inventory_value)}, Account=#{format_currency(account_balance)}, Difference=#{format_currency(abs(inventory_value - account_balance))}"
+                | acc
+              ]
             else
               acc
             end
@@ -248,6 +255,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
       total_count =
         from(je in JournalEntry, where: je.entry_type != "year_end_close", select: count(je.id))
         |> Repo.one()
+
       {:ok, %{checked_entries: total_count, unbalanced: 0}}
     else
       issues =
@@ -273,9 +281,10 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
         incorrect =
           from(jl in JournalLine,
             join: je in assoc(jl, :journal_entry),
-            where: je.entry_type == "withdrawal" and
-                   jl.account_id == ^owners_equity.id and
-                   jl.debit_cents > 0,
+            where:
+              je.entry_type == "withdrawal" and
+                jl.account_id == ^owners_equity.id and
+                jl.debit_cents > 0,
             select: %{
               journal_entry_id: je.id,
               date: je.date,
@@ -289,9 +298,11 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
           {:ok, %{checked: "all withdrawals", issues: 0}}
         else
           total_cents = Enum.reduce(incorrect, 0, fn w, acc -> acc + w.debit_cents end)
-          {:error, [
-            "Found #{length(incorrect)} withdrawal(s) incorrectly debiting Owner's Equity (3000) instead of Owner's Drawings (3100). Total: #{format_currency(total_cents)}"
-          ]}
+
+          {:error,
+           [
+             "Found #{length(incorrect)} withdrawal(s) incorrectly debiting Owner's Equity (3000) instead of Owner's Drawings (3100). Total: #{format_currency(total_cents)}"
+           ]}
         end
     end
   end
@@ -329,9 +340,9 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
         Enum.map(in_prep_dupes, fn {ref, count} ->
           "Duplicate order_in_prep: #{ref} has #{count} entries (expected 1)"
         end) ++
-        Enum.map(delivered_dupes, fn {ref, count} ->
-          "Duplicate order_delivered: #{ref} has #{count} entries (expected 1)"
-        end)
+          Enum.map(delivered_dupes, fn {ref, count} ->
+            "Duplicate order_delivered: #{ref} has #{count} entries (expected 1)"
+          end)
 
       {:error, issues}
     end
@@ -344,8 +355,16 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
   def verify_duplicate_movements do
     dupes =
       from(m in InventoryMovement,
-        group_by: [m.ingredient_id, m.from_location_id, m.to_location_id, m.movement_type,
-                    m.quantity, m.movement_date, m.source_type, m.source_id],
+        group_by: [
+          m.ingredient_id,
+          m.from_location_id,
+          m.to_location_id,
+          m.movement_type,
+          m.quantity,
+          m.movement_date,
+          m.source_type,
+          m.source_id
+        ],
         having: count(m.id) > 1,
         select: %{
           ingredient_id: m.ingredient_id,
@@ -367,6 +386,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
         Enum.map(dupes, fn d ->
           ingredient = Repo.get(Ingredient, d.ingredient_id)
           name = if ingredient, do: ingredient.name, else: "ID:#{d.ingredient_id}"
+
           "Duplicate #{d.movement_type}: #{name} qty=#{d.quantity} on #{d.movement_date} (#{d.count} copies, source: #{d.source_type}/#{d.source_id})"
         end)
 
@@ -444,9 +464,10 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
       if affected == [] do
         {:ok, %{checked: length(gift_orders), issues: 0}}
       else
-        {:error, [
-          "Found #{length(affected)} delivered gift order(s) with sale-style accounting instead of gift accounting: Order(s) ##{Enum.join(Enum.reverse(affected), ", #")}"
-        ]}
+        {:error,
+         [
+           "Found #{length(affected)} delivered gift order(s) with sale-style accounting instead of gift accounting: Order(s) ##{Enum.join(Enum.reverse(affected), ", #")}"
+         ]}
       end
     end
   end
@@ -459,7 +480,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
     zero_cost_movements =
       from(m in InventoryMovement,
         where: m.movement_type in ["usage", "write_off"],
-        where: (m.total_cost_cents == 0 or m.unit_cost_cents == 0),
+        where: m.total_cost_cents == 0 or m.unit_cost_cents == 0,
         where: m.quantity > 0,
         where: not is_nil(m.from_location_id),
         select: count(m.id)
@@ -480,9 +501,10 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
     if count == 0 do
       {:ok, %{checked: total, zero_cost: 0}}
     else
-      {:error, [
-        "Found #{count} of #{total} usage/write-off movement(s) with $0 cost that may need backfilling"
-      ]}
+      {:error,
+       [
+         "Found #{count} of #{total} usage/write-off movement(s) with $0 cost that may need backfilling"
+       ]}
     end
   end
 
@@ -588,7 +610,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
         from(p in OrderPayment,
           where: p.is_deposit == true,
           group_by: p.order_id,
-          select: {p.order_id, sum(fragment("COALESCE(?, ?)", p.customer_amount_cents, p.amount_cents))}
+          select:
+            {p.order_id, sum(fragment("COALESCE(?, ?)", p.customer_amount_cents, p.amount_cents))}
         )
         |> Repo.all()
         |> Map.new()
@@ -649,7 +672,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
       where: jl.account_id == ^account_id,
       where: like(je.reference, "Order #%"),
       group_by: je.reference,
-      select: {je.reference, fragment("SUM(?)", jl.debit_cents), fragment("SUM(?)", jl.credit_cents)}
+      select:
+        {je.reference, fragment("SUM(?)", jl.debit_cents), fragment("SUM(?)", jl.credit_cents)}
     )
     |> Repo.all()
     |> Enum.reduce(%{}, fn {reference, debits, credits}, acc ->
@@ -674,7 +698,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
       where: jl.account_id == ^account_id,
       where: like(je.reference, "Order #%"),
       group_by: je.reference,
-      select: {je.reference, fragment("SUM(?)", jl.debit_cents), fragment("SUM(?)", jl.credit_cents)}
+      select:
+        {je.reference, fragment("SUM(?)", jl.debit_cents), fragment("SUM(?)", jl.credit_cents)}
     )
     |> Repo.all()
     |> Enum.reduce(%{}, fn {reference, debits, credits}, acc ->
@@ -754,8 +779,10 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
       |> Enum.uniq()
 
     Map.new(all_keys, fn key ->
-      qty = Map.get(purchases, key, 0) + Map.get(transfers_in, key, 0) -
-            Map.get(usages, key, 0) - Map.get(transfers_out, key, 0)
+      qty =
+        Map.get(purchases, key, 0) + Map.get(transfers_in, key, 0) -
+          Map.get(usages, key, 0) - Map.get(transfers_out, key, 0)
+
       {key, qty}
     end)
   end
@@ -853,9 +880,12 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
   # Calculates the total inventory value from InventoryItem records (qty × avg_cost)
   defp calculate_inventory_value do
     from(ii in InventoryItem,
-      select: fragment("COALESCE(SUM(? * ?), 0)",
-        ii.quantity_on_hand,
-        ii.avg_cost_per_unit_cents)
+      select:
+        fragment(
+          "COALESCE(SUM(? * ?), 0)",
+          ii.quantity_on_hand,
+          ii.avg_cost_per_unit_cents
+        )
     )
     |> Repo.one()
     |> to_int()
@@ -864,11 +894,15 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
   # Calculates inventory value filtered by ingredient inventory_type
   defp calculate_inventory_value_by_type(inventory_type) do
     from(ii in InventoryItem,
-      join: i in Ingredient, on: ii.ingredient_id == i.id,
+      join: i in Ingredient,
+      on: ii.ingredient_id == i.id,
       where: i.inventory_type == ^inventory_type,
-      select: fragment("COALESCE(SUM(? * ?), 0)",
-        ii.quantity_on_hand,
-        ii.avg_cost_per_unit_cents)
+      select:
+        fragment(
+          "COALESCE(SUM(? * ?), 0)",
+          ii.quantity_on_hand,
+          ii.avg_cost_per_unit_cents
+        )
     )
     |> Repo.one()
     |> to_int()

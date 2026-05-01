@@ -8,7 +8,15 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
   alias Ledgr.Domains.MrMunchMe.Inventory
   alias Ledgr.Repo
   alias Ledgr.Core.Accounting.{Account, JournalEntry, JournalLine}
-  alias Ledgr.Domains.MrMunchMe.Inventory.{Ingredient, Location, InventoryMovement, Recipe, RecipeLine}
+
+  alias Ledgr.Domains.MrMunchMe.Inventory.{
+    Ingredient,
+    Location,
+    InventoryMovement,
+    Recipe,
+    RecipeLine
+  }
+
   alias Ledgr.Domains.MrMunchMe.Orders.{Order, Product, ProductVariant}
 
   setup do
@@ -190,7 +198,8 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
       "ingredient_code" => "FLOUR",
       "location_code" => "CASA_AG",
       "quantity" => 10000,
-      "total_cost_pesos" => "500.00", # 50,000 cents / 10,000 = 5 cents per gram
+      # 50,000 cents / 10,000 = 5 cents per gram
+      "total_cost_pesos" => "500.00",
       "paid_from_account_id" => to_string(cash_account.id),
       "purchase_date" => Date.utc_today()
     }
@@ -201,7 +210,8 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
       "ingredient_code" => "SUGAR",
       "location_code" => "CASA_AG",
       "quantity" => 5000,
-      "total_cost_pesos" => "150.00", # 15,000 cents / 5,000 = 3 cents per gram
+      # 15,000 cents / 5,000 = 3 cents per gram
+      "total_cost_pesos" => "150.00",
       "paid_from_account_id" => to_string(cash_account.id),
       "purchase_date" => Date.utc_today()
     }
@@ -253,6 +263,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Verify journal entry was created
       reference = "Order ##{order.id}"
+
       journal_entry =
         Repo.one(
           from je in JournalEntry,
@@ -335,6 +346,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Get journal entry
       reference = "Order ##{order.id}"
+
       journal_entry =
         Repo.one(
           from je in JournalEntry,
@@ -356,7 +368,9 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
       flour_movement =
         Repo.one(
           from m in InventoryMovement,
-            where: m.ingredient_id == ^flour.id and m.source_type == "order" and m.source_id == ^order.id,
+            where:
+              m.ingredient_id == ^flour.id and m.source_type == "order" and
+                m.source_id == ^order.id,
             order_by: [desc: m.inserted_at],
             limit: 1
         )
@@ -364,7 +378,9 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
       sugar_movement =
         Repo.one(
           from m in InventoryMovement,
-            where: m.ingredient_id == ^sugar.id and m.source_type == "order" and m.source_id == ^order.id,
+            where:
+              m.ingredient_id == ^sugar.id and m.source_type == "order" and
+                m.source_id == ^order.id,
             order_by: [desc: m.inserted_at],
             limit: 1
         )
@@ -378,6 +394,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Verify sum of movement costs equals journal entry amount
       total_movement_cost = flour_movement.total_cost_cents + sugar_movement.total_cost_cents
+
       assert total_movement_cost == wip_debit,
              "Total movement cost (#{total_movement_cost}) should equal journal entry amount (#{wip_debit})"
     end
@@ -414,6 +431,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Get journal entry to find the amount
       reference = "Order ##{order.id}"
+
       journal_entry =
         Repo.one(
           from je in JournalEntry,
@@ -468,6 +486,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Get the WIP debit amount from in_prep entry
       reference = "Order ##{order.id}"
+
       in_prep_entry =
         Repo.one(
           from je in JournalEntry,
@@ -485,6 +504,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Verify delivered journal entry was created
       reference = "Order ##{order.id}"
+
       delivered_entry =
         Repo.one(
           from je in JournalEntry,
@@ -601,6 +621,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Verify WIP was fully relieved
       wip_relieved = wip_balance_after_in_prep - wip_balance_after_delivery
+
       assert wip_relieved == wip_balance_after_in_prep,
              "WIP should be fully relieved. Balance before: #{wip_balance_after_in_prep}, after: #{wip_balance_after_delivery}"
     end
@@ -645,6 +666,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Get WIP debit amount
       reference = "Order ##{order.id}"
+
       in_prep_entry =
         Repo.one(
           from je in JournalEntry,
@@ -669,6 +691,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Get delivered entry amounts
       reference = "Order ##{order.id}"
+
       delivered_entry =
         Repo.one(
           from je in JournalEntry,
@@ -741,6 +764,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Verify only ONE journal entry exists
       reference = "Order ##{order.id}"
+
       entries =
         from(je in JournalEntry,
           where: je.entry_type == "order_in_prep" and je.reference == ^reference
@@ -778,6 +802,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Verify only ONE journal entry exists
       reference = "Order ##{order.id}"
+
       entries =
         from(je in JournalEntry,
           where: je.entry_type == "order_delivered" and je.reference == ^reference
@@ -815,6 +840,7 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
 
       # Get expected WIP/COGS from the single in_prep entry
       reference = "Order ##{order.id}"
+
       in_prep_entry =
         Repo.one(
           from je in JournalEntry,
@@ -852,17 +878,19 @@ defmodule Ledgr.Core.Accounting.InventoryMovementAccountingTest do
       )
       |> Repo.one()
 
-    total_debits = case result do
-      %{total_debits: debits} when is_integer(debits) -> debits
-      %{total_debits: %Decimal{} = debits} -> Decimal.to_integer(debits)
-      _ -> 0
-    end
+    total_debits =
+      case result do
+        %{total_debits: debits} when is_integer(debits) -> debits
+        %{total_debits: %Decimal{} = debits} -> Decimal.to_integer(debits)
+        _ -> 0
+      end
 
-    total_credits = case result do
-      %{total_credits: credits} when is_integer(credits) -> credits
-      %{total_credits: %Decimal{} = credits} -> Decimal.to_integer(credits)
-      _ -> 0
-    end
+    total_credits =
+      case result do
+        %{total_credits: credits} when is_integer(credits) -> credits
+        %{total_credits: %Decimal{} = credits} -> Decimal.to_integer(credits)
+        _ -> 0
+      end
 
     # For asset accounts, balance = debits - credits
     # For liability/equity/revenue accounts, balance = credits - debits

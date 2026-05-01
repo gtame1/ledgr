@@ -14,7 +14,13 @@
         Select an account and optional date range to view transactions.
       </p>
 
-      <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/account-transactions")} class="form-grid" :let={_f}>
+      <.form
+        :let={_f}
+        for={%{}}
+        method="get"
+        action={dp(@domain_path_prefix, "/account-transactions")}
+        class="form-grid"
+      >
         <div class="form-block">
           <div class="field">
             <label>Account</label>
@@ -22,7 +28,7 @@
               <option value="">Select an account...</option>
               <%= for account <- @accounts do %>
                 <option value={account.id} selected={@filters.account_id == to_string(account.id)}>
-                  <%= account.code %> - <%= account.name %>
+                  {account.code} - {account.name}
                 </option>
               <% end %>
             </select>
@@ -44,7 +50,12 @@
               <button class="btn primary" type="submit">Apply Filters</button>
               <%= if @earliest_date && @latest_date do %>
                 <.link
-                  navigate={dp(@domain_path_prefix, "/account-transactions?account_id=#{@filters.account_id}&all_dates=true")}
+                  navigate={
+                    dp(
+                      @domain_path_prefix,
+                      "/account-transactions?account_id=#{@filters.account_id}&all_dates=true"
+                    )
+                  }
                   class="btn"
                   style="white-space: nowrap;"
                 >
@@ -66,94 +77,119 @@
       <!-- Account Summary -->
       <section class="card">
         <h2 class="card-title">
-          <%= @selected_account.code %> - <%= @selected_account.name %>
+          {@selected_account.code} - {@selected_account.name}
         </h2>
         <p class="card-subtitle">
-          Account Type: <%= String.capitalize(@selected_account.type) %> | 
-          Normal Balance: <%= String.capitalize(@selected_account.normal_balance) %>
+          Account Type: {String.capitalize(@selected_account.type)} |
+          Normal Balance: {String.capitalize(@selected_account.normal_balance)}
         </p>
 
         <div style="margin-top: 1rem;">
           <div style="display: inline-block; padding: 0.75rem 1.25rem; background: var(--primary-soft); border-radius: var(--radius-md);">
-            <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.25rem;">Current Balance</div>
+            <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+              Current Balance
+            </div>
             <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary);">
-              <%= Ledgr.Core.Accounting.format_cents(@running_balance) %>
+              {Ledgr.Core.Accounting.format_cents(@running_balance)}
             </div>
           </div>
         </div>
       </section>
-
-      <!-- Transactions Table -->
+      
+<!-- Transactions Table -->
       <section class="card">
         <h2 class="card-title">Transactions</h2>
         <p class="card-subtitle">
-          All journal entries affecting this account<%= if @filters.date_from != "" || @filters.date_to != "" do %> (filtered by date range)<% end %>.
+          All journal entries affecting this account<%= if @filters.date_from != "" || @filters.date_to != "" do %>
+            (filtered by date range)
+          <% end %>.
         </p>
 
         <div class="table-wrapper" style="margin-top: 1.5rem;">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Transaction</th>
-              <th>Description</th>
-              <th class="numeric">Debit</th>
-              <th class="numeric">Credit</th>
-              <th class="numeric">Balance</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= if Enum.empty?(@transactions) do %>
+          <table class="table">
+            <thead>
               <tr>
-                <td colspan="7">No transactions found for this account.</td>
+                <th>Date</th>
+                <th>Transaction</th>
+                <th>Description</th>
+                <th class="numeric">Debit</th>
+                <th class="numeric">Credit</th>
+                <th class="numeric">Balance</th>
+                <th></th>
               </tr>
-            <% else %>
-              <%= for transaction <- @transactions do %>
+            </thead>
+            <tbody>
+              <%= if Enum.empty?(@transactions) do %>
                 <tr>
-                  <td><%= transaction.line.journal_entry.date %></td>
-                  <td>
-                    <.link navigate={dp(@domain_path_prefix, "/transactions/#{transaction.line.journal_entry.id}")} class="link-text">
-                      #<%= transaction.line.journal_entry.id %> - <%= transaction.line.journal_entry.entry_type %>
-                    </.link>
-                  </td>
-                  <td><%= transaction.line.description || transaction.line.journal_entry.description %></td>
-                  <td class="numeric">
-                    <%= if transaction.line.debit_cents > 0 do %>
-                      <%= Ledgr.Core.Accounting.format_cents(transaction.line.debit_cents) %>
-                    <% else %>
-                      -
-                    <% end %>
-                  </td>
-                  <td class="numeric">
-                    <%= if transaction.line.credit_cents > 0 do %>
-                      <%= Ledgr.Core.Accounting.format_cents(transaction.line.credit_cents) %>
-                    <% else %>
-                      -
-                    <% end %>
-                  </td>
-                  <td class="numeric" style="font-weight: 600;">
-                    <%= Ledgr.Core.Accounting.format_cents(transaction.balance) %>
-                  </td>
-                  <td>
-                    <.link navigate={dp(@domain_path_prefix, "/transactions/#{transaction.line.journal_entry.id}")} class="btn btn-sm">
-                      View
-                    </.link>
-                  </td>
+                  <td colspan="7">No transactions found for this account.</td>
                 </tr>
-                <%!-- Reconciliation cutoff divider --%>
-                <%= if transaction.line.journal_entry.entry_type == "reconciliation" do %>
-                  <tr style="background: linear-gradient(to right, var(--primary-soft), transparent); border-top: 2px solid var(--primary); border-bottom: 2px solid var(--primary);">
-                    <td colspan="7" style="padding: 0.5rem 1rem; font-weight: 600; font-size: 0.85rem; color: var(--primary);">
-                      Reconciled on <%= transaction.line.journal_entry.date %>
+              <% else %>
+                <%= for transaction <- @transactions do %>
+                  <tr>
+                    <td>{transaction.line.journal_entry.date}</td>
+                    <td>
+                      <.link
+                        navigate={
+                          dp(
+                            @domain_path_prefix,
+                            "/transactions/#{transaction.line.journal_entry.id}"
+                          )
+                        }
+                        class="link-text"
+                      >
+                        #{transaction.line.journal_entry.id} - {transaction.line.journal_entry.entry_type}
+                      </.link>
+                    </td>
+                    <td>
+                      {transaction.line.description || transaction.line.journal_entry.description}
+                    </td>
+                    <td class="numeric">
+                      <%= if transaction.line.debit_cents > 0 do %>
+                        {Ledgr.Core.Accounting.format_cents(transaction.line.debit_cents)}
+                      <% else %>
+                        -
+                      <% end %>
+                    </td>
+                    <td class="numeric">
+                      <%= if transaction.line.credit_cents > 0 do %>
+                        {Ledgr.Core.Accounting.format_cents(transaction.line.credit_cents)}
+                      <% else %>
+                        -
+                      <% end %>
+                    </td>
+                    <td class="numeric" style="font-weight: 600;">
+                      {Ledgr.Core.Accounting.format_cents(transaction.balance)}
+                    </td>
+                    <td>
+                      <.link
+                        navigate={
+                          dp(
+                            @domain_path_prefix,
+                            "/transactions/#{transaction.line.journal_entry.id}"
+                          )
+                        }
+                        class="btn btn-sm"
+                      >
+                        View
+                      </.link>
                     </td>
                   </tr>
+                  <%!-- Reconciliation cutoff divider --%>
+                  <%= if transaction.line.journal_entry.entry_type == "reconciliation" do %>
+                    <tr style="background: linear-gradient(to right, var(--primary-soft), transparent); border-top: 2px solid var(--primary); border-bottom: 2px solid var(--primary);">
+                      <td
+                        colspan="7"
+                        style="padding: 0.5rem 1rem; font-weight: 600; font-size: 0.85rem; color: var(--primary);"
+                      >
+                        Reconciled on {transaction.line.journal_entry.date}
+                      </td>
+                    </tr>
+                  <% end %>
                 <% end %>
               <% end %>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
       </section>
     <% else %>
       <section class="card">
@@ -164,4 +200,3 @@
     <% end %>
   </div>
 </section>
-

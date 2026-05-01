@@ -36,15 +36,21 @@
             <% else %>
               <%= for customer <- @customers do %>
                 <tr>
-                  <td><strong><%= customer.name %></strong></td>
-                  <td><%= customer.phone %></td>
-                  <td><%= customer.email || "—" %></td>
+                  <td><strong>{customer.name}</strong></td>
+                  <td>{customer.phone}</td>
+                  <td>{customer.email || "—"}</td>
                   <td>
                     <div style="display: flex; gap: 0.5rem;">
-                      <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")} class="btn btn-sm">
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")}
+                        class="btn btn-sm"
+                      >
                         View
                       </.link>
-                      <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}/edit")} class="btn btn-sm">
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/customers/#{customer.id}/edit")}
+                        class="btn btn-sm"
+                      >
                         Edit
                       </.link>
                       <.link
@@ -67,4 +73,3 @@
     </section>
   </div>
 </section>
-

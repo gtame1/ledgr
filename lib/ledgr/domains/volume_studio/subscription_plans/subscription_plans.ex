@@ -15,10 +15,14 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionPlans do
     SubscriptionPlan
     |> where([sp], is_nil(sp.deleted_at))
     |> maybe_filter_plan_type(plan_type)
-    |> order_by([sp], [
-      asc: fragment("CASE ? WHEN 'package' THEN 0 WHEN 'promo' THEN 1 WHEN 'membership' THEN 2 ELSE 3 END", sp.plan_type),
+    |> order_by([sp],
+      asc:
+        fragment(
+          "CASE ? WHEN 'package' THEN 0 WHEN 'promo' THEN 1 WHEN 'membership' THEN 2 ELSE 3 END",
+          sp.plan_type
+        ),
       asc: sp.price_cents
-    ])
+    )
     |> Repo.all()
   end
 
@@ -29,10 +33,14 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionPlans do
   def list_active_subscription_plans do
     SubscriptionPlan
     |> where([sp], sp.active == true and is_nil(sp.deleted_at))
-    |> order_by([sp], [
-      asc: fragment("CASE ? WHEN 'package' THEN 0 WHEN 'promo' THEN 1 WHEN 'membership' THEN 2 ELSE 3 END", sp.plan_type),
+    |> order_by([sp],
+      asc:
+        fragment(
+          "CASE ? WHEN 'package' THEN 0 WHEN 'promo' THEN 1 WHEN 'membership' THEN 2 ELSE 3 END",
+          sp.plan_type
+        ),
       asc: sp.price_cents
-    ])
+    )
     |> Repo.all()
   end
 

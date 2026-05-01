@@ -6,10 +6,15 @@
       </.link>
       <div>
         <h1 class="mm-topbar-title">Record Payment</h1>
-        <p style="font-size: 0.7rem; color: #9C8578; margin: 0;">Order #<%= @order.id %> · <%= @order.customer_name %></p>
+        <p style="font-size: 0.7rem; color: #9C8578; margin: 0;">
+          Order #{@order.id} · {@order.customer_name}
+        </p>
       </div>
     </div>
-    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")} class="mm-topbar-action">
+    <.link
+      navigate={dp(@domain_path_prefix, "/orders/#{@order.id}/stripe-link")}
+      class="mm-topbar-action"
+    >
       <span class="material-symbols-outlined">link</span>
     </.link>
   </div>
@@ -18,165 +23,196 @@
   <div class="mm-order-card" style="margin-bottom: 1rem;">
     <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
       <span style="color: #9C8578;">Total</span>
-      <span style="font-weight: 600; color: #3A2A1F;"><%= format_currency(@payment_summary.order_total_cents) %></span>
+      <span style="font-weight: 600; color: #3A2A1F;">
+        {format_currency(@payment_summary.order_total_cents)}
+      </span>
     </div>
     <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
       <span style="color: #9C8578;">Paid</span>
-      <span style="font-weight: 600; color: #3A2A1F;"><%= format_currency(@payment_summary.total_paid_cents) %></span>
+      <span style="font-weight: 600; color: #3A2A1F;">
+        {format_currency(@payment_summary.total_paid_cents)}
+      </span>
     </div>
     <div style="display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 0.25rem; border-top: 1px solid #F0E2D6;">
       <span style="font-weight: 600; color: #3A2A1F;">Outstanding</span>
       <span style={"font-weight: 700; #{if @payment_summary.outstanding_cents > 0, do: "color: #D4956A;", else: "color: #8ca681;"}"}>
-        <%= format_currency(@payment_summary.outstanding_cents) %>
+        {format_currency(@payment_summary.outstanding_cents)}
       </span>
     </div>
   </div>
 
-<section class="card">
-  <.form :let={f} for={@changeset} as={:order_payment} action={@action} class="form-grid">
-    <%= if @changeset.action do %>
-      <div class="alert alert-error">
-        <p><strong>Please fix the errors below:</strong></p>
-        <% all_errors = @changeset.errors %>
-        <%= if all_errors != [] do %>
-          <ul class="pretty-list" style="margin-top: 0.25rem;">
-            <%= for {field, {msg, _opts}} <- all_errors do %>
-              <li><strong><%= Phoenix.Naming.humanize(field) %>:</strong> <%= msg %></li>
-            <% end %>
-          </ul>
-        <% end %>
-      </div>
-    <% end %>
+  <section class="card">
+    <.form :let={f} for={@changeset} as={:order_payment} action={@action} class="form-grid">
+      <%= if @changeset.action do %>
+        <div class="alert alert-error">
+          <p><strong>Please fix the errors below:</strong></p>
+          <% all_errors = @changeset.errors %>
+          <%= if all_errors != [] do %>
+            <ul class="pretty-list" style="margin-top: 0.25rem;">
+              <%= for {field, {msg, _opts}} <- all_errors do %>
+                <li><strong>{Phoenix.Naming.humanize(field)}:</strong> {msg}</li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+      <% end %>
 
-    <div class="form-block">
-      <div class="field">
-        <.input field={f[:payment_date]} type="date" label="Date" />
-      </div>
-      <div class="field">
-        <.input
-          field={f[:amount]}
-          type="number"
-          label="Amount (pesos)"
-          step="0.01"
-          placeholder="0.00"
-          min="0"
-          id="total_amount_input"
-        />
-      </div>
-      <div class="field">
-        <.input
-          field={f[:paid_to_account_id]}
-          type="select"
-          label="Paid to"
-          prompt="Select account"
-          options={@paid_to_account_options}
-        />
-      </div>
-      <div class="field">
-        <.input
-          field={f[:method]}
-          type="text"
-          label="Method"
-          placeholder="cash, card, transfer..."
-        />
-      </div>
-    </div>
-
-    <div class="field">
-      <.input
-        field={f[:note]}
-        type="textarea"
-        label="Note"
-        rows="2"
-        placeholder="Optional"
-      />
-    </div>
-
-    <%!-- Overpayment section --%>
-    <input type="hidden" name="order_payment[owed_change_choice]" id="owed_change_choice_input" value="keep" />
-    <div id="overpayment-section" style="display: none; padding: 1rem; background: #fefce8; border: 1px solid #fde047; border-radius: var(--radius-md);">
-      <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; color: #92400e;">
-        Customer paid <strong id="overpayment-amount-display">$0.00</strong> more than owed — how should we handle it?
-      </p>
-      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; margin-bottom: 0.4rem;">
-        <input type="radio" name="owed_change_radio" value="keep" checked style="cursor: pointer;" />
-        Keep the extra (accept the overpayment)
-      </label>
-      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; margin-bottom: 0.4rem;">
-        <input type="radio" name="owed_change_radio" value="record" style="cursor: pointer;" />
-        Record as owed change (create AP entry for <em><%= @order.customer_name %></em>)
-      </label>
-      <label id="partner-change-option" style="display: none; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
-        <input type="radio" name="owed_change_radio" value="partner_gave_change" style="cursor: pointer;" />
-        Partner already gave the customer their change (no AP entry needed)
-      </label>
-    </div>
-
-    <%!-- Split payment toggle --%>
-    <div class="field">
-      <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; color: var(--text-muted);">
-        <input type="checkbox" id="split_payment_checkbox" style="cursor: pointer;" />
-        Partner gave change or paid for part of it
-      </label>
-    </div>
-
-    <%!-- Split Payment Section --%>
-    <div id="split-payment-section" style="display: none; padding: 1rem; background: var(--primary-soft); border-radius: var(--radius-md);">
       <div class="form-block">
         <div class="field">
-          <label class="label">Customer amount (pesos)</label>
-          <input
-            type="number"
-            name="order_payment[customer_amount]"
-            step="0.01"
-            placeholder="0.00"
-            min="0"
-            id="customer_amount_input"
-            class="input w-full"
-          />
+          <.input field={f[:payment_date]} type="date" label="Date" />
         </div>
         <div class="field">
-          <label class="label">Partner amount (pesos)</label>
-          <input
+          <.input
+            field={f[:amount]}
             type="number"
-            name="order_payment[partner_amount]"
+            label="Amount (pesos)"
             step="0.01"
             placeholder="0.00"
             min="0"
-            id="partner_amount_input"
-            class="input w-full"
+            id="total_amount_input"
           />
         </div>
         <div class="field">
           <.input
-            field={f[:partner_id]}
+            field={f[:paid_to_account_id]}
             type="select"
-            label="Partner"
-            prompt="Select partner"
-            options={@partner_options}
-            id="partner_select"
-          />
-        </div>
-        <div class="field">
-          <.input
-            field={f[:partner_payable_account_id]}
-            type="select"
-            label="Partner payable account"
+            label="Paid to"
             prompt="Select account"
-            options={@liability_account_options}
-            id="partner_payable_account_select"
+            options={@paid_to_account_options}
+          />
+        </div>
+        <div class="field">
+          <.input
+            field={f[:method]}
+            type="text"
+            label="Method"
+            placeholder="cash, card, transfer..."
           />
         </div>
       </div>
-    </div>
 
-    <div style="display: flex; gap: 0.5rem; padding-top: 0.5rem;">
-      <button class="btn primary" type="submit">Save Payment</button>
-      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn">Cancel</.link>
-    </div>
-  </.form>
-</section>
-</div> <%!-- close mm-page --%>
+      <div class="field">
+        <.input
+          field={f[:note]}
+          type="textarea"
+          label="Note"
+          rows="2"
+          placeholder="Optional"
+        />
+      </div>
+
+      <%!-- Overpayment section --%>
+      <input
+        type="hidden"
+        name="order_payment[owed_change_choice]"
+        id="owed_change_choice_input"
+        value="keep"
+      />
+      <div
+        id="overpayment-section"
+        style="display: none; padding: 1rem; background: #fefce8; border: 1px solid #fde047; border-radius: var(--radius-md);"
+      >
+        <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; color: #92400e;">
+          Customer paid <strong id="overpayment-amount-display">$0.00</strong>
+          more than owed — how should we handle it?
+        </p>
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; margin-bottom: 0.4rem;">
+          <input
+            type="radio"
+            name="owed_change_radio"
+            value="keep"
+            checked
+            style="cursor: pointer;"
+          /> Keep the extra (accept the overpayment)
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; margin-bottom: 0.4rem;">
+          <input type="radio" name="owed_change_radio" value="record" style="cursor: pointer;" />
+          Record as owed change (create AP entry for <em><%= @order.customer_name %></em>)
+        </label>
+        <label
+          id="partner-change-option"
+          style="display: none; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"
+        >
+          <input
+            type="radio"
+            name="owed_change_radio"
+            value="partner_gave_change"
+            style="cursor: pointer;"
+          /> Partner already gave the customer their change (no AP entry needed)
+        </label>
+      </div>
+
+      <%!-- Split payment toggle --%>
+      <div class="field">
+        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; color: var(--text-muted);">
+          <input type="checkbox" id="split_payment_checkbox" style="cursor: pointer;" />
+          Partner gave change or paid for part of it
+        </label>
+      </div>
+
+      <%!-- Split Payment Section --%>
+      <div
+        id="split-payment-section"
+        style="display: none; padding: 1rem; background: var(--primary-soft); border-radius: var(--radius-md);"
+      >
+        <div class="form-block">
+          <div class="field">
+            <label class="label">Customer amount (pesos)</label>
+            <input
+              type="number"
+              name="order_payment[customer_amount]"
+              step="0.01"
+              placeholder="0.00"
+              min="0"
+              id="customer_amount_input"
+              class="input w-full"
+            />
+          </div>
+          <div class="field">
+            <label class="label">Partner amount (pesos)</label>
+            <input
+              type="number"
+              name="order_payment[partner_amount]"
+              step="0.01"
+              placeholder="0.00"
+              min="0"
+              id="partner_amount_input"
+              class="input w-full"
+            />
+          </div>
+          <div class="field">
+            <.input
+              field={f[:partner_id]}
+              type="select"
+              label="Partner"
+              prompt="Select partner"
+              options={@partner_options}
+              id="partner_select"
+            />
+          </div>
+          <div class="field">
+            <.input
+              field={f[:partner_payable_account_id]}
+              type="select"
+              label="Partner payable account"
+              prompt="Select account"
+              options={@liability_account_options}
+              id="partner_payable_account_select"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; padding-top: 0.5rem;">
+        <button class="btn primary" type="submit">Save Payment</button>
+        <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
+  </section>
+</div>
+<%!-- close mm-page --%>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

@@ -15,6 +15,7 @@ defmodule Ledgr.Domains.CasaTame.CategoriesTest do
   describe "expense categories" do
     test "create_expense_category/1 inserts a top-level category" do
       name = unique_name("Housing")
+
       assert {:ok, %ExpenseCategory{name: ^name, parent_id: nil}} =
                Categories.create_expense_category(%{name: name})
     end
@@ -28,14 +29,19 @@ defmodule Ledgr.Domains.CasaTame.CategoriesTest do
       {:ok, parent} = Categories.create_expense_category(%{name: unique_name("Food")})
 
       {:ok, child} =
-        Categories.create_expense_category(%{name: unique_name("Groceries"), parent_id: parent.id})
+        Categories.create_expense_category(%{
+          name: unique_name("Groceries"),
+          parent_id: parent.id
+        })
 
       assert child.parent_id == parent.id
     end
 
     test "list_expense_categories/0 returns only top-level, preloading children" do
       {:ok, p1} = Categories.create_expense_category(%{name: unique_name("Transport")})
-      {:ok, _c1} = Categories.create_expense_category(%{name: unique_name("Gas"), parent_id: p1.id})
+
+      {:ok, _c1} =
+        Categories.create_expense_category(%{name: unique_name("Gas"), parent_id: p1.id})
 
       results = Categories.list_expense_categories()
 
@@ -46,18 +52,31 @@ defmodule Ledgr.Domains.CasaTame.CategoriesTest do
     end
 
     test "list_flat_expense_categories/0 flattens parent + child rows" do
-      {:ok, parent} = Categories.create_expense_category(%{name: "Utilities #{System.unique_integer([:positive])}"})
-      {:ok, child} = Categories.create_expense_category(%{name: "Water #{System.unique_integer([:positive])}", parent_id: parent.id})
+      {:ok, parent} =
+        Categories.create_expense_category(%{
+          name: "Utilities #{System.unique_integer([:positive])}"
+        })
+
+      {:ok, child} =
+        Categories.create_expense_category(%{
+          name: "Water #{System.unique_integer([:positive])}",
+          parent_id: parent.id
+        })
 
       flat = Categories.list_flat_expense_categories()
 
       assert Enum.any?(flat, fn {label, id} -> label == parent.name and id == parent.id end)
-      assert Enum.any?(flat, fn {label, id} -> label =~ "#{parent.name} > #{child.name}" and id == child.id end)
+
+      assert Enum.any?(flat, fn {label, id} ->
+               label =~ "#{parent.name} > #{child.name}" and id == child.id
+             end)
     end
 
     test "get_expense_category!/1 preloads children" do
       {:ok, parent} = Categories.create_expense_category(%{name: unique_name("Kids")})
-      {:ok, _} = Categories.create_expense_category(%{name: unique_name("School"), parent_id: parent.id})
+
+      {:ok, _} =
+        Categories.create_expense_category(%{name: unique_name("School"), parent_id: parent.id})
 
       loaded = Categories.get_expense_category!(parent.id)
       assert length(loaded.children) == 1
@@ -65,7 +84,12 @@ defmodule Ledgr.Domains.CasaTame.CategoriesTest do
 
     test "update_expense_category/2 updates the name" do
       {:ok, cat} = Categories.create_expense_category(%{name: unique_name("Original")})
-      {:ok, updated} = Categories.update_expense_category(cat, %{name: "Renamed #{System.unique_integer([:positive])}"})
+
+      {:ok, updated} =
+        Categories.update_expense_category(cat, %{
+          name: "Renamed #{System.unique_integer([:positive])}"
+        })
+
       assert updated.name != cat.name
     end
 
@@ -86,7 +110,9 @@ defmodule Ledgr.Domains.CasaTame.CategoriesTest do
 
     test "parent_category_options/0 returns only top-level as {name, id}" do
       {:ok, top} = Categories.create_expense_category(%{name: unique_name("Zzzz")})
-      {:ok, _child} = Categories.create_expense_category(%{name: unique_name("SubZzzz"), parent_id: top.id})
+
+      {:ok, _child} =
+        Categories.create_expense_category(%{name: unique_name("SubZzzz"), parent_id: top.id})
 
       opts = Categories.parent_category_options()
       assert Enum.any?(opts, fn {name, id} -> id == top.id and name == top.name end)

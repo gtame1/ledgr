@@ -1,26 +1,37 @@
 <section class="card">
   <div class="card-header">
-    <h2 class="card-title">Edit Subscription — <%= @sub.client.name %></h2>
+    <h2 class="card-title">Edit Subscription — {@sub.client.name}</h2>
   </div>
 
-  <.form for={@changeset} action={@action} method="put" as={:client_subscription} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} method="put" as={:client_subscription}>
     <div class="form-block" style="margin-bottom: 1.75rem;">
       <div class="field">
         <label>Client</label>
-        <.input type="select" field={f[:client_id]}
-          options={Enum.map(@clients, &{&1.name, &1.id})} />
+        <.input
+          type="select"
+          field={f[:client_id]}
+          options={Enum.map(@clients, &{&1.name, &1.id})}
+        />
       </div>
 
       <div class="field">
         <label>Plan</label>
-        <.input type="select" field={f[:subscription_plan_id]}
-          options={Enum.map(@plans, &{"#{&1.name} (#{format_currency(&1.price_cents)}/mo)", &1.id})} />
+        <.input
+          type="select"
+          field={f[:subscription_plan_id]}
+          options={
+            Enum.map(@plans, &{"#{&1.name} (#{format_currency(&1.price_cents)}/mo)", &1.id})
+          }
+        />
       </div>
 
       <div class="field">
         <label>Status</label>
-        <.input type="select" field={f[:status]}
-          options={[{"Active", "active"}, {"Trial", "trial"}, {"Cancelled", "cancelled"}]} />
+        <.input
+          type="select"
+          field={f[:status]}
+          options={[{"Active", "active"}, {"Trial", "trial"}, {"Cancelled", "cancelled"}]}
+        />
       </div>
 
       <div class="field">
@@ -29,12 +40,22 @@
       </div>
 
       <div class="field">
-        <label>End Date <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span></label>
+        <label>
+          End Date
+          <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">
+            — optional
+          </span>
+        </label>
         <.input type="date" field={f[:ends_on]} />
       </div>
 
       <div class="field">
-        <label>Price Override <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span></label>
+        <label>
+          Price Override
+          <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">
+            — optional
+          </span>
+        </label>
         <.input type="number" field={f[:price_override_cents]} step="0.01" min="0" />
       </div>
     </div>
@@ -46,7 +67,9 @@
 
     <div class="form-actions">
       <button type="submit" class="btn primary">Update Subscription</button>
-      <.link navigate={dp(@domain_path_prefix, "/client-subscriptions/#{@sub.id}")} class="btn">Cancel</.link>
+      <.link navigate={dp(@domain_path_prefix, "/client-subscriptions/#{@sub.id}")} class="btn">
+        Cancel
+      </.link>
     </div>
   </.form>
 </section>

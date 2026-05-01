@@ -10,11 +10,11 @@
   <%!-- Header --%>
   <div class="flex items-center gap-4 mb-6">
     <div class="hd-doctor-avatar text-2xl" style="width: 4rem; height: 4rem;">
-      <%= String.first(a.name) %>
+      {String.first(a.name)}
     </div>
     <div>
       <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold" style="color: var(--text-main);"><%= a.name %></h1>
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);">{a.name}</h1>
         <%= if a.is_available do %>
           <span class="hd-badge hd-badge--active">Disponible</span>
         <% else %>
@@ -26,8 +26,12 @@
       <.link navigate={dp(@domain_path_prefix, "/agents/#{a.id}/edit")} class="hd-btn-secondary">
         Editar Agente
       </.link>
-      <.link href={dp(@domain_path_prefix, "/agents/#{a.id}/toggle-status")} method="post" class="hd-btn-primary">
-        <%= if a.is_available, do: "Marcar No Disponible", else: "Marcar Disponible" %>
+      <.link
+        href={dp(@domain_path_prefix, "/agents/#{a.id}/toggle-status")}
+        method="post"
+        class="hd-btn-primary"
+      >
+        {if a.is_available, do: "Marcar No Disponible", else: "Marcar Disponible"}
       </.link>
     </div>
   </div>
@@ -36,27 +40,41 @@
     <%!-- Info Card --%>
     <div class="lg:col-span-2">
       <div class="hd-card p-5">
-        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Información del Agente</h2>
+        <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">
+          Información del Agente
+        </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Teléfono</div>
-            <div class="text-sm" style="color: var(--text-main);"><%= a.phone || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Teléfono
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">{a.phone || "---"}</div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Email</div>
-            <div class="text-sm" style="color: var(--text-main);"><%= a.email || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Email
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">{a.email || "---"}</div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Llamadas de Video</div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Llamadas de Video
+            </div>
             <div class="text-sm" style="color: var(--text-main);">
-              <%= if a.accepts_video_calls, do: "Acepta llamadas de video", else: "Sin llamadas de video" %>
+              {if a.accepts_video_calls,
+                do: "Acepta llamadas de video",
+                else: "Sin llamadas de video"}
             </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Términos Aceptados</div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Términos Aceptados
+            </div>
             <div class="text-sm" style="color: var(--text-main);">
               <%= if a.terms_accepted do %>
-                Aceptado<%= if a.terms_accepted_at, do: " el #{fmt_date(a.terms_accepted_at)}", else: "" %>
+                Aceptado{if a.terms_accepted_at,
+                  do: " el #{fmt_date(a.terms_accepted_at)}",
+                  else: ""}
               <% else %>
                 No aceptado
               <% end %>
@@ -70,26 +88,38 @@
     <div>
       <div class="hd-card">
         <div class="p-4 border-b" style="border-color: var(--border-subtle);">
-          <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">Consultas Recientes</h3>
+          <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+            Consultas Recientes
+          </h3>
         </div>
         <%= if a.consultations && !Enum.empty?(a.consultations) do %>
           <div class="divide-y" style="border-color: var(--border-subtle);">
             <%= for c <- Enum.take(a.consultations, 10) do %>
               <div class="p-3">
-                <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                  <%= if c.customer, do: (c.customer.full_name || c.customer.display_name || "Cliente"), else: "Cliente" %>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")}
+                  class="text-sm font-medium"
+                  style="color: var(--accent);"
+                >
+                  {if c.customer,
+                    do: c.customer.full_name || c.customer.display_name || "Cliente",
+                    else: "Cliente"}
                 </.link>
                 <div class="flex items-center justify-between mt-1">
                   <span class="text-xs" style="color: var(--text-muted);">
-                    <%= fmt_date(c.assigned_at) || "---" %>
+                    {fmt_date(c.assigned_at) || "---"}
                   </span>
-                  <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                  <span class={"hd-badge hd-badge--#{c.status}"}>
+                    {c.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+                  </span>
                 </div>
               </div>
             <% end %>
           </div>
         <% else %>
-          <div class="p-4 text-center text-sm" style="color: var(--text-muted);">Sin consultas aún.</div>
+          <div class="p-4 text-center text-sm" style="color: var(--text-muted);">
+            Sin consultas aún.
+          </div>
         <% end %>
       </div>
     </div>

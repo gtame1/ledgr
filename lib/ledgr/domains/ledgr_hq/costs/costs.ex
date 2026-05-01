@@ -9,7 +9,7 @@ defmodule Ledgr.Domains.LedgrHQ.Costs do
 
     Cost
     |> maybe_active_only(active_only)
-    |> order_by([c], [asc: c.category, asc: c.name])
+    |> order_by([c], asc: c.category, asc: c.name)
     |> Repo.all()
   end
 

@@ -12,10 +12,12 @@
   <div class="tab-bar" style="margin-bottom: 1rem;">
     <%= for {label, value} <- [{"All", nil}, {"Active", "active"}, {"Trial", "trial"}, {"Paused", "paused"}, {"Churned", "churned"}] do %>
       <.link
-        navigate={dp(@domain_path_prefix, if(value, do: "/clients?status=#{value}", else: "/clients"))}
+        navigate={
+          dp(@domain_path_prefix, if(value, do: "/clients?status=#{value}", else: "/clients"))
+        }
         class={"tab-item#{if @current_status == value, do: " active", else: ""}"}
       >
-        <%= label %>
+        {label}
       </.link>
     <% end %>
   </div>
@@ -33,19 +35,21 @@
       </thead>
       <tbody>
         <%= if Enum.empty?(@clients) do %>
-          <tr><td colspan="5">No clients found.</td></tr>
+          <tr>
+            <td colspan="5">No clients found.</td>
+          </tr>
         <% else %>
           <%= for client <- @clients do %>
             <tr>
               <td>
                 <.link navigate={dp(@domain_path_prefix, "/clients/#{client.id}")}>
-                  <strong><%= client.name %></strong>
+                  <strong>{client.name}</strong>
                 </.link>
               </td>
               <td>
                 <%= if client.domain_slug do %>
                   <span style="font-family: monospace; font-size: 0.82rem; color: var(--text-muted);">
-                    /app/<%= client.domain_slug %>
+                    /app/{client.domain_slug}
                   </span>
                 <% else %>
                   <span style="color: var(--text-muted);">—</span>
@@ -53,12 +57,15 @@
               </td>
               <td>
                 <span class={"status-badge #{status_class(client.status)}"}>
-                  <%= String.capitalize(client.status) %>
+                  {String.capitalize(client.status)}
                 </span>
               </td>
-              <td><%= client.started_on %></td>
+              <td>{client.started_on}</td>
               <td>
-                <.link navigate={dp(@domain_path_prefix, "/clients/#{client.id}/edit")} class="btn btn-sm">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/clients/#{client.id}/edit")}
+                  class="btn btn-sm"
+                >
                   Edit
                 </.link>
               </td>

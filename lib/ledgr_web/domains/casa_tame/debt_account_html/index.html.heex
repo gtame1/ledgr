@@ -1,13 +1,14 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="content">
   <header class="content-header">
@@ -19,60 +20,111 @@
     <div class="ct-metrics-row" style="margin-bottom: 1.25rem;">
       <div class="metric-card">
         <div class="metric-label">
-          <span class="ct-badge ct-badge--usd">USD</span>
-          Total Outstanding
+          <span class="ct-badge ct-badge--usd">USD</span> Total Outstanding
         </div>
-        <div class="metric-value ct-amount-negative"><%= fmt.(@total_usd_cents) %></div>
+        <div class="metric-value ct-amount-negative">{fmt.(@total_usd_cents)}</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">
-          <span class="ct-badge ct-badge--mxn">MXN</span>
-          Total Outstanding
+          <span class="ct-badge ct-badge--mxn">MXN</span> Total Outstanding
         </div>
-        <div class="metric-value ct-amount-negative"><%= fmt.(@total_mxn_cents) %></div>
+        <div class="metric-value ct-amount-negative">{fmt.(@total_mxn_cents)}</div>
       </div>
     </div>
-
-    <!-- USD Debts -->
+    
+<!-- USD Debts -->
     <%= if @grouped.credit_cards_usd != [] or @grouped.ap_usd != [] or @grouped.loans_usd != [] do %>
       <section class="card" style="margin-bottom: 1rem;">
         <div class="card-header">
           <h2 class="card-title">
-            <span class="ct-badge ct-badge--usd">USD</span>
-            Liabilities
+            <span class="ct-badge ct-badge--usd">USD</span> Liabilities
           </h2>
         </div>
         <div class="table-wrapper">
           <table class="table">
-            <thead><tr><th>Account</th><th class="numeric">Balance</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th class="numeric">Balance</th>
+                <th></th>
+              </tr>
+            </thead>
             <tbody>
               <%= if @grouped.credit_cards_usd != [] do %>
-                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Credit Cards</td></tr>
+                <tr style="background: var(--bg-surface);">
+                  <td
+                    colspan="3"
+                    style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;"
+                  >
+                    Credit Cards
+                  </td>
+                </tr>
                 <%= for item <- @grouped.credit_cards_usd do %>
                   <tr>
-                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric ct-amount-negative" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
-                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                    <td style="padding-left: 2rem;">{item.account.code} – {item.account.name}</td>
+                    <td class="numeric ct-amount-negative" style="font-weight: 600;">
+                      {fmt.(item.balance_cents)}
+                    </td>
+                    <td>
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")}
+                        class="btn"
+                      >
+                        View & Record
+                      </.link>
+                    </td>
                   </tr>
                 <% end %>
               <% end %>
               <%= if @grouped.ap_usd != [] do %>
-                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Accounts Payable</td></tr>
+                <tr style="background: var(--bg-surface);">
+                  <td
+                    colspan="3"
+                    style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;"
+                  >
+                    Accounts Payable
+                  </td>
+                </tr>
                 <%= for item <- @grouped.ap_usd do %>
                   <tr>
-                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric ct-amount-negative" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
-                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                    <td style="padding-left: 2rem;">{item.account.code} – {item.account.name}</td>
+                    <td class="numeric ct-amount-negative" style="font-weight: 600;">
+                      {fmt.(item.balance_cents)}
+                    </td>
+                    <td>
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")}
+                        class="btn"
+                      >
+                        View & Record
+                      </.link>
+                    </td>
                   </tr>
                 <% end %>
               <% end %>
               <%= if @grouped.loans_usd != [] do %>
-                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Long-Term Loans</td></tr>
+                <tr style="background: var(--bg-surface);">
+                  <td
+                    colspan="3"
+                    style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;"
+                  >
+                    Long-Term Loans
+                  </td>
+                </tr>
                 <%= for item <- @grouped.loans_usd do %>
                   <tr>
-                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric ct-amount-negative" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
-                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                    <td style="padding-left: 2rem;">{item.account.code} – {item.account.name}</td>
+                    <td class="numeric ct-amount-negative" style="font-weight: 600;">
+                      {fmt.(item.balance_cents)}
+                    </td>
+                    <td>
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")}
+                        class="btn"
+                      >
+                        View & Record
+                      </.link>
+                    </td>
                   </tr>
                 <% end %>
               <% end %>
@@ -81,47 +133,100 @@
         </div>
       </section>
     <% end %>
-
-    <!-- MXN Debts -->
+    
+<!-- MXN Debts -->
     <%= if @grouped.credit_cards_mxn != [] or @grouped.ap_mxn != [] or @grouped.loans_mxn != [] do %>
       <section class="card">
         <div class="card-header">
           <h2 class="card-title">
-            <span class="ct-badge ct-badge--mxn">MXN</span>
-            Liabilities
+            <span class="ct-badge ct-badge--mxn">MXN</span> Liabilities
           </h2>
         </div>
         <div class="table-wrapper">
           <table class="table">
-            <thead><tr><th>Account</th><th class="numeric">Balance</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th class="numeric">Balance</th>
+                <th></th>
+              </tr>
+            </thead>
             <tbody>
               <%= if @grouped.credit_cards_mxn != [] do %>
-                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Credit Cards</td></tr>
+                <tr style="background: var(--bg-surface);">
+                  <td
+                    colspan="3"
+                    style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;"
+                  >
+                    Credit Cards
+                  </td>
+                </tr>
                 <%= for item <- @grouped.credit_cards_mxn do %>
                   <tr>
-                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric ct-amount-negative" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
-                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                    <td style="padding-left: 2rem;">{item.account.code} – {item.account.name}</td>
+                    <td class="numeric ct-amount-negative" style="font-weight: 600;">
+                      {fmt.(item.balance_cents)}
+                    </td>
+                    <td>
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")}
+                        class="btn"
+                      >
+                        View & Record
+                      </.link>
+                    </td>
                   </tr>
                 <% end %>
               <% end %>
               <%= if @grouped.ap_mxn != [] do %>
-                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Accounts Payable</td></tr>
+                <tr style="background: var(--bg-surface);">
+                  <td
+                    colspan="3"
+                    style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;"
+                  >
+                    Accounts Payable
+                  </td>
+                </tr>
                 <%= for item <- @grouped.ap_mxn do %>
                   <tr>
-                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric ct-amount-negative" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
-                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                    <td style="padding-left: 2rem;">{item.account.code} – {item.account.name}</td>
+                    <td class="numeric ct-amount-negative" style="font-weight: 600;">
+                      {fmt.(item.balance_cents)}
+                    </td>
+                    <td>
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")}
+                        class="btn"
+                      >
+                        View & Record
+                      </.link>
+                    </td>
                   </tr>
                 <% end %>
               <% end %>
               <%= if @grouped.loans_mxn != [] do %>
-                <tr style="background: var(--bg-surface);"><td colspan="3" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">Long-Term Loans</td></tr>
+                <tr style="background: var(--bg-surface);">
+                  <td
+                    colspan="3"
+                    style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;"
+                  >
+                    Long-Term Loans
+                  </td>
+                </tr>
                 <%= for item <- @grouped.loans_mxn do %>
                   <tr>
-                    <td style="padding-left: 2rem;"><%= item.account.code %> – <%= item.account.name %></td>
-                    <td class="numeric ct-amount-negative" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
-                    <td><.link navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")} class="btn">View & Record</.link></td>
+                    <td style="padding-left: 2rem;">{item.account.code} – {item.account.name}</td>
+                    <td class="numeric ct-amount-negative" style="font-weight: 600;">
+                      {fmt.(item.balance_cents)}
+                    </td>
+                    <td>
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/debt-accounts/#{item.account.id}")}
+                        class="btn"
+                      >
+                        View & Record
+                      </.link>
+                    </td>
                   </tr>
                 <% end %>
               <% end %>

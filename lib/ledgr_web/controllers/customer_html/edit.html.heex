@@ -1,7 +1,7 @@
 <section class="content">
   <header class="content-header">
     <h1 class="page-title">Edit Customer</h1>
-    <p class="page-subtitle"><%= @customer.name %></p>
+    <p class="page-subtitle">{@customer.name}</p>
   </header>
 
   <div class="content-body">
@@ -12,7 +12,7 @@
             <p>Please review the fields below.</p>
             <ul>
               <%= for {field, {message, _}} <- @changeset.errors do %>
-                <li><strong><%= field %>:</strong> <%= message %></li>
+                <li><strong>{field}:</strong> {message}</li>
               <% end %>
             </ul>
           </div>
@@ -33,14 +33,21 @@
             </div>
 
             <div class="field full">
-              <.input field={f[:delivery_address]} type="textarea" label="Delivery Address" rows="3" />
+              <.input
+                field={f[:delivery_address]}
+                type="textarea"
+                label="Delivery Address"
+                rows="3"
+              />
             </div>
           </div>
         </div>
 
         <div class="form-actions">
           <button class="btn primary" type="submit">Update Customer</button>
-          <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">Cancel</.link>
+          <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">
+            Cancel
+          </.link>
         </div>
       </.form>
     </section>

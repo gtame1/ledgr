@@ -61,9 +61,7 @@ defmodule Ledgr.Core.Accounting.JournalEntry do
     |> validate_balanced()
   end
 
-
-
-   # ----- ACCESOR FUNCTIONS -----
+  # ----- ACCESOR FUNCTIONS -----
   def entry_types do
     domain = Ledgr.Domain.current()
 
@@ -72,8 +70,6 @@ defmodule Ledgr.Core.Accounting.JournalEntry do
 
     @core_entry_types ++ domain_entry_types
   end
-
-
 
   # ----- VALIDATION FUNCTIONS -----
   defp validate_lines_valid(changeset) do
@@ -88,6 +84,7 @@ defmodule Ledgr.Core.Accounting.JournalEntry do
       changeset
     end
   end
+
   # ------- BALANCE CHECK -------
 
   defp validate_balanced(changeset) do
@@ -134,5 +131,4 @@ defmodule Ledgr.Core.Accounting.JournalEntry do
 
     {debit || 0, credit || 0}
   end
-
 end

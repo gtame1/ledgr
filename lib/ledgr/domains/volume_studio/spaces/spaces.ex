@@ -128,18 +128,18 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces do
     }
   """
   def payment_summary(%SpaceRental{} = r) do
-    base     = r.amount_cents   || 0
-    iva      = r.iva_cents      || 0
+    base = r.amount_cents || 0
+    iva = r.iva_cents || 0
     discount = r.discount_cents || 0
-    total    = max(base + iva - discount, 0)
-    paid     = r.paid_cents     || 0
+    total = max(base + iva - discount, 0)
+    paid = r.paid_cents || 0
 
     %{
-      base_cents:        base,
-      iva_cents:         iva,
-      discount_cents:    discount,
-      total_cents:       total,
-      paid_cents:        paid,
+      base_cents: base,
+      iva_cents: iva,
+      discount_cents: discount,
+      total_cents: total,
+      paid_cents: paid,
       outstanding_cents: max(total - paid, 0)
     }
   end
@@ -159,10 +159,14 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces do
     3. Creates journal entry via VolumeStudioAccounting
   """
   def record_payment(%SpaceRental{} = rental, attrs) do
-    amount  = Map.fetch!(attrs, :amount_cents)
+    amount = Map.fetch!(attrs, :amount_cents)
     summary = payment_summary(rental)
     new_paid = rental.paid_cents + amount
-    paid_at  = if new_paid >= summary.total_cents, do: Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx()), else: nil
+
+    paid_at =
+      if new_paid >= summary.total_cents,
+        do: Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx()),
+        else: nil
 
     Repo.transaction(fn ->
       updated =
@@ -173,10 +177,10 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces do
       %SpaceRentalPayment{}
       |> SpaceRentalPayment.changeset(%{
         space_rental_id: rental.id,
-        amount_cents:    amount,
-        payment_date:    Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx()),
-        method:          Map.get(attrs, :method),
-        note:            Map.get(attrs, :note)
+        amount_cents: amount,
+        payment_date: Map.get(attrs, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx()),
+        method: Map.get(attrs, :method),
+        note: Map.get(attrs, :note)
       })
       |> Repo.insert!()
 

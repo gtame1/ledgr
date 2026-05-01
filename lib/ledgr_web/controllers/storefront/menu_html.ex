@@ -14,6 +14,7 @@ defmodule LedgrWeb.Storefront.MenuHTML do
   @doc "Strip markdown formatting from text, returning plain text suitable for previews."
   def strip_markdown(nil), do: ""
   def strip_markdown(""), do: ""
+
   def strip_markdown(text) do
     text
     # Headings: ## Title -> Title
@@ -40,6 +41,7 @@ defmodule LedgrWeb.Storefront.MenuHTML do
   @doc "Truncate text to a maximum length, appending ellipsis if needed"
   def truncate(nil, _max), do: ""
   def truncate(text, max) when byte_size(text) <= max, do: text
+
   def truncate(text, max) do
     String.slice(text, 0, max) <> "..."
   end

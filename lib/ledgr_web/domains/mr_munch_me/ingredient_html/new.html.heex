@@ -8,61 +8,69 @@
     </div>
   </div>
 
-<section class="card">
+  <section class="card">
+    <.form :let={f} for={@changeset} as={:ingredient} action={@action} class="form-grid">
+      <%= if @changeset.action do %>
+        <div class="alert alert-error">
+          <p>There were problems with your ingredient. Please review the fields below.</p>
+          <ul>
+            <%= for {field, {message, _}} <- @changeset.errors do %>
+              <li>{humanize(field)}: {message}</li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
 
-  <.form :let={f} for={@changeset} as={:ingredient} action={@action} class="form-grid">
-    <%= if @changeset.action do %>
-      <div class="alert alert-error">
-        <p>There were problems with your ingredient. Please review the fields below.</p>
-        <ul>
-          <%= for {field, {message, _}} <- @changeset.errors do %>
-            <li><%= humanize(field) %>: <%= message %></li>
-          <% end %>
-        </ul>
+      <div class="form-block">
+        <div class="field">
+          <.input field={f[:code]} type="text" label="Ingredient Code" />
+          <p class="field-help">Unique identifier for this ingredient (e.g., FLOUR, SUGAR)</p>
+        </div>
+
+        <div class="field">
+          <.input field={f[:name]} type="text" label="Ingredient Name" />
+        </div>
+
+        <div class="field">
+          <.input field={f[:unit]} type="text" label="Unit" />
+          <p class="field-help">Unit of measurement (e.g., g, ml, unit, kg)</p>
+        </div>
+
+        <div class="field">
+          <.input
+            field={f[:cost_per_unit_pesos]}
+            type="number"
+            label="Cost per Unit (MXN)"
+            step="0.01"
+            min="0"
+          />
+          <p class="field-help">
+            Default cost per unit in pesos (e.g., 1.50). Used as fallback when no purchase history exists.
+          </p>
+        </div>
+
+        <div class="field">
+          <.input
+            field={f[:inventory_type]}
+            type="select"
+            label="Inventory Type"
+            prompt="Select inventory type"
+            options={@inventory_type_options}
+          />
+          <p class="field-help">
+            Determines which inventory account this ingredient uses (Ingredients, Packing, or Kitchen Equipment)
+          </p>
+        </div>
       </div>
-    <% end %>
 
-    <div class="form-block">
-      <div class="field">
-        <.input field={f[:code]} type="text" label="Ingredient Code" />
-        <p class="field-help">Unique identifier for this ingredient (e.g., FLOUR, SUGAR)</p>
+      <div class="actions">
+        <button class="btn primary" type="submit">
+          Create Ingredient
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/ingredients")} class="btn">
+          Cancel
+        </.link>
       </div>
-
-      <div class="field">
-        <.input field={f[:name]} type="text" label="Ingredient Name" />
-      </div>
-
-      <div class="field">
-        <.input field={f[:unit]} type="text" label="Unit" />
-        <p class="field-help">Unit of measurement (e.g., g, ml, unit, kg)</p>
-      </div>
-
-      <div class="field">
-        <.input field={f[:cost_per_unit_pesos]} type="number" label="Cost per Unit (MXN)" step="0.01" min="0" />
-        <p class="field-help">Default cost per unit in pesos (e.g., 1.50). Used as fallback when no purchase history exists.</p>
-      </div>
-
-      <div class="field">
-        <.input
-          field={f[:inventory_type]}
-          type="select"
-          label="Inventory Type"
-          prompt="Select inventory type"
-          options={@inventory_type_options}
-        />
-        <p class="field-help">Determines which inventory account this ingredient uses (Ingredients, Packing, or Kitchen Equipment)</p>
-      </div>
-    </div>
-
-    <div class="actions">
-      <button class="btn primary" type="submit">
-        Create Ingredient
-      </button>
-      <.link navigate={dp(@domain_path_prefix, "/ingredients")} class="btn">
-        Cancel
-      </.link>
-    </div>
-  </.form>
-</section>
+    </.form>
+  </section>
 </div>
-

@@ -74,7 +74,14 @@ defmodule Ledgr.Domains.MrMunchMeTest do
       customer = customer_fixture(%{phone: "5550000002"})
       variant = variant_fixture()
       location = location_fixture()
-      _order = order_fixture(%{variant: variant, location: location, status: "new_order", customer_id: customer.id})
+
+      _order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "new_order",
+          customer_id: customer.id
+        })
 
       assert MrMunchMe.has_active_dependencies?(customer.id)
     end
@@ -83,7 +90,14 @@ defmodule Ledgr.Domains.MrMunchMeTest do
       customer = customer_fixture(%{phone: "5550000003"})
       variant = variant_fixture()
       location = location_fixture()
-      _order = order_fixture(%{variant: variant, location: location, status: "canceled", customer_id: customer.id})
+
+      _order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "canceled",
+          customer_id: customer.id
+        })
 
       refute MrMunchMe.has_active_dependencies?(customer.id)
     end
@@ -121,9 +135,29 @@ defmodule Ledgr.Domains.MrMunchMeTest do
       location = location_fixture()
       today = Date.utc_today()
 
-      _delivered = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
-      _new_order = order_fixture(%{variant: variant, location: location, status: "new_order", delivery_date: today})
-      _canceled = order_fixture(%{variant: variant, location: location, status: "canceled", delivery_date: today})
+      _delivered =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
+
+      _new_order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "new_order",
+          delivery_date: today
+        })
+
+      _canceled =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "canceled",
+          delivery_date: today
+        })
 
       count = MrMunchMe.delivered_order_count(today, today)
       assert count == 1
@@ -135,8 +169,21 @@ defmodule Ledgr.Domains.MrMunchMeTest do
       today = Date.utc_today()
       yesterday = Date.add(today, -1)
 
-      _today_order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
-      _yesterday_order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: yesterday})
+      _today_order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
+
+      _yesterday_order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: yesterday
+        })
 
       assert MrMunchMe.delivered_order_count(today, today) == 1
       assert MrMunchMe.delivered_order_count(yesterday, today) == 2

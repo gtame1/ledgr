@@ -21,7 +21,7 @@
             value={@form_values["customer_name"]}
           />
           <%= if @errors[:customer_name] do %>
-            <span class="checkout-error"><%= @errors[:customer_name] %></span>
+            <span class="checkout-error">{@errors[:customer_name]}</span>
           <% end %>
         </div>
 
@@ -36,7 +36,7 @@
             value={@form_values["customer_phone"]}
           />
           <%= if @errors[:customer_phone] do %>
-            <span class="checkout-error"><%= @errors[:customer_phone] %></span>
+            <span class="checkout-error">{@errors[:customer_phone]}</span>
           <% end %>
         </div>
 
@@ -57,8 +57,13 @@
           <label>Tipo de entrega *</label>
           <div class="checkout-radio-group">
             <label class="checkout-radio">
-              <input type="radio" name="checkout[delivery_type]" value="pickup" required
-                checked={@form_values["delivery_type"] == "pickup"} />
+              <input
+                type="radio"
+                name="checkout[delivery_type]"
+                value="pickup"
+                required
+                checked={@form_values["delivery_type"] == "pickup"}
+              />
               <span>Recoger (coordinar por WhatsApp)</span>
             </label>
             <label class="checkout-radio">
@@ -72,28 +77,39 @@
             </label>
           </div>
           <%= if @errors[:delivery_type] do %>
-            <span class="checkout-error"><%= @errors[:delivery_type] %></span>
+            <span class="checkout-error">{@errors[:delivery_type]}</span>
           <% end %>
-          <div id="delivery-note" class="checkout-delivery-banner"
-               style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}>
+          <div
+            id="delivery-note"
+            class="checkout-delivery-banner"
+            style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}
+          >
             <span class="checkout-delivery-banner-icon">🚚</span>
             <div>
               <strong>Costo de envío adicional</strong>
-              <p>Solo hacemos envíos dentro de la Ciudad de México. El costo de envío se cobra por separado y te lo confirmamos por WhatsApp al procesar tu pedido. Si estás en Bosques de las Lomas o zonas cercanas, es probable que el envío sea sin costo.</p>
+              <p>
+                Solo hacemos envíos dentro de la Ciudad de México. El costo de envío se cobra por separado y te lo confirmamos por WhatsApp al procesar tu pedido. Si estás en Bosques de las Lomas o zonas cercanas, es probable que el envío sea sin costo.
+              </p>
             </div>
           </div>
         </div>
 
         <div class="checkout-field">
           <label for="delivery_date">Fecha de entrega *</label>
-          <input type="date" id="delivery_date" name="checkout[delivery_date]" required
+          <input
+            type="date"
+            id="delivery_date"
+            name="checkout[delivery_date]"
+            required
             min={Date.to_string(@min_delivery_date)}
-            value={@form_values["delivery_date"]} />
+            value={@form_values["delivery_date"]}
+          />
           <%= if @errors[:delivery_date] do %>
-            <span class="checkout-error"><%= @errors[:delivery_date] %></span>
+            <span class="checkout-error">{@errors[:delivery_date]}</span>
           <% end %>
           <p class="checkout-hint">
-            Fecha mínima de entrega: <strong><%= Date.to_string(@min_delivery_date) %></strong> (mínimo 36 horas de anticipación).
+            Fecha mínima de entrega: <strong>{Date.to_string(@min_delivery_date)}</strong>
+            (mínimo 36 horas de anticipación).
           </p>
         </div>
 
@@ -107,12 +123,15 @@
             value={@form_values["delivery_time"]}
           />
           <%= if @errors[:delivery_time] do %>
-            <span class="checkout-error"><%= @errors[:delivery_time] %></span>
+            <span class="checkout-error">{@errors[:delivery_time]}</span>
           <% end %>
         </div>
 
-        <div class="checkout-field" id="delivery-address-field"
-             style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}>
+        <div
+          class="checkout-field"
+          id="delivery-address-field"
+          style={if @form_values["delivery_type"] == "delivery", do: "", else: "display:none;"}
+        >
           <label for="delivery_address">Dirección de entrega</label>
           <textarea
             id="delivery_address"
@@ -138,7 +157,10 @@
             ¿Tienes un código de descuento?
             <span class="discount-toggle-arrow" id="toggle-discount-arrow">›</span>
           </button>
-          <div id="discount-section" style={if @discount || @errors[:discount_code], do: "", else: "display:none;"}>
+          <div
+            id="discount-section"
+            style={if @discount || @errors[:discount_code], do: "", else: "display:none;"}
+          >
             <div class="checkout-discount-row" style="margin-top: 0.5rem;">
               <input
                 type="text"
@@ -149,20 +171,35 @@
               />
               <button type="button" id="apply-discount-btn" class="btn">Aplicar</button>
             </div>
-            <input type="hidden" name="checkout[discount_code]" id="discount_code_hidden" value={@form_values["discount_code"] || ""} />
-            <input type="hidden" name="checkout[discount_type]" id="discount_type_hidden" value={@form_values["discount_type"] || ""} />
-            <input type="hidden" name="checkout[discount_value]" id="discount_value_hidden" value={@form_values["discount_value"] || ""} />
+            <input
+              type="hidden"
+              name="checkout[discount_code]"
+              id="discount_code_hidden"
+              value={@form_values["discount_code"] || ""}
+            />
+            <input
+              type="hidden"
+              name="checkout[discount_type]"
+              id="discount_type_hidden"
+              value={@form_values["discount_type"] || ""}
+            />
+            <input
+              type="hidden"
+              name="checkout[discount_value]"
+              id="discount_value_hidden"
+              value={@form_values["discount_value"] || ""}
+            />
             <div id="discount-result" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
             <%= if @errors[:discount_code] do %>
-              <span class="checkout-error"><%= @errors[:discount_code] %></span>
+              <span class="checkout-error">{@errors[:discount_code]}</span>
             <% end %>
             <%= if @discount do %>
               <p style="color: var(--color-success); margin-top: 0.25rem; font-size: 0.875rem;">
                 ✓ Descuento aplicado:
                 <%= if @discount.discount_type == "flat" do %>
-                  $<%= @discount.discount_value %> MXN
+                  ${@discount.discount_value} MXN
                 <% else %>
-                  <%= @discount.discount_value %>% off
+                  {@discount.discount_value}% off
                 <% end %>
               </p>
             <% end %>
@@ -174,55 +211,82 @@
         <div class="checkout-field">
           <div class="checkout-radio-group payment-options">
             <label class="payment-option">
-              <input type="radio" name="checkout[payment_method]" value="stripe" required
-                checked={@form_values["payment_method"] == "stripe"} />
+              <input
+                type="radio"
+                name="checkout[payment_method]"
+                value="stripe"
+                required
+                checked={@form_values["payment_method"] == "stripe"}
+              />
               <div class="payment-option-content">
                 <span class="payment-option-title">💳 Pagar ahora</span>
-                <span class="payment-option-desc">Tarjeta de crédito o débito — procesado de forma segura con Stripe</span>
+                <span class="payment-option-desc">
+                  Tarjeta de crédito o débito — procesado de forma segura con Stripe
+                </span>
               </div>
             </label>
             <label class="payment-option">
-              <input type="radio" name="checkout[payment_method]" value="cod"
-                checked={@form_values["payment_method"] == "cod"} />
+              <input
+                type="radio"
+                name="checkout[payment_method]"
+                value="cod"
+                checked={@form_values["payment_method"] == "cod"}
+              />
               <div class="payment-option-content">
                 <span class="payment-option-title">💵 Pagar al recibir</span>
-                <span class="payment-option-desc">Efectivo o transferencia al momento de la entrega</span>
+                <span class="payment-option-desc">
+                  Efectivo o transferencia al momento de la entrega
+                </span>
               </div>
             </label>
           </div>
           <%= if @errors[:payment_method] do %>
-            <span class="checkout-error"><%= @errors[:payment_method] %></span>
+            <span class="checkout-error">{@errors[:payment_method]}</span>
           <% end %>
         </div>
 
-        <%
-          discount_cents = cond do
+        <% discount_cents =
+          cond do
             @discount && @discount.discount_type == "flat" ->
               min(round(Decimal.to_float(@discount.discount_value) * 100), @cart_total)
+
             @discount && @discount.discount_type == "percentage" ->
-              min(round(@cart_total * Decimal.to_float(@discount.discount_value) / 100), @cart_total)
-            true -> 0
+              min(
+                round(@cart_total * Decimal.to_float(@discount.discount_value) / 100),
+                @cart_total
+              )
+
+            true ->
+              0
           end
-          final_total = @cart_total - discount_cents
-        %>
+
+        final_total = @cart_total - discount_cents %>
         <div class="checkout-order-recap">
           <div class="checkout-order-recap-row">
             <span>Subtotal</span>
-            <span id="recap-subtotal"><%= format_price(@cart_total) %></span>
+            <span id="recap-subtotal">{format_price(@cart_total)}</span>
           </div>
-          <div id="recap-discount-row" class="checkout-order-recap-row checkout-order-recap-discount" style={if @discount, do: "", else: "display:none;"}>
-            <span id="recap-discount-label">Descuento<%= if @discount, do: " (#{@discount.code})" %></span>
+          <div
+            id="recap-discount-row"
+            class="checkout-order-recap-row checkout-order-recap-discount"
+            style={if @discount, do: "", else: "display:none;"}
+          >
+            <span id="recap-discount-label">
+              Descuento{if @discount, do: " (#{@discount.code})"}
+            </span>
             <span id="recap-discount-amount">
-              <%= if discount_cents > 0, do: "– #{format_price(discount_cents)}" %>
+              {if discount_cents > 0, do: "– #{format_price(discount_cents)}"}
             </span>
           </div>
           <div class="checkout-order-recap-row checkout-order-recap-total">
             <span>Total</span>
-            <span id="recap-total"><%= format_price(final_total) %></span>
+            <span id="recap-total">{format_price(final_total)}</span>
           </div>
         </div>
 
-        <button type="submit" id="checkout-submit" class="btn btn-primary checkout-submit">Continuar</button>
+        <button type="submit" id="checkout-submit" class="btn btn-primary checkout-submit">
+          Continuar
+        </button>
       </form>
     </div>
 
@@ -234,31 +298,41 @@
           <%= for item <- @cart_items do %>
             <div class="checkout-summary-item">
               <span class="checkout-summary-item-name">
-                <%= item.product.name %> · <%= item.variant.name %> <span class="checkout-summary-qty">&times;<%= item.quantity %></span>
+                {item.product.name} · {item.variant.name}
+                <span class="checkout-summary-qty">&times;{item.quantity}</span>
               </span>
-              <span class="checkout-summary-item-price"><%= format_price(item.subtotal) %></span>
+              <span class="checkout-summary-item-price">{format_price(item.subtotal)}</span>
             </div>
           <% end %>
         </div>
-        <div class="checkout-summary-total" id="summary-subtotal" style="font-weight: normal; color: var(--text-secondary);">
+        <div
+          class="checkout-summary-total"
+          id="summary-subtotal"
+          style="font-weight: normal; color: var(--text-secondary);"
+        >
           <span>Subtotal</span>
-          <span><%= format_price(@cart_total) %></span>
+          <span>{format_price(@cart_total)}</span>
         </div>
-        <div id="summary-discount-row" style={if @discount, do: "", else: "display:none;"} class="checkout-summary-total" style="color: var(--color-success);">
+        <div
+          id="summary-discount-row"
+          style={if @discount, do: "", else: "display:none;"}
+          class="checkout-summary-total"
+          style="color: var(--color-success);"
+        >
           <span id="summary-discount-label">Descuento</span>
           <span id="summary-discount-amount">
             <%= if @discount do %>
               <%= if @discount.discount_type == "flat" do %>
-                – $<%= @discount.discount_value %> MXN
+                – ${@discount.discount_value} MXN
               <% else %>
-                – <%= @discount.discount_value %>%
+                – {@discount.discount_value}%
               <% end %>
             <% end %>
           </span>
         </div>
         <div class="checkout-summary-total" id="summary-total">
           <span>Total</span>
-          <span id="summary-total-amount"><%= format_price(@cart_total) %></span>
+          <span id="summary-total-amount">{format_price(@cart_total)}</span>
         </div>
       </div>
     </div>

@@ -27,6 +27,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
     {date_from_param, date_to_param} =
       if conn.params["all_dates"] == "true" do
         {earliest_date, latest_date} = Inventory.movement_date_range()
+
         {
           if(earliest_date, do: Date.to_iso8601(earliest_date), else: nil),
           if(latest_date, do: Date.to_iso8601(latest_date), else: nil)
@@ -38,13 +39,13 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
     # Check if we have search/filter params
     has_filters =
       conn.params["search"] != nil ||
-      conn.params["movement_type"] != nil ||
-      conn.params["ingredient_id"] != nil ||
-      conn.params["from_location_id"] != nil ||
-      conn.params["to_location_id"] != nil ||
-      date_from_param != nil ||
-      date_to_param != nil ||
-      conn.params["all_dates"] == "true"
+        conn.params["movement_type"] != nil ||
+        conn.params["ingredient_id"] != nil ||
+        conn.params["from_location_id"] != nil ||
+        conn.params["to_location_id"] != nil ||
+        date_from_param != nil ||
+        date_to_param != nil ||
+        conn.params["all_dates"] == "true"
 
     {recent_movements, movements_limit, has_more} =
       if has_filters do
@@ -52,29 +53,34 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
         search_opts = [
           search: conn.params["search"],
           movement_type: conn.params["movement_type"],
-          ingredient_code: conn.params["ingredient_id"],  # ingredient_id param actually contains the code
+          # ingredient_id param actually contains the code
+          ingredient_code: conn.params["ingredient_id"],
           from_location_id: parse_integer(conn.params["from_location_id"]),
           to_location_id: parse_integer(conn.params["to_location_id"]),
           date_from: parse_date(date_from_param),
           date_to: parse_date(date_to_param),
-          limit: 500  # Higher limit for filtered results
+          # Higher limit for filtered results
+          limit: 500
         ]
 
         movements = Inventory.search_movements(search_opts)
         {movements, length(movements), false}
       else
         # Use default recent movements with limit
-        limit = case Integer.parse(conn.params["movements_limit"] || "10") do
-          {parsed_limit, _} when parsed_limit > 0 -> parsed_limit
-          _ -> 10
-        end
+        limit =
+          case Integer.parse(conn.params["movements_limit"] || "10") do
+            {parsed_limit, _} when parsed_limit > 0 -> parsed_limit
+            _ -> 10
+          end
 
         movements = Inventory.list_recent_movements(limit)
         has_more = Inventory.has_more_movements?(limit)
         {movements, limit, has_more}
       end
 
-    total_value_cents = stock_items |> Enum.reduce(0, fn s, acc -> acc + (s.total_value_cents || 0) end)
+    total_value_cents =
+      stock_items |> Enum.reduce(0, fn s, acc -> acc + (s.total_value_cents || 0) end)
+
     ingredient_options = Inventory.ingredient_select_options()
     location_options = Inventory.location_select_options()
     {earliest_date, latest_date} = Inventory.movement_date_range()
@@ -108,24 +114,28 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
   # Helper to parse integer from string, returns nil if invalid
   defp parse_integer(nil), do: nil
   defp parse_integer(""), do: nil
+
   defp parse_integer(str) when is_binary(str) do
     case Integer.parse(str) do
       {int, _} -> int
       :error -> nil
     end
   end
+
   defp parse_integer(int) when is_integer(int), do: int
   defp parse_integer(_), do: nil
 
   # Helper to parse date from string, returns nil if invalid
   defp parse_date(nil), do: nil
   defp parse_date(""), do: nil
+
   defp parse_date(str) when is_binary(str) do
     case Date.from_iso8601(str) do
       {:ok, date} -> date
       {:error, _} -> nil
     end
   end
+
   defp parse_date(%Date{} = date), do: date
   defp parse_date(_), do: nil
 
@@ -176,12 +186,15 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
         |> redirect(to: dp(conn, "/inventory"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        Logger.error("❌ Inventory.create_purchase_list/1 returned changeset error: #{inspect(changeset.errors)}")
+        Logger.error(
+          "❌ Inventory.create_purchase_list/1 returned changeset error: #{inspect(changeset.errors)}"
+        )
 
         changeset = %{changeset | action: :insert}
         form = Phoenix.Component.to_form(changeset)
 
         ingredient_options = Inventory.ingredient_select_options()
+
         ingredient_options_list =
           Enum.map(ingredient_options, fn {name, code} -> [name, code] end)
 
@@ -245,12 +258,15 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
         |> redirect(to: dp(conn, "/inventory"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        Logger.error("❌ Inventory.create_movement_list/1 returned changeset error: #{inspect(changeset.errors)}")
+        Logger.error(
+          "❌ Inventory.create_movement_list/1 returned changeset error: #{inspect(changeset.errors)}"
+        )
 
         changeset = %{changeset | action: :insert}
         form = Phoenix.Component.to_form(changeset)
 
         ingredient_options = Inventory.ingredient_select_options()
+
         ingredient_options_list =
           Enum.map(ingredient_options, fn {name, code} -> [name, code] end)
 
@@ -276,9 +292,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
   def requirements(conn, _params) do
     requirements = Inventory.required_ingredients_for_new_orders()
 
-    render(conn, :requirements,
-      requirements: requirements
-    )
+    render(conn, :requirements, requirements: requirements)
   end
 
   # -------- Edit/Delete purchase --------
@@ -368,15 +382,20 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
   end
 
   def return_purchase(conn, %{"id" => id}) do
-    return_date = case conn.params["return_date"] do
-      nil -> nil
-      date_str when is_binary(date_str) ->
-        case Date.from_iso8601(date_str) do
-          {:ok, date} -> date
-          _ -> nil
-        end
-      _ -> nil
-    end
+    return_date =
+      case conn.params["return_date"] do
+        nil ->
+          nil
+
+        date_str when is_binary(date_str) ->
+          case Date.from_iso8601(date_str) do
+            {:ok, date} -> date
+            _ -> nil
+          end
+
+        _ ->
+          nil
+      end
 
     note = conn.params["note"]
 
@@ -502,9 +521,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryController do
         |> redirect(to: dp(conn, "/inventory"))
     end
   end
-
 end
-
 
 defmodule LedgrWeb.Domains.MrMunchMe.InventoryHTML do
   use LedgrWeb, :html

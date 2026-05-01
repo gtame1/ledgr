@@ -24,20 +24,24 @@ defmodule Mix.Tasks.VerifyInventoryAccounting do
       case result do
         {:ok, data} ->
           IO.puts("✅ #{format_check_name(check_name)}: OK")
+
           if is_map(data) do
             Enum.each(data, fn {k, v} ->
               IO.puts("   #{format_key(k)}: #{format_value(k, v)}")
             end)
           end
+
           IO.puts("")
 
         {:error, issues} ->
           IO.puts("❌ #{format_check_name(check_name)}: FAILED")
+
           if is_list(issues) do
             Enum.each(issues, fn issue -> IO.puts("   - #{issue}") end)
           else
             IO.puts("   - #{issues}")
           end
+
           IO.puts("")
       end
     end)
@@ -46,6 +50,7 @@ defmodule Mix.Tasks.VerifyInventoryAccounting do
 
     # Summary
     total_checks = map_size(results)
+
     passed_checks =
       results
       |> Enum.count(fn {_, result} -> match?({:ok, _}, result) end)
@@ -87,19 +92,19 @@ defmodule Mix.Tasks.VerifyInventoryAccounting do
     # Keys that are definitely counts, not currency
     is_count =
       String.starts_with?(key_str, "checked_") or
-      key_str == "unbalanced" or
-      key_str == "issues"
+        key_str == "unbalanced" or
+        key_str == "issues"
 
     # Keys that are definitely currency
     is_currency =
       (String.contains?(key_str, "balance") and not is_count) or
-      String.contains?(key_str, "cents") or
-      (String.contains?(key_str, "value") and not is_count) or
-      String.contains?(key_str, "cost") or
-      String.contains?(key_str, "debit") or
-      String.contains?(key_str, "credit") or
-      (String.contains?(key_str, "amount") and not is_count) or
-      String.contains?(key_str, "difference")
+        String.contains?(key_str, "cents") or
+        (String.contains?(key_str, "value") and not is_count) or
+        String.contains?(key_str, "cost") or
+        String.contains?(key_str, "debit") or
+        String.contains?(key_str, "credit") or
+        (String.contains?(key_str, "amount") and not is_count) or
+        String.contains?(key_str, "difference")
 
     if is_currency do
       # Format cents as currency

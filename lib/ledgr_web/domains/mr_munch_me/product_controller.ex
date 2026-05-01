@@ -6,7 +6,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
   alias Ledgr.Uploads
 
   def index(conn, params) do
-    sort  = params["sort"]  || "position"
+    sort = params["sort"] || "position"
     order = params["order"] || "asc"
 
     products =
@@ -18,6 +18,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
 
   def new(conn, _params) do
     changeset = Orders.change_product(%Product{})
+
     render(conn, :new,
       changeset: changeset,
       action: dp(conn, "/products")
@@ -32,7 +33,10 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
     case Orders.create_product(product_params) do
       {:ok, product} ->
         conn
-        |> put_flash(:info, "Product created. Add variants below, then create a recipe for each variant.")
+        |> put_flash(
+          :info,
+          "Product created. Add variants below, then create a recipe for each variant."
+        )
         |> redirect(to: dp(conn, "/products/#{product.id}/edit"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -46,7 +50,12 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
   def edit(conn, %{"id" => id}) do
     product = Orders.get_product_with_images!(id)
     changeset = Orders.change_product(product)
-    render(conn, :edit, product: product, changeset: changeset, action: dp(conn, "/products/#{product.id}"))
+
+    render(conn, :edit,
+      product: product,
+      changeset: changeset,
+      action: dp(conn, "/products/#{product.id}")
+    )
   end
 
   def update(conn, %{"id" => id, "product" => product_params} = params) do
@@ -63,7 +72,11 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
         |> redirect(to: dp(conn, "/products"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :edit, product: product, changeset: Map.put(changeset, :action, :update), action: dp(conn, "/products/#{product.id}"))
+        render(conn, :edit,
+          product: product,
+          changeset: Map.put(changeset, :action, :update),
+          action: dp(conn, "/products/#{product.id}")
+        )
     end
   end
 
@@ -105,7 +118,10 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
     |> redirect(to: dp(conn, "/products"))
   end
 
-  def upload_gallery_image(conn, %{"product_id" => product_id, "gallery_image" => %Plug.Upload{} = upload}) do
+  def upload_gallery_image(conn, %{
+        "product_id" => product_id,
+        "gallery_image" => %Plug.Upload{} = upload
+      }) do
     product = Orders.get_product!(product_id)
 
     case Uploads.save(upload) do
@@ -115,10 +131,10 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
         next_position = length(existing_images)
 
         case Orders.create_product_image(%{
-          product_id: product.id,
-          image_url: url_path,
-          position: next_position
-        }) do
+               product_id: product.id,
+               image_url: url_path,
+               position: next_position
+             }) do
           {:ok, _image} ->
             conn
             |> put_flash(:info, "Gallery image uploaded successfully.")
@@ -165,7 +181,9 @@ defmodule LedgrWeb.Domains.MrMunchMe.ProductController do
   defp sort_products(products, _name, _asc),
     do: Enum.sort_by(products, &String.downcase(&1.name), :asc)
 
-  defp handle_thumbnail_upload(product_params, %{"product" => %{"thumbnail" => %Plug.Upload{} = upload}}) do
+  defp handle_thumbnail_upload(product_params, %{
+         "product" => %{"thumbnail" => %Plug.Upload{} = upload}
+       }) do
     case Uploads.save(upload) do
       {:ok, url_path} ->
         # Delete old uploaded thumbnail if it was a local upload

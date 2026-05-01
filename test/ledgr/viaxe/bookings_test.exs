@@ -19,28 +19,48 @@ defmodule Ledgr.Domains.Viaxe.BookingsTest do
 
   defp viaxe_accounts_fixture do
     accounts = [
-      %{code: "1000", name: "Cash",                  type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1100", name: "Commission Receivable",  type: "asset",     normal_balance: "debit",  is_cash: false},
-      %{code: "2200", name: "Advance Commission",     type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "4000", name: "Commission Revenue",     type: "revenue",   normal_balance: "credit", is_cash: false}
+      %{code: "1000", name: "Cash", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1100",
+        name: "Commission Receivable",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "2200",
+        name: "Advance Commission",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Commission Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      }
     ]
 
     Enum.each(accounts, fn attrs ->
       case Accounting.get_account_by_code(attrs.code) do
         nil -> {:ok, _} = Accounting.create_account(attrs)
-        _   -> :ok
+        _ -> :ok
       end
     end)
   end
 
   defp customer_fixture do
     unique = System.unique_integer([:positive])
+
     {:ok, customer} =
       Customers.create_customer(%{
         first_name: "Ana",
         last_name: "García #{unique}",
         phone: "+52551#{unique}"
       })
+
     customer
   end
 
@@ -52,6 +72,7 @@ defmodule Ledgr.Domains.Viaxe.BookingsTest do
         end_date: ~D[2026-08-10],
         status: "planning"
       })
+
     trip
   end
 
@@ -266,10 +287,11 @@ defmodule Ledgr.Domains.Viaxe.BookingsTest do
 
   describe "create_booking_item/1 and delete_booking_item/1" do
     test "creates a booking item and recalculates totals" do
-      booking = booking_fixture(%{
-        commission_type: "fixed",
-        commission_value: 50_000
-      })
+      booking =
+        booking_fixture(%{
+          commission_type: "fixed",
+          commission_value: 50_000
+        })
 
       assert {:ok, %BookingItem{} = item} =
                Bookings.create_booking_item(%{
@@ -312,10 +334,11 @@ defmodule Ledgr.Domains.Viaxe.BookingsTest do
     end
 
     test "returns correct summary after advance payment" do
-      booking = booking_fixture(%{
-        commission_type: "fixed",
-        commission_value: 50_000
-      })
+      booking =
+        booking_fixture(%{
+          commission_type: "fixed",
+          commission_value: 50_000
+        })
 
       # Reload to get commission_cents calculated
       booking = Repo.get!(Booking, booking.id)

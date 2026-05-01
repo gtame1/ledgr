@@ -2,45 +2,78 @@
 <section class="card" style="margin-bottom: 1.5rem;">
   <div class="card-header">
     <div>
-      <h2 class="card-title"><%= @subscription.customer.name %></h2>
+      <h2 class="card-title">{@subscription.customer.name}</h2>
       <p class="card-subtitle">
-        <%= @subscription.subscription_plan.name %> ·
+        {@subscription.subscription_plan.name} ·
         <span class={"status-badge #{plan_type_badge(@subscription.subscription_plan.plan_type)}"}>
-          <%= String.capitalize(@subscription.subscription_plan.plan_type) %>
+          {String.capitalize(@subscription.subscription_plan.plan_type)}
         </span>
         ·
         <span class={"status-badge #{status_class(@subscription.status)}"}>
-          <%= String.capitalize(@subscription.status) %>
+          {String.capitalize(@subscription.status)}
         </span>
       </p>
     </div>
 
-    <%
-      is_extra = @subscription.subscription_plan.plan_type == "extra"
-      redeemed = is_extra && @subscription.classes_used >= 1
-      show_dropdown = !redeemed && @subscription.status != "cancelled"
-    %>
+    <% is_extra = @subscription.subscription_plan.plan_type == "extra"
+    redeemed = is_extra && @subscription.classes_used >= 1
+    show_dropdown = !redeemed && @subscription.status != "cancelled" %>
     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
       <%= if redeemed do %>
-        <span class="status-badge status-paid" style="font-size: 0.8rem;">✓ Used / Delivered</span>
+        <span class="status-badge status-paid" style="font-size: 0.8rem;">
+          ✓ Used / Delivered
+        </span>
       <% end %>
 
       <%= if show_dropdown do %>
         <details class="action-dropdown">
           <summary class="btn" style="gap: 0.4rem;">
             Actions
-            <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
+            <svg
+              class="chevron"
+              xmlns="http://www.w3.org/2000/svg"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
             </svg>
           </summary>
           <div class="action-dropdown-menu">
-
             <%!-- Mark as Used (active extra, not yet redeemed) --%>
             <%= if @subscription.status == "active" && is_extra do %>
-              <form action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/redeem")} method="post">
-                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-                <button type="submit" class="action-menu-item" onclick="return confirm('Mark this item as used/delivered?')">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <form
+                action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/redeem")}
+                method="post"
+              >
+                <input
+                  type="hidden"
+                  name="_csrf_token"
+                  value={Phoenix.Controller.get_csrf_token()}
+                />
+                <button
+                  type="submit"
+                  class="action-menu-item"
+                  onclick="return confirm('Mark this item as used/delivered?')"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                   Mark as Used
                 </button>
               </form>
@@ -48,29 +81,95 @@
 
             <%!-- Reactivate: paused → direct, expired/completed → form with new date --%>
             <%= if @subscription.status == "paused" do %>
-              <form action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/status")} method="post">
-                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <form
+                action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/status")}
+                method="post"
+              >
+                <input
+                  type="hidden"
+                  name="_csrf_token"
+                  value={Phoenix.Controller.get_csrf_token()}
+                />
                 <input type="hidden" name="status" value="active" />
-                <button type="submit" class="action-menu-item" onclick="return confirm('Reactivate this subscription?')">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+                <button
+                  type="submit"
+                  class="action-menu-item"
+                  onclick="return confirm('Reactivate this subscription?')"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.36" />
+                  </svg>
                   Reactivate
                 </button>
               </form>
             <% end %>
             <%= if @subscription.status in ["expired", "completed"] do %>
-              <a href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/reactivate")} class="action-menu-item">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+              <a
+                href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/reactivate")}
+                class="action-menu-item"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.36" />
+                </svg>
                 Reactivate
               </a>
             <% end %>
 
             <%!-- Pause (active only) --%>
             <%= if @subscription.status == "active" do %>
-              <form action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/status")} method="post">
-                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <form
+                action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/status")}
+                method="post"
+              >
+                <input
+                  type="hidden"
+                  name="_csrf_token"
+                  value={Phoenix.Controller.get_csrf_token()}
+                />
                 <input type="hidden" name="status" value="paused" />
-                <button type="submit" class="action-menu-item" onclick="return confirm('Pause this subscription?')">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                <button
+                  type="submit"
+                  class="action-menu-item"
+                  onclick="return confirm('Pause this subscription?')"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="6" y="4" width="4" height="16" /><rect
+                      x="14"
+                      y="4"
+                      width="4"
+                      height="16"
+                    />
+                  </svg>
                   Pause
                 </button>
               </form>
@@ -78,11 +177,34 @@
 
             <%!-- Mark Expired (active or paused) --%>
             <%= if @subscription.status in ["active", "paused"] do %>
-              <form action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/status")} method="post">
-                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <form
+                action={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/status")}
+                method="post"
+              >
+                <input
+                  type="hidden"
+                  name="_csrf_token"
+                  value={Phoenix.Controller.get_csrf_token()}
+                />
                 <input type="hidden" name="status" value="expired" />
-                <button type="submit" class="action-menu-item" onclick="return confirm('Mark this subscription as expired?')">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <button
+                  type="submit"
+                  class="action-menu-item"
+                  onclick="return confirm('Mark this subscription as expired?')"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
                   Mark Expired
                 </button>
               </form>
@@ -91,17 +213,39 @@
             <%!-- Cancel (active or paused) — separated by a divider --%>
             <%= if @subscription.status in ["active", "paused"] do %>
               <div class="action-menu-divider"></div>
-              <a href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/cancel")} class="action-menu-item danger">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <a
+                href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/cancel")}
+                class="action-menu-item danger"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line
+                    x1="9"
+                    y1="9"
+                    x2="15"
+                    y2="15"
+                  />
+                </svg>
                 Cancel Subscription
               </a>
             <% end %>
-
           </div>
         </details>
       <% end %>
 
-      <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/edit")} class="btn">
+      <.link
+        navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/edit")}
+        class="btn"
+      >
         Edit
       </.link>
       <.link navigate={dp(@domain_path_prefix, "/subscriptions")} class="btn">
@@ -109,7 +253,6 @@
       </.link>
     </div>
   </div>
-
 </section>
 
 <%!-- ── Plan Details (billing + recognition) ───────────────────────── --%>
@@ -122,15 +265,15 @@
   <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.875rem;">
     <div>
       <span style="color: var(--text-muted); margin-right: 0.4rem;">Period</span>
-      <span style="font-weight: 500;"><%= @subscription.starts_on %> → <%= @subscription.ends_on %></span>
+      <span style="font-weight: 500;">{@subscription.starts_on} → {@subscription.ends_on}</span>
     </div>
     <%= if @subscription.subscription_plan.plan_type != "extra" do %>
       <div>
         <span style="color: var(--text-muted); margin-right: 0.4rem;">Classes Used</span>
         <span style="font-weight: 500;">
-          <%= @subscription.classes_used %>
+          {@subscription.classes_used}
           <%= if @subscription.subscription_plan.class_limit do %>
-            / <%= @subscription.subscription_plan.class_limit %>
+            / {@subscription.subscription_plan.class_limit}
           <% else %>
             / ∞
           <% end %>
@@ -140,44 +283,62 @@
   </div>
 
   <%!-- Billing + Recognition columns --%>
-  <% billing_cols = if @subscription.subscription_plan.plan_type != "extra", do: "1fr 1fr", else: "1fr" %>
+  <% billing_cols =
+    if @subscription.subscription_plan.plan_type != "extra", do: "1fr 1fr", else: "1fr" %>
   <div style={"margin-top: 0.75rem; display: grid; grid-template-columns: #{billing_cols}; gap: 1.5rem;"}>
-
     <div>
-      <p style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Billing</p>
+      <p style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
+        Billing
+      </p>
       <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
         <tbody>
           <tr>
             <td style="padding: 0.3rem 0; color: var(--text-muted);">Plan Price</td>
-            <td style="padding: 0.3rem 0; text-align: right;"><%= format_currency(@summary.base_cents) %></td>
+            <td style="padding: 0.3rem 0; text-align: right;">
+              {format_currency(@summary.base_cents)}
+            </td>
           </tr>
           <%= if @summary.discount_cents > 0 do %>
             <tr>
               <td style="padding: 0.3rem 0; color: var(--text-muted);">Discount</td>
-              <td style="padding: 0.3rem 0; text-align: right; color: var(--green, #16a34a);">− <%= format_currency(@summary.discount_cents) %></td>
+              <td style="padding: 0.3rem 0; text-align: right; color: var(--green, #16a34a);">
+                − {format_currency(@summary.discount_cents)}
+              </td>
             </tr>
             <tr>
               <td style="padding: 0.3rem 0; color: var(--text-muted);">Subtotal</td>
-              <td style="padding: 0.3rem 0; text-align: right;"><%= format_currency(@summary.effective_price) %></td>
+              <td style="padding: 0.3rem 0; text-align: right;">
+                {format_currency(@summary.effective_price)}
+              </td>
             </tr>
           <% end %>
           <%= if @summary.iva_cents > 0 do %>
             <tr>
               <td style="padding: 0.3rem 0; color: var(--text-muted);">IVA (16%)</td>
-              <td style="padding: 0.3rem 0; text-align: right; color: var(--text-muted);"><%= format_currency(@summary.iva_cents) %></td>
+              <td style="padding: 0.3rem 0; text-align: right; color: var(--text-muted);">
+                {format_currency(@summary.iva_cents)}
+              </td>
             </tr>
           <% end %>
           <tr style="border-top: 1px solid var(--border); font-weight: 600;">
             <td style="padding: 0.4rem 0 0.3rem;">Total Due</td>
-            <td style="padding: 0.4rem 0 0.3rem; text-align: right;"><%= format_currency(@summary.total_cents) %></td>
+            <td style="padding: 0.4rem 0 0.3rem; text-align: right;">
+              {format_currency(@summary.total_cents)}
+            </td>
           </tr>
           <tr>
             <td style="padding: 0.3rem 0; color: var(--text-muted);">Paid</td>
-            <td style="padding: 0.3rem 0; text-align: right; color: var(--green, #16a34a);"><%= format_currency(@summary.total_paid) %></td>
+            <td style="padding: 0.3rem 0; text-align: right; color: var(--green, #16a34a);">
+              {format_currency(@summary.total_paid)}
+            </td>
           </tr>
           <tr style="border-top: 1px solid var(--border); font-weight: 600;">
-            <td style={"padding: 0.4rem 0 0; #{if @summary.outstanding_cents > 0, do: "color: var(--danger, #dc2626);", else: ""}"}>Outstanding</td>
-            <td style={"padding: 0.4rem 0 0; text-align: right; #{if @summary.outstanding_cents > 0, do: "color: var(--danger, #dc2626);", else: ""}"}><%= format_currency(@summary.outstanding_cents) %></td>
+            <td style={"padding: 0.4rem 0 0; #{if @summary.outstanding_cents > 0, do: "color: var(--danger, #dc2626);", else: ""}"}>
+              Outstanding
+            </td>
+            <td style={"padding: 0.4rem 0 0; text-align: right; #{if @summary.outstanding_cents > 0, do: "color: var(--danger, #dc2626);", else: ""}"}>
+              {format_currency(@summary.outstanding_cents)}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -185,29 +346,35 @@
 
     <%= if @subscription.subscription_plan.plan_type != "extra" do %>
       <div>
-        <p style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Recognition</p>
+        <p style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Recognition
+        </p>
         <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
           <tbody>
             <tr>
               <td style="padding: 0.3rem 0; color: var(--text-muted);">Deferred</td>
-              <td style="padding: 0.3rem 0; text-align: right;"><%= format_currency(@summary.deferred) %></td>
+              <td style="padding: 0.3rem 0; text-align: right;">
+                {format_currency(@summary.deferred)}
+              </td>
             </tr>
             <tr>
               <td style="padding: 0.3rem 0; color: var(--text-muted);">Recognized</td>
-              <td style="padding: 0.3rem 0; text-align: right; color: var(--green, #16a34a);"><%= format_currency(@summary.recognized) %></td>
+              <td style="padding: 0.3rem 0; text-align: right; color: var(--green, #16a34a);">
+                {format_currency(@summary.recognized)}
+              </td>
             </tr>
             <tr style="border-top: 1px solid var(--border); font-weight: 600;">
               <td style="padding: 0.4rem 0 0; color: var(--text-muted);">Remaining Deferred</td>
-              <td style="padding: 0.4rem 0 0; text-align: right;"><%= format_currency(@summary.remaining) %></td>
+              <td style="padding: 0.4rem 0 0; text-align: right;">
+                {format_currency(@summary.remaining)}
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     <% end %>
-
   </div>
 </section>
-
 
 <%!-- ── Notes ──────────────────────────────────────────────────────── --%>
 <%= if @subscription.notes do %>
@@ -215,7 +382,7 @@
     <div class="card-header">
       <h3 class="card-title" style="font-size: 1rem;">Notes</h3>
     </div>
-    <p style="margin-top: 0.5rem; color: var(--text-muted);"><%= @subscription.notes %></p>
+    <p style="margin-top: 0.5rem; color: var(--text-muted);">{@subscription.notes}</p>
   </section>
 <% end %>
 
@@ -224,14 +391,20 @@
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Payment History</h3>
     <%= if @subscription.status not in ["cancelled", "expired", "completed"] do %>
-      <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/payment/new")} class="btn primary" style="font-size: 0.8rem;">
+      <.link
+        navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/payment/new")}
+        class="btn primary"
+        style="font-size: 0.8rem;"
+      >
         + Record Payment
       </.link>
     <% end %>
   </div>
 
   <%= if @payments == [] do %>
-    <p style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.875rem;">No payments recorded yet.</p>
+    <p style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.875rem;">
+      No payments recorded yet.
+    </p>
   <% else %>
     <div style="margin-top: 0.75rem; overflow-x: auto;">
       <table class="table" style="width: 100%;">
@@ -245,27 +418,54 @@
         </thead>
         <tbody>
           <%= for entry <- @payments do %>
-            <%
-              cash_line = entry.journal_lines |> Enum.find(&(&1.debit_cents > 0))
-              amount_cents = if cash_line, do: cash_line.debit_cents, else: 0
-              note =
-                case cash_line do
-                  nil -> nil
-                  line ->
-                    desc = line.description || ""
-                    if String.starts_with?(desc, "Cash received") or String.starts_with?(desc, "Subscription payment"), do: nil, else: desc
-                end
-            %>
+            <% cash_line = entry.journal_lines |> Enum.find(&(&1.debit_cents > 0))
+            amount_cents = if cash_line, do: cash_line.debit_cents, else: 0
+
+            note =
+              case cash_line do
+                nil ->
+                  nil
+
+                line ->
+                  desc = line.description || ""
+
+                  if String.starts_with?(desc, "Cash received") or
+                       String.starts_with?(desc, "Subscription payment"),
+                     do: nil,
+                     else: desc
+              end %>
             <tr>
-              <td style="white-space: nowrap; font-size: 0.875rem;"><%= entry.date %></td>
-              <td style="text-align: right; font-weight: 600;"><%= format_currency(amount_cents) %></td>
-              <td style="color: var(--text-muted); font-size: 0.875rem;"><%= note || "—" %></td>
+              <td style="white-space: nowrap; font-size: 0.875rem;">{entry.date}</td>
+              <td style="text-align: right; font-weight: 600;">
+                {format_currency(amount_cents)}
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.875rem;">{note || "—"}</td>
               <td style="text-align: center;">
                 <div style="display: flex; gap: 0.4rem; justify-content: center;">
-                  <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/payment/#{entry.id}/edit")} class="btn" style="font-size: 0.75rem; padding: 0.2rem 0.6rem;">
+                  <.link
+                    navigate={
+                      dp(
+                        @domain_path_prefix,
+                        "/subscriptions/#{@subscription.id}/payment/#{entry.id}/edit"
+                      )
+                    }
+                    class="btn"
+                    style="font-size: 0.75rem; padding: 0.2rem 0.6rem;"
+                  >
                     Edit
                   </.link>
-                  <.link href={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}/payment/#{entry.id}")} method="delete" data-confirm="Delete this payment? This will reverse the deferred revenue." class="btn danger" style="font-size: 0.75rem; padding: 0.2rem 0.6rem;">
+                  <.link
+                    href={
+                      dp(
+                        @domain_path_prefix,
+                        "/subscriptions/#{@subscription.id}/payment/#{entry.id}"
+                      )
+                    }
+                    method="delete"
+                    data-confirm="Delete this payment? This will reverse the deferred revenue."
+                    class="btn danger"
+                    style="font-size: 0.75rem; padding: 0.2rem 0.6rem;"
+                  >
                     Delete
                   </.link>
                 </div>

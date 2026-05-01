@@ -1,5 +1,4 @@
 <div class="hd-page-container">
-
   <%!-- ── Header ── --%>
   <div class="flex items-center justify-between mb-6">
     <div>
@@ -11,9 +10,21 @@
 
     <%!-- Date range filter --%>
     <form method="get" class="flex items-center gap-2">
-      <input type="date" name="start_date" value={@start_date} class="hd-input text-sm" style="padding: 0.35rem 0.6rem;" />
+      <input
+        type="date"
+        name="start_date"
+        value={@start_date}
+        class="hd-input text-sm"
+        style="padding: 0.35rem 0.6rem;"
+      />
       <span style="color: var(--text-muted);">→</span>
-      <input type="date" name="end_date"   value={@end_date}   class="hd-input text-sm" style="padding: 0.35rem 0.6rem;" />
+      <input
+        type="date"
+        name="end_date"
+        value={@end_date}
+        class="hd-input text-sm"
+        style="padding: 0.35rem 0.6rem;"
+      />
       <button type="submit" class="hd-btn-sm">Filter</button>
     </form>
   </div>
@@ -22,22 +33,30 @@
   <div class="hd-kpi-grid mb-6">
     <div class="hd-kpi">
       <div class="hd-kpi-label">Total Billed</div>
-      <div class="hd-kpi-value">$<%= :erlang.float_to_binary(@report.total_billed + 0.0, decimals: 2) %></div>
+      <div class="hd-kpi-value">
+        ${:erlang.float_to_binary(@report.total_billed + 0.0, decimals: 2)}
+      </div>
       <div class="hd-kpi-sub">gross revenue from paid consultations</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Total Owed to Doctors</div>
-      <div class="hd-kpi-value" style="color: #dc2626;">$<%= :erlang.float_to_binary(@report.total_doctor_share + 0.0, decimals: 2) %></div>
+      <div class="hd-kpi-value" style="color: #dc2626;">
+        ${:erlang.float_to_binary(@report.total_doctor_share + 0.0, decimals: 2)}
+      </div>
       <div class="hd-kpi-sub">85% of gross billed</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Stripe Fees</div>
-      <div class="hd-kpi-value">$<%= :erlang.float_to_binary(@report.total_stripe_fees + 0.0, decimals: 2) %></div>
+      <div class="hd-kpi-value">
+        ${:erlang.float_to_binary(@report.total_stripe_fees + 0.0, decimals: 2)}
+      </div>
       <div class="hd-kpi-sub">total processing costs</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Net to HelloDoctor</div>
-      <div class="hd-kpi-value" style="color: var(--accent);">$<%= :erlang.float_to_binary(@report.total_net_to_hd + 0.0, decimals: 2) %></div>
+      <div class="hd-kpi-value" style="color: var(--accent);">
+        ${:erlang.float_to_binary(@report.total_net_to_hd + 0.0, decimals: 2)}
+      </div>
       <div class="hd-kpi-sub">15% commission minus Stripe fees</div>
     </div>
   </div>
@@ -53,31 +72,76 @@
       <table class="w-full text-sm">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
-            <th class="text-left p-3 pl-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">Doctor</th>
-            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Specialty</th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Consultations</th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Total Billed</th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Stripe Fees</th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Doctor Share (85%)</th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">HD Net (15%−fees)</th>
-            <th class="p-3 pr-4 text-xs font-semibold uppercase" style="color: var(--text-muted);"></th>
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Doctor
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Specialty
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Consultations
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Total Billed
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Stripe Fees
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Doctor Share (85%)
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              HD Net (15%−fees)
+            </th>
+            <th class="p-3 pr-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            </th>
           </tr>
         </thead>
         <tbody>
           <%= for row <- @report.rows do %>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
-              <td class="p-3 pl-4 font-medium" style="color: var(--text-main);"><%= row.name %></td>
-              <td class="p-3" style="color: var(--text-muted);"><%= row.specialty || "—" %></td>
-              <td class="p-3 text-right"><%= row.consultation_count %></td>
-              <td class="p-3 text-right font-medium">$<%= :erlang.float_to_binary(row.total_billed + 0.0, decimals: 2) %></td>
-              <td class="p-3 text-right" style="color: var(--text-muted);">$<%= :erlang.float_to_binary(row.stripe_fees + 0.0, decimals: 2) %></td>
-              <td class="p-3 text-right font-semibold" style="color: #dc2626;">$<%= :erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2) %></td>
-              <td class="p-3 text-right" style="color: var(--accent);">$<%= :erlang.float_to_binary(row.net_to_hd + 0.0, decimals: 2) %></td>
+              <td class="p-3 pl-4 font-medium" style="color: var(--text-main);">{row.name}</td>
+              <td class="p-3" style="color: var(--text-muted);">{row.specialty || "—"}</td>
+              <td class="p-3 text-right">{row.consultation_count}</td>
+              <td class="p-3 text-right font-medium">
+                ${:erlang.float_to_binary(row.total_billed + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                ${:erlang.float_to_binary(row.stripe_fees + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right font-semibold" style="color: #dc2626;">
+                ${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right" style="color: var(--accent);">
+                ${:erlang.float_to_binary(row.net_to_hd + 0.0, decimals: 2)}
+              </td>
               <td class="p-3 pr-4 text-right">
                 <button
                   onclick={"document.getElementById('payout-modal-#{row.id}').showModal()"}
                   class="hd-btn-sm"
-                  style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">
+                  style="font-size: 0.7rem; padding: 0.2rem 0.6rem;"
+                >
                   Record payout
                 </button>
               </td>
@@ -87,10 +151,18 @@
         <tfoot>
           <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
             <td class="p-3 pl-4 font-bold" colspan="3">Totals</td>
-            <td class="p-3 text-right font-bold">$<%= :erlang.float_to_binary(@report.total_billed + 0.0, decimals: 2) %></td>
-            <td class="p-3 text-right font-bold">$<%= :erlang.float_to_binary(@report.total_stripe_fees + 0.0, decimals: 2) %></td>
-            <td class="p-3 text-right font-bold" style="color: #dc2626;">$<%= :erlang.float_to_binary(@report.total_doctor_share + 0.0, decimals: 2) %></td>
-            <td class="p-3 text-right font-bold" style="color: var(--accent);">$<%= :erlang.float_to_binary(@report.total_net_to_hd + 0.0, decimals: 2) %></td>
+            <td class="p-3 text-right font-bold">
+              ${:erlang.float_to_binary(@report.total_billed + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold">
+              ${:erlang.float_to_binary(@report.total_stripe_fees + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold" style="color: #dc2626;">
+              ${:erlang.float_to_binary(@report.total_doctor_share + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold" style="color: var(--accent);">
+              ${:erlang.float_to_binary(@report.total_net_to_hd + 0.0, decimals: 2)}
+            </td>
             <td class="p-3 pr-4"></td>
           </tr>
         </tfoot>
@@ -99,35 +171,57 @@
 
     <%!-- ── Record Payout modals (one per doctor) ── --%>
     <%= for row <- @report.rows do %>
-      <dialog id={"payout-modal-#{row.id}"} style="border-radius: 0.75rem; border: 1px solid var(--border-subtle); padding: 1.5rem; width: 24rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15);">
-        <h3 class="text-base font-bold mb-1" style="color: var(--text-main);">Record payout — <%= row.name %></h3>
+      <dialog
+        id={"payout-modal-#{row.id}"}
+        style="border-radius: 0.75rem; border: 1px solid var(--border-subtle); padding: 1.5rem; width: 24rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"
+      >
+        <h3 class="text-base font-bold mb-1" style="color: var(--text-main);">
+          Record payout — {row.name}
+        </h3>
         <p class="text-sm mb-4" style="color: var(--text-muted);">
-          Owed: <strong>$<%= :erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2) %> MXN</strong>
+          Owed:
+          <strong>${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)} MXN</strong>
         </p>
 
-        <form action={dp(@domain_path_prefix, "/doctor-payouts/#{row.id}/record-payout")} method="post">
+        <form
+          action={dp(@domain_path_prefix, "/doctor-payouts/#{row.id}/record-payout")}
+          method="post"
+        >
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
 
           <div class="mb-3">
-            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Amount (MXN)</label>
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+              Amount (MXN)
+            </label>
             <input
-              type="number" step="0.01" name="amount"
+              type="number"
+              step="0.01"
+              name="amount"
               value={Float.round(row.doctor_share, 2)}
               class="hd-input w-full"
-              required />
+              required
+            />
           </div>
 
           <div class="mb-4">
-            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Description / Reference</label>
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+              Description / Reference
+            </label>
             <input
-              type="text" name="description"
+              type="text"
+              name="description"
               value={"Payout to #{row.name} — #{@start_date} to #{@end_date}"}
               class="hd-input w-full"
-              required />
+              required
+            />
           </div>
 
           <div class="flex justify-end gap-2">
-            <button type="button" onclick={"document.getElementById('payout-modal-#{row.id}').close()"} class="hd-btn-secondary">
+            <button
+              type="button"
+              onclick={"document.getElementById('payout-modal-#{row.id}').close()"}
+              class="hd-btn-secondary"
+            >
               Cancel
             </button>
             <button type="submit" class="hd-btn-primary">
@@ -138,5 +232,4 @@
       </dialog>
     <% end %>
   <% end %>
-
 </div>

@@ -1,9 +1,9 @@
 <section class="card">
   <div class="card-header">
-    <h2 class="card-title">Edit Plan — <%= @plan.name %></h2>
+    <h2 class="card-title">Edit Plan — {@plan.name}</h2>
   </div>
 
-  <.form for={@changeset} action={@action} method="put" as={:subscription_plan} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} method="put" as={:subscription_plan}>
     <div class="form-block" style="margin-bottom: 1.75rem;">
       <div class="field">
         <label>Name</label>

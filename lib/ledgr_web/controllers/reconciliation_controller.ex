@@ -49,7 +49,9 @@ defmodule LedgrWeb.ReconciliationController do
 
       actual_balance =
         case Float.parse(actual_balance_str) do
-          {float_val, _} -> float_val
+          {float_val, _} ->
+            float_val
+
           :error ->
             # Try parsing as integer and converting to float
             case Integer.parse(actual_balance_str) do
@@ -60,32 +62,32 @@ defmodule LedgrWeb.ReconciliationController do
 
       adjustment_date = Date.from_iso8601!(date_str)
 
-    case Reconciliation.create_account_reconciliation(
-           account_id,
-           actual_balance,
-           adjustment_date,
-           description
-         ) do
-      {:ok, _journal_entry} ->
-        conn
-        |> put_flash(:info, "Reconciliation adjustment created successfully")
-        |> redirect(to: dp(conn, "/reconciliation/accounting"))
+      case Reconciliation.create_account_reconciliation(
+             account_id,
+             actual_balance,
+             adjustment_date,
+             description
+           ) do
+        {:ok, _journal_entry} ->
+          conn
+          |> put_flash(:info, "Reconciliation adjustment created successfully")
+          |> redirect(to: dp(conn, "/reconciliation/accounting"))
 
-      {:error, reason} when is_binary(reason) ->
-        conn
-        |> put_flash(:error, reason)
-        |> redirect(to: dp(conn, "/reconciliation/accounting"))
+        {:error, reason} when is_binary(reason) ->
+          conn
+          |> put_flash(:error, reason)
+          |> redirect(to: dp(conn, "/reconciliation/accounting"))
 
-      {:error, changeset} ->
-        error_msg =
-          case changeset.errors do
-            [] -> "Failed to create adjustment"
-            errors -> "Failed to create adjustment: #{inspect(errors)}"
-          end
+        {:error, changeset} ->
+          error_msg =
+            case changeset.errors do
+              [] -> "Failed to create adjustment"
+              errors -> "Failed to create adjustment: #{inspect(errors)}"
+            end
 
-        conn
-        |> put_flash(:error, error_msg)
-        |> redirect(to: dp(conn, "/reconciliation/accounting"))
+          conn
+          |> put_flash(:error, error_msg)
+          |> redirect(to: dp(conn, "/reconciliation/accounting"))
       end
     end
   end
@@ -153,10 +155,14 @@ defmodule LedgrWeb.ReconciliationController do
     date_str = params["adjustment_date"]
     description = params["description"]
 
-    Logger.info("Parsed values - ingredient_id: #{inspect(ingredient_id)}, location_id: #{inspect(location_id)}, actual_quantity_str: #{inspect(actual_quantity_str)}, date_str: #{inspect(date_str)}")
+    Logger.info(
+      "Parsed values - ingredient_id: #{inspect(ingredient_id)}, location_id: #{inspect(location_id)}, actual_quantity_str: #{inspect(actual_quantity_str)}, date_str: #{inspect(date_str)}"
+    )
 
-    if is_nil(ingredient_id) or is_nil(location_id) or is_nil(actual_quantity_str) or is_nil(date_str) do
+    if is_nil(ingredient_id) or is_nil(location_id) or is_nil(actual_quantity_str) or
+         is_nil(date_str) do
       Logger.warning("Missing required fields in inventory adjust")
+
       conn
       |> put_flash(:error, "Missing required fields")
       |> redirect(to: dp(conn, "/reconciliation/inventory"))
@@ -165,7 +171,9 @@ defmodule LedgrWeb.ReconciliationController do
         actual_quantity = String.to_integer(actual_quantity_str)
         adjustment_date = Date.from_iso8601!(date_str)
 
-        Logger.info("Calling create_inventory_reconciliation with ingredient_id: #{ingredient_id}, location_id: #{location_id}, actual_quantity: #{actual_quantity}, adjustment_date: #{adjustment_date}")
+        Logger.info(
+          "Calling create_inventory_reconciliation with ingredient_id: #{ingredient_id}, location_id: #{location_id}, actual_quantity: #{actual_quantity}, adjustment_date: #{adjustment_date}"
+        )
 
         case InventoryReconciliation.create_inventory_reconciliation(
                ingredient_id,
@@ -176,18 +184,23 @@ defmodule LedgrWeb.ReconciliationController do
              ) do
           {:ok, result} ->
             Logger.info("Inventory reconciliation successful: #{inspect(result)}")
+
             conn
             |> put_flash(:info, "Inventory reconciliation adjustment created successfully")
             |> redirect(to: dp(conn, "/reconciliation/inventory"))
 
           {:error, reason} when is_binary(reason) ->
             Logger.warning("Inventory reconciliation error (string): #{reason}")
+
             conn
             |> put_flash(:error, reason)
             |> redirect(to: dp(conn, "/reconciliation/inventory"))
 
           {:error, changeset} ->
-            Logger.error("Inventory reconciliation error (changeset): #{inspect(changeset.errors)}")
+            Logger.error(
+              "Inventory reconciliation error (changeset): #{inspect(changeset.errors)}"
+            )
+
             error_msg =
               case changeset.errors do
                 [] -> "Failed to create adjustment"
@@ -200,7 +213,10 @@ defmodule LedgrWeb.ReconciliationController do
         end
       rescue
         e ->
-          Logger.error("Exception in inventory_adjust: #{inspect(e)} - #{Exception.format(:error, e, __STACKTRACE__)}")
+          Logger.error(
+            "Exception in inventory_adjust: #{inspect(e)} - #{Exception.format(:error, e, __STACKTRACE__)}"
+          )
+
           conn
           |> put_flash(:error, "Error: #{Exception.message(e)}")
           |> redirect(to: dp(conn, "/reconciliation/inventory"))
@@ -269,7 +285,10 @@ defmodule LedgrWeb.ReconciliationController do
            ) do
         {:ok, _result} ->
           conn
-          |> put_flash(:info, "Transferred #{quantity} #{ingredient_code} from #{from_location_code} to #{to_location_code}")
+          |> put_flash(
+            :info,
+            "Transferred #{quantity} #{ingredient_code} from #{from_location_code} to #{to_location_code}"
+          )
           |> redirect(to: dp(conn, "/reconciliation/inventory"))
 
         {:error, reason} ->
@@ -287,7 +306,6 @@ defmodule LedgrWeb.ReconciliationController do
 
   defp domain_today, do: today_mx()
 end
-
 
 defmodule LedgrWeb.ReconciliationHTML do
   use LedgrWeb, :html

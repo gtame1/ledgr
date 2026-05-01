@@ -18,10 +18,12 @@ defmodule Ledgr.Repo.Migrations.CreateProductsAndOrders do
       add :customer_email, :string
       add :customer_phone, :string, null: false
 
-      add :delivery_type, :string, null: false      # "pickup" | "delivery"
+      # "pickup" | "delivery"
+      add :delivery_type, :string, null: false
       add :delivery_address, :text
       add :delivery_date, :date, null: false
-      add :delivery_time, :time                     # optional
+      # optional
+      add :delivery_time, :time
 
       add :status, :string, null: false, default: "new_order"
       add :product_id, references(:products, on_delete: :restrict), null: false

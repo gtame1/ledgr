@@ -169,7 +169,9 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
       second_movement =
         Repo.one!(
           from m in InventoryMovement,
-            where: m.movement_type == "purchase" and m.ingredient_id == ^ingredient.id and m.quantity == 500
+            where:
+              m.movement_type == "purchase" and m.ingredient_id == ^ingredient.id and
+                m.quantity == 500
         )
 
       # Verify it's the correct one (500 units, 30.00 pesos = 3000 cents)
@@ -184,7 +186,8 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
       assert stock.quantity_on_hand == 1000
       # Should approximate the original cost (5 cents per unit)
       # The delete function uses an approximation, so we allow some variance
-      assert stock.avg_cost_per_unit_cents in [5, 4, 6] # Allow small rounding differences
+      # Allow small rounding differences
+      assert stock.avg_cost_per_unit_cents in [5, 4, 6]
     end
 
     test "returns error when trying to delete a non-purchase movement", %{
@@ -353,7 +356,9 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
     end
 
     test "update_ingredient/2 updates the ingredient", %{ingredient: ingredient} do
-      assert {:ok, updated} = Inventory.update_ingredient(ingredient, %{name: "Whole Wheat Flour"})
+      assert {:ok, updated} =
+               Inventory.update_ingredient(ingredient, %{name: "Whole Wheat Flour"})
+
       assert updated.name == "Whole Wheat Flour"
     end
 
@@ -370,7 +375,10 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   end
 
   describe "locations" do
-    test "list_locations/0 returns all locations", %{location: location, from_location: from_location} do
+    test "list_locations/0 returns all locations", %{
+      location: location,
+      from_location: from_location
+    } do
       locations = Inventory.list_locations()
       codes = Enum.map(locations, & &1.code)
 
@@ -387,13 +395,20 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   end
 
   describe "stock management" do
-    test "get_or_create_stock!/2 creates stock if not exists", %{ingredient: ingredient, location: location} do
+    test "get_or_create_stock!/2 creates stock if not exists", %{
+      ingredient: ingredient,
+      location: location
+    } do
       stock = Inventory.get_or_create_stock!(ingredient.id, location.id)
       assert stock.quantity_on_hand == 0
       assert stock.avg_cost_per_unit_cents == 0
     end
 
-    test "get_or_create_stock!/2 returns existing stock", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "get_or_create_stock!/2 returns existing stock", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       # Create initial stock via purchase
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
@@ -403,6 +418,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       # Get stock - should return existing
@@ -410,7 +426,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
       assert stock.quantity_on_hand == 500
     end
 
-    test "list_stock_items/0 returns stock with preloaded associations", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "list_stock_items/0 returns stock with preloaded associations", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       # Create stock
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
@@ -420,6 +440,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       items = Inventory.list_stock_items()
@@ -435,13 +456,27 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   describe "inventory_type/1" do
     test "returns :packing for packing ingredients" do
       # Create a packing ingredient
-      {:ok, packing} = Inventory.create_ingredient(%{code: "PAQ_BOX", name: "Box", unit: "pcs", inventory_type: "packing"})
+      {:ok, packing} =
+        Inventory.create_ingredient(%{
+          code: "PAQ_BOX",
+          name: "Box",
+          unit: "pcs",
+          inventory_type: "packing"
+        })
+
       assert Inventory.inventory_type(packing) == :packing
     end
 
     test "returns :kitchen for kitchen ingredients" do
       # Create a kitchen ingredient
-      {:ok, kitchen} = Inventory.create_ingredient(%{code: "EQUIP_MIXER", name: "Mixer", unit: "pcs", inventory_type: "kitchen"})
+      {:ok, kitchen} =
+        Inventory.create_ingredient(%{
+          code: "EQUIP_MIXER",
+          name: "Mixer",
+          unit: "pcs",
+          inventory_type: "kitchen"
+        })
+
       assert Inventory.inventory_type(kitchen) == :kitchen
     end
 
@@ -456,7 +491,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   end
 
   describe "movements" do
-    test "list_recent_movements/1 returns movements", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "list_recent_movements/1 returns movements", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       # Create a purchase
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
@@ -466,6 +505,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       movements = Inventory.list_recent_movements(10)
@@ -476,7 +516,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
       assert movement.ingredient != nil
     end
 
-    test "get_movement!/1 returns movement by id", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "get_movement!/1 returns movement by id", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
         "location_code" => location.code,
@@ -485,6 +529,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       movement =
@@ -498,7 +543,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
       assert result.id == movement.id
     end
 
-    test "search_movements/1 filters by ingredient", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "search_movements/1 filters by ingredient", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
         "location_code" => location.code,
@@ -507,6 +556,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       movements = Inventory.search_movements(ingredient_id: ingredient.id)
@@ -514,7 +564,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
       assert Enum.all?(movements, fn m -> m.ingredient_id == ingredient.id end)
     end
 
-    test "search_movements/1 filters by movement_type", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "search_movements/1 filters by movement_type", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
         "location_code" => location.code,
@@ -523,6 +577,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       movements = Inventory.search_movements(movement_type: "purchase")
@@ -532,7 +587,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   end
 
   describe "total_inventory_value_cents/0" do
-    test "calculates total inventory value", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "calculates total inventory value", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       # Create a purchase
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
@@ -542,6 +601,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       value = Inventory.total_inventory_value_cents()
@@ -551,7 +611,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   end
 
   describe "ingredient_quick_infos/0" do
-    test "returns quick info for ingredients with purchases", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "returns quick info for ingredients with purchases", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       # Create a purchase
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
@@ -561,6 +625,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       infos = Inventory.ingredient_quick_infos()
@@ -568,12 +633,17 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
       info = Map.get(infos, ingredient.code)
 
       assert info != nil
-      assert info["avg_cost_cents"] == 5  # 5000 cents / 1000 units = 5 cents
+      # 5000 cents / 1000 units = 5 cents
+      assert info["avg_cost_cents"] == 5
     end
   end
 
   describe "return_purchase/3" do
-    test "creates a return movement and reverses inventory", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "creates a return movement and reverses inventory", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       # Create initial purchase
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
@@ -583,6 +653,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       # Get the purchase movement
@@ -603,15 +674,20 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   end
 
   describe "record_write_off/4" do
-    test "creates write-off movement and reduces inventory", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "creates write-off movement and reduces inventory", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       # Create required waste expense account
-      {:ok, _waste_account} = Accounting.create_account(%{
-        code: "6060",
-        name: "Inventory Waste",
-        type: "expense",
-        normal_balance: "debit",
-        is_cash: false
-      })
+      {:ok, _waste_account} =
+        Accounting.create_account(%{
+          code: "6060",
+          name: "Inventory Waste",
+          type: "expense",
+          normal_balance: "debit",
+          is_cash: false
+        })
 
       # First create stock
       purchase_attrs = %{
@@ -622,15 +698,17 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       # Record write-off (uses positional args)
-      {:ok, _movement} = Inventory.record_write_off(
-        ingredient.code,
-        location.code,
-        200,
-        Date.utc_today()
-      )
+      {:ok, _movement} =
+        Inventory.record_write_off(
+          ingredient.code,
+          location.code,
+          200,
+          Date.utc_today()
+        )
 
       # Verify stock was reduced
       stock = Inventory.get_or_create_stock!(ingredient.id, location.id)
@@ -639,7 +717,11 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
   end
 
   describe "batch_inventory_values/0" do
-    test "returns a map keyed by {ingredient_id, location_id} with cost_cents", %{cash_account: cash_account, ingredient: ingredient, location: location} do
+    test "returns a map keyed by {ingredient_id, location_id} with cost_cents", %{
+      cash_account: cash_account,
+      ingredient: ingredient,
+      location: location
+    } do
       purchase_attrs = %{
         "ingredient_code" => ingredient.code,
         "location_code" => location.code,
@@ -648,6 +730,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryLegacyTest do
         "paid_from_account_id" => to_string(cash_account.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       result = Inventory.batch_inventory_values()

@@ -8,18 +8,23 @@
 
   <div class="landing-grid">
     <%= for domain <- @domains do %>
-      <a href={domain.path} title={domain.name} class="landing-card landing-card--has-logo" style={"--card-accent: #{domain.theme.primary}; --card-accent-soft: #{domain.theme.primary_soft}; --card-sidebar: #{domain.theme.sidebar_bg};"}>
+      <a
+        href={domain.path}
+        title={domain.name}
+        class="landing-card landing-card--has-logo"
+        style={"--card-accent: #{domain.theme.primary}; --card-accent-soft: #{domain.theme.primary_soft}; --card-sidebar: #{domain.theme.sidebar_bg};"}
+      >
         <div class="landing-card-logo-full">
           <%= if domain.theme[:card_logo] do %>
             <img src={domain.theme[:card_logo]} alt={domain.name} class="landing-card-logo-img" />
           <% else %>
             <div class="landing-card-emoji">
-              <%= domain.logo %>
+              {domain.logo}
             </div>
           <% end %>
         </div>
         <div class="landing-card-enter">
-          <h2 class="landing-card-name"><%= domain.name %></h2>
+          <h2 class="landing-card-name">{domain.name}</h2>
           <span class="landing-card-arrow">&rarr;</span>
         </div>
       </a>
@@ -29,7 +34,11 @@
   <section class="landing-storefront">
     <h2 class="landing-storefront-title">Storefronts</h2>
     <a href="/mr-munch-me/menu" class="landing-storefront-link">
-      <img src={~p"/images/mr-munchme-logos/mr-munchme-logo-alt-colors.png"} alt="MrMunchMe" class="landing-storefront-logo-img" />
+      <img
+        src={~p"/images/mr-munchme-logos/mr-munchme-logo-alt-colors.png"}
+        alt="MrMunchMe"
+        class="landing-storefront-logo-img"
+      />
       <div class="landing-storefront-info">
         <span class="landing-storefront-name">MrMunchMe Menu</span>
         <span class="landing-storefront-desc">Browse our products and treats</span>

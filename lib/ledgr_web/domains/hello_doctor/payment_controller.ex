@@ -52,8 +52,8 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
   def backfill_gl(conn, _params) do
     {:ok, %{posted: p, skipped: s, errors: e}} = StripeSync.backfill_journal_entries()
 
-    msg   = "GL backfill complete: #{p} posted, #{s} already had entries"
-    msg   = if e > 0, do: "#{msg}, #{e} errors (check logs)", else: msg
+    msg = "GL backfill complete: #{p} posted, #{s} already had entries"
+    msg = if e > 0, do: "#{msg}, #{e} errors (check logs)", else: msg
     flash = if e > 0, do: :error, else: :info
 
     conn
@@ -126,7 +126,10 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     case Ledgr.Domains.HelloDoctor.StripeRefunds.refund_payment(payment) do
       {:ok, updated_payment} ->
         conn
-        |> put_flash(:info, "Payment refunded successfully ($#{:erlang.float_to_binary(updated_payment.amount, decimals: 2)} MXN).")
+        |> put_flash(
+          :info,
+          "Payment refunded successfully ($#{:erlang.float_to_binary(updated_payment.amount, decimals: 2)} MXN)."
+        )
         |> redirect(to: dp(conn, "/payments/#{updated_payment.id}"))
 
       {:error, reason} ->

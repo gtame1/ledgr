@@ -31,8 +31,18 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces.SpaceRental do
   end
 
   @required_fields [:space_id, :renter_name, :amount_cents]
-  @optional_fields [:customer_id, :renter_phone, :renter_email, :starts_at, :ends_at,
-                    :status, :discount_cents, :paid_at, :notes, :partner_split_id]
+  @optional_fields [
+    :customer_id,
+    :renter_phone,
+    :renter_email,
+    :starts_at,
+    :ends_at,
+    :status,
+    :discount_cents,
+    :paid_at,
+    :notes,
+    :partner_split_id
+  ]
 
   @valid_statuses ~w(confirmed active completed cancelled)
 
@@ -82,7 +92,7 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces.SpaceRental do
   # End date must be after start date when both are provided.
   defp validate_dates(changeset) do
     starts = get_field(changeset, :starts_at)
-    ends   = get_field(changeset, :ends_at)
+    ends = get_field(changeset, :ends_at)
 
     if starts && ends && DateTime.compare(ends, starts) != :gt do
       add_error(changeset, :ends_at, "must be after the start date and time")

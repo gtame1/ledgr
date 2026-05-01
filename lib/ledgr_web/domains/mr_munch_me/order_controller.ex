@@ -37,6 +37,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
     # 4) Get completed orders with pagination
     # We show all completed orders up to the current offset + limit
     completed_limit = 10
+
     completed_offset =
       case params["completed_offset"] do
         nil -> 0
@@ -61,6 +62,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
 
     # 5) Get canceled orders (finished orders)
     canceled_limit = 50
+
     canceled_offset =
       case params["canceled_offset"] do
         nil -> 0
@@ -155,7 +157,10 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
         default_fee_cents = OrderAccounting.shipping_fee_cents()
 
         conn
-        |> put_flash(:error, "There was a problem creating this order. Please check the form and try again.")
+        |> put_flash(
+          :error,
+          "There was a problem creating this order. Please check the form and try again."
+        )
         |> render(:new,
           changeset: changeset,
           action: dp(conn, "/orders"),
@@ -196,7 +201,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
       end
 
     # Get ingredient options for the select dropdown
-    ingredient_options = Inventory.list_ingredients() |> Enum.map(&{&1.name <> " (#{&1.code})", &1.code})
+    ingredient_options =
+      Inventory.list_ingredients() |> Enum.map(&{&1.name <> " (#{&1.code})", &1.code})
 
     render(conn, :show,
       order: order,
@@ -257,22 +263,29 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
       ingredients_params
       |> Enum.map(fn {_key, attrs} ->
         # Convert quantity string to Decimal
-        quantity = case attrs["quantity"] do
-          qty when is_binary(qty) and qty != "" ->
-            case Decimal.parse(qty) do
-              {decimal, _} -> decimal
-              :error -> Decimal.new("0")
-            end
-          _ -> Decimal.new("0")
-        end
+        quantity =
+          case attrs["quantity"] do
+            qty when is_binary(qty) and qty != "" ->
+              case Decimal.parse(qty) do
+                {decimal, _} -> decimal
+                :error -> Decimal.new("0")
+              end
+
+            _ ->
+              Decimal.new("0")
+          end
 
         %{
           "ingredient_code" => attrs["ingredient_code"],
           "quantity" => quantity,
-          "location_code" => attrs["location_code"] || (order.prep_location && order.prep_location.code) || "CASA_AG"
+          "location_code" =>
+            attrs["location_code"] || (order.prep_location && order.prep_location.code) ||
+              "CASA_AG"
         }
       end)
-      |> Enum.filter(fn attrs -> attrs["ingredient_code"] != "" and attrs["ingredient_code"] != nil end)
+      |> Enum.filter(fn attrs ->
+        attrs["ingredient_code"] != "" and attrs["ingredient_code"] != nil
+      end)
 
     case Orders.update_order_ingredients(order, ingredients_list) do
       {:ok, updated_order} ->
@@ -345,7 +358,10 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
       end
 
     if date_parse_error do
-      Logger.error("Invalid payment_date format: #{params["payment_date"]}, error: #{inspect(date_parse_error)}")
+      Logger.error(
+        "Invalid payment_date format: #{params["payment_date"]}, error: #{inspect(date_parse_error)}"
+      )
+
       changeset =
         Orders.change_order_payment(%OrderPayment{order_id: order.id})
         |> Ecto.Changeset.add_error(:payment_date, "Invalid date format")
@@ -363,7 +379,10 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
       )
     else
       # Convert amounts from pesos to cents
-      amount_cents = if params["amount"] && params["amount"] != "", do: MoneyHelper.pesos_to_cents(params["amount"]), else: nil
+      amount_cents =
+        if params["amount"] && params["amount"] != "",
+          do: MoneyHelper.pesos_to_cents(params["amount"]),
+          else: nil
 
       # Only set split payment fields if they're actually provided (not empty strings)
       customer_amount_cents =
@@ -380,7 +399,9 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
           nil
         end
 
-      Logger.debug("Converted amounts - total: #{amount_cents}, customer: #{inspect(customer_amount_cents)}, partner: #{inspect(partner_amount_cents)}")
+      Logger.debug(
+        "Converted amounts - total: #{amount_cents}, customer: #{inspect(customer_amount_cents)}, partner: #{inspect(partner_amount_cents)}"
+      )
 
       # Make sure we tie the payment to the correct order_id explicitly
       # is_deposit is true if the order has NOT been delivered yet
@@ -404,7 +425,9 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
 
       case Orders.create_order_payment(attrs) do
         {:ok, payment} ->
-          Logger.info("Payment created successfully: payment_id=#{payment.id}, order_id=#{order.id}")
+          Logger.info(
+            "Payment created successfully: payment_id=#{payment.id}, order_id=#{order.id}"
+          )
 
           # Handle overpayment: create AP entry if user chose "record"
           if params["owed_change_choice"] == "record" && amount_cents != nil do
@@ -417,11 +440,21 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
                   _ -> today_mx()
                 end
 
-              case OrderAccounting.record_owed_change_ap(order, owed_change_cents, payment_date, is_deposit) do
+              case OrderAccounting.record_owed_change_ap(
+                     order,
+                     owed_change_cents,
+                     payment_date,
+                     is_deposit
+                   ) do
                 {:ok, _} ->
-                  Logger.info("Owed change AP entry recorded: #{owed_change_cents} cents for order #{order.id}")
+                  Logger.info(
+                    "Owed change AP entry recorded: #{owed_change_cents} cents for order #{order.id}"
+                  )
+
                 {:error, reason} ->
-                  Logger.error("Failed to record owed change AP for order #{order.id}: #{inspect(reason)}")
+                  Logger.error(
+                    "Failed to record owed change AP for order #{order.id}: #{inspect(reason)}"
+                  )
               end
             end
           end
@@ -457,7 +490,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
   def stripe_link(conn, %{"id" => id}) do
     order = Orders.get_order!(id)
 
-    base_url = "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
+    base_url =
+      "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
 
     line_items = [
       %{
@@ -477,7 +511,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
            currency: "mxn",
            line_items: line_items,
            metadata: %{order_ids: to_string(order.id)},
-           success_url: "#{base_url}/mr-munch-me/checkout/success?session_id={CHECKOUT_SESSION_ID}",
+           success_url:
+             "#{base_url}/mr-munch-me/checkout/success?session_id={CHECKOUT_SESSION_ID}",
            cancel_url: "#{base_url}/mr-munch-me/checkout/cancel"
          }) do
       {:ok, session} ->
@@ -497,13 +532,20 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
   def shipping_link(conn, %{"id" => id}) do
     order = Orders.get_order!(id)
     summary = Orders.payment_summary(order)
-    render(conn, :shipping_link, order: order, suggested_amount: div(summary.shipping_cents, 100), stripe_url: nil)
+
+    render(conn, :shipping_link,
+      order: order,
+      suggested_amount: div(summary.shipping_cents, 100),
+      stripe_url: nil
+    )
   end
 
   def create_shipping_link(conn, %{"id" => id, "amount" => amount_str}) do
     order = Orders.get_order!(id)
     amount_cents = MoneyHelper.pesos_to_cents(amount_str)
-    base_url = "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
+
+    base_url =
+      "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
 
     case Stripe.Checkout.Session.create(%{
            mode: "payment",
@@ -519,12 +561,19 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
              }
            ],
            metadata: %{shipping_order_id: to_string(order.id)},
-           success_url: "#{base_url}/mr-munch-me/checkout/success?session_id={CHECKOUT_SESSION_ID}",
+           success_url:
+             "#{base_url}/mr-munch-me/checkout/success?session_id={CHECKOUT_SESSION_ID}",
            cancel_url: "#{base_url}/mr-munch-me/checkout/cancel"
          }) do
       {:ok, session} ->
         Logger.info("Shipping link generated for order #{id}: session #{session.id}")
-        render(conn, :shipping_link, order: order, stripe_url: session.url, amount_cents: amount_cents, suggested_amount: nil)
+
+        render(conn, :shipping_link,
+          order: order,
+          stripe_url: session.url,
+          amount_cents: amount_cents,
+          suggested_amount: nil
+        )
 
       {:error, reason} ->
         Logger.error("Failed to generate shipping link for order #{id}: #{inspect(reason)}")
@@ -538,22 +587,26 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
   def calendar(conn, params) do
     # Parse year and month from params, default to current month
     today = today_mx()
-    year = case params["year"] do
-      nil -> today.year
-      year_str -> String.to_integer(year_str)
-    end
 
-    month = case params["month"] do
-      nil -> today.month
-      month_str -> String.to_integer(month_str)
-    end
+    year =
+      case params["year"] do
+        nil -> today.year
+        year_str -> String.to_integer(year_str)
+      end
+
+    month =
+      case params["month"] do
+        nil -> today.month
+        month_str -> String.to_integer(month_str)
+      end
 
     # Ensure valid month range
-    month = cond do
-      month < 1 -> 1
-      month > 12 -> 12
-      true -> month
-    end
+    month =
+      cond do
+        month < 1 -> 1
+        month > 12 -> 12
+        true -> month
+      end
 
     # Get orders grouped by delivery date for this month
     orders_by_date = Orders.list_orders_for_calendar_month(year, month)
@@ -596,10 +649,13 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
         case Float.parse(to_string(val)) do
           {pesos, _} ->
             cents = round(pesos * 100)
+
             rest
             |> Map.put("shipping_fee_cents", cents)
             |> derive_customer_paid_shipping(cents)
-          :error -> rest
+
+          :error ->
+            rest
         end
 
       {_, rest} ->
@@ -621,7 +677,6 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderController do
   defp format_pesos(nil), do: "0.00"
   defp format_pesos(cents), do: :erlang.float_to_binary(cents / 100, decimals: 2)
 end
-
 
 defmodule LedgrWeb.Domains.MrMunchMe.OrderHTML do
   use LedgrWeb, :html

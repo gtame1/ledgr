@@ -4,7 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title default={if(assigns[:current_domain], do: assigns[:current_domain].theme()[:tab_title] || assigns[:current_domain].name(), else: "Ledgr")} suffix="">
+    <.live_title
+      default={
+        if(assigns[:current_domain],
+          do: assigns[:current_domain].theme()[:tab_title] || assigns[:current_domain].name(),
+          else: "Ledgr"
+        )
+      }
+      suffix=""
+    >
       {assigns[:page_title]}
     </.live_title>
     <%= if assigns[:current_domain] && assigns[:current_domain].theme()[:favicon] do %>
@@ -35,7 +43,10 @@
       <% end %>
     <% end %>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
     <%= if assigns[:current_domain] do %>
       <% t = assigns[:current_domain].theme() %>
       <style>
@@ -109,15 +120,26 @@
             <div class="storefront-header-inner">
               <a href={"/#{domain.slug()}/menu"} class="storefront-logo-link">
                 <%= if theme[:sidebar_logo] do %>
-                  <img src={theme[:sidebar_logo]} alt={domain.name()} class="storefront-logo-img" onerror="this.style.display='none'" />
-                  <span class="storefront-brand-name storefront-brand-name--hide-mobile"><%= domain.name() %></span>
+                  <img
+                    src={theme[:sidebar_logo]}
+                    alt={domain.name()}
+                    class="storefront-logo-img"
+                    onerror="this.style.display='none'"
+                  />
+                  <span class="storefront-brand-name storefront-brand-name--hide-mobile">
+                    {domain.name()}
+                  </span>
                 <% else %>
-                  <span class="storefront-logo-emoji"><%= domain.logo() %></span>
-                  <span class="storefront-brand-name"><%= domain.name() %></span>
+                  <span class="storefront-logo-emoji">{domain.logo()}</span>
+                  <span class="storefront-brand-name">{domain.name()}</span>
                 <% end %>
               </a>
               <%= if assigns[:show_search] do %>
-                <form method="get" action={"/#{domain.slug()}/menu"} class="storefront-search-form">
+                <form
+                  method="get"
+                  action={"/#{domain.slug()}/menu"}
+                  class="storefront-search-form"
+                >
                   <div class="storefront-search-wrap">
                     <input
                       type="text"
@@ -128,9 +150,20 @@
                       autocomplete="off"
                     />
                     <button type="submit" class="storefront-search-btn" aria-label="Buscar">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
                       </svg>
                     </button>
                   </div>
@@ -139,33 +172,74 @@
               <% cart = Plug.Conn.get_session(@conn, :cart) || %{} %>
               <% cart_count = cart |> Map.values() |> Enum.sum() %>
               <a href={"/#{domain.slug()}/cart"} class="storefront-cart-link">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                  <line x1="3" y1="6" x2="21" y2="6"/>
-                  <path d="M16 10a4 4 0 0 1-8 0"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <path d="M16 10a4 4 0 0 1-8 0" />
                 </svg>
                 <%= if cart_count > 0 do %>
-                  <span class="storefront-cart-badge"><%= cart_count %></span>
+                  <span class="storefront-cart-badge">{cart_count}</span>
                 <% end %>
               </a>
             </div>
           </header>
           <main class="storefront-content">
-            <%= @inner_content %>
+            {@inner_content}
           </main>
           <footer class="storefront-footer">
-            <p>&copy; <%= today_mx().year %> <%= domain.name() %></p>
+            <p>&copy; {today_mx().year} {domain.name()}</p>
             <div class="storefront-social-links">
-              <a href="https://www.instagram.com/mr.munchme/" target="_blank" rel="noopener noreferrer" class="storefront-social-link" title="Instagram">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+              <a
+                href="https://www.instagram.com/mr.munchme/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="storefront-social-link"
+                title="Instagram"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
                 </svg>
               </a>
-              <a href="https://wa.me/525543417149" target="_blank" rel="noopener noreferrer" class="storefront-social-link storefront-social-link--whatsapp" title="WhatsApp">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              <a
+                href="https://wa.me/525543417149"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="storefront-social-link storefront-social-link--whatsapp"
+                title="WhatsApp"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
               </a>
             </div>
@@ -173,373 +247,604 @@
           </footer>
         </div>
       <% else %>
-      <%= if assigns[:hide_sidebar] do %>
-        <!-- Auth pages: clean centered layout, no sidebar -->
-        <main class="login-layout">
-          <%= @inner_content %>
-        </main>
-      <% else %>
-      <div class="app-layout">
-        <!-- Mobile hamburger button -->
-        <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu" aria-expanded="false">
-          <span class="hamburger-icon"></span>
-        </button>
-        <!-- Mobile overlay -->
-        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        <%= if assigns[:hide_sidebar] do %>
+          <!-- Auth pages: clean centered layout, no sidebar -->
+          <main class="login-layout">
+            {@inner_content}
+          </main>
+        <% else %>
+          <div class="app-layout">
+            <!-- Mobile hamburger button -->
+            <button
+              class="hamburger-btn"
+              id="hamburger-btn"
+              aria-label="Open menu"
+              aria-expanded="false"
+            >
+              <span class="hamburger-icon"></span>
+            </button>
+            <!-- Mobile overlay -->
+            <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-        <aside class="sidebar" id="sidebar">
-          <.link navigate={prefix} style="text-decoration: none;">
-            <%= if domain == Ledgr.Domains.CasaTame do %>
-              <div class="ct-sidebar-header">
-                <div class="ct-sidebar-title"><%= domain.name() %></div>
-                <div class="ct-sidebar-subtitle">Financial Atelier</div>
-              </div>
-            <% else %>
-              <%= if domain == Ledgr.Domains.MrMunchMe do %>
-                <div class="mm-sidebar-header">
-                  <div class="mm-sidebar-title">
-                    <img src={theme[:sidebar_logo]} alt={domain.name()} style="height: 28px; border-radius: 6px;" onerror="this.style.display='none'" />
-                    <%= domain.name() %>
-                  </div>
-                  <div class="mm-sidebar-subtitle">Artisan Snacks</div>
-                </div>
-              <% else %>
-                <%= if not (domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe]) and function_exported?(domain, :nav_icons, 0) do %>
-                  <%!-- Standard sidebar header: used by HelloDoctor, Aumenta Mi Pensión, and any new domain that implements `nav_icons/0`. --%>
-                  <div class="app-sidebar-header">
-                    <%= cond do %>
-                      <% theme[:sidebar_logo_wide] -> %>
-                        <%!-- Wide wordmark: optional cream/white panel behind it so dark-on-light
-                             logos stay legible against the dark sidebar background. --%>
-                        <div class="app-sidebar-wordmark" style={if theme[:sidebar_logo_wide_bg], do: "background: #{theme[:sidebar_logo_wide_bg]};"}>
-                          <img src={theme[:sidebar_logo_wide]} alt={domain.name()} onerror="this.style.display='none'" />
-                        </div>
-                      <% theme[:sidebar_logo] -> %>
-                        <div class="app-sidebar-title">
-                          <img src={theme[:sidebar_logo]} alt={domain.name()} style="height: 28px; border-radius: 4px;" onerror="this.style.display='none'" />
-                          <%= domain.name() %>
-                        </div>
-                      <% true -> %>
-                        <div class="app-sidebar-title"><%= domain.name() %></div>
-                    <% end %>
-                    <%= if function_exported?(domain, :sidebar_subtitle, 0) && domain.sidebar_subtitle() do %>
-                      <div class="app-sidebar-subtitle"><%= domain.sidebar_subtitle() %></div>
-                    <% end %>
+            <aside class="sidebar" id="sidebar">
+              <.link navigate={prefix} style="text-decoration: none;">
+                <%= if domain == Ledgr.Domains.CasaTame do %>
+                  <div class="ct-sidebar-header">
+                    <div class="ct-sidebar-title">{domain.name()}</div>
+                    <div class="ct-sidebar-subtitle">Financial Atelier</div>
                   </div>
                 <% else %>
-                  <div class="sidebar-header">
-                    <%= if theme[:sidebar_logo] do %>
-                      <div class={"sidebar-logo-wrap#{if theme[:sidebar_logo_bg], do: " sidebar-logo-wrap--bg", else: ""}"}>
-                        <img src={theme[:sidebar_logo]} alt={domain.name()} class="sidebar-logo-img" onerror="this.style.display='none'" />
+                  <%= if domain == Ledgr.Domains.MrMunchMe do %>
+                    <div class="mm-sidebar-header">
+                      <div class="mm-sidebar-title">
+                        <img
+                          src={theme[:sidebar_logo]}
+                          alt={domain.name()}
+                          style="height: 28px; border-radius: 6px;"
+                          onerror="this.style.display='none'"
+                        />
+                        {domain.name()}
                       </div>
-                      <span class="sidebar-app-name"><%= domain.name() %></span>
+                      <div class="mm-sidebar-subtitle">Artisan Snacks</div>
+                    </div>
+                  <% else %>
+                    <%= if not (domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe]) and function_exported?(domain, :nav_icons, 0) do %>
+                      <%!-- Standard sidebar header: used by HelloDoctor, Aumenta Mi Pensión, and any new domain that implements `nav_icons/0`. --%>
+                      <div class="app-sidebar-header">
+                        <%= cond do %>
+                          <% theme[:sidebar_logo_wide] -> %>
+                            <%!-- Wide wordmark: optional cream/white panel behind it so dark-on-light
+                             logos stay legible against the dark sidebar background. --%>
+                            <div
+                              class="app-sidebar-wordmark"
+                              style={
+                                if theme[:sidebar_logo_wide_bg],
+                                  do: "background: #{theme[:sidebar_logo_wide_bg]};"
+                              }
+                            >
+                              <img
+                                src={theme[:sidebar_logo_wide]}
+                                alt={domain.name()}
+                                onerror="this.style.display='none'"
+                              />
+                            </div>
+                          <% theme[:sidebar_logo] -> %>
+                            <div class="app-sidebar-title">
+                              <img
+                                src={theme[:sidebar_logo]}
+                                alt={domain.name()}
+                                style="height: 28px; border-radius: 4px;"
+                                onerror="this.style.display='none'"
+                              />
+                              {domain.name()}
+                            </div>
+                          <% true -> %>
+                            <div class="app-sidebar-title">{domain.name()}</div>
+                        <% end %>
+                        <%= if function_exported?(domain, :sidebar_subtitle, 0) && domain.sidebar_subtitle() do %>
+                          <div class="app-sidebar-subtitle">{domain.sidebar_subtitle()}</div>
+                        <% end %>
+                      </div>
                     <% else %>
-                      <span class="app-logo"><%= domain.logo() %></span>
-                      <span class="app-title"><%= domain.name() %></span>
+                      <div class="sidebar-header">
+                        <%= if theme[:sidebar_logo] do %>
+                          <div class={"sidebar-logo-wrap#{if theme[:sidebar_logo_bg], do: " sidebar-logo-wrap--bg", else: ""}"}>
+                            <img
+                              src={theme[:sidebar_logo]}
+                              alt={domain.name()}
+                              class="sidebar-logo-img"
+                              onerror="this.style.display='none'"
+                            />
+                          </div>
+                          <span class="sidebar-app-name">{domain.name()}</span>
+                        <% else %>
+                          <span class="app-logo">{domain.logo()}</span>
+                          <span class="app-title">{domain.name()}</span>
+                        <% end %>
+                      </div>
                     <% end %>
+                  <% end %>
+                <% end %>
+              </.link>
+
+              <nav class="nav">
+                <% req_path = @conn.request_path %>
+
+                <%= if domain == Ledgr.Domains.MrMunchMe do %>
+                  <%!-- MrMunchMe: flat nav with Material Symbols matching Stitch desktop --%>
+                  <% mm_nav_icons = %{
+                    "Dashboard" => "dashboard",
+                    "All Orders" => "shopping_cart",
+                    "Order Calendar" => "calendar_month",
+                    "Inventory" => "inventory_2",
+                    "Shopping List" => "checklist",
+                    "Expenses" => "payments",
+                    "Product List" => "fastfood",
+                    "Ingredient List" => "set_meal",
+                    "Recepies" => "menu_book",
+                    "Discount Codes" => "sell"
+                  } %>
+                  <div class="mm-nav-flat">
+                    <%= for group <- domain.menu_items() do %>
+                      <div class="mm-nav-section-label">{group.group}</div>
+                      <%= for item <- group.items do %>
+                        <% item_path = item.path |> String.split("?") |> hd()
+
+                        is_active =
+                          if item_path == prefix,
+                            do: req_path == prefix,
+                            else: String.starts_with?(req_path, item_path)
+
+                        icon = mm_nav_icons[item.label] || "article" %>
+                        <.link
+                          navigate={item.path}
+                          class={"mm-nav-item#{if is_active, do: " mm-nav-item--active"}"}
+                        >
+                          <span class="material-symbols-outlined">{icon}</span>
+                          {item.label}
+                        </.link>
+                      <% end %>
+                    <% end %>
+
+                    <div class="mm-nav-spacer"></div>
+                    <div class="mm-nav-section-label">Reports</div>
+                    <.link
+                      navigate={"#{prefix}/reports/pnl"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/reports/pnl"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">bar_chart</span> P&L
+                    </.link>
+                    <.link
+                      navigate={"#{prefix}/reports/balance_sheet"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/reports/balance_sheet"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">account_balance</span> Balance Sheet
+                    </.link>
+                    <.link
+                      navigate={"#{prefix}/reports/unit_economics_list"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/reports/unit_economics"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">analytics</span> Unit Economics
+                    </.link>
+                    <.link
+                      navigate={"#{prefix}/reports/cash_flow"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/reports/cash_flow"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">payments</span> Cash Flow
+                    </.link>
+                    <.link
+                      navigate={"#{prefix}/reports/financial_analysis"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/reports/financial_analysis"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">monitoring</span> Financial Analysis
+                    </.link>
+
+                    <div class="mm-nav-spacer"></div>
+                    <div class="mm-nav-section-label">Tools</div>
+                    <.link
+                      navigate={"#{prefix}/reconciliation/accounting"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/reconciliation/accounting"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">fact_check</span> Reconciliation
+                    </.link>
+                    <.link
+                      navigate={"#{prefix}/reconciliation/inventory"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/reconciliation/inventory"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">inventory</span> Inventory Recon
+                    </.link>
+                    <.link
+                      navigate={"#{prefix}/account-transactions"}
+                      class={"mm-nav-item#{if String.contains?(req_path, "/account-transactions"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">list_alt</span> Transactions
+                    </.link>
+                    <.link
+                      navigate={"#{prefix}/customers"}
+                      class={"mm-nav-item#{if String.starts_with?(req_path, "#{prefix}/customers"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">people</span> Customers
+                    </.link>
+                  </div>
+                <% else %>
+                  <%= if domain == Ledgr.Domains.CasaTame do %>
+                    <!-- Casa Tame: flat nav matching Stitch sidebar design -->
+                    <% nav_icons = %{
+                      "Dashboard" => "hero-squares-2x2",
+                      "Expenses" => "hero-banknotes",
+                      "Income" => "hero-currency-dollar",
+                      "Transfers" => "hero-arrows-right-left",
+                      "Bills" => "hero-document-text",
+                      "Investments" => "hero-arrow-trending-up",
+                      "Debts" => "hero-document-duplicate",
+                      "Net Worth" => "hero-building-library",
+                      "Balance Sheet" => "hero-chart-bar",
+                      "Income & Expenses" => "hero-chart-pie",
+                      "Monthly Trends" => "hero-presentation-chart-line",
+                      "Reconciliation" => "hero-adjustments-horizontal",
+                      "All Transactions" => "hero-queue-list",
+                      "Account Transactions" => "hero-list-bullet"
+                    } %>
+                    <div class="ct-nav-flat">
+                      <%= for group <- domain.menu_items() do %>
+                        <%= for item <- group.items do %>
+                          <% item_path = item.path |> String.split("?") |> hd()
+
+                          is_active =
+                            if item_path == prefix,
+                              do: req_path == prefix,
+                              else: String.starts_with?(req_path, item_path)
+
+                          icon_name = nav_icons[item.label] || "hero-document" %>
+                          <.link
+                            navigate={item.path}
+                            class={"ct-nav-item#{if is_active, do: " ct-nav-item--active"}"}
+                          >
+                            <.icon name={icon_name} class="ct-nav-icon" />
+                            {item.label}
+                          </.link>
+                        <% end %>
+                        <div class="ct-nav-spacer"></div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <%= if function_exported?(domain, :nav_icons, 0) do %>
+                      <%!-- Standard flat nav with Material Symbols. Default for new domains; domains opt in by implementing `nav_icons/0`. --%>
+                      <% nav_icons = domain.nav_icons() %>
+                      <div class="app-nav-flat">
+                        <%= for group <- domain.menu_items() do %>
+                          <div class="app-nav-section-label">{group.group}</div>
+                          <%= for item <- group.items do %>
+                            <% item_path = item.path |> String.split("?") |> hd()
+
+                            is_active =
+                              if item_path == prefix,
+                                do: req_path == prefix,
+                                else: String.starts_with?(req_path, item_path)
+
+                            icon = Map.get(nav_icons, item.label, "article") %>
+                            <.link
+                              navigate={item.path}
+                              class={"app-nav-item#{if is_active, do: " app-nav-item--active"}"}
+                            >
+                              <span class="material-symbols-outlined">{icon}</span>
+                              {item.label}
+                            </.link>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <!-- Other domains: dropdown groups -->
+                      <%= for group <- domain.menu_items() do %>
+                        <% group_active =
+                          Enum.any?(group.items, fn item ->
+                            item_path = item.path |> String.split("?") |> hd()
+
+                            if item_path == prefix do
+                              req_path == prefix
+                            else
+                              String.starts_with?(req_path, item_path)
+                            end
+                          end) %>
+                        <div class="nav-dropdown" data-default-open={if group_active, do: "true"}>
+                          <button
+                            type="button"
+                            class="nav-dropdown-toggle"
+                            onclick="toggleDropdown(this)"
+                          >
+                            <span>{group.group}</span>
+                            <.icon name="hero-chevron-down" class="dropdown-icon" />
+                          </button>
+                          <div class="nav-dropdown-menu">
+                            <%= for item <- group.items do %>
+                              <.link navigate={item.path} class="nav-link">{item.label}</.link>
+                            <% end %>
+                          </div>
+                        </div>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                <% end %>
+                <%!-- close MrMunchMe if/else --%>
+                
+<!-- Core menu groups (shared across all domains, hidden when domain manages its own nav) -->
+                <%= unless domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe] or function_exported?(domain, :nav_icons, 0) do %>
+                  <div
+                    class="nav-dropdown"
+                    data-default-open={
+                      if String.contains?(req_path, "/reports/") or
+                           String.contains?(req_path, "/account-transactions"),
+                         do: "true"
+                    }
+                  >
+                    <button
+                      type="button"
+                      class="nav-dropdown-toggle"
+                      onclick="toggleDropdown(this)"
+                    >
+                      <span>Reports</span>
+                      <.icon name="hero-chevron-down" class="dropdown-icon" />
+                    </button>
+                    <div class="nav-dropdown-menu">
+                      <.link navigate={"#{prefix}/reports/pnl"} class="nav-link">P&L</.link>
+                      <.link navigate={"#{prefix}/reports/balance_sheet"} class="nav-link">
+                        Balance Sheet
+                      </.link>
+                      <.link navigate={"#{prefix}/reports/unit_economics_list"} class="nav-link">
+                        Unit Economics
+                      </.link>
+                      <.link navigate={"#{prefix}/reports/cash_flow"} class="nav-link">
+                        Cash Flow
+                      </.link>
+                      <.link navigate={"#{prefix}/reports/financial_analysis"} class="nav-link">
+                        Financial Analysis
+                      </.link>
+                      <.link navigate={"#{prefix}/account-transactions"} class="nav-link">
+                        Account Transactions
+                      </.link>
+                      <.link navigate={"#{prefix}/reports/ap_summary"} class="nav-link">
+                        AP Summary
+                      </.link>
+                    </div>
+                  </div>
+
+                  <div
+                    class="nav-dropdown"
+                    data-default-open={
+                      if String.contains?(req_path, "/reconciliation/"), do: "true"
+                    }
+                  >
+                    <button
+                      type="button"
+                      class="nav-dropdown-toggle"
+                      onclick="toggleDropdown(this)"
+                    >
+                      <span>Reconciliation Tools</span>
+                      <.icon name="hero-chevron-down" class="dropdown-icon" />
+                    </button>
+                    <div class="nav-dropdown-menu">
+                      <.link navigate={"#{prefix}/reconciliation/accounting"} class="nav-link">
+                        Account Reconciliation
+                      </.link>
+                      <%= if String.contains?(prefix, "mr-munch-me") do %>
+                        <.link navigate={"#{prefix}/reconciliation/inventory"} class="nav-link">
+                          Inventory Reconciliation
+                        </.link>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <% domain_has_customers =
+                    domain.menu_items()
+                    |> Enum.flat_map(& &1.items)
+                    |> Enum.any?(&(&1.path == "#{prefix}/customers")) %>
+                  <% other_active =
+                    String.starts_with?(req_path, "#{prefix}/investments") or
+                      String.starts_with?(req_path, "#{prefix}/transfers") or
+                      (String.starts_with?(req_path, "#{prefix}/transactions") and
+                         not String.contains?(req_path, "account-transactions")) or
+                      (not domain_has_customers and
+                         String.starts_with?(req_path, "#{prefix}/customers")) %>
+                  <div class="nav-dropdown" data-default-open={if other_active, do: "true"}>
+                    <button
+                      type="button"
+                      class="nav-dropdown-toggle"
+                      onclick="toggleDropdown(this)"
+                    >
+                      <span>Other</span>
+                      <.icon name="hero-chevron-down" class="dropdown-icon" />
+                    </button>
+                    <div class="nav-dropdown-menu">
+                      <%= unless domain_has_customers do %>
+                        <.link navigate={"#{prefix}/customers"} class="nav-link">Customers</.link>
+                      <% end %>
+                      <.link navigate={"#{prefix}/investments"} class="nav-link">
+                        Investments
+                      </.link>
+                      <.link navigate={"#{prefix}/transfers"} class="nav-link">
+                        Money Transfers
+                      </.link>
+                      <.link navigate={"#{prefix}/transactions"} class="nav-link">
+                        All Transactions
+                      </.link>
+                    </div>
                   </div>
                 <% end %>
-              <% end %>
-            <% end %>
-          </.link>
+              </nav>
 
-          <nav class="nav">
-            <% req_path = @conn.request_path %>
+              <div class="sidebar-footer">
+                <%= if assigns[:current_user] do %>
+                  <span class="sidebar-user-email">{assigns[:current_user].email}</span>
+                  <.link
+                    href={"#{prefix}/logout"}
+                    method="delete"
+                    class="app-switcher-link logout-link"
+                  >
+                    <.icon name="hero-arrow-right-on-rectangle" class="app-switcher-icon" />
+                    <span>Sign Out</span>
+                  </.link>
+                <% end %>
+              </div>
+            </aside>
+
+            <main class="content">
+              <section class="content-body">
+                {@inner_content}
+              </section>
+            </main>
 
             <%= if domain == Ledgr.Domains.MrMunchMe do %>
-              <%!-- MrMunchMe: flat nav with Material Symbols matching Stitch desktop --%>
-              <%
-                mm_nav_icons = %{
-                  "Dashboard" => "dashboard",
-                  "All Orders" => "shopping_cart",
-                  "Order Calendar" => "calendar_month",
-                  "Inventory" => "inventory_2",
-                  "Shopping List" => "checklist",
-                  "Expenses" => "payments",
-                  "Product List" => "fastfood",
-                  "Ingredient List" => "set_meal",
-                  "Recepies" => "menu_book",
-                  "Discount Codes" => "sell"
-                }
-              %>
-              <div class="mm-nav-flat">
-                <%= for group <- domain.menu_items() do %>
-                  <div class="mm-nav-section-label"><%= group.group %></div>
-                  <%= for item <- group.items do %>
-                    <%
-                      item_path = item.path |> String.split("?") |> hd()
-                      is_active = if item_path == prefix, do: req_path == prefix, else: String.starts_with?(req_path, item_path)
-                      icon = mm_nav_icons[item.label] || "article"
-                    %>
-                    <.link navigate={item.path} class={"mm-nav-item#{if is_active, do: " mm-nav-item--active"}"}>
-                      <span class="material-symbols-outlined"><%= icon %></span>
-                      <%= item.label %>
-                    </.link>
-                  <% end %>
-                <% end %>
+              <nav class="mm-bottom-nav" aria-label="Main navigation">
+                <.link
+                  navigate={prefix}
+                  class={"mm-nav-tab#{if req_path == prefix, do: " mm-nav-tab--active"}"}
+                >
+                  <span class="material-symbols-outlined">dashboard</span>
+                  <span class="mm-nav-label">Dashboard</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/orders"}
+                  class={"mm-nav-tab#{if String.starts_with?(req_path, "#{prefix}/orders"), do: " mm-nav-tab--active"}"}
+                >
+                  <span class="material-symbols-outlined">shopping_bag</span>
+                  <span class="mm-nav-label">Orders</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/products"}
+                  class={"mm-nav-tab#{if String.starts_with?(req_path, "#{prefix}/products"), do: " mm-nav-tab--active"}"}
+                >
+                  <span class="material-symbols-outlined">tapas</span>
+                  <span class="mm-nav-label">Snacks</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/inventory"}
+                  class={"mm-nav-tab#{if String.starts_with?(req_path, "#{prefix}/inventory"), do: " mm-nav-tab--active"}"}
+                >
+                  <span class="material-symbols-outlined">inventory_2</span>
+                  <span class="mm-nav-label">Stock</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/more"}
+                  class={"mm-nav-tab#{if req_path == "#{prefix}/more" or String.starts_with?(req_path, "#{prefix}/ingredients") or String.starts_with?(req_path, "#{prefix}/recipes") or String.starts_with?(req_path, "#{prefix}/discount") or String.starts_with?(req_path, "#{prefix}/expenses") or String.contains?(req_path, "/reports/") or String.contains?(req_path, "/reconciliation/") or String.starts_with?(req_path, "#{prefix}/customers") or String.starts_with?(req_path, "#{prefix}/order_payments") or String.starts_with?(req_path, "#{prefix}/transactions") or String.starts_with?(req_path, "#{prefix}/account-transactions"), do: " mm-nav-tab--active"}"}
+                >
+                  <span class="material-symbols-outlined">more_horiz</span>
+                  <span class="mm-nav-label">More</span>
+                </.link>
+              </nav>
+            <% end %>
 
-                <div class="mm-nav-spacer"></div>
-                <div class="mm-nav-section-label">Reports</div>
-                <.link navigate={"#{prefix}/reports/pnl"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/pnl"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">bar_chart</span> P&L
-                </.link>
-                <.link navigate={"#{prefix}/reports/balance_sheet"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/balance_sheet"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">account_balance</span> Balance Sheet
-                </.link>
-                <.link navigate={"#{prefix}/reports/unit_economics_list"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/unit_economics"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">analytics</span> Unit Economics
-                </.link>
-                <.link navigate={"#{prefix}/reports/cash_flow"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/cash_flow"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">payments</span> Cash Flow
-                </.link>
-                <.link navigate={"#{prefix}/reports/financial_analysis"} class={"mm-nav-item#{if String.contains?(req_path, "/reports/financial_analysis"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">monitoring</span> Financial Analysis
-                </.link>
-
-                <div class="mm-nav-spacer"></div>
-                <div class="mm-nav-section-label">Tools</div>
-                <.link navigate={"#{prefix}/reconciliation/accounting"} class={"mm-nav-item#{if String.contains?(req_path, "/reconciliation/accounting"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">fact_check</span> Reconciliation
-                </.link>
-                <.link navigate={"#{prefix}/reconciliation/inventory"} class={"mm-nav-item#{if String.contains?(req_path, "/reconciliation/inventory"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">inventory</span> Inventory Recon
-                </.link>
-                <.link navigate={"#{prefix}/account-transactions"} class={"mm-nav-item#{if String.contains?(req_path, "/account-transactions"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">list_alt</span> Transactions
-                </.link>
-                <.link navigate={"#{prefix}/customers"} class={"mm-nav-item#{if String.starts_with?(req_path, "#{prefix}/customers"), do: " mm-nav-item--active"}"}>
-                  <span class="material-symbols-outlined">people</span> Customers
-                </.link>
-              </div>
-            <% else %>
             <%= if domain == Ledgr.Domains.CasaTame do %>
-              <!-- Casa Tame: flat nav matching Stitch sidebar design -->
-              <%
-                nav_icons = %{
-                  "Dashboard" => "hero-squares-2x2",
-                  "Expenses" => "hero-banknotes",
-                  "Income" => "hero-currency-dollar",
-                  "Transfers" => "hero-arrows-right-left",
-                  "Bills" => "hero-document-text",
-                  "Investments" => "hero-arrow-trending-up",
-                  "Debts" => "hero-document-duplicate",
-                  "Net Worth" => "hero-building-library",
-                  "Balance Sheet" => "hero-chart-bar",
-                  "Income & Expenses" => "hero-chart-pie",
-                  "Monthly Trends" => "hero-presentation-chart-line",
-                  "Reconciliation" => "hero-adjustments-horizontal",
-                  "All Transactions" => "hero-queue-list",
-                  "Account Transactions" => "hero-list-bullet"
-                }
-              %>
-              <div class="ct-nav-flat">
-                <%= for group <- domain.menu_items() do %>
-                  <%= for item <- group.items do %>
-                    <%
-                      item_path = item.path |> String.split("?") |> hd()
-                      is_active = if item_path == prefix, do: req_path == prefix, else: String.starts_with?(req_path, item_path)
-                      icon_name = nav_icons[item.label] || "hero-document"
-                    %>
-                    <.link navigate={item.path} class={"ct-nav-item#{if is_active, do: " ct-nav-item--active"}"}>
-                      <.icon name={icon_name} class="ct-nav-icon" />
-                      <%= item.label %>
-                    </.link>
-                  <% end %>
-                  <div class="ct-nav-spacer"></div>
-                <% end %>
-              </div>
-            <% else %>
-            <%= if function_exported?(domain, :nav_icons, 0) do %>
-              <%!-- Standard flat nav with Material Symbols. Default for new domains; domains opt in by implementing `nav_icons/0`. --%>
-              <% nav_icons = domain.nav_icons() %>
-              <div class="app-nav-flat">
-                <%= for group <- domain.menu_items() do %>
-                  <div class="app-nav-section-label"><%= group.group %></div>
-                  <%= for item <- group.items do %>
-                    <%
-                      item_path = item.path |> String.split("?") |> hd()
-                      is_active = if item_path == prefix, do: req_path == prefix, else: String.starts_with?(req_path, item_path)
-                      icon = Map.get(nav_icons, item.label, "article")
-                    %>
-                    <.link navigate={item.path} class={"app-nav-item#{if is_active, do: " app-nav-item--active"}"}>
-                      <span class="material-symbols-outlined"><%= icon %></span>
-                      <%= item.label %>
-                    </.link>
-                  <% end %>
-                <% end %>
-              </div>
-            <% else %>
-              <!-- Other domains: dropdown groups -->
-              <%= for group <- domain.menu_items() do %>
-                <%
-                  group_active = Enum.any?(group.items, fn item ->
-                    item_path = item.path |> String.split("?") |> hd()
-                    if item_path == prefix do
-                      req_path == prefix
-                    else
-                      String.starts_with?(req_path, item_path)
-                    end
-                  end)
-                %>
-                <div class="nav-dropdown" data-default-open={if group_active, do: "true"}>
-                  <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
-                    <span><%= group.group %></span>
-                    <.icon name="hero-chevron-down" class="dropdown-icon" />
-                  </button>
-                  <div class="nav-dropdown-menu">
-                    <%= for item <- group.items do %>
-                      <.link navigate={item.path} class="nav-link"><%= item.label %></.link>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
-            <% end %>
-            <% end %>
-            <% end %> <%!-- close MrMunchMe if/else --%>
-
-            <!-- Core menu groups (shared across all domains, hidden when domain manages its own nav) -->
-            <%= unless domain in [Ledgr.Domains.CasaTame, Ledgr.Domains.MrMunchMe] or function_exported?(domain, :nav_icons, 0) do %>
-              <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reports/") or String.contains?(req_path, "/account-transactions"), do: "true"}>
-                <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
+              <nav class="ct-bottom-tabs" aria-label="Main navigation">
+                <.link
+                  navigate={prefix}
+                  class={"ct-tab#{if req_path == prefix, do: " ct-tab--active"}"}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+                    />
+                  </svg>
+                  <span>Dashboard</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/expenses"}
+                  class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/expenses"), do: " ct-tab--active"}"}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
+                    />
+                  </svg>
+                  <span>Expenses</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/income"}
+                  class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/income"), do: " ct-tab--active"}"}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>Income</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/bills"}
+                  class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/bills"), do: " ct-tab--active"}"}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+                    />
+                  </svg>
+                  <span>Bills</span>
+                </.link>
+                <.link
+                  navigate={"#{prefix}/reports"}
+                  class={"ct-tab#{if String.contains?(req_path, "/reports/") or req_path == "#{prefix}/reports", do: " ct-tab--active"}"}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
+                    />
+                  </svg>
                   <span>Reports</span>
-                  <.icon name="hero-chevron-down" class="dropdown-icon" />
-                </button>
-                <div class="nav-dropdown-menu">
-                  <.link navigate={"#{prefix}/reports/pnl"} class="nav-link">P&L</.link>
-                  <.link navigate={"#{prefix}/reports/balance_sheet"} class="nav-link">Balance Sheet</.link>
-                  <.link navigate={"#{prefix}/reports/unit_economics_list"} class="nav-link">Unit Economics</.link>
-                  <.link navigate={"#{prefix}/reports/cash_flow"} class="nav-link">Cash Flow</.link>
-                  <.link navigate={"#{prefix}/reports/financial_analysis"} class="nav-link">Financial Analysis</.link>
-                  <.link navigate={"#{prefix}/account-transactions"} class="nav-link">Account Transactions</.link>
-                  <.link navigate={"#{prefix}/reports/ap_summary"} class="nav-link">AP Summary</.link>
-                </div>
-              </div>
-
-              <div class="nav-dropdown" data-default-open={if String.contains?(req_path, "/reconciliation/"), do: "true"}>
-                <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
-                  <span>Reconciliation Tools</span>
-                  <.icon name="hero-chevron-down" class="dropdown-icon" />
-                </button>
-                <div class="nav-dropdown-menu">
-                  <.link navigate={"#{prefix}/reconciliation/accounting"} class="nav-link">Account Reconciliation</.link>
-                  <%= if String.contains?(prefix, "mr-munch-me") do %>
-                    <.link navigate={"#{prefix}/reconciliation/inventory"} class="nav-link">Inventory Reconciliation</.link>
-                  <% end %>
-                </div>
-              </div>
-
-              <% domain_has_customers = domain.menu_items() |> Enum.flat_map(& &1.items) |> Enum.any?(& &1.path == "#{prefix}/customers") %>
-              <% other_active = String.starts_with?(req_path, "#{prefix}/investments") or String.starts_with?(req_path, "#{prefix}/transfers") or (String.starts_with?(req_path, "#{prefix}/transactions") and not String.contains?(req_path, "account-transactions")) or (not domain_has_customers and String.starts_with?(req_path, "#{prefix}/customers")) %>
-              <div class="nav-dropdown" data-default-open={if other_active, do: "true"}>
-                <button type="button" class="nav-dropdown-toggle" onclick="toggleDropdown(this)">
-                  <span>Other</span>
-                  <.icon name="hero-chevron-down" class="dropdown-icon" />
-                </button>
-                <div class="nav-dropdown-menu">
-                  <%= unless domain_has_customers do %>
-                    <.link navigate={"#{prefix}/customers"} class="nav-link">Customers</.link>
-                  <% end %>
-                  <.link navigate={"#{prefix}/investments"} class="nav-link">Investments</.link>
-                  <.link navigate={"#{prefix}/transfers"} class="nav-link">Money Transfers</.link>
-                  <.link navigate={"#{prefix}/transactions"} class="nav-link">All Transactions</.link>
-                </div>
-              </div>
-            <% end %>
-
-          </nav>
-
-          <div class="sidebar-footer">
-            <%= if assigns[:current_user] do %>
-              <span class="sidebar-user-email"><%= assigns[:current_user].email %></span>
-              <.link href={"#{prefix}/logout"} method="delete" class="app-switcher-link logout-link">
-                <.icon name="hero-arrow-right-on-rectangle" class="app-switcher-icon" />
-                <span>Sign Out</span>
-              </.link>
+                </.link>
+              </nav>
             <% end %>
           </div>
-        </aside>
-
-        <main class="content">
-          <section class="content-body">
-            <%= @inner_content %>
-          </section>
-        </main>
-
-        <%= if domain == Ledgr.Domains.MrMunchMe do %>
-          <nav class="mm-bottom-nav" aria-label="Main navigation">
-            <.link navigate={prefix} class={"mm-nav-tab#{if req_path == prefix, do: " mm-nav-tab--active"}"}>
-              <span class="material-symbols-outlined">dashboard</span>
-              <span class="mm-nav-label">Dashboard</span>
-            </.link>
-            <.link navigate={"#{prefix}/orders"} class={"mm-nav-tab#{if String.starts_with?(req_path, "#{prefix}/orders"), do: " mm-nav-tab--active"}"}>
-              <span class="material-symbols-outlined">shopping_bag</span>
-              <span class="mm-nav-label">Orders</span>
-            </.link>
-            <.link navigate={"#{prefix}/products"} class={"mm-nav-tab#{if String.starts_with?(req_path, "#{prefix}/products"), do: " mm-nav-tab--active"}"}>
-              <span class="material-symbols-outlined">tapas</span>
-              <span class="mm-nav-label">Snacks</span>
-            </.link>
-            <.link navigate={"#{prefix}/inventory"} class={"mm-nav-tab#{if String.starts_with?(req_path, "#{prefix}/inventory"), do: " mm-nav-tab--active"}"}>
-              <span class="material-symbols-outlined">inventory_2</span>
-              <span class="mm-nav-label">Stock</span>
-            </.link>
-            <.link navigate={"#{prefix}/more"} class={"mm-nav-tab#{if req_path == "#{prefix}/more" or String.starts_with?(req_path, "#{prefix}/ingredients") or String.starts_with?(req_path, "#{prefix}/recipes") or String.starts_with?(req_path, "#{prefix}/discount") or String.starts_with?(req_path, "#{prefix}/expenses") or String.contains?(req_path, "/reports/") or String.contains?(req_path, "/reconciliation/") or String.starts_with?(req_path, "#{prefix}/customers") or String.starts_with?(req_path, "#{prefix}/order_payments") or String.starts_with?(req_path, "#{prefix}/transactions") or String.starts_with?(req_path, "#{prefix}/account-transactions"), do: " mm-nav-tab--active"}"}>
-              <span class="material-symbols-outlined">more_horiz</span>
-              <span class="mm-nav-label">More</span>
-            </.link>
-          </nav>
         <% end %>
-
-        <%= if domain == Ledgr.Domains.CasaTame do %>
-          <nav class="ct-bottom-tabs" aria-label="Main navigation">
-            <.link navigate={prefix} class={"ct-tab#{if req_path == prefix, do: " ct-tab--active"}"}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
-              <span>Dashboard</span>
-            </.link>
-            <.link navigate={"#{prefix}/expenses"} class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/expenses"), do: " ct-tab--active"}"}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
-              <span>Expenses</span>
-            </.link>
-            <.link navigate={"#{prefix}/income"} class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/income"), do: " ct-tab--active"}"}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              <span>Income</span>
-            </.link>
-            <.link navigate={"#{prefix}/bills"} class={"ct-tab#{if String.starts_with?(req_path, "#{prefix}/bills"), do: " ct-tab--active"}"}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
-              <span>Bills</span>
-            </.link>
-            <.link navigate={"#{prefix}/reports"} class={"ct-tab#{if String.contains?(req_path, "/reports/") or req_path == "#{prefix}/reports", do: " ct-tab--active"}"}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
-              <span>Reports</span>
-            </.link>
-          </nav>
-        <% end %>
-      </div>
-      <% end %>
       <% end %>
     <% else %>
       <!-- No domain context (landing page, etc.) -->
       <main>
-        <%= @inner_content %>
+        {@inner_content}
       </main>
     <% end %>
     <%!-- Flash toast notifications --%>
-    <% flash_info  = Phoenix.Flash.get(@flash, :info) %>
+    <% flash_info = Phoenix.Flash.get(@flash, :info) %>
     <% flash_error = Phoenix.Flash.get(@flash, :error) %>
     <%= if flash_info || flash_error do %>
       <div class="flash-container" id="flash-container">
         <%= if flash_info do %>
           <div class="flash-toast flash-toast-info" data-flash-auto-dismiss>
             <span class="flash-toast-icon">✓</span>
-            <span class="flash-toast-message"><%= flash_info %></span>
-            <button type="button" class="flash-toast-close" onclick="this.closest('.flash-toast').classList.add('hiding'); setTimeout(()=>this.closest('.flash-toast').remove(), 350)">✕</button>
+            <span class="flash-toast-message">{flash_info}</span>
+            <button
+              type="button"
+              class="flash-toast-close"
+              onclick="this.closest('.flash-toast').classList.add('hiding'); setTimeout(()=>this.closest('.flash-toast').remove(), 350)"
+            >
+              ✕
+            </button>
           </div>
         <% end %>
         <%= if flash_error do %>
           <div class="flash-toast flash-toast-error" data-flash-auto-dismiss>
             <span class="flash-toast-icon">⚠</span>
-            <span class="flash-toast-message"><%= flash_error %></span>
-            <button type="button" class="flash-toast-close" onclick="this.closest('.flash-toast').classList.add('hiding'); setTimeout(()=>this.closest('.flash-toast').remove(), 350)">✕</button>
+            <span class="flash-toast-message">{flash_error}</span>
+            <button
+              type="button"
+              class="flash-toast-close"
+              onclick="this.closest('.flash-toast').classList.add('hiding'); setTimeout(()=>this.closest('.flash-toast').remove(), 350)"
+            >
+              ✕
+            </button>
           </div>
         <% end %>
       </div>

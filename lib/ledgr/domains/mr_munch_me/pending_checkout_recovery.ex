@@ -53,7 +53,9 @@ defmodule Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery do
       )
 
     if unprocessed != [] do
-      Logger.info("[PendingCheckoutRecovery] Found #{length(unprocessed)} unprocessed checkout(s) to check")
+      Logger.info(
+        "[PendingCheckoutRecovery] Found #{length(unprocessed)} unprocessed checkout(s) to check"
+      )
     end
 
     Enum.each(unprocessed, &maybe_recover/1)
@@ -62,15 +64,26 @@ defmodule Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery do
   defp maybe_recover(pending) do
     case Stripe.Checkout.Session.retrieve(pending.stripe_session_id) do
       {:ok, session} when session.payment_status == "paid" ->
-        Logger.info("[PendingCheckoutRecovery] Recovering order for pending checkout #{pending.id}")
+        Logger.info(
+          "[PendingCheckoutRecovery] Recovering order for pending checkout #{pending.id}"
+        )
 
-        case Orders.create_orders_from_pending_checkout(pending, pending.stripe_session_id, session.amount_total) do
+        case Orders.create_orders_from_pending_checkout(
+               pending,
+               pending.stripe_session_id,
+               session.amount_total
+             ) do
           {:ok, orders} ->
             PendingCheckouts.mark_processed(pending)
-            Logger.info("[PendingCheckoutRecovery] Created #{length(orders)} order(s) for pending checkout #{pending.id}")
+
+            Logger.info(
+              "[PendingCheckoutRecovery] Created #{length(orders)} order(s) for pending checkout #{pending.id}"
+            )
 
           {:error, reason} ->
-            Logger.error("[PendingCheckoutRecovery] Failed to create orders for pending checkout #{pending.id}: #{inspect(reason)}")
+            Logger.error(
+              "[PendingCheckoutRecovery] Failed to create orders for pending checkout #{pending.id}: #{inspect(reason)}"
+            )
         end
 
       {:ok, _session} ->
@@ -78,7 +91,9 @@ defmodule Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery do
         :ok
 
       {:error, reason} ->
-        Logger.warning("[PendingCheckoutRecovery] Could not retrieve Stripe session #{pending.stripe_session_id}: #{inspect(reason)}")
+        Logger.warning(
+          "[PendingCheckoutRecovery] Could not retrieve Stripe session #{pending.stripe_session_id}: #{inspect(reason)}"
+        )
     end
   end
 

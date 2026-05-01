@@ -1,13 +1,14 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="content">
   <header class="content-header">
@@ -20,44 +21,103 @@
   <div class="content-body">
     <!-- Actions + Currency Toggle -->
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-      <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="ct-quick-pill ct-quick-pill--primary">+ New Expense</.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/expenses/new")}
+        class="ct-quick-pill ct-quick-pill--primary"
+      >
+        + New Expense
+      </.link>
       <div class="ct-currency-toggle">
-        <a href={dp(@domain_path_prefix, "/expenses?date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "", do: "ct-toggle-active"}"}>All</a>
-        <a href={dp(@domain_path_prefix, "/expenses?currency=MXN&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "MXN", do: "ct-toggle-active"}"}>MXN</a>
-        <a href={dp(@domain_path_prefix, "/expenses?currency=USD&date_from=#{@date_from}&date_to=#{@date_to}")} class={"#{if @currency_filter == "USD", do: "ct-toggle-active"}"}>USD</a>
+        <a
+          href={dp(@domain_path_prefix, "/expenses?date_from=#{@date_from}&date_to=#{@date_to}")}
+          class={"#{if @currency_filter == "", do: "ct-toggle-active"}"}
+        >
+          All
+        </a>
+        <a
+          href={
+            dp(
+              @domain_path_prefix,
+              "/expenses?currency=MXN&date_from=#{@date_from}&date_to=#{@date_to}"
+            )
+          }
+          class={"#{if @currency_filter == "MXN", do: "ct-toggle-active"}"}
+        >
+          MXN
+        </a>
+        <a
+          href={
+            dp(
+              @domain_path_prefix,
+              "/expenses?currency=USD&date_from=#{@date_from}&date_to=#{@date_to}"
+            )
+          }
+          class={"#{if @currency_filter == "USD", do: "ct-toggle-active"}"}
+        >
+          USD
+        </a>
       </div>
     </div>
-
-    <!-- Date range (compact inline) -->
-    <form method="get" action={dp(@domain_path_prefix, "/expenses")} style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+    
+<!-- Date range (compact inline) -->
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/expenses")}
+      style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;"
+    >
       <input type="hidden" name="currency" value={@currency_filter} />
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ct-on-surface-variant)" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--ct-on-surface-variant)"
+        stroke-width="2"
+      >
+        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
+      </svg>
       <input type="date" name="date_from" value={@date_from} style="font-size: 0.8rem;" />
       <span style="color: var(--ct-on-surface-variant); font-size: 0.8rem;">&mdash;</span>
       <input type="date" name="date_to" value={@date_to} style="font-size: 0.8rem;" />
-      <button type="submit" class="ct-quick-pill" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">Filter</button>
+      <button
+        type="submit"
+        class="ct-quick-pill"
+        style="font-size: 0.7rem; padding: 0.3rem 0.6rem;"
+      >
+        Filter
+      </button>
       <%= if @currency_filter != "" or @date_from != "" or @date_to != "" do %>
-        <a href={dp(@domain_path_prefix, "/expenses")} class="ct-quick-pill" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">Clear</a>
+        <a
+          href={dp(@domain_path_prefix, "/expenses")}
+          class="ct-quick-pill"
+          style="font-size: 0.7rem; padding: 0.3rem 0.6rem;"
+        >
+          Clear
+        </a>
       <% end %>
     </form>
-
-    <!-- Grouped Expense List -->
+    
+<!-- Grouped Expense List -->
     <%= if @expenses == [] do %>
-      <p style="text-align: center; color: var(--ct-on-surface-variant); padding: 2rem;">No expenses found.</p>
+      <p style="text-align: center; color: var(--ct-on-surface-variant); padding: 2rem;">
+        No expenses found.
+      </p>
     <% else %>
-      <%
-        grouped = Enum.group_by(@expenses, & &1.date)
-        sorted_dates = grouped |> Map.keys() |> Enum.sort({:desc, Date})
-      %>
+      <% grouped = Enum.group_by(@expenses, & &1.date)
+      sorted_dates = grouped |> Map.keys() |> Enum.sort({:desc, Date}) %>
       <%= for date <- sorted_dates do %>
         <div class="ct-expense-date-header">
-          <%= fmt_date(date, "%A, %b %d") |> String.upcase() %>
+          {fmt_date(date, "%A, %b %d") |> String.upcase()}
         </div>
         <%= for expense <- grouped[date] do %>
-          <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}")} style="text-decoration: none; color: inherit;">
+          <.link
+            navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}")}
+            style="text-decoration: none; color: inherit;"
+          >
             <div class="ct-expense-row">
               <div class="ct-category-icon">
-                <%= case expense.expense_account && expense.expense_account.name do
+                {case expense.expense_account && expense.expense_account.name do
                   x when x in ["Food & Grocery", "Food & Dining", "Restaurants"] -> "🍽️"
                   x when x in ["Transportation", "Transport", "Gas & Fuel"] -> "🚗"
                   x when x in ["Housing", "Rent", "Mortgage"] -> "🏠"
@@ -71,19 +131,21 @@
                   x when x in ["Subscriptions", "Membership"] -> "📱"
                   x when x in ["Financial", "Bank Fees", "Insurance"] -> "🏦"
                   _ -> "💰"
-                end %>
+                end}
               </div>
               <div class="ct-expense-info">
-                <div class="ct-expense-desc"><%= expense.description %></div>
+                <div class="ct-expense-desc">{expense.description}</div>
                 <div class="ct-expense-meta">
-                  <span class="ct-badge"><%= expense.expense_account && expense.expense_account.name %></span>
-                  <span><%= expense.paid_from_account && expense.paid_from_account.name %></span>
+                  <span class="ct-badge">
+                    {expense.expense_account && expense.expense_account.name}
+                  </span>
+                  <span>{expense.paid_from_account && expense.paid_from_account.name}</span>
                 </div>
               </div>
               <div style="text-align: right;">
-                <div class="ct-expense-amount">-<%= fmt.(expense.amount_cents) %></div>
+                <div class="ct-expense-amount">-{fmt.(expense.amount_cents)}</div>
                 <div style="font-size: 0.65rem; color: var(--ct-on-surface-variant);">
-                  <%= expense.currency %>
+                  {expense.currency}
                   <%= if expense.refunds != [] do %>
                     <span class="ct-badge ct-badge--refunded">↩ refunded</span>
                   <% end %>
@@ -94,10 +156,24 @@
         <% end %>
       <% end %>
     <% end %>
-
-    <!-- FAB for new expense (mobile) -->
-    <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="ct-fab" aria-label="New expense">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    
+<!-- FAB for new expense (mobile) -->
+    <.link
+      navigate={dp(@domain_path_prefix, "/expenses/new")}
+      class="ct-fab"
+      aria-label="New expense"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
     </.link>
   </div>
 </section>

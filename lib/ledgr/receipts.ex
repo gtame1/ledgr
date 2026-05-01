@@ -20,7 +20,8 @@ defmodule Ledgr.Receipts do
 
   @allowed_extensions ~w(.jpg .jpeg .png .webp .heic .gif .pdf)
 
-  @max_size_bytes 20 * 1024 * 1024  # 20 MB
+  # 20 MB
+  @max_size_bytes 20 * 1024 * 1024
 
   @doc """
   Saves a `Plug.Upload` into the receipts directory.
@@ -77,13 +78,20 @@ defmodule Ledgr.Receipts do
   # ── Private ────────────────────────────────────────────────
 
   defp validate_type(nil), do: {:error, "File type could not be determined"}
+
   defp validate_type(type) do
-    if type in @allowed_types, do: :ok, else: {:error, "File type #{inspect(type)} is not allowed. Upload a JPG, PNG, PDF, or WebP."}
+    if type in @allowed_types,
+      do: :ok,
+      else:
+        {:error, "File type #{inspect(type)} is not allowed. Upload a JPG, PNG, PDF, or WebP."}
   end
 
   defp validate_extension(filename) do
     ext = filename |> Path.extname() |> String.downcase()
-    if ext in @allowed_extensions, do: :ok, else: {:error, "File extension #{ext} is not allowed. Upload a JPG, PNG, PDF, or WebP."}
+
+    if ext in @allowed_extensions,
+      do: :ok,
+      else: {:error, "File extension #{ext} is not allowed. Upload a JPG, PNG, PDF, or WebP."}
   end
 
   defp validate_size(path) do

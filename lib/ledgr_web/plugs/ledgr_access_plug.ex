@@ -43,6 +43,7 @@ defmodule LedgrWeb.Plugs.LedgrAccessPlug do
       # Not authenticated — redirect to unlock
       true ->
         Logger.warning("[LedgrAccessPlug] blocking path=#{conn.request_path} host=#{conn.host}")
+
         conn
         |> put_session(:ledgr_return_to, conn.request_path)
         |> redirect(to: @unlock_path)

@@ -70,11 +70,11 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseRefundController do
   # ── Private ────────────────────────────────────────────────────
 
   @paid_from_ranges [
-    {"Cash & Bank",      "1000", "1019", "USD"},
-    {"Credit Cards",     "2000", "2009", "USD"},
+    {"Cash & Bank", "1000", "1019", "USD"},
+    {"Credit Cards", "2000", "2009", "USD"},
     {"Accounts Payable", "2010", "2019", "USD"},
-    {"Cash & Bank",      "1100", "1119", "MXN"},
-    {"Credit Cards",     "2100", "2109", "MXN"},
+    {"Cash & Bank", "1100", "1119", "MXN"},
+    {"Credit Cards", "2100", "2109", "MXN"},
     {"Accounts Payable", "2110", "2119", "MXN"}
   ]
 

@@ -5,13 +5,16 @@ defmodule Ledgr.Domains.Viaxe.Recommendations.Recommendation do
   schema "recommendations" do
     field :city, :string
     field :country, :string
-    field :category, :string    # restaurant, hotel, bar, tour, experience, shopping, spa, beach, museum, other
+    # restaurant, hotel, bar, tour, experience, shopping, spa, beach, museum, other
+    field :category, :string
     field :name, :string
     field :description, :string
     field :address, :string
     field :website, :string
-    field :price_range, :string # $, $$, $$$, $$$$
-    field :rating, :integer     # 1–5
+    # $, $$, $$$, $$$$
+    field :price_range, :string
+    # 1–5
+    field :rating, :integer
     field :notes, :string
 
     timestamps(type: :utc_datetime)
@@ -27,7 +30,8 @@ defmodule Ledgr.Domains.Viaxe.Recommendations.Recommendation do
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> validate_inclusion(:category, @valid_categories,
-        message: "must be one of: #{Enum.join(@valid_categories, ", ")}")
+      message: "must be one of: #{Enum.join(@valid_categories, ", ")}"
+    )
     |> validate_inclusion(:price_range, ~w($ $$ $$$ $$$$))
     |> validate_number(:rating, greater_than_or_equal_to: 1, less_than_or_equal_to: 5)
   end

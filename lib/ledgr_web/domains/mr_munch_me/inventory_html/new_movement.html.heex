@@ -8,171 +8,181 @@
     </div>
   </div>
 
-    <section class="card">
+  <section class="card">
+    <.form
+      for={@form}
+      action={dp(@domain_path_prefix, "/inventory/movements")}
+      class="form-grid"
+      id="movement-form"
+    >
+      <%!-- Global error banner --%>
+      <%= if @form.source.action do %>
+        <div class="alert alert-error">
+          <p>Oops, something went wrong. Please review the errors below:</p>
+          <% base_errors = Keyword.get_values(@form.source.errors, :base) %>
+          <%= if base_errors != [] do %>
+            <ul class="pretty-list">
+              <%= for {msg, _opts} <- base_errors do %>
+                <li>{msg}</li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+      <% end %>
 
-      <.form
-        for={@form}
-        action={dp(@domain_path_prefix, "/inventory/movements")}
-        class="form-grid"
-        id="movement-form"
-      >
-
-        <%!-- Global error banner --%>
-        <%= if @form.source.action do %>
-          <div class="alert alert-error">
-            <p>Oops, something went wrong. Please review the errors below:</p>
-            <% base_errors = Keyword.get_values(@form.source.errors, :base) %>
-            <%= if base_errors != [] do %>
-              <ul class="pretty-list">
-                <%= for {msg, _opts} <- base_errors do %>
-                  <li><%= msg %></li>
-                <% end %>
-              </ul>
-            <% end %>
-          </div>
-        <% end %>
-
-        <%!-- Shared fields: movement type, locations, date, note --%>
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={@form[:movement_type]}
-              type="select"
-              label="Movement type"
-              prompt="Choose movement type"
-              options={[
-                {"Usage (consume from location)", "usage"},
-                {"Transfer between locations", "transfer"},
-                {"Waste / Write-off (throw away)", "write_off"}
-              ]}
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={@form[:from_location_code]}
-              type="select"
-              label="From location"
-              prompt="Choose origin"
-              options={@location_options}
-            />
-          </div>
-
-          <div class="field" id="to-location-field">
-            <.input
-              field={@form[:to_location_code]}
-              type="select"
-              label="To location (for transfers only)"
-              prompt="Choose destination"
-              options={@location_options}
-              id="to-location-select"
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={@form[:movement_date]}
-              type="date"
-              label="Movement Date"
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={@form[:note]}
-              type="text"
-              label="Note (optional)"
-            />
-          </div>
+      <%!-- Shared fields: movement type, locations, date, note --%>
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={@form[:movement_type]}
+            type="select"
+            label="Movement type"
+            prompt="Choose movement type"
+            options={[
+              {"Usage (consume from location)", "usage"},
+              {"Transfer between locations", "transfer"},
+              {"Waste / Write-off (throw away)", "write_off"}
+            ]}
+          />
         </div>
 
-        <%!-- Movement items list --%>
-        <div class="form-block" style="flex-direction: column; width: 100%;">
-          <div class="field" style="width: 100%; min-width: 100%;">
-            <div class="mb-4">
-              <label class="label" style="font-size: 0.95rem; font-weight: 600; margin: 0;">Movement Items</label>
-            </div>
+        <div class="field">
+          <.input
+            field={@form[:from_location_code]}
+            type="select"
+            label="From location"
+            prompt="Choose origin"
+            options={@location_options}
+          />
+        </div>
 
-            <div id="movement-items-container" style="display: flex; flex-direction: column; gap: 1rem;">
-              <.inputs_for :let={item_f} field={@form[:items]}>
-                <div class="movement-item-row" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; background: #fffaf6; box-shadow: 0 2px 8px rgba(61, 35, 24, 0.05);">
-                  <div style="display: flex; align-items: flex-start; gap: 1rem;">
-                    <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                      <div class="field" style="min-width: 0;">
-                        <.input
-                          field={item_f[:ingredient_code]}
-                          type="select"
-                          label="Ingredient"
-                          prompt="Choose an ingredient"
-                          options={@ingredient_options}
-                          class="ingredient-select"
-                        />
-                        <p class="field-help item-ingredient-info" style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);">
-                          Unit: –, Available: –
-                        </p>
-                      </div>
+        <div class="field" id="to-location-field">
+          <.input
+            field={@form[:to_location_code]}
+            type="select"
+            label="To location (for transfers only)"
+            prompt="Choose destination"
+            options={@location_options}
+            id="to-location-select"
+          />
+        </div>
 
-                      <div class="field" style="min-width: 0;">
-                        <label class="label">
-                          Quantity (<span class="item-quantity-unit">units</span>)
-                        </label>
-                        <.input
-                          field={item_f[:quantity]}
-                          type="number"
-                          label=""
-                          min="1"
-                          class="item-quantity"
-                        />
-                      </div>
+        <div class="field">
+          <.input
+            field={@form[:movement_date]}
+            type="date"
+            label="Movement Date"
+          />
+        </div>
+
+        <div class="field">
+          <.input
+            field={@form[:note]}
+            type="text"
+            label="Note (optional)"
+          />
+        </div>
+      </div>
+
+      <%!-- Movement items list --%>
+      <div class="form-block" style="flex-direction: column; width: 100%;">
+        <div class="field" style="width: 100%; min-width: 100%;">
+          <div class="mb-4">
+            <label class="label" style="font-size: 0.95rem; font-weight: 600; margin: 0;">
+              Movement Items
+            </label>
+          </div>
+
+          <div
+            id="movement-items-container"
+            style="display: flex; flex-direction: column; gap: 1rem;"
+          >
+            <.inputs_for :let={item_f} field={@form[:items]}>
+              <div
+                class="movement-item-row"
+                style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; background: #fffaf6; box-shadow: 0 2px 8px rgba(61, 35, 24, 0.05);"
+              >
+                <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                  <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="field" style="min-width: 0;">
+                      <.input
+                        field={item_f[:ingredient_code]}
+                        type="select"
+                        label="Ingredient"
+                        prompt="Choose an ingredient"
+                        options={@ingredient_options}
+                        class="ingredient-select"
+                      />
+                      <p
+                        class="field-help item-ingredient-info"
+                        style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);"
+                      >
+                        Unit: –, Available: –
+                      </p>
                     </div>
 
-                    <div style="display: flex; align-items: center; padding-top: 0; flex-shrink: 0;">
-                      <button
-                        type="button"
-                        class="btn danger remove-item-btn"
-                        aria-label="Remove item"
-                        style="font-size: 0.85rem; padding: 0.5rem 0.85rem;"
-                      >
-                        <.icon name="hero-trash" class="w-4 h-4" />
-                        <span>Remove</span>
-                      </button>
+                    <div class="field" style="min-width: 0;">
+                      <label class="label">
+                        Quantity (<span class="item-quantity-unit">units</span>)
+                      </label>
+                      <.input
+                        field={item_f[:quantity]}
+                        type="number"
+                        label=""
+                        min="1"
+                        class="item-quantity"
+                      />
                     </div>
                   </div>
+
+                  <div style="display: flex; align-items: center; padding-top: 0; flex-shrink: 0;">
+                    <button
+                      type="button"
+                      class="btn danger remove-item-btn"
+                      aria-label="Remove item"
+                      style="font-size: 0.85rem; padding: 0.5rem 0.85rem;"
+                    >
+                      <.icon name="hero-trash" class="w-4 h-4" />
+                      <span>Remove</span>
+                    </button>
+                  </div>
                 </div>
-              </.inputs_for>
-            </div>
-
-            <div style="margin-top: 1rem;">
-              <button
-                type="button"
-                id="add-item-btn"
-                class="btn"
-                style="font-size: 0.85rem; padding: 0.5rem 1rem;"
-              >
-                <.icon name="hero-plus" class="w-4 h-4" />
-                <span>Add Item</span>
-              </button>
-            </div>
-
-            <%= if @form[:items].errors != [] do %>
-              <div class="alert alert-error mt-2">
-                <p>Please fix the errors in the items above.</p>
               </div>
-            <% end %>
+            </.inputs_for>
           </div>
-        </div>
 
-        <div class="actions">
-          <button type="submit" class="btn primary">
-            Save Movement
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
-            Cancel
-          </.link>
+          <div style="margin-top: 1rem;">
+            <button
+              type="button"
+              id="add-item-btn"
+              class="btn"
+              style="font-size: 0.85rem; padding: 0.5rem 1rem;"
+            >
+              <.icon name="hero-plus" class="w-4 h-4" />
+              <span>Add Item</span>
+            </button>
+          </div>
+
+          <%= if @form[:items].errors != [] do %>
+            <div class="alert alert-error mt-2">
+              <p>Please fix the errors in the items above.</p>
+            </div>
+          <% end %>
         </div>
-      </.form>
-    </section>
-</div> <%!-- close mm-page --%>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn primary">
+          Save Movement
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
+  </section>
+</div>
+<%!-- close mm-page --%>
 
 <script>
   // Make ingredient quick infos available to JS

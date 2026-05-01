@@ -17,7 +17,9 @@ defmodule Ledgr.Core.PartnersTest do
   defp partner_fixture(attrs \\ %{}) do
     {:ok, partner} =
       %Partner{}
-      |> Partner.changeset(Enum.into(attrs, %{name: "Test Partner #{System.unique_integer([:positive])}"}))
+      |> Partner.changeset(
+        Enum.into(attrs, %{name: "Test Partner #{System.unique_integer([:positive])}"})
+      )
       |> Repo.insert()
 
     partner
@@ -57,12 +59,13 @@ defmodule Ledgr.Core.PartnersTest do
       p = partner_fixture()
       cash = cash_account()
 
-      cs = Partners.change_contribution_form(%{
-        partner_id: p.id,
-        cash_account_id: cash.id,
-        date: Date.utc_today(),
-        amount_pesos: Decimal.new("500.00")
-      })
+      cs =
+        Partners.change_contribution_form(%{
+          partner_id: p.id,
+          cash_account_id: cash.id,
+          date: Date.utc_today(),
+          amount_pesos: Decimal.new("500.00")
+        })
 
       assert cs.valid?
     end
@@ -76,12 +79,13 @@ defmodule Ledgr.Core.PartnersTest do
       p = partner_fixture()
       cash = cash_account()
 
-      cs = Partners.change_contribution_form(%{
-        partner_id: p.id,
-        cash_account_id: cash.id,
-        date: Date.utc_today(),
-        amount_pesos: Decimal.new("0")
-      })
+      cs =
+        Partners.change_contribution_form(%{
+          partner_id: p.id,
+          cash_account_id: cash.id,
+          date: Date.utc_today(),
+          amount_pesos: Decimal.new("0")
+        })
 
       refute cs.valid?
     end
@@ -247,7 +251,9 @@ defmodule Ledgr.Core.PartnersTest do
   describe "total_invested_cents/0" do
     test "returns 0 when no contributions" do
       total = Partners.total_invested_cents()
-      assert is_integer(total) or (is_struct(total, Decimal) and Decimal.to_integer(total) == 0) or total == Decimal.new(0)
+
+      assert is_integer(total) or (is_struct(total, Decimal) and Decimal.to_integer(total) == 0) or
+               total == Decimal.new(0)
     end
 
     test "accumulates all contributions net of withdrawals" do
@@ -264,10 +270,11 @@ defmodule Ledgr.Core.PartnersTest do
       total = Partners.total_invested_cents()
 
       # total_invested_cents may return Decimal or integer depending on DB
-      total_int = case total do
-        %Decimal{} -> Decimal.to_integer(total)
-        n when is_integer(n) -> n
-      end
+      total_int =
+        case total do
+          %Decimal{} -> Decimal.to_integer(total)
+          n when is_integer(n) -> n
+        end
 
       assert total_int >= 100_000
     end

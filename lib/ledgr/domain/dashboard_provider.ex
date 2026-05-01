@@ -26,5 +26,4 @@ defmodule Ledgr.Domain.DashboardProvider do
 
   @doc "Run all diagnostic verification checks. Returns a map of check results."
   @callback verification_checks() :: map()
-
 end

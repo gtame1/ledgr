@@ -1,18 +1,17 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
 
-<%
-  cf = @cash_flow
-  net_class = if cf.net_cash_flow_cents >= 0, do: "ct-amount-positive", else: "ct-amount-negative"
-%>
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
+
+<% cf = @cash_flow
+net_class = if cf.net_cash_flow_cents >= 0, do: "ct-amount-positive", else: "ct-amount-negative" %>
 
 <section class="content">
   <header class="content-header">
@@ -20,9 +19,14 @@
   </header>
 
   <div class="content-body">
-    <.period_selector action={dp(@domain_path_prefix, "/reports/cash_flow")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
-
-    <!-- Summary -->
+    <.period_selector
+      action={dp(@domain_path_prefix, "/reports/cash_flow")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
+    
+<!-- Summary -->
     <section class="card">
       <h2 class="card-title">Cash Flow Summary</h2>
       <p class="card-subtitle">All cash & bank accounts (both USD and MXN combined).</p>
@@ -30,20 +34,20 @@
       <div class="dashboard-metrics" style="margin-top: 1rem;">
         <div class="metric-card">
           <div class="metric-label">Cash Inflows</div>
-          <div class="metric-value ct-amount-positive"><%= fmt.(cf.cash_inflows_cents) %></div>
+          <div class="metric-value ct-amount-positive">{fmt.(cf.cash_inflows_cents)}</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Cash Outflows</div>
-          <div class="metric-value ct-amount-negative"><%= fmt.(cf.cash_outflows_cents) %></div>
+          <div class="metric-value ct-amount-negative">{fmt.(cf.cash_outflows_cents)}</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Net Cash Flow</div>
-          <div class={"metric-value #{net_class}"}><%= fmt.(cf.net_cash_flow_cents) %></div>
+          <div class={"metric-value #{net_class}"}>{fmt.(cf.net_cash_flow_cents)}</div>
         </div>
       </div>
     </section>
-
-    <!-- Breakdown -->
+    
+<!-- Breakdown -->
     <section class="card" style="margin-top: 1rem;">
       <h2 class="card-title">Breakdown</h2>
       <div class="table-wrapper">
@@ -55,57 +59,69 @@
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Income & Revenue</td>
-              <td class="numeric ct-amount-positive"><%= fmt.(cf.breakdown.sales_inflows_cents) %></td>
+              <td class="numeric ct-amount-positive">{fmt.(cf.breakdown.sales_inflows_cents)}</td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Investment Deposits & Returns</td>
-              <td class="numeric ct-amount-positive"><%= fmt.(cf.breakdown.investment_inflows_cents) %></td>
+              <td class="numeric ct-amount-positive">
+                {fmt.(cf.breakdown.investment_inflows_cents)}
+              </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Other Inflows</td>
-              <td class="numeric ct-amount-positive"><%= fmt.(cf.breakdown.other_inflows_cents) %></td>
+              <td class="numeric ct-amount-positive">{fmt.(cf.breakdown.other_inflows_cents)}</td>
             </tr>
             <tr style="font-weight: 700; background-color: #dcfce7;">
               <td>Total Inflows</td>
-              <td class="numeric ct-amount-positive"><%= fmt.(cf.cash_inflows_cents) %></td>
+              <td class="numeric ct-amount-positive">{fmt.(cf.cash_inflows_cents)}</td>
             </tr>
 
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-
-            <!-- Outflows -->
+            <tr>
+              <td colspan="2" style="padding: 0.5rem 0; border: none;"></td>
+            </tr>
+            
+<!-- Outflows -->
             <tr style="background-color: #fef2f2; font-weight: 600;">
               <td colspan="2" class="ct-amount-negative">CASH OUTFLOWS</td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Expenses & Bills</td>
-              <td class="numeric ct-amount-negative"><%= fmt.(cf.breakdown.expense_outflows_cents) %></td>
+              <td class="numeric ct-amount-negative">
+                {fmt.(cf.breakdown.expense_outflows_cents)}
+              </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Debt Payments & Withdrawals</td>
-              <td class="numeric ct-amount-negative"><%= fmt.(cf.breakdown.withdrawal_outflows_cents) %></td>
+              <td class="numeric ct-amount-negative">
+                {fmt.(cf.breakdown.withdrawal_outflows_cents)}
+              </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Other Outflows</td>
-              <td class="numeric ct-amount-negative"><%= fmt.(cf.breakdown.other_outflows_cents) %></td>
+              <td class="numeric ct-amount-negative">
+                {fmt.(cf.breakdown.other_outflows_cents)}
+              </td>
             </tr>
             <tr style="font-weight: 700; background-color: #fee2e2;">
               <td>Total Outflows</td>
-              <td class="numeric ct-amount-negative"><%= fmt.(cf.cash_outflows_cents) %></td>
+              <td class="numeric ct-amount-negative">{fmt.(cf.cash_outflows_cents)}</td>
             </tr>
 
-            <tr><td colspan="2" style="padding: 0.5rem 0; border: none;"></td></tr>
-
-            <!-- Net -->
+            <tr>
+              <td colspan="2" style="padding: 0.5rem 0; border: none;"></td>
+            </tr>
+            
+<!-- Net -->
             <tr style="font-weight: 700; font-size: 1.05rem; border-top: 2px solid var(--border-strong);">
               <td>Net Cash Flow</td>
-              <td class={"numeric #{net_class}"}><%= fmt.(cf.net_cash_flow_cents) %></td>
+              <td class={"numeric #{net_class}"}>{fmt.(cf.net_cash_flow_cents)}</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Balance Reconciliation -->
+    
+<!-- Balance Reconciliation -->
     <section class="card" style="margin-top: 1rem;">
       <h2 class="card-title">Cash Balance Reconciliation</h2>
       <div class="table-wrapper">
@@ -113,15 +129,15 @@
           <tbody>
             <tr>
               <td>Beginning Cash Balance</td>
-              <td class="numeric"><%= fmt.(cf.beginning_balance_cents) %></td>
+              <td class="numeric">{fmt.(cf.beginning_balance_cents)}</td>
             </tr>
             <tr>
               <td>+ Net Cash Flow</td>
-              <td class={"numeric #{net_class}"}><%= fmt.(cf.net_cash_flow_cents) %></td>
+              <td class={"numeric #{net_class}"}>{fmt.(cf.net_cash_flow_cents)}</td>
             </tr>
             <tr style="font-weight: 700; border-top: 2px solid var(--border-strong);">
               <td>Ending Cash Balance</td>
-              <td class="numeric"><%= fmt.(cf.ending_balance_cents) %></td>
+              <td class="numeric">{fmt.(cf.ending_balance_cents)}</td>
             </tr>
           </tbody>
         </table>

@@ -29,10 +29,14 @@ defmodule LedgrWeb.Domains.CasaTame.FxTransferController do
 
     cond do
       is_nil(from_account_id) or is_nil(to_account_id) ->
-        conn |> put_flash(:error, "Please select both accounts.") |> redirect(to: dp(conn, "/fx-transfers/new"))
+        conn
+        |> put_flash(:error, "Please select both accounts.")
+        |> redirect(to: dp(conn, "/fx-transfers/new"))
 
       from_amount_cents <= 0 or to_amount_cents <= 0 ->
-        conn |> put_flash(:error, "Both amounts must be greater than zero.") |> redirect(to: dp(conn, "/fx-transfers/new"))
+        conn
+        |> put_flash(:error, "Both amounts must be greater than zero.")
+        |> redirect(to: dp(conn, "/fx-transfers/new"))
 
       true ->
         from_account = Accounting.get_account!(from_account_id)
@@ -42,7 +46,10 @@ defmodule LedgrWeb.Domains.CasaTame.FxTransferController do
         rate = from_amount_cents / max(to_amount_cents, 1)
         rate_str = :erlang.float_to_binary(rate, decimals: 4)
 
-        description = if note != "", do: "FX Transfer: #{note} (rate: #{rate_str})", else: "FX Transfer (rate: #{rate_str})"
+        description =
+          if note != "",
+            do: "FX Transfer: #{note} (rate: #{rate_str})",
+            else: "FX Transfer (rate: #{rate_str})"
 
         # Journal entry: DR destination (to_amount), CR source (from_amount)
         # The amounts differ because of the exchange rate — this is correct FX accounting
@@ -62,14 +69,18 @@ defmodule LedgrWeb.Domains.CasaTame.FxTransferController do
         ]
 
         case Accounting.create_journal_entry_with_lines(
-          %{date: date, entry_type: "internal_transfer", description: description},
-          lines
-        ) do
+               %{date: date, entry_type: "internal_transfer", description: description},
+               lines
+             ) do
           {:ok, _je} ->
-            conn |> put_flash(:info, "FX transfer recorded (rate: #{rate_str}).") |> redirect(to: dp(conn, "/transfers"))
+            conn
+            |> put_flash(:info, "FX transfer recorded (rate: #{rate_str}).")
+            |> redirect(to: dp(conn, "/transfers"))
 
           {:error, _} ->
-            conn |> put_flash(:error, "Failed to record FX transfer.") |> redirect(to: dp(conn, "/fx-transfers/new"))
+            conn
+            |> put_flash(:error, "Failed to record FX transfer.")
+            |> redirect(to: dp(conn, "/fx-transfers/new"))
         end
     end
   end

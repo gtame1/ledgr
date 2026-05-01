@@ -10,7 +10,10 @@
       <.link navigate={dp(@domain_path_prefix, "/expenses")} class="btn">
         ←  Back to Expenses
       </.link>
-      <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/edit")} class="btn primary">
+      <.link
+        navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/edit")}
+        class="btn primary"
+      >
         Edit
       </.link>
       <.link
@@ -26,16 +29,19 @@
   </div>
 
   <ul class="nice-list" style="margin-top: 1rem;">
-    <li><strong>Date:</strong> <%= @expense.date %></li>
-    <li><strong>Description:</strong> <%= @expense.description %></li>
+    <li><strong>Date:</strong> {@expense.date}</li>
+    <li><strong>Description:</strong> {@expense.description}</li>
 
     <%= if @expense.category do %>
-      <li><strong>Category:</strong> <%= @expense.category %></li>
+      <li><strong>Category:</strong> {@expense.category}</li>
     <% end %>
 
-    <li><strong>Expense Account:</strong> <%= @expense.expense_account && @expense.expense_account.name %></li>
-    <li><strong>Paid From:</strong> <%= @expense.paid_from_account && @expense.paid_from_account.name %></li>
-    <li><strong>Amount:</strong> <%= format_currency(@expense.amount_cents) %></li>
+    <li>
+      <strong>Expense Account:</strong> {@expense.expense_account && @expense.expense_account.name}
+    </li>
+    <li>
+      <strong>Paid From:</strong> {@expense.paid_from_account && @expense.paid_from_account.name}
+    </li>
+    <li><strong>Amount:</strong> {format_currency(@expense.amount_cents)}</li>
   </ul>
-
 </section>

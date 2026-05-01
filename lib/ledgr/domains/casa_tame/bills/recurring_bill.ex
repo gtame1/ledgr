@@ -22,7 +22,18 @@ defmodule Ledgr.Domains.CasaTame.Bills.RecurringBill do
 
   def changeset(bill, attrs) do
     bill
-    |> cast(attrs, [:name, :amount_cents, :currency, :frequency, :day_of_month, :next_due_date, :category, :notes, :is_active, :last_paid_date])
+    |> cast(attrs, [
+      :name,
+      :amount_cents,
+      :currency,
+      :frequency,
+      :day_of_month,
+      :next_due_date,
+      :category,
+      :notes,
+      :is_active,
+      :last_paid_date
+    ])
     |> validate_required([:name, :frequency, :next_due_date])
     |> validate_inclusion(:frequency, @frequencies)
     |> validate_inclusion(:currency, ["USD", "MXN"])
@@ -55,12 +66,12 @@ defmodule Ledgr.Domains.CasaTame.Bills.RecurringBill do
 
   def category_color(category) do
     case category do
-      "credit_card"  -> "#dc2626"
-      "utility"      -> "#2563eb"
-      "loan"         -> "#ea580c"
-      "insurance"    -> "#7c3aed"
+      "credit_card" -> "#dc2626"
+      "utility" -> "#2563eb"
+      "loan" -> "#ea580c"
+      "insurance" -> "#7c3aed"
       "subscription" -> "#0d9488"
-      _              -> "#6b7280"
+      _ -> "#6b7280"
     end
   end
 end

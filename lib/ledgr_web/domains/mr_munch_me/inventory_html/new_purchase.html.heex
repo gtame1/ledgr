@@ -8,163 +8,178 @@
     </div>
   </div>
 
-    <section class="card">
-
-      <.form
-        for={@form}
-        action={dp(@domain_path_prefix, "/inventory/purchases")}
-        class="form-grid"
-        id="purchase-form"
-      >
-
-        <%!-- Shared fields: location, payment account, date --%>
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={@form[:location_code]}
-              type="select"
-              label="Location"
-              prompt="Choose a location"
-              options={@location_options}
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={@form[:paid_from_account_id]}
-              type="select"
-              label="Paid from Account"
-              prompt="Select payment account"
-              options={@paid_from_account_options}
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={@form[:purchase_date]}
-              type="date"
-              label="Purchase Date"
-            />
-          </div>
+  <section class="card">
+    <.form
+      for={@form}
+      action={dp(@domain_path_prefix, "/inventory/purchases")}
+      class="form-grid"
+      id="purchase-form"
+    >
+      <%!-- Shared fields: location, payment account, date --%>
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={@form[:location_code]}
+            type="select"
+            label="Location"
+            prompt="Choose a location"
+            options={@location_options}
+          />
         </div>
 
-        <div class="form-block">
-          <div class="field" style="width: 100%;">
-            <.input
-              field={@form[:notes]}
-              type="text"
-              label="Notes (optional)"
-              placeholder="e.g. Bought at Costco, receipt #1234"
-            />
-          </div>
+        <div class="field">
+          <.input
+            field={@form[:paid_from_account_id]}
+            type="select"
+            label="Paid from Account"
+            prompt="Select payment account"
+            options={@paid_from_account_options}
+          />
         </div>
 
-        <%!-- Purchase items list --%>
-        <div class="form-block" style="flex-direction: column; width: 100%;">
-          <div class="field" style="width: 100%; min-width: 100%;">
-            <div class="mb-4">
-              <label class="label" style="font-size: 0.95rem; font-weight: 600; margin: 0;">Purchase Items</label>
-            </div>
+        <div class="field">
+          <.input
+            field={@form[:purchase_date]}
+            type="date"
+            label="Purchase Date"
+          />
+        </div>
+      </div>
 
-            <div id="purchase-items-container" style="display: flex; flex-direction: column; gap: 1rem;">
-              <.inputs_for :let={item_f} field={@form[:items]}>
-                <div class="purchase-item-row" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; background: #fffaf6; box-shadow: 0 2px 8px rgba(61, 35, 24, 0.05);">
-                  <div style="display: flex; align-items: flex-start; gap: 1rem;">
-                    <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                      <div class="field" style="min-width: 0;">
-                        <.input
-                          field={item_f[:ingredient_code]}
-                          type="select"
-                          label="Ingredient"
-                          prompt="Choose an ingredient"
-                          options={@ingredient_options}
-                          class="ingredient-select"
-                        />
-                        <p class="field-help item-ingredient-info" style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);">
-                          Unit: –, current avg cost: –
-                        </p>
-                      </div>
+      <div class="form-block">
+        <div class="field" style="width: 100%;">
+          <.input
+            field={@form[:notes]}
+            type="text"
+            label="Notes (optional)"
+            placeholder="e.g. Bought at Costco, receipt #1234"
+          />
+        </div>
+      </div>
 
-                      <div class="field" style="min-width: 0;">
-                        <label class="label">
-                          Quantity (<span class="item-quantity-unit">units</span>)
-                        </label>
-                        <.input
-                          field={item_f[:quantity]}
-                          type="number"
-                          label=""
-                          min="1"
-                          class="item-quantity"
-                        />
-                      </div>
+      <%!-- Purchase items list --%>
+      <div class="form-block" style="flex-direction: column; width: 100%;">
+        <div class="field" style="width: 100%; min-width: 100%;">
+          <div class="mb-4">
+            <label class="label" style="font-size: 0.95rem; font-weight: 600; margin: 0;">
+              Purchase Items
+            </label>
+          </div>
 
-                      <div class="field" style="min-width: 0;">
-                        <.input
-                          field={item_f[:total_cost_pesos]}
-                          type="number"
-                          label="Total cost (MXN)"
-                          step="0.01"
-                          min="0"
-                          class="item-total-cost"
-                        />
-                        <p class="field-help item-unit-price" style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);">
-                          Unit price: –
-                        </p>
-                      </div>
+          <div
+            id="purchase-items-container"
+            style="display: flex; flex-direction: column; gap: 1rem;"
+          >
+            <.inputs_for :let={item_f} field={@form[:items]}>
+              <div
+                class="purchase-item-row"
+                style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; background: #fffaf6; box-shadow: 0 2px 8px rgba(61, 35, 24, 0.05);"
+              >
+                <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                  <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="field" style="min-width: 0;">
+                      <.input
+                        field={item_f[:ingredient_code]}
+                        type="select"
+                        label="Ingredient"
+                        prompt="Choose an ingredient"
+                        options={@ingredient_options}
+                        class="ingredient-select"
+                      />
+                      <p
+                        class="field-help item-ingredient-info"
+                        style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);"
+                      >
+                        Unit: –, current avg cost: –
+                      </p>
                     </div>
 
-                    <div style="display: flex; align-items: center; padding-top: 0; flex-shrink: 0;">
-                      <button
-                        type="button"
-                        class="btn danger remove-item-btn"
-                        aria-label="Remove item"
-                        style="font-size: 0.85rem; padding: 0.5rem 0.85rem;"
+                    <div class="field" style="min-width: 0;">
+                      <label class="label">
+                        Quantity (<span class="item-quantity-unit">units</span>)
+                      </label>
+                      <.input
+                        field={item_f[:quantity]}
+                        type="number"
+                        label=""
+                        min="1"
+                        class="item-quantity"
+                      />
+                    </div>
+
+                    <div class="field" style="min-width: 0;">
+                      <.input
+                        field={item_f[:total_cost_pesos]}
+                        type="number"
+                        label="Total cost (MXN)"
+                        step="0.01"
+                        min="0"
+                        class="item-total-cost"
+                      />
+                      <p
+                        class="field-help item-unit-price"
+                        style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);"
                       >
-                        <.icon name="hero-trash" class="w-4 h-4" />
-                        <span>Remove</span>
-                      </button>
+                        Unit price: –
+                      </p>
                     </div>
                   </div>
+
+                  <div style="display: flex; align-items: center; padding-top: 0; flex-shrink: 0;">
+                    <button
+                      type="button"
+                      class="btn danger remove-item-btn"
+                      aria-label="Remove item"
+                      style="font-size: 0.85rem; padding: 0.5rem 0.85rem;"
+                    >
+                      <.icon name="hero-trash" class="w-4 h-4" />
+                      <span>Remove</span>
+                    </button>
+                  </div>
                 </div>
-              </.inputs_for>
-            </div>
-
-            <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
-              <button
-                type="button"
-                id="add-item-btn"
-                class="btn"
-                style="font-size: 0.85rem; padding: 0.5rem 1rem;"
-              >
-                <.icon name="hero-plus" class="w-4 h-4" />
-                <span>Add Item</span>
-              </button>
-              
-              <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-                <span>Total Purchase:</span>
-                <span id="running-total" style="font-size: 1.25rem; color: var(--primary);">$0.00</span>
               </div>
-            </div>
-
-            <%= if @form[:items].errors != [] do %>
-              <div class="alert alert-error mt-2">
-                <p>Please fix the errors in the items above.</p>
-              </div>
-            <% end %>
+            </.inputs_for>
           </div>
-        </div>
 
-        <div class="actions">
-          <button type="submit" class="btn primary">
-            Save Purchase
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
-            Cancel
-          </.link>
+          <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <button
+              type="button"
+              id="add-item-btn"
+              class="btn"
+              style="font-size: 0.85rem; padding: 0.5rem 1rem;"
+            >
+              <.icon name="hero-plus" class="w-4 h-4" />
+              <span>Add Item</span>
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
+              <span>Total Purchase:</span>
+              <span id="running-total" style="font-size: 1.25rem; color: var(--primary);">
+                $0.00
+              </span>
+            </div>
+          </div>
+
+          <%= if @form[:items].errors != [] do %>
+            <div class="alert alert-error mt-2">
+              <p>Please fix the errors in the items above.</p>
+            </div>
+          <% end %>
         </div>
-      </.form>
-    </section>
-</div> <%!-- close mm-page --%>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn primary">
+          Save Purchase
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
+  </section>
+</div>
+<%!-- close mm-page --%>
 
 <script>
   // Make ingredient quick infos available to JS

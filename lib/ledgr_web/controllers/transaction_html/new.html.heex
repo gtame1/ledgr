@@ -3,11 +3,11 @@
   <p class="card-subtitle">
     Record a sale, expense, or owner investment/withdrawal. Debits and credits must balance.
   </p>
-
-  <!-- Phoenix.Component form: handles CSRF + method for us -->
-  <.form :let={f} for={@changeset}  as={:journal_entry} action={@action} class="form-grid">
+  
+<!-- Phoenix.Component form: handles CSRF + method for us -->
+  <.form :let={f} for={@changeset} as={:journal_entry} action={@action} class="form-grid">
     
-    <!-- Global error banner -->
+<!-- Global error banner -->
     <%= if @changeset.action do %>
       <div class="alert alert-error">
         <p>Oops, something went wrong. Please review the errors below:</p>
@@ -15,21 +15,27 @@
         <%= if base_errors != [] do %>
           <ul class="pretty-list">
             <%= for {msg, _opts} <- base_errors do %>
-              <li><%= msg %></li>
+              <li>{msg}</li>
             <% end %>
           </ul>
         <% end %>
       </div>
     <% end %>
     
-    <!-- JOURNAL ENTRY HEADER -->
+<!-- JOURNAL ENTRY HEADER -->
     <div class="form-block">
       <div class="field">
-        <.input field={f[:date]} type="date" label="Date"/>
+        <.input field={f[:date]} type="date" label="Date" />
       </div>
 
       <div class="field">
-        <.input field={f[:entry_type]} type="select" label="Type" prompt="Select a Transaction Type" options={@entry_types} />
+        <.input
+          field={f[:entry_type]}
+          type="select"
+          label="Type"
+          prompt="Select a Transaction Type"
+          options={@entry_types}
+        />
       </div>
 
       <div class="field">
@@ -40,114 +46,124 @@
         <.input field={f[:description]} type="text" label="Description" />
       </div>
     </div>
-
-    <!-- Lines section -->
+    
+<!-- Lines section -->
     <h2 class="section-title">Lines</h2>
     <p class="section-help">
       Start with one debit line and one credit line for simple transactions.
     </p>
 
-    <% 
-      params = @changeset.params || %{}
-      # Get debit value - prefer changeset changes/data (in cents), then params (might be pesos)
-      debit_value = cond do
+    <% params = @changeset.params || %{}
+    # Get debit value - prefer changeset changes/data (in cents), then params (might be pesos)
+    debit_value =
+      cond do
         line = get_in(@changeset.changes, [:journal_lines, Access.at(0)]) ->
           Ecto.Changeset.get_field(line, :debit_cents) || 0
+
         line = get_in(@changeset.data, [:journal_lines, Access.at(0)]) ->
           line.debit_cents || 0
+
         true ->
           get_in(params, ["journal_lines", "0", "debit_cents"]) || ""
       end
-      debit_display = if is_integer(debit_value) and debit_value > 0, do: MoneyHelper.cents_to_pesos(debit_value), else: (if debit_value == "", do: "", else: debit_value)
-    %>
+
+    debit_display =
+      if is_integer(debit_value) and debit_value > 0,
+        do: MoneyHelper.cents_to_pesos(debit_value),
+        else: if(debit_value == "", do: "", else: debit_value) %>
 
     <div class="lines-grid">
-        <!-- Debit line -->
-        <div class="line-card">
-            <h4>Debit</h4>
-            <.error_tag changeset={@changeset} field={:journal_lines} />            
+      <!-- Debit line -->
+      <div class="line-card">
+        <h4>Debit</h4>
+        <.error_tag changeset={@changeset} field={:journal_lines} />
 
-            <div class="field">
-                <.input
-                    type="select"
-                    name="journal_entry[journal_lines][0][account_id]"
-                    label="Account"
-                    prompt="Select an Account"
-                    options={@account_options}
-                    value={get_in(params, ["journal_lines", "0", "account_id"]) || ""}
-                />
-            </div>
-
-            <div class="field">
-                <.input
-                    type="number"
-                    name="journal_entry[journal_lines][0][debit_cents]"
-                    label="Amount (MXN)"
-                    step="0.01"
-                    min="0"
-                    value={debit_display}
-                />
-            </div>
-
-            <div class="field">
-                <.input
-                    type="text"
-                    name="journal_entry[journal_lines][0][description]"
-                    label="Line description (optional)"
-                    value={get_in(params, ["journal_lines", "0", "description"]) || ""}
-                />
-            </div>
+        <div class="field">
+          <.input
+            type="select"
+            name="journal_entry[journal_lines][0][account_id]"
+            label="Account"
+            prompt="Select an Account"
+            options={@account_options}
+            value={get_in(params, ["journal_lines", "0", "account_id"]) || ""}
+          />
         </div>
 
-        <!-- Credit line -->
-        <div class="line-card">
-            <h4>Credit</h4>
-            <.error_tag changeset={@changeset} field={:journal_lines} />            
-
-            <div class="field">
-                <.input
-                    type="select"
-                    name="journal_entry[journal_lines][1][account_id]"
-                    label="Account"
-                    prompt="Select an Account"
-                    options={@account_options}
-                    value={get_in(params, ["journal_lines", "1", "account_id"]) || ""}
-                />
-            </div>
-
-    <% 
-      # Get credit value - prefer changeset changes/data (in cents), then params (might be pesos)
-      credit_value = cond do
-        line = get_in(@changeset.changes, [:journal_lines, Access.at(1)]) ->
-          Ecto.Changeset.get_field(line, :credit_cents) || 0
-        line = get_in(@changeset.data, [:journal_lines, Access.at(1)]) ->
-          line.credit_cents || 0
-        true ->
-          get_in(params, ["journal_lines", "1", "credit_cents"]) || ""
-      end
-      credit_display = if is_integer(credit_value) and credit_value > 0, do: MoneyHelper.cents_to_pesos(credit_value), else: (if credit_value == "", do: "", else: credit_value)
-    %>
-
-            <div class="field">
-                <.input
-                    type="number"
-                    name="journal_entry[journal_lines][1][credit_cents]"
-                    label="Amount (MXN)"
-                    step="0.01"
-                    min="0"
-                    value={credit_display}
-                />
-            </div>
-
-            <div class="field">
-                <.input
-                    type="text"
-                    name="journal_entry[journal_lines][1][description]"
-                    label="Line description (optional)"
-                    value={get_in(params, ["journal_lines", "1", "description"]) || ""}
-                />
-            </div>
+        <div class="field">
+          <.input
+            type="number"
+            name="journal_entry[journal_lines][0][debit_cents]"
+            label="Amount (MXN)"
+            step="0.01"
+            min="0"
+            value={debit_display}
+          />
         </div>
+
+        <div class="field">
+          <.input
+            type="text"
+            name="journal_entry[journal_lines][0][description]"
+            label="Line description (optional)"
+            value={get_in(params, ["journal_lines", "0", "description"]) || ""}
+          />
+        </div>
+      </div>
+      
+<!-- Credit line -->
+      <div class="line-card">
+        <h4>Credit</h4>
+        <.error_tag changeset={@changeset} field={:journal_lines} />
+
+        <div class="field">
+          <.input
+            type="select"
+            name="journal_entry[journal_lines][1][account_id]"
+            label="Account"
+            prompt="Select an Account"
+            options={@account_options}
+            value={get_in(params, ["journal_lines", "1", "account_id"]) || ""}
+          />
+        </div>
+
+        <% # Get credit value - prefer changeset changes/data (in cents), then params (might be pesos)
+        credit_value =
+          cond do
+            line = get_in(@changeset.changes, [:journal_lines, Access.at(1)]) ->
+              Ecto.Changeset.get_field(line, :credit_cents) || 0
+
+            line = get_in(@changeset.data, [:journal_lines, Access.at(1)]) ->
+              line.credit_cents || 0
+
+            true ->
+              get_in(params, ["journal_lines", "1", "credit_cents"]) || ""
+          end
+
+        credit_display =
+          if is_integer(credit_value) and credit_value > 0,
+            do: MoneyHelper.cents_to_pesos(credit_value),
+            else: if(credit_value == "", do: "", else: credit_value) %>
+
+        <div class="field">
+          <.input
+            type="number"
+            name="journal_entry[journal_lines][1][credit_cents]"
+            label="Amount (MXN)"
+            step="0.01"
+            min="0"
+            value={credit_display}
+          />
+        </div>
+
+        <div class="field">
+          <.input
+            type="text"
+            name="journal_entry[journal_lines][1][description]"
+            label="Line description (optional)"
+            value={get_in(params, ["journal_lines", "1", "description"]) || ""}
+          />
+        </div>
+      </div>
     </div>
 
     <div class="actions">

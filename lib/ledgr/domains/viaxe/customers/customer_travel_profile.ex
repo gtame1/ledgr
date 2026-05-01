@@ -8,13 +8,18 @@ defmodule Ledgr.Domains.Viaxe.Customers.CustomerTravelProfile do
     belongs_to :customer, Customer
 
     field :dob, :date
-    field :gender, :string             # male, female, other, prefer_not_to_say
-    field :nationality, :string        # country code e.g. "MX", "US"
+    # male, female, other, prefer_not_to_say
+    field :gender, :string
+    # country code e.g. "MX", "US"
+    field :nationality, :string
     field :home_address, :string
     field :tsa_precheck_number, :string
-    field :seat_preference, :string    # window, aisle, middle, no_preference
-    field :meal_preference, :string    # regular, vegetarian, vegan, halal, kosher, gluten_free
-    field :medical_notes, :string      # allergies, vaccines, special needs
+    # window, aisle, middle, no_preference
+    field :seat_preference, :string
+    # regular, vegetarian, vegan, halal, kosher, gluten_free
+    field :meal_preference, :string
+    # allergies, vaccines, special needs
+    field :medical_notes, :string
     field :emergency_contact_name, :string
     field :emergency_contact_phone, :string
 
@@ -22,9 +27,16 @@ defmodule Ledgr.Domains.Viaxe.Customers.CustomerTravelProfile do
   end
 
   @optional_fields [
-    :dob, :gender, :nationality, :home_address, :tsa_precheck_number,
-    :seat_preference, :meal_preference, :medical_notes,
-    :emergency_contact_name, :emergency_contact_phone
+    :dob,
+    :gender,
+    :nationality,
+    :home_address,
+    :tsa_precheck_number,
+    :seat_preference,
+    :meal_preference,
+    :medical_notes,
+    :emergency_contact_name,
+    :emergency_contact_phone
   ]
 
   def changeset(profile, attrs) do

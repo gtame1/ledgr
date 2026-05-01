@@ -19,62 +19,85 @@ end %>
   <%!-- Header --%>
   <div class="flex items-center gap-3 mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Consultation</h1>
-    <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+    <span class={"hd-badge hd-badge--#{c.status}"}>
+      {c.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+    </span>
     <%= if c.consultation_type && c.consultation_type != "messaging" do %>
-      <span class="hd-badge hd-badge--assigned"><%= c.consultation_type |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+      <span class="hd-badge hd-badge--assigned">
+        {c.consultation_type |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+      </span>
     <% end %>
     <%= if c.payment_status do %>
-      <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+      <span class={"hd-badge hd-badge--#{c.payment_status}"}>
+        {c.payment_status |> to_string() |> String.capitalize()}
+      </span>
     <% end %>
   </div>
 
   <div class="hd-two-col">
     <%!-- ═══ Left Column ═══ --%>
     <div class="space-y-6">
-
       <%!-- AI Summary --%>
       <%= if mr && mr.ai_summary do %>
         <div class="hd-card p-5" style="border-left: 4px solid #02ba97;">
-          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--accent);">AI Summary</h2>
-          <div class="text-sm leading-relaxed whitespace-pre-line" style="color: var(--text-main);"><%= mr.ai_summary %></div>
+          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--accent);">
+            AI Summary
+          </h2>
+          <div
+            class="text-sm leading-relaxed whitespace-pre-line"
+            style="color: var(--text-main);"
+          >
+            {mr.ai_summary}
+          </div>
         </div>
       <% end %>
 
       <%!-- Chief Complaint & Triage --%>
       <%= if mr && (mr.chief_complaint || mr.urgency || mr.possible_conditions) do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Triage Assessment</h2>
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Triage Assessment
+          </h2>
           <div class="grid grid-cols-2 gap-4">
             <%= if mr.chief_complaint do %>
               <div class="col-span-2">
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Chief Complaint</div>
-                <div class="text-sm font-medium" style="color: var(--text-main);"><%= mr.chief_complaint %></div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Chief Complaint
+                </div>
+                <div class="text-sm font-medium" style="color: var(--text-main);">
+                  {mr.chief_complaint}
+                </div>
               </div>
             <% end %>
             <%= if mr.urgency do %>
               <div>
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Urgency</div>
-                <%
-                  urgency_badge = cond do
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Urgency
+                </div>
+                <% urgency_badge =
+                  cond do
                     mr.urgency in ["high", "urgent"] -> "cancelled"
                     mr.urgency == "medium" -> "pending"
                     true -> "completed"
-                  end
-                %>
+                  end %>
                 <span class={"hd-badge hd-badge--#{urgency_badge}"}>
-                  <%= mr.urgency |> String.capitalize() %>
+                  {mr.urgency |> String.capitalize()}
                 </span>
               </div>
             <% end %>
             <%= if mr.specialty do %>
               <div>
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Specialty</div>
-                <div class="text-sm" style="color: var(--text-main);"><%= mr.specialty %></div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Specialty
+                </div>
+                <div class="text-sm" style="color: var(--text-main);">{mr.specialty}</div>
               </div>
             <% end %>
             <%= if mr.possible_conditions do %>
               <div class="col-span-2">
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Possible Conditions</div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Possible Conditions
+                </div>
                 <div class="text-sm" style="color: var(--text-main);">
                   <.possible_conditions value={mr.possible_conditions} />
                 </div>
@@ -82,8 +105,10 @@ end %>
             <% end %>
             <%= if mr.escalation_reason do %>
               <div class="col-span-2">
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Escalation Reason</div>
-                <div class="text-sm" style="color: var(--text-main);"><%= mr.escalation_reason %></div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Escalation Reason
+                </div>
+                <div class="text-sm" style="color: var(--text-main);">{mr.escalation_reason}</div>
               </div>
             <% end %>
           </div>
@@ -93,30 +118,48 @@ end %>
       <%!-- SOAP Notes --%>
       <%= if mr && (mr.soap_subjective || mr.soap_objective || mr.soap_assessment || mr.soap_plan) do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">SOAP Notes</h2>
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            SOAP Notes
+          </h2>
           <div class="space-y-4">
             <%= if mr.soap_subjective do %>
               <div>
-                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">Subjective</div>
-                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= mr.soap_subjective %></div>
+                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">
+                  Subjective
+                </div>
+                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                  {mr.soap_subjective}
+                </div>
               </div>
             <% end %>
             <%= if mr.soap_objective do %>
               <div>
-                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">Objective</div>
-                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= mr.soap_objective %></div>
+                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">
+                  Objective
+                </div>
+                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                  {mr.soap_objective}
+                </div>
               </div>
             <% end %>
             <%= if mr.soap_assessment do %>
               <div>
-                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">Assessment</div>
-                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= mr.soap_assessment %></div>
+                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">
+                  Assessment
+                </div>
+                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                  {mr.soap_assessment}
+                </div>
               </div>
             <% end %>
             <%= if mr.soap_plan do %>
               <div>
-                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">Plan</div>
-                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= mr.soap_plan %></div>
+                <div class="text-xs uppercase font-semibold mb-1" style="color: #02ba97;">
+                  Plan
+                </div>
+                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                  {mr.soap_plan}
+                </div>
               </div>
             <% end %>
           </div>
@@ -126,23 +169,31 @@ end %>
       <%!-- Vitals --%>
       <%= if mr && (mr.temperature_c || mr.blood_pressure || mr.heart_rate) do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Vitals</h2>
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Vitals
+          </h2>
           <div class="flex gap-6">
             <%= if mr.temperature_c do %>
               <div class="text-center">
-                <div class="text-xl font-bold" style="color: var(--text-main);"><%= mr.temperature_c %>&deg;C</div>
+                <div class="text-xl font-bold" style="color: var(--text-main);">
+                  {mr.temperature_c}&deg;C
+                </div>
                 <div class="text-xs" style="color: var(--text-muted);">Temperature</div>
               </div>
             <% end %>
             <%= if mr.blood_pressure do %>
               <div class="text-center">
-                <div class="text-xl font-bold" style="color: var(--text-main);"><%= mr.blood_pressure %></div>
+                <div class="text-xl font-bold" style="color: var(--text-main);">
+                  {mr.blood_pressure}
+                </div>
                 <div class="text-xs" style="color: var(--text-muted);">Blood Pressure</div>
               </div>
             <% end %>
             <%= if mr.heart_rate do %>
               <div class="text-center">
-                <div class="text-xl font-bold" style="color: var(--text-main);"><%= mr.heart_rate %> bpm</div>
+                <div class="text-xl font-bold" style="color: var(--text-main);">
+                  {mr.heart_rate} bpm
+                </div>
                 <div class="text-xs" style="color: var(--text-muted);">Heart Rate</div>
               </div>
             <% end %>
@@ -153,17 +204,27 @@ end %>
       <%!-- Doctor Notes & Patient Summary --%>
       <%= if c.doctor_notes || c.patient_summary do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Doctor's Notes</h2>
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Doctor's Notes
+          </h2>
           <%= if c.patient_summary do %>
             <div class="mb-3">
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Summary</div>
-              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= c.patient_summary %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Summary
+              </div>
+              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                {c.patient_summary}
+              </div>
             </div>
           <% end %>
           <%= if c.doctor_notes do %>
             <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Notes</div>
-              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= c.doctor_notes %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Notes
+              </div>
+              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                {c.doctor_notes}
+              </div>
             </div>
           <% end %>
         </div>
@@ -172,18 +233,29 @@ end %>
       <%!-- Prescriptions --%>
       <%= if c.prescriptions && !Enum.empty?(c.prescriptions) do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Prescriptions</h2>
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Prescriptions
+          </h2>
           <div class="space-y-3">
             <%= for rx <- c.prescriptions do %>
-              <div class="p-4 rounded-lg" style="background: var(--bg); border: 1px solid var(--border-subtle);">
+              <div
+                class="p-4 rounded-lg"
+                style="background: var(--bg); border: 1px solid var(--border-subtle);"
+              >
                 <%= if rx.diagnosis do %>
-                  <div class="text-sm font-semibold mb-1" style="color: var(--text-main);">Diagnosis: <%= rx.diagnosis %></div>
+                  <div class="text-sm font-semibold mb-1" style="color: var(--text-main);">
+                    Diagnosis: {rx.diagnosis}
+                  </div>
                 <% end %>
                 <%= if rx.content do %>
-                  <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= rx.content %></div>
+                  <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                    {rx.content}
+                  </div>
                 <% end %>
                 <%= if rx.created_at do %>
-                  <div class="text-xs mt-2" style="color: var(--text-muted);">Prescribed: <%= fmt_datetime(rx.created_at, "%b %d, %Y at %I:%M %p") %></div>
+                  <div class="text-xs mt-2" style="color: var(--text-muted);">
+                    Prescribed: {fmt_datetime(rx.created_at, "%b %d, %Y at %I:%M %p")}
+                  </div>
                 <% end %>
               </div>
             <% end %>
@@ -198,41 +270,59 @@ end %>
             <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
               Video Call
             </h2>
-            <%
-              call_badge = cond do
+            <% call_badge =
+              cond do
                 call.status in ["completed", "ended"] -> "completed"
                 call.status == "active" -> "in_progress"
                 true -> "pending"
-              end
-            %>
+              end %>
             <span class={"hd-badge hd-badge--#{call_badge}"}>
-              <%= call.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %>
+              {call.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
             </span>
           </div>
 
           <div class="grid grid-cols-2 gap-4 mb-4">
             <%= if call.started_at do %>
               <div>
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Started</div>
-                <div class="text-sm" style="color: var(--text-main);"><%= fmt_datetime(call.started_at) %></div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Started
+                </div>
+                <div class="text-sm" style="color: var(--text-main);">
+                  {fmt_datetime(call.started_at)}
+                </div>
               </div>
             <% end %>
             <%= if call.ended_at do %>
               <div>
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Ended</div>
-                <div class="text-sm" style="color: var(--text-main);"><%= fmt_datetime(call.ended_at) %></div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Ended
+                </div>
+                <div class="text-sm" style="color: var(--text-main);">
+                  {fmt_datetime(call.ended_at)}
+                </div>
               </div>
             <% end %>
             <%= if call.duration_seconds do %>
               <div>
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Duration</div>
-                <div class="text-sm font-medium" style="color: var(--text-main);"><%= div(call.duration_seconds, 60) %> min <%= rem(call.duration_seconds, 60) %> sec</div>
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Duration
+                </div>
+                <div class="text-sm font-medium" style="color: var(--text-main);">
+                  {div(call.duration_seconds, 60)} min {rem(call.duration_seconds, 60)} sec
+                </div>
               </div>
             <% end %>
             <%= if call.recording_url do %>
               <div>
-                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Recording</div>
-                <a href={call.recording_url} target="_blank" class="text-sm font-medium" style="color: var(--accent);">
+                <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                  Recording
+                </div>
+                <a
+                  href={call.recording_url}
+                  target="_blank"
+                  class="text-sm font-medium"
+                  style="color: var(--accent);"
+                >
                   View Recording ↗
                 </a>
               </div>
@@ -243,13 +333,20 @@ end %>
           <%= if call.transcript_text do %>
             <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
               <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xs font-semibold uppercase" style="color: var(--accent);">Transcript</h3>
+                <h3 class="text-xs font-semibold uppercase" style="color: var(--accent);">
+                  Transcript
+                </h3>
                 <%= if call.transcription_status do %>
-                  <span class="text-xs" style="color: var(--text-muted);"><%= call.transcription_status %></span>
+                  <span class="text-xs" style="color: var(--text-muted);">
+                    {call.transcription_status}
+                  </span>
                 <% end %>
               </div>
-              <div class="text-sm whitespace-pre-line leading-relaxed p-4 rounded-lg max-h-[400px] overflow-y-auto" style="background: var(--bg); color: var(--text-main); border: 1px solid var(--border-subtle);">
-                <%= call.transcript_text %>
+              <div
+                class="text-sm whitespace-pre-line leading-relaxed p-4 rounded-lg max-h-[400px] overflow-y-auto"
+                style="background: var(--bg); color: var(--text-main); border: 1px solid var(--border-subtle);"
+              >
+                {call.transcript_text}
               </div>
             </div>
           <% end %>
@@ -261,7 +358,9 @@ end %>
         <div class="hd-card p-5">
           <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
             Conversation
-            <span class="text-xs font-normal ml-1" style="color: var(--text-muted);">(<%= length(messages) %> messages)</span>
+            <span class="text-xs font-normal ml-1" style="color: var(--text-muted);">
+              ({length(messages)} messages)
+            </span>
           </h2>
           <div class="space-y-3 max-h-[500px] overflow-y-auto">
             <%= for msg <- Enum.sort_by(messages, & &1.created_at) do %>
@@ -269,30 +368,33 @@ end %>
               <% is_doctor = msg.role in ["doctor"] %>
               <% is_system = msg.role in ["assistant", "system", "bot"] %>
               <div class={"flex #{if is_patient, do: "justify-end", else: "justify-start"}"}>
-                <%
-                  msg_bg = cond do
+                <% msg_bg =
+                  cond do
                     is_patient -> "bg-[#d0f5ed]"
                     is_doctor -> "bg-[#dbeafe]"
                     true -> "bg-[#f1f5f9]"
                   end
-                  msg_color = cond do
+
+                msg_color =
+                  cond do
                     is_patient -> "#065f46"
                     is_doctor -> "#1e40af"
                     true -> "#64748b"
-                  end
-                %>
+                  end %>
                 <div class={"max-w-[80%] rounded-lg p-3 text-sm #{msg_bg}"}>
                   <div class="text-xs font-semibold mb-1" style={"color: #{msg_color};"}>
-                    <%= cond do
+                    {cond do
                       is_patient -> "Patient"
                       is_doctor -> "Doctor"
                       is_system -> "HelloDoctor AI"
                       true -> msg.role |> String.capitalize()
-                    end %>
+                    end}
                   </div>
-                  <div class="whitespace-pre-line" style="color: var(--text-main);"><%= msg.content %></div>
+                  <div class="whitespace-pre-line" style="color: var(--text-main);">
+                    {msg.content}
+                  </div>
                   <%= if msg.created_at do %>
-                    <div class="text-xs mt-1 opacity-60"><%= fmt_time(msg.created_at) %></div>
+                    <div class="text-xs mt-1 opacity-60">{fmt_time(msg.created_at)}</div>
                   <% end %>
                 </div>
               </div>
@@ -304,35 +406,40 @@ end %>
 
     <%!-- ═══ Right Column ═══ --%>
     <div class="space-y-6">
-
       <%!-- Consultation Info --%>
       <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Details</h3>
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Details
+        </h3>
         <div class="space-y-3">
           <div class="flex justify-between text-sm">
             <span style="color: var(--text-muted);">Status</span>
-            <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+            <span class={"hd-badge hd-badge--#{c.status}"}>
+              {c.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+            </span>
           </div>
           <div class="flex justify-between text-sm">
             <span style="color: var(--text-muted);">Assigned</span>
-            <span style="color: var(--text-main);"><%= fmt_datetime(c.assigned_at) || "---" %></span>
+            <span style="color: var(--text-main);">{fmt_datetime(c.assigned_at) || "---"}</span>
           </div>
           <%= if c.accepted_at do %>
             <div class="flex justify-between text-sm">
               <span style="color: var(--text-muted);">Accepted</span>
-              <span style="color: var(--text-main);"><%= fmt_datetime(c.accepted_at) %></span>
+              <span style="color: var(--text-main);">{fmt_datetime(c.accepted_at)}</span>
             </div>
           <% end %>
           <%= if c.completed_at do %>
             <div class="flex justify-between text-sm">
               <span style="color: var(--text-muted);">Completed</span>
-              <span style="color: var(--text-main);"><%= fmt_datetime(c.completed_at) %></span>
+              <span style="color: var(--text-main);">{fmt_datetime(c.completed_at)}</span>
             </div>
           <% end %>
           <%= if c.duration_minutes do %>
             <div class="flex justify-between text-sm">
               <span style="color: var(--text-muted);">Duration</span>
-              <span class="font-medium" style="color: var(--text-main);"><%= c.duration_minutes %> min</span>
+              <span class="font-medium" style="color: var(--text-main);">
+                {c.duration_minutes} min
+              </span>
             </div>
           <% end %>
         </div>
@@ -341,27 +448,40 @@ end %>
       <%!-- Patient Card --%>
       <%= if c.patient do %>
         <div class="hd-card p-5">
-          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Patient</h3>
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Patient
+          </h3>
           <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--primary);">
-              <%= String.first(c.patient.full_name || c.patient.display_name || "?") %>
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+              style="background: var(--primary);"
+            >
+              {String.first(c.patient.full_name || c.patient.display_name || "?")}
             </div>
             <div>
-              <.link navigate={dp(@domain_path_prefix, "/patients/#{c.patient.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                <%= c.patient.full_name || c.patient.display_name || "Unknown" %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/patients/#{c.patient.id}")}
+                class="text-sm font-medium"
+                style="color: var(--accent);"
+              >
+                {c.patient.full_name || c.patient.display_name || "Unknown"}
               </.link>
-              <div class="text-xs" style="color: var(--text-muted);"><%= c.patient.phone || "" %></div>
+              <div class="text-xs" style="color: var(--text-muted);">{c.patient.phone || ""}</div>
             </div>
           </div>
           <div class="space-y-1 text-xs" style="color: var(--text-muted);">
             <%= if c.patient.gender do %>
-              <div><%= c.patient.gender |> String.capitalize() %><%= if c.patient.date_of_birth, do: " · Born #{c.patient.date_of_birth}", else: "" %></div>
+              <div>
+                {c.patient.gender |> String.capitalize()}{if c.patient.date_of_birth,
+                  do: " · Born #{c.patient.date_of_birth}",
+                  else: ""}
+              </div>
             <% end %>
             <%= if c.patient.blood_type do %>
-              <div>Blood type: <%= c.patient.blood_type %></div>
+              <div>Blood type: {c.patient.blood_type}</div>
             <% end %>
             <%= if c.patient.insurance_provider do %>
-              <div>Insurance: <%= c.patient.insurance_provider %></div>
+              <div>Insurance: {c.patient.insurance_provider}</div>
             <% end %>
           </div>
         </div>
@@ -370,24 +490,33 @@ end %>
       <%!-- Doctor Card --%>
       <%= if c.doctor do %>
         <div class="hd-card p-5">
-          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Doctor</h3>
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Doctor
+          </h3>
           <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--accent);">
-              <%= String.first(c.doctor.name) %>
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+              style="background: var(--accent);"
+            >
+              {String.first(c.doctor.name)}
             </div>
             <div>
-              <.link navigate={dp(@domain_path_prefix, "/doctors/#{c.doctor.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                <%= c.doctor.name %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/doctors/#{c.doctor.id}")}
+                class="text-sm font-medium"
+                style="color: var(--accent);"
+              >
+                {c.doctor.name}
               </.link>
-              <div class="text-xs" style="color: var(--text-muted);"><%= c.doctor.specialty %></div>
+              <div class="text-xs" style="color: var(--text-muted);">{c.doctor.specialty}</div>
             </div>
           </div>
           <div class="space-y-1 text-xs" style="color: var(--text-muted);">
             <%= if c.doctor.cedula_profesional do %>
-              <div>Cedula: <%= c.doctor.cedula_profesional %></div>
+              <div>Cedula: {c.doctor.cedula_profesional}</div>
             <% end %>
             <%= if c.doctor.university do %>
-              <div><%= c.doctor.university %></div>
+              <div>{c.doctor.university}</div>
             <% end %>
           </div>
         </div>
@@ -395,16 +524,22 @@ end %>
 
       <%!-- Payment Card --%>
       <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Payment</h3>
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Payment
+        </h3>
         <div class="space-y-2">
           <div class="flex justify-between text-sm">
             <span style="color: var(--text-muted);">Amount</span>
-            <span class="font-semibold text-lg" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></span>
+            <span class="font-semibold text-lg" style="color: var(--text-main);">
+              {fmt.(c.payment_amount)}
+            </span>
           </div>
           <div class="flex justify-between text-sm">
             <span style="color: var(--text-muted);">Status</span>
             <%= if c.payment_status do %>
-              <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+              <span class={"hd-badge hd-badge--#{c.payment_status}"}>
+                {c.payment_status |> to_string() |> String.capitalize()}
+              </span>
             <% else %>
               <span style="color: var(--text-muted);">---</span>
             <% end %>
@@ -413,17 +548,17 @@ end %>
             <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-subtle);">
               <div class="flex justify-between text-xs mb-1">
                 <span style="color: var(--text-muted);">HelloDoctor fee (15%)</span>
-                <span style="color: var(--accent);"><%= fmt.(c.payment_amount * 0.15) %></span>
+                <span style="color: var(--accent);">{fmt.(c.payment_amount * 0.15)}</span>
               </div>
               <div class="flex justify-between text-xs">
                 <span style="color: var(--text-muted);">Doctor payout (85%)</span>
-                <span style="color: var(--text-main);"><%= fmt.(c.payment_amount * 0.85) %></span>
+                <span style="color: var(--text-main);">{fmt.(c.payment_amount * 0.85)}</span>
               </div>
             </div>
           <% end %>
           <%= if c.payment_confirmed_at do %>
             <div class="text-xs mt-2" style="color: var(--text-muted);">
-              Confirmed: <%= fmt_datetime(c.payment_confirmed_at) %>
+              Confirmed: {fmt_datetime(c.payment_confirmed_at)}
             </div>
           <% end %>
         </div>
@@ -432,32 +567,57 @@ end %>
       <%!-- Patient Review --%>
       <%= if c.patient_rating || c.patient_comment do %>
         <div class="hd-card p-5">
-          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Patient Review</h3>
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Patient Review
+          </h3>
           <%= if c.patient_rating do %>
             <div class="flex items-center gap-1 mb-2">
               <%= for i <- 1..5 do %>
-                <span style={"color: #{if i <= c.patient_rating, do: "#f59e0b", else: "#e2e8f0"}; font-size: 1.25rem;"}>&#9733;</span>
+                <span style={"color: #{if i <= c.patient_rating, do: "#f59e0b", else: "#e2e8f0"}; font-size: 1.25rem;"}>
+                  &#9733;
+                </span>
               <% end %>
-              <span class="text-sm font-medium ml-1" style="color: var(--text-main);"><%= c.patient_rating %>/5</span>
+              <span class="text-sm font-medium ml-1" style="color: var(--text-main);">
+                {c.patient_rating}/5
+              </span>
             </div>
           <% end %>
           <%= if c.patient_comment do %>
-            <div class="text-sm italic" style="color: var(--text-main);">"<%= c.patient_comment %>"</div>
+            <div class="text-sm italic" style="color: var(--text-main);">
+              "{c.patient_comment}"
+            </div>
           <% end %>
         </div>
       <% end %>
 
       <%!-- Update Status --%>
       <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Update Status</h3>
-        <.form for={%{}} action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")} method="post" class="flex items-end gap-3">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Update Status
+        </h3>
+        <.form
+          for={%{}}
+          action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")}
+          method="post"
+          class="flex items-end gap-3"
+        >
           <div class="flex-1">
-            <select name="status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+            <select
+              name="status"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
               <option value="pending" selected={to_string(c.status) == "pending"}>Pending</option>
-              <option value="assigned" selected={to_string(c.status) == "assigned"}>Assigned</option>
+              <option value="assigned" selected={to_string(c.status) == "assigned"}>
+                Assigned
+              </option>
               <option value="active" selected={to_string(c.status) == "active"}>Active</option>
-              <option value="completed" selected={to_string(c.status) == "completed"}>Completed</option>
-              <option value="cancelled" selected={to_string(c.status) == "cancelled"}>Cancelled</option>
+              <option value="completed" selected={to_string(c.status) == "completed"}>
+                Completed
+              </option>
+              <option value="cancelled" selected={to_string(c.status) == "cancelled"}>
+                Cancelled
+              </option>
             </select>
           </div>
           <button type="submit" class="hd-btn-primary">Update</button>

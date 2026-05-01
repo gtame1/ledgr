@@ -27,13 +27,14 @@ defmodule Ledgr.Core.ReconciliationTest do
       today = Date.utc_today()
 
       # Create a transaction: Cash increased by 10000
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "TEST-1", description: "Test"},
-        [
-          %{account_id: cash.id, debit_cents: 10000, credit_cents: 0, description: "Cash in"},
-          %{account_id: ar.id, debit_cents: 0, credit_cents: 10000, description: "AR out"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "TEST-1", description: "Test"},
+          [
+            %{account_id: cash.id, debit_cents: 10000, credit_cents: 0, description: "Cash in"},
+            %{account_id: ar.id, debit_cents: 0, credit_cents: 10000, description: "AR out"}
+          ]
+        )
 
       balance = Reconciliation.get_account_balance(cash.id, today)
       # Cash is a debit account, so debit - credit = 10000 - 0 = 10000
@@ -47,13 +48,14 @@ defmodule Ledgr.Core.ReconciliationTest do
       yesterday = Date.add(today, -1)
 
       # Create a transaction today
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "TEST-2", description: "Today"},
-        [
-          %{account_id: cash.id, debit_cents: 5000, credit_cents: 0, description: "Cash"},
-          %{account_id: ar.id, debit_cents: 0, credit_cents: 5000, description: "AR"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "TEST-2", description: "Today"},
+          [
+            %{account_id: cash.id, debit_cents: 5000, credit_cents: 0, description: "Cash"},
+            %{account_id: ar.id, debit_cents: 0, credit_cents: 5000, description: "AR"}
+          ]
+        )
 
       # Balance as of yesterday should be 0
       balance_yesterday = Reconciliation.get_account_balance(cash.id, yesterday)
@@ -77,8 +79,8 @@ defmodule Ledgr.Core.ReconciliationTest do
       assert is_list(result)
       # All returned accounts should be asset or liability type
       assert Enum.all?(result, fn item ->
-        item.account.type in ["asset", "liability"]
-      end)
+               item.account.type in ["asset", "liability"]
+             end)
     end
 
     test "includes balance information", %{accounts: accounts} do
@@ -87,13 +89,14 @@ defmodule Ledgr.Core.ReconciliationTest do
       today = LedgrWeb.Helpers.DomainHelpers.today_mx()
 
       # Create a transaction
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "TEST-3", description: "Test"},
-        [
-          %{account_id: cash.id, debit_cents: 7500, credit_cents: 0, description: "Cash"},
-          %{account_id: ar.id, debit_cents: 0, credit_cents: 7500, description: "AR"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "TEST-3", description: "Test"},
+          [
+            %{account_id: cash.id, debit_cents: 7500, credit_cents: 0, description: "Cash"},
+            %{account_id: ar.id, debit_cents: 0, credit_cents: 7500, description: "AR"}
+          ]
+        )
 
       result = Reconciliation.list_accounts_for_reconciliation()
       cash_item = Enum.find(result, fn item -> item.account.id == cash.id end)
@@ -109,13 +112,14 @@ defmodule Ledgr.Core.ReconciliationTest do
       accounts = standard_accounts_fixture()
 
       # Create the offset account (6099 Other Expenses)
-      {:ok, offset} = Accounting.create_account(%{
-        code: "6099",
-        name: "Other Expenses",
-        type: "expense",
-        normal_balance: "debit",
-        is_cash: false
-      })
+      {:ok, offset} =
+        Accounting.create_account(%{
+          code: "6099",
+          name: "Other Expenses",
+          type: "expense",
+          normal_balance: "debit",
+          is_cash: false
+        })
 
       {:ok, accounts: Map.put(accounts, "6099", offset)}
     end
@@ -130,12 +134,15 @@ defmodule Ledgr.Core.ReconciliationTest do
       assert {:error, "No adjustment needed - balances match"} = result
     end
 
-    test "creates adjustment entry for debit account when system is less than actual", %{accounts: accounts} do
+    test "creates adjustment entry for debit account when system is less than actual", %{
+      accounts: accounts
+    } do
       cash = accounts["1000"]
       today = Date.utc_today()
 
       # System balance is 0, actual balance is $100
-      {:ok, entry} = Reconciliation.create_account_reconciliation(cash.id, 100.0, today, "Test adjustment")
+      {:ok, entry} =
+        Reconciliation.create_account_reconciliation(cash.id, 100.0, today, "Test adjustment")
 
       assert entry.entry_type == "reconciliation"
 
@@ -154,19 +161,22 @@ defmodule Ledgr.Core.ReconciliationTest do
       assert new_balance == 10000
     end
 
-    test "creates adjustment entry for debit account when system is more than actual", %{accounts: accounts} do
+    test "creates adjustment entry for debit account when system is more than actual", %{
+      accounts: accounts
+    } do
       cash = accounts["1000"]
       ar = accounts["1100"]
       today = Date.utc_today()
 
       # First add 200 to cash
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "SETUP", description: "Setup"},
-        [
-          %{account_id: cash.id, debit_cents: 20000, credit_cents: 0, description: "Cash in"},
-          %{account_id: ar.id, debit_cents: 0, credit_cents: 20000, description: "AR out"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "SETUP", description: "Setup"},
+          [
+            %{account_id: cash.id, debit_cents: 20000, credit_cents: 0, description: "Cash in"},
+            %{account_id: ar.id, debit_cents: 0, credit_cents: 20000, description: "AR out"}
+          ]
+        )
 
       # System shows 200, actual is 150 - need to reduce by 50
       {:ok, entry} = Reconciliation.create_account_reconciliation(cash.id, 150.0, today)
@@ -189,13 +199,14 @@ defmodule Ledgr.Core.ReconciliationTest do
       accounts = standard_accounts_fixture()
 
       # Create waste expense account
-      {:ok, _} = Accounting.create_account(%{
-        code: "6060",
-        name: "Inventory Waste",
-        type: "expense",
-        normal_balance: "debit",
-        is_cash: false
-      })
+      {:ok, _} =
+        Accounting.create_account(%{
+          code: "6060",
+          name: "Inventory Waste",
+          type: "expense",
+          normal_balance: "debit",
+          is_cash: false
+        })
 
       # Create ingredient
       {:ok, ingredient} =
@@ -212,12 +223,19 @@ defmodule Ledgr.Core.ReconciliationTest do
       {:ok, accounts: accounts, ingredient: ingredient, location: location}
     end
 
-    test "get_inventory_quantity/2 returns 0 for no stock", %{ingredient: ingredient, location: location} do
+    test "get_inventory_quantity/2 returns 0 for no stock", %{
+      ingredient: ingredient,
+      location: location
+    } do
       quantity = InventoryReconciliation.get_inventory_quantity(ingredient.id, location.id)
       assert quantity == 0
     end
 
-    test "get_inventory_quantity/2 returns correct quantity after purchase", %{accounts: accounts, ingredient: ingredient, location: location} do
+    test "get_inventory_quantity/2 returns correct quantity after purchase", %{
+      accounts: accounts,
+      ingredient: ingredient,
+      location: location
+    } do
       cash = accounts["1000"]
 
       # Create a purchase
@@ -229,13 +247,18 @@ defmodule Ledgr.Core.ReconciliationTest do
         "paid_from_account_id" => to_string(cash.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       quantity = InventoryReconciliation.get_inventory_quantity(ingredient.id, location.id)
       assert quantity == 500
     end
 
-    test "list_inventory_for_reconciliation/0 returns inventory items", %{accounts: accounts, ingredient: ingredient, location: location} do
+    test "list_inventory_for_reconciliation/0 returns inventory items", %{
+      accounts: accounts,
+      ingredient: ingredient,
+      location: location
+    } do
       cash = accounts["1000"]
 
       # Create a purchase to have stock
@@ -247,21 +270,27 @@ defmodule Ledgr.Core.ReconciliationTest do
         "paid_from_account_id" => to_string(cash.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       result = InventoryReconciliation.list_inventory_for_reconciliation()
 
       assert is_list(result)
       # Find our ingredient/location combo - the result has :ingredient and :location associations
-      item = Enum.find(result, fn i ->
-        i.ingredient.id == ingredient.id && i.location.id == location.id
-      end)
+      item =
+        Enum.find(result, fn i ->
+          i.ingredient.id == ingredient.id && i.location.id == location.id
+        end)
 
       assert item != nil
       assert item.quantity_on_hand == 300
     end
 
-    test "create_inventory_reconciliation/5 adjusts quantity upward", %{accounts: accounts, ingredient: ingredient, location: location} do
+    test "create_inventory_reconciliation/5 adjusts quantity upward", %{
+      accounts: accounts,
+      ingredient: ingredient,
+      location: location
+    } do
       cash = accounts["1000"]
 
       # Create initial purchase
@@ -273,23 +302,29 @@ defmodule Ledgr.Core.ReconciliationTest do
         "paid_from_account_id" => to_string(cash.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       # System shows 100, actual is 150
-      {:ok, _} = InventoryReconciliation.create_inventory_reconciliation(
-        ingredient.id,
-        location.id,
-        150,
-        Date.utc_today(),
-        "Found extra stock"
-      )
+      {:ok, _} =
+        InventoryReconciliation.create_inventory_reconciliation(
+          ingredient.id,
+          location.id,
+          150,
+          Date.utc_today(),
+          "Found extra stock"
+        )
 
       # Check new quantity
       quantity = InventoryReconciliation.get_inventory_quantity(ingredient.id, location.id)
       assert quantity == 150
     end
 
-    test "create_inventory_reconciliation/5 adjusts quantity downward", %{accounts: accounts, ingredient: ingredient, location: location} do
+    test "create_inventory_reconciliation/5 adjusts quantity downward", %{
+      accounts: accounts,
+      ingredient: ingredient,
+      location: location
+    } do
       cash = accounts["1000"]
 
       # Create initial purchase
@@ -301,23 +336,29 @@ defmodule Ledgr.Core.ReconciliationTest do
         "paid_from_account_id" => to_string(cash.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       # System shows 200, actual is 150
-      {:ok, _} = InventoryReconciliation.create_inventory_reconciliation(
-        ingredient.id,
-        location.id,
-        150,
-        Date.utc_today(),
-        "Shrinkage adjustment"
-      )
+      {:ok, _} =
+        InventoryReconciliation.create_inventory_reconciliation(
+          ingredient.id,
+          location.id,
+          150,
+          Date.utc_today(),
+          "Shrinkage adjustment"
+        )
 
       # Check new quantity
       quantity = InventoryReconciliation.get_inventory_quantity(ingredient.id, location.id)
       assert quantity == 150
     end
 
-    test "create_inventory_reconciliation/5 returns error when no adjustment needed", %{accounts: accounts, ingredient: ingredient, location: location} do
+    test "create_inventory_reconciliation/5 returns error when no adjustment needed", %{
+      accounts: accounts,
+      ingredient: ingredient,
+      location: location
+    } do
       cash = accounts["1000"]
 
       # Create initial purchase
@@ -329,15 +370,17 @@ defmodule Ledgr.Core.ReconciliationTest do
         "paid_from_account_id" => to_string(cash.id),
         "purchase_date" => Date.utc_today()
       }
+
       {:ok, _} = Inventory.create_purchase(purchase_attrs)
 
       # System shows 100, actual is 100
-      result = InventoryReconciliation.create_inventory_reconciliation(
-        ingredient.id,
-        location.id,
-        100,
-        Date.utc_today()
-      )
+      result =
+        InventoryReconciliation.create_inventory_reconciliation(
+          ingredient.id,
+          location.id,
+          100,
+          Date.utc_today()
+        )
 
       assert {:error, "No adjustment needed - quantities match"} = result
     end

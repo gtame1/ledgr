@@ -58,13 +58,25 @@ defmodule Ledgr.Domains.CasaTame.Expenses.CasaTameExpense do
 
     if currency && account_id do
       case Ledgr.Repo.get(Account, account_id) do
-        nil -> changeset
+        nil ->
+          changeset
+
         account ->
-          valid? = case currency do
-            "USD" -> Enum.any?(@usd_ranges, fn {from, to} -> account.code >= from and account.code <= to end)
-            "MXN" -> Enum.any?(@mxn_ranges, fn {from, to} -> account.code >= from and account.code <= to end)
-            _ -> true
-          end
+          valid? =
+            case currency do
+              "USD" ->
+                Enum.any?(@usd_ranges, fn {from, to} ->
+                  account.code >= from and account.code <= to
+                end)
+
+              "MXN" ->
+                Enum.any?(@mxn_ranges, fn {from, to} ->
+                  account.code >= from and account.code <= to
+                end)
+
+              _ ->
+                true
+            end
 
           if valid? do
             changeset

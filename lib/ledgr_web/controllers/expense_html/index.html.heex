@@ -29,18 +29,21 @@
       <tbody>
         <%= for expense <- @expenses do %>
           <tr>
-            <td><%= expense.date %></td>
-            <td><%= expense.description %></td>
-            <td><%= expense.category %></td>
-            <td><%= expense.expense_account && expense.expense_account.name %></td>
-            <td><%= expense.paid_from_account && expense.paid_from_account.name %></td>
-            <td class="numeric"><%= format_currency(expense.amount_cents) %></td>
+            <td>{expense.date}</td>
+            <td>{expense.description}</td>
+            <td>{expense.category}</td>
+            <td>{expense.expense_account && expense.expense_account.name}</td>
+            <td>{expense.paid_from_account && expense.paid_from_account.name}</td>
+            <td class="numeric">{format_currency(expense.amount_cents)}</td>
             <td>
               <div style="display: flex; gap: 0.5rem;">
                 <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}")} class="btn">
                   View
                 </.link>
-                <.link navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}/edit")} class="btn">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/expenses/#{expense.id}/edit")}
+                  class="btn"
+                >
                   Edit
                 </.link>
                 <.link

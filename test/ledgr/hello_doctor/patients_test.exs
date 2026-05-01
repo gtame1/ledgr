@@ -87,7 +87,11 @@ defmodule Ledgr.Domains.HelloDoctor.PatientsTest do
     end
 
     test "filters by search on full_name" do
-      p = patient_fixture(%{"full_name" => "Rare Unique Name #{System.unique_integer([:positive])}"})
+      p =
+        patient_fixture(%{
+          "full_name" => "Rare Unique Name #{System.unique_integer([:positive])}"
+        })
+
       _other = patient_fixture()
 
       results = Patients.list_patients(search: "Rare Unique")
@@ -121,7 +125,10 @@ defmodule Ledgr.Domains.HelloDoctor.PatientsTest do
       yesterday = Date.add(today, -1)
       n2 = Patients.count_new(yesterday, yesterday)
       # p is created today, shouldn't be counted for yesterday only
-      refute p.id in (Patients.list_patients() |> Enum.map(& &1.id) |> Enum.filter(fn _ -> n2 > 0 end))
+      refute p.id in (Patients.list_patients()
+                      |> Enum.map(& &1.id)
+                      |> Enum.filter(fn _ -> n2 > 0 end))
+
       assert is_integer(n2)
     end
   end

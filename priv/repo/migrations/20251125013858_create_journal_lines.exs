@@ -17,11 +17,11 @@ defmodule Ledgr.Repo.Migrations.CreateJournalLines do
     create index(:journal_lines, [:account_id])
 
     create constraint(:journal_lines, :non_negative_amounts,
-      check: "debit_cents >= 0 AND credit_cents >= 0"
-    )
+             check: "debit_cents >= 0 AND credit_cents >= 0"
+           )
 
     create constraint(:journal_lines, :non_zero_line,
-      check: "debit_cents > 0 OR credit_cents > 0"
-    )
+             check: "debit_cents > 0 OR credit_cents > 0"
+           )
   end
 end

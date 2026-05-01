@@ -1,74 +1,85 @@
 <section class="card">
   <div class="card-header">
     <div>
-      <h2 class="card-title">Booking #<%= @booking.id %></h2>
+      <h2 class="card-title">Booking #{@booking.id}</h2>
       <p class="card-subtitle">
         <span class={"status-badge #{status_class(@booking.status)}"}>
-          <%= String.capitalize(String.replace(@booking.status, "_", " ")) %>
+          {String.capitalize(String.replace(@booking.status, "_", " "))}
         </span>
-        &nbsp;<%= booking_type_label(@booking.booking_type) %>
+        &nbsp;{booking_type_label(@booking.booking_type)}
       </p>
     </div>
     <div style="display: flex; gap: 0.5rem;">
-      <.link navigate={dp(@domain_path_prefix, "/bookings/#{@booking.id}/edit")} class="btn">Edit</.link>
+      <.link navigate={dp(@domain_path_prefix, "/bookings/#{@booking.id}/edit")} class="btn">
+        Edit
+      </.link>
       <.link navigate={dp(@domain_path_prefix, "/bookings")} class="btn">← Back</.link>
     </div>
   </div>
-
-  <!-- Booking Details -->
-  <div class="detail-grid" style="display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 0.5rem 1.5rem; margin-bottom: 1.5rem;">
+  
+<!-- Booking Details -->
+  <div
+    class="detail-grid"
+    style="display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 0.5rem 1.5rem; margin-bottom: 1.5rem;"
+  >
     <strong>Customer:</strong>
     <span>
-      <.link navigate={dp(@domain_path_prefix, "/customers/#{@booking.customer_id}")} class="link-text">
-        <%= @booking.customer_name %>
+      <.link
+        navigate={dp(@domain_path_prefix, "/customers/#{@booking.customer_id}")}
+        class="link-text"
+      >
+        {@booking.customer_name}
       </.link>
     </span>
 
     <strong>Destination:</strong>
-    <span><%= @booking.destination || "—" %></span>
+    <span>{@booking.destination || "—"}</span>
 
     <strong>Booking Date:</strong>
-    <span><%= @booking.booking_date %></span>
+    <span>{@booking.booking_date}</span>
 
     <%= unless @booking.trip_id do %>
       <strong>Travel Date:</strong>
-      <span><%= @booking.travel_date || "—" %></span>
+      <span>{@booking.travel_date || "—"}</span>
 
       <strong>Return Date:</strong>
-      <span><%= @booking.return_date || "—" %></span>
+      <span>{@booking.return_date || "—"}</span>
     <% end %>
 
     <%= if @booking.trip do %>
       <strong>Trip:</strong>
       <span>
         <.link navigate={dp(@domain_path_prefix, "/trips/#{@booking.trip_id}")} class="link-text">
-          <%= @booking.trip.title %>
+          {@booking.trip.title}
         </.link>
       </span>
     <% end %>
 
     <strong>Commission:</strong>
     <span>
-      <%= format_currency(@booking.commission_cents) %>
+      {format_currency(@booking.commission_cents)}
       <%= if @booking.commission_type do %>
         <small style="color: var(--text-muted);">
-          (<%= if @booking.commission_type == "percentage",
+          ({if @booking.commission_type == "percentage",
             do: "#{@booking.commission_value / 100}%",
-            else: "fixed" %>)
+            else: "fixed"})
         </small>
       <% end %>
     </span>
   </div>
-
-  <!-- Passengers -->
+  
+<!-- Passengers -->
   <%= if not Enum.empty?(@booking.booking_passengers) do %>
     <div style="margin-bottom: 1.5rem;">
       <strong>Passengers:</strong>
       <div class="tag-list" style="margin-top: 0.5rem;">
         <%= for bp <- @booking.booking_passengers do %>
           <div class="tag-item">
-            <.link navigate={dp(@domain_path_prefix, "/customers/#{bp.customer_id}")} class="link-text">
-              <%= Ledgr.Domains.Viaxe.Customers.Customer.full_name(bp.customer) %>
+            <.link
+              navigate={dp(@domain_path_prefix, "/customers/#{bp.customer_id}")}
+              class="link-text"
+            >
+              {Ledgr.Domains.Viaxe.Customers.Customer.full_name(bp.customer)}
             </.link>
           </div>
         <% end %>
@@ -78,40 +89,64 @@
 
   <%= if @booking.notes do %>
     <div style="margin-bottom: 1.5rem; padding: 0.75rem; background: var(--primary-soft, #f0f7ff); border-radius: 0.5rem;">
-      <strong>Notes:</strong> <%= @booking.notes %>
+      <strong>Notes:</strong> {@booking.notes}
     </div>
   <% end %>
-
-  <!-- Status Actions -->
+  
+<!-- Status Actions -->
   <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
     <%= if @booking.status == "draft" do %>
-      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")} method="post" style="display: inline;">
+      <.form
+        for={%{}}
+        as={:status}
+        action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")}
+        method="post"
+        style="display: inline;"
+      >
         <input type="hidden" name="status[status]" value="confirmed" />
         <button class="btn primary" type="submit">Confirm Booking</button>
       </.form>
     <% end %>
 
     <%= if @booking.status == "confirmed" do %>
-      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")} method="post" style="display: inline;">
+      <.form
+        for={%{}}
+        as={:status}
+        action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")}
+        method="post"
+        style="display: inline;"
+      >
         <input type="hidden" name="status[status]" value="in_progress" />
         <button class="btn primary" type="submit">Mark In Progress</button>
       </.form>
     <% end %>
 
     <%= if @booking.status == "in_progress" do %>
-      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")} method="post" style="display: inline;">
+      <.form
+        for={%{}}
+        as={:status}
+        action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")}
+        method="post"
+        style="display: inline;"
+      >
         <input type="hidden" name="status[status]" value="completed" />
         <button class="btn primary" type="submit">Mark Completed</button>
       </.form>
     <% end %>
 
     <%= if @booking.status not in ["completed", "canceled"] do %>
-      <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")} method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+      <.form
+        for={%{}}
+        as={:status}
+        action={dp(@domain_path_prefix, "/bookings/#{@booking.id}/status")}
+        method="post"
+        style="display: inline;"
+        onsubmit="return confirm('Are you sure you want to cancel this booking?');"
+      >
         <input type="hidden" name="status[status]" value="canceled" />
         <button class="btn danger" type="submit">Cancel Booking</button>
       </.form>
     <% end %>
-
   </div>
 </section>
 
@@ -140,11 +175,11 @@
         <% else %>
           <%= for item <- @booking.booking_items do %>
             <tr>
-              <td><%= item.description %></td>
-              <td><%= if item.service, do: item.service.name, else: "—" %></td>
-              <td><%= if item.supplier, do: item.supplier.name, else: "—" %></td>
-              <td><%= item.quantity %></td>
-              <td><%= format_currency(item.price_cents) %></td>
+              <td>{item.description}</td>
+              <td>{if item.service, do: item.service.name, else: "—"}</td>
+              <td>{if item.supplier, do: item.supplier.name, else: "—"}</td>
+              <td>{item.quantity}</td>
+              <td>{format_currency(item.price_cents)}</td>
             </tr>
           <% end %>
         <% end %>
@@ -152,7 +187,7 @@
       <tfoot>
         <tr style="font-weight: bold;">
           <td colspan="4">Totals</td>
-          <td><%= format_currency(@booking.total_price_cents) %></td>
+          <td>{format_currency(@booking.total_price_cents)}</td>
         </tr>
       </tfoot>
     </table>
@@ -165,15 +200,18 @@
     <h2 class="card-title">Payments</h2>
   </div>
 
-  <div class="detail-grid" style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1.5rem; margin-bottom: 1rem;">
+  <div
+    class="detail-grid"
+    style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1.5rem; margin-bottom: 1rem;"
+  >
     <strong>Total Due:</strong>
-    <span><%= format_currency(@payment_summary.total_cents) %></span>
+    <span>{format_currency(@payment_summary.total_cents)}</span>
 
     <strong>Paid:</strong>
-    <span><%= format_currency(@payment_summary.paid_cents) %></span>
+    <span>{format_currency(@payment_summary.paid_cents)}</span>
 
     <strong>Remaining:</strong>
-    <span><%= format_currency(@payment_summary.remaining_cents) %></span>
+    <span>{format_currency(@payment_summary.remaining_cents)}</span>
 
     <strong>Status:</strong>
     <span>
@@ -202,10 +240,14 @@
         <tbody>
           <%= for payment <- @booking.booking_payments do %>
             <tr>
-              <td><%= payment.date %></td>
-              <td><%= format_currency(payment.amount_cents) %></td>
-              <td><%= if payment.payment_method, do: String.capitalize(payment.payment_method), else: "—" %></td>
-              <td><%= payment.note || "—" %></td>
+              <td>{payment.date}</td>
+              <td>{format_currency(payment.amount_cents)}</td>
+              <td>
+                {if payment.payment_method,
+                  do: String.capitalize(payment.payment_method),
+                  else: "—"}
+              </td>
+              <td>{payment.note || "—"}</td>
             </tr>
           <% end %>
         </tbody>
@@ -213,4 +255,3 @@
     </div>
   <% end %>
 </section>
-

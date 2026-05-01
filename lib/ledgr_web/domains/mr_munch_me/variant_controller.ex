@@ -38,7 +38,9 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
   end
 
   def edit(conn, %{"product_id" => product_id, "id" => id} = params) do
-    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+    today_mx =
+      NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+
     variant = Orders.get_variant!(id)
     changeset = ProductVariant.changeset(variant, %{})
 
@@ -119,10 +121,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
       |> Enum.reject(fn {_label, vid} -> vid == variant.id end)
 
     ingredient_options_raw = Inventory.ingredient_options_with_units()
-    ingredient_options = Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
+
+    ingredient_options =
+      Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
 
     ingredient_options_json =
-      Jason.encode!(Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end))
+      Jason.encode!(
+        Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end)
+      )
 
     render(conn, :edit,
       variant: variant,
@@ -152,7 +158,9 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
       {:error, %Ecto.Changeset{} = changeset} ->
         recipe_assigns = build_default_recipe_assigns(conn, variant, product_id)
 
-        render(conn, :edit,
+        render(
+          conn,
+          :edit,
           [
             variant: variant,
             product: variant.product,
@@ -172,7 +180,11 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
     |> redirect(to: dp(conn, "/products/#{product_id}/edit"))
   end
 
-  def save_recipe(conn, %{"product_id" => product_id, "variant_id" => variant_id, "recipe" => recipe_params}) do
+  def save_recipe(conn, %{
+        "product_id" => product_id,
+        "variant_id" => variant_id,
+        "recipe" => recipe_params
+      }) do
     variant = Orders.get_variant!(variant_id)
 
     # Lock variant_id from URL — ignore whatever the form submitted
@@ -199,10 +211,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
           |> Enum.reject(fn {_label, vid} -> vid == variant.id end)
 
         ingredient_options_raw = Inventory.ingredient_options_with_units()
-        ingredient_options = Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
+
+        ingredient_options =
+          Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
 
         ingredient_options_json =
-          Jason.encode!(Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end))
+          Jason.encode!(
+            Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end)
+          )
 
         changeset = ProductVariant.changeset(variant, %{})
 
@@ -225,7 +241,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
   # Build default recipe assigns for error re-renders (update/2 failure).
   # Uses current recipe if available; otherwise empty form with one blank line.
   defp build_default_recipe_assigns(conn, variant, product_id) do
-    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+    today_mx =
+      NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
 
     current_recipe =
       case Recepies.get_active_recipe(variant) do
@@ -265,10 +282,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.VariantController do
       |> Enum.reject(fn {_label, vid} -> vid == variant.id end)
 
     ingredient_options_raw = Inventory.ingredient_options_with_units()
-    ingredient_options = Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
+
+    ingredient_options =
+      Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
 
     ingredient_options_json =
-      Jason.encode!(Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end))
+      Jason.encode!(
+        Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end)
+      )
 
     [
       current_recipe: current_recipe,

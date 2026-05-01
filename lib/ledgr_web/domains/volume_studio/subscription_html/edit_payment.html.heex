@@ -1,14 +1,12 @@
 <div class="new-subscription-card">
-
   <section class="card" style="margin-bottom: 1.5rem;">
     <div class="card-header">
       <div>
         <h2 class="card-title">Edit Payment</h2>
         <p class="card-subtitle">
-          <%= @subscription.customer.name %> ·
-          <%= @subscription.subscription_plan.name %> ·
+          {@subscription.customer.name} · {@subscription.subscription_plan.name} ·
           <span class={"status-badge #{status_class(@subscription.status)}"}>
-            <%= String.capitalize(@subscription.status) %>
+            {String.capitalize(@subscription.status)}
           </span>
         </p>
       </div>
@@ -26,11 +24,12 @@
       <input type="hidden" name="_method" value="put" />
 
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
-
         <div class="field">
           <label for="payment_amount">Amount (MXN) *</label>
           <div style="position: relative;">
-            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">$</span>
+            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">
+              $
+            </span>
             <input
               id="payment_amount"
               type="number"
@@ -67,16 +66,17 @@
             class="form-input"
           ><%= @entry.description %></textarea>
         </div>
-
       </div>
 
       <div style="display: flex; gap: 0.75rem;">
         <button type="submit" class="btn primary">Save Changes</button>
-        <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}")} class="btn">
+        <.link
+          navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}")}
+          class="btn"
+        >
           Cancel
         </.link>
       </div>
     </form>
   </section>
-
 </div>

@@ -30,6 +30,4 @@ defmodule Ledgr.Core.Expenses.Expense do
     |> assoc_constraint(:expense_account)
     |> assoc_constraint(:paid_from_account)
   end
-
-
 end

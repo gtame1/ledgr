@@ -48,10 +48,16 @@ defmodule Ledgr.Domains.HelloDoctor.PaymentLinking do
     if payment.consultation_id do
       # Reset consultation payment status
       case Repo.get(Consultation, payment.consultation_id) do
-        nil -> :ok
+        nil ->
+          :ok
+
         consultation ->
           consultation
-          |> Ecto.Changeset.change(%{payment_status: "pending", payment_amount: nil, payment_confirmed_at: nil})
+          |> Ecto.Changeset.change(%{
+            payment_status: "pending",
+            payment_amount: nil,
+            payment_confirmed_at: nil
+          })
           |> Repo.update()
       end
     end
@@ -68,7 +74,7 @@ defmodule Ledgr.Domains.HelloDoctor.PaymentLinking do
   def suggest_consultations(%StripePayment{} = _payment) do
     Consultation
     |> where([c], c.payment_status != "paid" or is_nil(c.payment_status))
-    |> order_by([c], [desc: c.assigned_at])
+    |> order_by([c], desc: c.assigned_at)
     |> limit(30)
     |> Repo.all()
     |> Repo.preload([:patient, :doctor])

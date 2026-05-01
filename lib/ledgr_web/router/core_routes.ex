@@ -56,7 +56,10 @@ defmodule LedgrWeb.Router.CoreRoutes do
       # Reconciliation
       get "/reconciliation/accounting", ReconciliationController, :accounting_index
       post "/reconciliation/accounting/adjust", ReconciliationController, :accounting_adjust
-      post "/reconciliation/accounting/reconcile_all", ReconciliationController, :accounting_reconcile_all
+
+      post "/reconciliation/accounting/reconcile_all",
+           ReconciliationController,
+           :accounting_reconcile_all
 
       # Transfers
       resources "/transfers", TransferController
@@ -85,7 +88,10 @@ defmodule LedgrWeb.Router.CoreRoutes do
       # Reconciliation (accounting only — inventory is MrMunchMe-specific)
       get "/reconciliation/accounting", ReconciliationController, :accounting_index
       post "/reconciliation/accounting/adjust", ReconciliationController, :accounting_adjust
-      post "/reconciliation/accounting/reconcile_all", ReconciliationController, :accounting_reconcile_all
+
+      post "/reconciliation/accounting/reconcile_all",
+           ReconciliationController,
+           :accounting_reconcile_all
 
       # Investments
       get "/investments", InvestmentController, :index
@@ -98,7 +104,8 @@ defmodule LedgrWeb.Router.CoreRoutes do
       resources "/transfers", TransferController
 
       # Expenses
-      resources "/expenses", ExpenseController, only: [:index, :new, :create, :show, :edit, :update, :delete]
+      resources "/expenses", ExpenseController,
+        only: [:index, :new, :create, :show, :edit, :update, :delete]
     end
   end
 end

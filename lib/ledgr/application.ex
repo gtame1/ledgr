@@ -17,10 +17,12 @@ defmodule Ledgr.Application do
     # config files stay serializable and Mix can read them (e.g. mix release).
     if @mix_env == :dev do
       endpoint_config = Application.get_env(:ledgr, LedgrWeb.Endpoint) || []
+
       watchers = [
         esbuild: {Esbuild, :install_and_run, [:ledgr, ~w(--sourcemap=inline --watch)]},
         tailwind: {Tailwind, :install_and_run, [:ledgr, ~w(--watch)]}
       ]
+
       live_reload = [
         web_console_logger: true,
         patterns: [
@@ -29,7 +31,10 @@ defmodule Ledgr.Application do
           ~r"lib/ledgr_web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
         ]
       ]
-      Application.put_env(:ledgr, LedgrWeb.Endpoint,
+
+      Application.put_env(
+        :ledgr,
+        LedgrWeb.Endpoint,
         Keyword.merge(endpoint_config, watchers: watchers, live_reload: live_reload)
       )
     end
@@ -38,7 +43,14 @@ defmodule Ledgr.Application do
     # config/test.exs); in dev/prod only start when their DATABASE_URL is set.
     optional_repos =
       if @mix_env != :prod do
-        [Ledgr.Repos.Viaxe, Ledgr.Repos.VolumeStudio, Ledgr.Repos.LedgrHQ, Ledgr.Repos.CasaTame, Ledgr.Repos.HelloDoctor, Ledgr.Repos.AumentaMiPension]
+        [
+          Ledgr.Repos.Viaxe,
+          Ledgr.Repos.VolumeStudio,
+          Ledgr.Repos.LedgrHQ,
+          Ledgr.Repos.CasaTame,
+          Ledgr.Repos.HelloDoctor,
+          Ledgr.Repos.AumentaMiPension
+        ]
       else
         [
           {"VIAXE_DATABASE_URL", Ledgr.Repos.Viaxe},
@@ -50,12 +62,17 @@ defmodule Ledgr.Application do
         ]
         |> Enum.filter(fn {env_var, repo} ->
           case System.get_env(env_var) do
-            nil -> false
+            nil ->
+              false
+
             url ->
               if db_host_reachable?(url) do
                 true
               else
-                Logger.warning("[Ledgr] Skipping #{inspect(repo)}: #{env_var} is set but host does not resolve (database may be expired)")
+                Logger.warning(
+                  "[Ledgr] Skipping #{inspect(repo)}: #{env_var} is set but host does not resolve (database may be expired)"
+                )
+
                 false
               end
           end
@@ -63,31 +80,33 @@ defmodule Ledgr.Application do
         |> Enum.map(fn {_env_var, repo} -> repo end)
       end
 
+    # Start exchange rate worker only when Casa Tame repo is available.
+    # Skip in :test to avoid spurious DB connections during the test run.
+    # Pull HelloDoctor external billing (OpenAI, Whereby, AWS) every 15 days
+    # and post the new costs to the GL. Skip in :test.
     children =
       [
         LedgrWeb.Telemetry,
         Ledgr.Repos.MrMunchMe
       ] ++
-      optional_repos ++
-      [
-        {DNSCluster, query: Application.get_env(:ledgr, :dns_cluster_query) || :ignore},
-        {Phoenix.PubSub, name: Ledgr.PubSub},
-        Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery
-      ] ++
-      # Start exchange rate worker only when Casa Tame repo is available.
-      # Skip in :test to avoid spurious DB connections during the test run.
-      (if @mix_env != :test and Ledgr.Repos.CasaTame in optional_repos,
-        do: [Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker],
-        else: []) ++
-      # Pull HelloDoctor external billing (OpenAI, Whereby, AWS) every 15 days
-      # and post the new costs to the GL. Skip in :test.
-      (if @mix_env != :test and Ledgr.Repos.HelloDoctor in optional_repos,
-        do: [Ledgr.Domains.HelloDoctor.BillingSyncWorker],
-        else: []) ++
-      [
-        # Start to serve requests, typically the last entry
-        LedgrWeb.Endpoint
-      ]
+        optional_repos ++
+        [
+          {DNSCluster, query: Application.get_env(:ledgr, :dns_cluster_query) || :ignore},
+          {Phoenix.PubSub, name: Ledgr.PubSub},
+          Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery
+        ] ++
+        if(@mix_env != :test and Ledgr.Repos.CasaTame in optional_repos,
+          do: [Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker],
+          else: []
+        ) ++
+        if(@mix_env != :test and Ledgr.Repos.HelloDoctor in optional_repos,
+          do: [Ledgr.Domains.HelloDoctor.BillingSyncWorker],
+          else: []
+        ) ++
+        [
+          # Start to serve requests, typically the last entry
+          LedgrWeb.Endpoint
+        ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

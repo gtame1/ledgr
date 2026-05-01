@@ -1,9 +1,9 @@
 <section class="card">
   <div class="card-header">
-    <h2 class="card-title">Edit Service: <%= @service.name %></h2>
+    <h2 class="card-title">Edit Service: {@service.name}</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:service} method="put" :let={f}>
+  <.form :let={f} for={@changeset} action={@action} as={:service} method="put">
     <div class="form-grid">
       <div class="form-block">
         <div class="field">
@@ -13,15 +13,19 @@
 
         <div class="field">
           <label>Category *</label>
-          <.input type="select" field={f[:category]} options={[
-            {"Select category...", ""},
-            {"Flight", "flight"},
-            {"Hotel", "hotel"},
-            {"Tour", "tour"},
-            {"Transfer", "transfer"},
-            {"Insurance", "insurance"},
-            {"Package", "package"}
-          ]} />
+          <.input
+            type="select"
+            field={f[:category]}
+            options={[
+              {"Select category...", ""},
+              {"Flight", "flight"},
+              {"Hotel", "hotel"},
+              {"Tour", "tour"},
+              {"Transfer", "transfer"},
+              {"Insurance", "insurance"},
+              {"Package", "package"}
+            ]}
+          />
         </div>
 
         <div class="field">

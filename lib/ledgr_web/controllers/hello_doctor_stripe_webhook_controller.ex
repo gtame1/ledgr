@@ -36,7 +36,10 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
         send_resp(conn, 200, "ok")
 
       {:error, reason} ->
-        Logger.warning("[HelloDoctor] Stripe webhook signature verification failed: #{inspect(reason)}")
+        Logger.warning(
+          "[HelloDoctor] Stripe webhook signature verification failed: #{inspect(reason)}"
+        )
+
         send_resp(conn, 400, "bad request")
     end
   end
@@ -45,20 +48,35 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
     amount_pesos = (session.amount_total || 0) / 100.0
     metadata = session.metadata || %{}
 
-    Logger.info("[HelloDoctor] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, metadata=#{inspect(metadata)}")
+    Logger.info(
+      "[HelloDoctor] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, metadata=#{inspect(metadata)}"
+    )
 
     case StripeSync.upsert_payment(session) do
       {:ok, :already_exists} ->
-        Logger.info("[HelloDoctor] Stripe webhook: payment for session #{session.id} already recorded, skipping")
+        Logger.info(
+          "[HelloDoctor] Stripe webhook: payment for session #{session.id} already recorded, skipping"
+        )
+
         send_resp(conn, 200, "ok — already recorded")
 
       {:ok, payment} ->
-        link_info = if payment.consultation_id, do: " (linked to consultation #{payment.consultation_id})", else: " (unlinked — no metadata)"
-        Logger.info("[HelloDoctor] Stripe webhook: recorded payment for session #{session.id}, amount: $#{amount_pesos}#{link_info}")
+        link_info =
+          if payment.consultation_id,
+            do: " (linked to consultation #{payment.consultation_id})",
+            else: " (unlinked — no metadata)"
+
+        Logger.info(
+          "[HelloDoctor] Stripe webhook: recorded payment for session #{session.id}, amount: $#{amount_pesos}#{link_info}"
+        )
+
         send_resp(conn, 200, "ok")
 
       {:error, reason} ->
-        Logger.error("[HelloDoctor] Stripe webhook: failed to record payment for session #{session.id}: #{inspect(reason)}")
+        Logger.error(
+          "[HelloDoctor] Stripe webhook: failed to record payment for session #{session.id}: #{inspect(reason)}"
+        )
+
         send_resp(conn, 500, "error")
     end
   end
@@ -74,12 +92,17 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
     if payment_intent_id do
       case Ledgr.Repo.get_by(StripePayment, stripe_payment_intent_id: payment_intent_id) do
         nil ->
-          Logger.warning("[HelloDoctor] Stripe webhook: charge.refunded for unknown payment_intent #{payment_intent_id}")
+          Logger.warning(
+            "[HelloDoctor] Stripe webhook: charge.refunded for unknown payment_intent #{payment_intent_id}"
+          )
 
         %StripePayment{status: "refunded"} = payment ->
           # Already marked refunded (e.g. initiated from Ledgr UI) — skip status update
           # but create the GL reversal if it doesn't exist yet.
-          Logger.info("[HelloDoctor] Stripe webhook: charge.refunded for already-refunded payment #{payment.id} — ensuring GL entry exists")
+          Logger.info(
+            "[HelloDoctor] Stripe webhook: charge.refunded for already-refunded payment #{payment.id} — ensuring GL entry exists"
+          )
+
           StripeRefunds.create_refund_journal_entry(payment)
 
         payment ->
@@ -90,10 +113,15 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
             |> Ledgr.Repo.update()
 
           StripeRefunds.create_refund_journal_entry(updated)
-          Logger.info("[HelloDoctor] Stripe webhook: marked payment #{payment.id} as refunded and created GL reversal (charge #{charge.id})")
+
+          Logger.info(
+            "[HelloDoctor] Stripe webhook: marked payment #{payment.id} as refunded and created GL reversal (charge #{charge.id})"
+          )
       end
     else
-      Logger.warning("[HelloDoctor] Stripe webhook: charge.refunded with no payment_intent (charge #{charge.id})")
+      Logger.warning(
+        "[HelloDoctor] Stripe webhook: charge.refunded with no payment_intent (charge #{charge.id})"
+      )
     end
 
     send_resp(conn, 200, "ok")

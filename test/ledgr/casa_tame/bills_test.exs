@@ -73,7 +73,7 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
 
   describe "list functions" do
     test "list_bills/0 returns only active bills ordered by next_due_date" do
-      {:ok, later}   = Bills.create_bill(valid_attrs(%{next_due_date: ~D[2026-06-01]}))
+      {:ok, later} = Bills.create_bill(valid_attrs(%{next_due_date: ~D[2026-06-01]}))
       {:ok, earlier} = Bills.create_bill(valid_attrs(%{next_due_date: ~D[2026-05-01]}))
       {:ok, _inactive} = Bills.create_bill(valid_attrs(%{is_active: false}))
 
@@ -106,7 +106,12 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
     end
 
     test "biweekly adds 14 days" do
-      bill = %RecurringBill{frequency: "biweekly", next_due_date: ~D[2026-05-01], day_of_month: nil}
+      bill = %RecurringBill{
+        frequency: "biweekly",
+        next_due_date: ~D[2026-05-01],
+        day_of_month: nil
+      }
+
       assert Bills.advance_due_date(bill) == ~D[2026-05-15]
     end
 
@@ -127,7 +132,12 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
     end
 
     test "quarterly adds 3 months" do
-      bill = %RecurringBill{frequency: "quarterly", next_due_date: ~D[2026-05-10], day_of_month: 10}
+      bill = %RecurringBill{
+        frequency: "quarterly",
+        next_due_date: ~D[2026-05-10],
+        day_of_month: 10
+      }
+
       assert Bills.advance_due_date(bill) == ~D[2026-08-10]
     end
 
@@ -137,7 +147,12 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
     end
 
     test "one_time keeps the date unchanged" do
-      bill = %RecurringBill{frequency: "one_time", next_due_date: ~D[2026-05-10], day_of_month: nil}
+      bill = %RecurringBill{
+        frequency: "one_time",
+        next_due_date: ~D[2026-05-10],
+        day_of_month: nil
+      }
+
       assert Bills.advance_due_date(bill) == ~D[2026-05-10]
     end
   end
@@ -151,7 +166,11 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
     end
 
     test "recurring bills advance next_due_date and stay active" do
-      {:ok, bill} = Bills.create_bill(valid_attrs(%{frequency: "monthly", day_of_month: 15, next_due_date: ~D[2026-05-15]}))
+      {:ok, bill} =
+        Bills.create_bill(
+          valid_attrs(%{frequency: "monthly", day_of_month: 15, next_due_date: ~D[2026-05-15]})
+        )
+
       {:ok, updated} = Bills.mark_paid(bill)
       assert updated.is_active
       assert updated.next_due_date == ~D[2026-06-15]
@@ -161,7 +180,10 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
 
   describe "list_bills_for_month/2" do
     test "returns a map of date => [bills]" do
-      {:ok, _bill} = Bills.create_bill(valid_attrs(%{frequency: "monthly", day_of_month: 15, next_due_date: ~D[2026-05-15]}))
+      {:ok, _bill} =
+        Bills.create_bill(
+          valid_attrs(%{frequency: "monthly", day_of_month: 15, next_due_date: ~D[2026-05-15]})
+        )
 
       result = Bills.list_bills_for_month(2026, 5)
       assert is_map(result)
@@ -169,7 +191,10 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
     end
 
     test "weekly bills return multiple dates in the month" do
-      {:ok, _bill} = Bills.create_bill(valid_attrs(%{frequency: "weekly", day_of_month: nil, next_due_date: ~D[2026-05-01]}))
+      {:ok, _bill} =
+        Bills.create_bill(
+          valid_attrs(%{frequency: "weekly", day_of_month: nil, next_due_date: ~D[2026-05-01]})
+        )
 
       result = Bills.list_bills_for_month(2026, 5)
       # Weekly starting May 1 → May 1, 8, 15, 22, 29 = at least 4 dates
@@ -177,7 +202,10 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
     end
 
     test "one_time bill outside the month is excluded" do
-      {:ok, _bill} = Bills.create_bill(valid_attrs(%{frequency: "one_time", day_of_month: nil, next_due_date: ~D[2026-05-15]}))
+      {:ok, _bill} =
+        Bills.create_bill(
+          valid_attrs(%{frequency: "one_time", day_of_month: nil, next_due_date: ~D[2026-05-15]})
+        )
 
       result = Bills.list_bills_for_month(2026, 6)
       assert result == %{}
@@ -190,8 +218,11 @@ defmodule Ledgr.Domains.CasaTame.BillsTest do
       within = Date.add(today, 5)
       far_out = Date.add(today, 60)
 
-      {:ok, close} = Bills.create_bill(valid_attrs(%{next_due_date: within, day_of_month: within.day}))
-      {:ok, _far} = Bills.create_bill(valid_attrs(%{next_due_date: far_out, day_of_month: far_out.day}))
+      {:ok, close} =
+        Bills.create_bill(valid_attrs(%{next_due_date: within, day_of_month: within.day}))
+
+      {:ok, _far} =
+        Bills.create_bill(valid_attrs(%{next_due_date: far_out, day_of_month: far_out.day}))
 
       results = Bills.list_upcoming_bills(30)
       ids = Enum.map(results, & &1.id)

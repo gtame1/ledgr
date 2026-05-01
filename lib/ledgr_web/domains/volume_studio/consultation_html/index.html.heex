@@ -13,10 +13,15 @@
   <div class="tab-bar" style="margin-bottom: 1rem;">
     <%= for {label, value} <- [{"All", nil}, {"Scheduled", "scheduled"}, {"Completed", "completed"}, {"Cancelled", "cancelled"}, {"No Show", "no_show"}] do %>
       <.link
-        navigate={dp(@domain_path_prefix, if(value, do: "/consultations?status=#{value}", else: "/consultations"))}
+        navigate={
+          dp(
+            @domain_path_prefix,
+            if(value, do: "/consultations?status=#{value}", else: "/consultations")
+          )
+        }
         class={"tab-item#{if @current_status == value, do: " active", else: ""}"}
       >
-        <%= label %>
+        {label}
       </.link>
     <% end %>
   </div>
@@ -42,13 +47,15 @@
         <% else %>
           <%= for c <- @consultations do %>
             <tr>
-              <td><%= c.customer.name %></td>
-              <td><%= c.instructor_name || "—" %></td>
-              <td style="white-space: nowrap;"><%= fmt_datetime(c.scheduled_at, "%b %d, %Y · %H:%M") %></td>
-              <td><%= format_currency(c.amount_cents) %></td>
+              <td>{c.customer.name}</td>
+              <td>{c.instructor_name || "—"}</td>
+              <td style="white-space: nowrap;">
+                {fmt_datetime(c.scheduled_at, "%b %d, %Y · %H:%M")}
+              </td>
+              <td>{format_currency(c.amount_cents)}</td>
               <td>
                 <span class={"status-badge #{status_class(c.status)}"}>
-                  <%= String.capitalize(c.status) %>
+                  {String.capitalize(c.status)}
                 </span>
               </td>
               <td>
@@ -59,25 +66,75 @@
                 <% end %>
               </td>
               <td style="vertical-align: middle;">
-                <div class="row-actions" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: nowrap;">
-                  <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="btn btn-sm">View</.link>
+                <div
+                  class="row-actions"
+                  style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: nowrap;"
+                >
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")}
+                    class="btn btn-sm"
+                  >
+                    View
+                  </.link>
                   <%= if c.status == "scheduled" do %>
-                    <form action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")} method="post" style="display:contents;">
-                      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                    <form
+                      action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")}
+                      method="post"
+                      style="display:contents;"
+                    >
+                      <input
+                        type="hidden"
+                        name="_csrf_token"
+                        value={Phoenix.Controller.get_csrf_token()}
+                      />
                       <input type="hidden" name="status" value="completed" />
-                      <button type="submit" class="btn btn-sm primary" onclick="return confirm('Mark this consultation as completed?')">Complete</button>
+                      <button
+                        type="submit"
+                        class="btn btn-sm primary"
+                        onclick="return confirm('Mark this consultation as completed?')"
+                      >
+                        Complete
+                      </button>
                     </form>
-                    <form action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")} method="post" style="display:contents;">
-                      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                    <form
+                      action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")}
+                      method="post"
+                      style="display:contents;"
+                    >
+                      <input
+                        type="hidden"
+                        name="_csrf_token"
+                        value={Phoenix.Controller.get_csrf_token()}
+                      />
                       <input type="hidden" name="status" value="no_show" />
-                      <button type="submit" class="btn btn-sm danger" onclick="return confirm('Mark as no-show?')">No Show</button>
+                      <button
+                        type="submit"
+                        class="btn btn-sm danger"
+                        onclick="return confirm('Mark as no-show?')"
+                      >
+                        No Show
+                      </button>
                     </form>
                   <% end %>
                   <%= if c.status in ["completed", "cancelled", "no_show"] do %>
-                    <form action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")} method="post" style="display:contents;">
-                      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                    <form
+                      action={dp(@domain_path_prefix, "/consultations/#{c.id}/status")}
+                      method="post"
+                      style="display:contents;"
+                    >
+                      <input
+                        type="hidden"
+                        name="_csrf_token"
+                        value={Phoenix.Controller.get_csrf_token()}
+                      />
                       <input type="hidden" name="status" value="scheduled" />
-                      <button type="submit" class="btn btn-sm" onclick="return confirm('Reopen this consultation as scheduled?')">Reopen</button>
+                      <button
+                        type="submit"
+                        class="btn btn-sm"
+                        onclick="return confirm('Reopen this consultation as scheduled?')"
+                      >
+                        Reopen
+                      </button>
                     </form>
                   <% end %>
                 </div>

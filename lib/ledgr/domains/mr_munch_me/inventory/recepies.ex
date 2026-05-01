@@ -158,7 +158,11 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Recepies do
   Copy a recipe from one variant to another.
   Creates a new recipe for the target variant with the same recipe lines.
   """
-  def copy_recipe_from_variant(%ProductVariant{} = source_variant, %ProductVariant{} = target_variant, effective_date \\ LedgrWeb.Helpers.DomainHelpers.today_mx()) do
+  def copy_recipe_from_variant(
+        %ProductVariant{} = source_variant,
+        %ProductVariant{} = target_variant,
+        effective_date \\ LedgrWeb.Helpers.DomainHelpers.today_mx()
+      ) do
     case get_active_recipe(source_variant) do
       nil ->
         {:error, :no_recipe_found}
@@ -250,79 +254,117 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Recepies do
   defp fallback_recipe_for_sku(sku) when is_binary(sku) do
     main_ingredients =
       case sku do
-        "TAKIS-GRANDE" -> [%{ingredient_code: "TAKIS_FUEGO", quantity: 1020}]
-        "TAKIS-MEDIANA" -> [%{ingredient_code: "TAKIS_FUEGO", quantity: 517}]
-        "RUNNERS-GRANDE" -> [%{ingredient_code: "RUNNERS", quantity: 840}]
-        "RUNNERS-MEDIANA" -> [%{ingredient_code: "RUNNERS", quantity: 447}]
-        "MIXTA-GRANDE" -> [
-          %{ingredient_code: "TAKIS_FUEGO", quantity: 340},
-          %{ingredient_code: "RUNNERS", quantity: 280},
-          %{ingredient_code: "CHIPS_FUEGO", quantity: 160},
-        ]
-        "MIXTA-MEDIANA" -> [
-          %{ingredient_code: "TAKIS_FUEGO", quantity: 225},
-          %{ingredient_code: "RUNNERS", quantity: 124},
-          %{ingredient_code: "CHIPS_FUEGO", quantity: 77},
-        ]
-        "SALSA-NEGRAS-GRANDE" -> [
-          %{ingredient_code: "CRUJIENTES_INGLESA", quantity: 240},
-          %{ingredient_code: "DORITOS_INCOGNITA", quantity: 223},
-          %{ingredient_code: "CACAHUATES_INGLESA", quantity: 160},
-        ]
-        "SALSA-NEGRAS-MEDIANA" -> [
-          %{ingredient_code: "CRUJIENTES_INGLESA", quantity: 160},
-          %{ingredient_code: "DORITOS_INCOGNITA", quantity: 178},
-          %{ingredient_code: "CACAHUATES_INGLESA", quantity: 160},
-        ]
+        "TAKIS-GRANDE" ->
+          [%{ingredient_code: "TAKIS_FUEGO", quantity: 1020}]
 
-        _ -> []
+        "TAKIS-MEDIANA" ->
+          [%{ingredient_code: "TAKIS_FUEGO", quantity: 517}]
+
+        "RUNNERS-GRANDE" ->
+          [%{ingredient_code: "RUNNERS", quantity: 840}]
+
+        "RUNNERS-MEDIANA" ->
+          [%{ingredient_code: "RUNNERS", quantity: 447}]
+
+        "MIXTA-GRANDE" ->
+          [
+            %{ingredient_code: "TAKIS_FUEGO", quantity: 340},
+            %{ingredient_code: "RUNNERS", quantity: 280},
+            %{ingredient_code: "CHIPS_FUEGO", quantity: 160}
+          ]
+
+        "MIXTA-MEDIANA" ->
+          [
+            %{ingredient_code: "TAKIS_FUEGO", quantity: 225},
+            %{ingredient_code: "RUNNERS", quantity: 124},
+            %{ingredient_code: "CHIPS_FUEGO", quantity: 77}
+          ]
+
+        "SALSA-NEGRAS-GRANDE" ->
+          [
+            %{ingredient_code: "CRUJIENTES_INGLESA", quantity: 240},
+            %{ingredient_code: "DORITOS_INCOGNITA", quantity: 223},
+            %{ingredient_code: "CACAHUATES_INGLESA", quantity: 160}
+          ]
+
+        "SALSA-NEGRAS-MEDIANA" ->
+          [
+            %{ingredient_code: "CRUJIENTES_INGLESA", quantity: 160},
+            %{ingredient_code: "DORITOS_INCOGNITA", quantity: 178},
+            %{ingredient_code: "CACAHUATES_INGLESA", quantity: 160}
+          ]
+
+        _ ->
+          []
       end
 
     extra_ingredients =
       cond do
-        sku == "SALSA-NEGRAS-GRANDE" -> [
-          %{ingredient_code: "MIEL_KARO", quantity: 180},
-          %{ingredient_code: "MAGGI", quantity: 5}, #ml
-          %{ingredient_code: "TAJIN", quantity: 30},
-          %{ingredient_code: "LIMON", quantity: 1},
-          %{ingredient_code: "PULPARINDIO", quantity: 2},
-        ]
-        sku == "SALSA-NEGRAS-MEDIANA" -> [
-          %{ingredient_code: "MIEL_KARO", quantity: 100},
-          %{ingredient_code: "MAGGI", quantity: 5},
-          %{ingredient_code: "TAJIN", quantity: 15},
-          %{ingredient_code: "LIMON", quantity: 0.5},
-          %{ingredient_code: "PULPARINDIO", quantity: 1},
-        ]
-        sku in ["TAKIS-GRANDE", "RUNNERS-GRANDE", "MIXTA-GRANDE"] -> [
-          %{ingredient_code: "MIEL_KARO", quantity: 180}, #ml
-          %{ingredient_code: "SIRILO", quantity: 120}, #ml
-          %{ingredient_code: "MIGUELITO", quantity: 30}, #g
-          %{ingredient_code: "TAJIN", quantity: 30}, #g
-          %{ingredient_code: "LIMON", quantity: 1}, #unit
-          %{ingredient_code: "PULPARINDIO", quantity: 2}, #unit
-        ]
-        sku in ["TAKIS-MEDIANA", "RUNNERS-MEDIANA", "MIXTA-MEDIANA"] -> [
-          %{ingredient_code: "MIEL_KARO", quantity: 100},
-          %{ingredient_code: "SIRILO", quantity: 30},
-          %{ingredient_code: "MIGUELITO", quantity: 15},
-          %{ingredient_code: "TAJIN", quantity: 15},
-          %{ingredient_code: "LIMON", quantity: 0.5},
-          %{ingredient_code: "PULPARINDIO", quantity: 1},
-        ]
-        true -> []
+        sku == "SALSA-NEGRAS-GRANDE" ->
+          [
+            %{ingredient_code: "MIEL_KARO", quantity: 180},
+            # ml
+            %{ingredient_code: "MAGGI", quantity: 5},
+            %{ingredient_code: "TAJIN", quantity: 30},
+            %{ingredient_code: "LIMON", quantity: 1},
+            %{ingredient_code: "PULPARINDIO", quantity: 2}
+          ]
+
+        sku == "SALSA-NEGRAS-MEDIANA" ->
+          [
+            %{ingredient_code: "MIEL_KARO", quantity: 100},
+            %{ingredient_code: "MAGGI", quantity: 5},
+            %{ingredient_code: "TAJIN", quantity: 15},
+            %{ingredient_code: "LIMON", quantity: 0.5},
+            %{ingredient_code: "PULPARINDIO", quantity: 1}
+          ]
+
+        sku in ["TAKIS-GRANDE", "RUNNERS-GRANDE", "MIXTA-GRANDE"] ->
+          [
+            # ml
+            %{ingredient_code: "MIEL_KARO", quantity: 180},
+            # ml
+            %{ingredient_code: "SIRILO", quantity: 120},
+            # g
+            %{ingredient_code: "MIGUELITO", quantity: 30},
+            # g
+            %{ingredient_code: "TAJIN", quantity: 30},
+            # unit
+            %{ingredient_code: "LIMON", quantity: 1},
+            # unit
+            %{ingredient_code: "PULPARINDIO", quantity: 2}
+          ]
+
+        sku in ["TAKIS-MEDIANA", "RUNNERS-MEDIANA", "MIXTA-MEDIANA"] ->
+          [
+            %{ingredient_code: "MIEL_KARO", quantity: 100},
+            %{ingredient_code: "SIRILO", quantity: 30},
+            %{ingredient_code: "MIGUELITO", quantity: 15},
+            %{ingredient_code: "TAJIN", quantity: 15},
+            %{ingredient_code: "LIMON", quantity: 0.5},
+            %{ingredient_code: "PULPARINDIO", quantity: 1}
+          ]
+
+        true ->
+          []
       end
 
-    packing_ingredients = [
-      %{ingredient_code: "BOLSA_CELOFAN", quantity: 1}, #unit
-      %{ingredient_code: "ESTAMPAS", quantity: 1}, #unit
-      %{ingredient_code: "LISTONES", quantity: 15}, #cm
-    ] ++
-      cond do
-        String.contains?(sku, "GRANDE") -> [%{ingredient_code: "BASE_GRANDE", quantity: 1}] #unit
-        String.contains?(sku, "MEDIANA") -> [%{ingredient_code: "BASE_MEDIANA", quantity: 1}] #unit
-        true -> []
-      end
+    packing_ingredients =
+      [
+        # unit
+        %{ingredient_code: "BOLSA_CELOFAN", quantity: 1},
+        # unit
+        %{ingredient_code: "ESTAMPAS", quantity: 1},
+        # cm
+        %{ingredient_code: "LISTONES", quantity: 15}
+      ] ++
+        cond do
+          # unit
+          String.contains?(sku, "GRANDE") -> [%{ingredient_code: "BASE_GRANDE", quantity: 1}]
+          # unit
+          String.contains?(sku, "MEDIANA") -> [%{ingredient_code: "BASE_MEDIANA", quantity: 1}]
+          true -> []
+        end
 
     main_ingredients ++ extra_ingredients ++ packing_ingredients
   end

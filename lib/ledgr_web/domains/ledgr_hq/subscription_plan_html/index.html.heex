@@ -22,13 +22,15 @@
       </thead>
       <tbody>
         <%= if Enum.empty?(@plans) do %>
-          <tr><td colspan="5">No plans yet.</td></tr>
+          <tr>
+            <td colspan="5">No plans yet.</td>
+          </tr>
         <% else %>
           <%= for plan <- @plans do %>
             <tr>
-              <td><strong><%= plan.name %></strong></td>
-              <td><%= plan.description || "—" %></td>
-              <td><%= format_currency(plan.price_cents) %></td>
+              <td><strong>{plan.name}</strong></td>
+              <td>{plan.description || "—"}</td>
+              <td>{format_currency(plan.price_cents)}</td>
               <td>
                 <%= if plan.active do %>
                   <span class="status-badge status-paid">Active</span>
@@ -38,10 +40,18 @@
               </td>
               <td>
                 <div style="display: flex; gap: 0.5rem;">
-                  <.link navigate={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}/edit")} class="btn btn-sm">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}/edit")}
+                    class="btn btn-sm"
+                  >
                     Edit
                   </.link>
-                  <.link href={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}")} method="delete" data-confirm="Delete this plan?" class="btn btn-sm danger">
+                  <.link
+                    href={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}")}
+                    method="delete"
+                    data-confirm="Delete this plan?"
+                    class="btn btn-sm danger"
+                  >
                     Delete
                   </.link>
                 </div>

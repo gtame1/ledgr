@@ -10,6 +10,7 @@ defmodule LedgrWeb.Domains.Viaxe.RecommendationController do
       city: params["city"],
       category: params["category"]
     ]
+
     recommendations = Recommendations.list_recommendations(opts)
     countries = Recommendations.country_options()
 
@@ -47,6 +48,7 @@ defmodule LedgrWeb.Domains.Viaxe.RecommendationController do
   def edit(conn, %{"id" => id}) do
     rec = Recommendations.get_recommendation!(id)
     changeset = Recommendations.change_recommendation(rec)
+
     render(conn, :edit,
       recommendation: rec,
       changeset: changeset,

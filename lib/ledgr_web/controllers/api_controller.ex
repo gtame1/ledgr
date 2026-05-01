@@ -80,7 +80,9 @@ defmodule LedgrWeb.ApiController do
   def balance_sheet(conn, params) do
     as_of_date =
       case params["as_of_date"] do
-        nil -> today_mx()
+        nil ->
+          today_mx()
+
         date_str ->
           case Date.from_iso8601(date_str) do
             {:ok, date} -> date
@@ -123,7 +125,8 @@ defmodule LedgrWeb.ApiController do
       net_margin_percent: report.net_margin_percent,
       revenue_accounts: Enum.map(report.revenue_accounts, &serialize_pnl_account/1),
       cogs_accounts: Enum.map(report.cogs_accounts, &serialize_pnl_account/1),
-      operating_expense_accounts: Enum.map(report.operating_expense_accounts, &serialize_pnl_account/1)
+      operating_expense_accounts:
+        Enum.map(report.operating_expense_accounts, &serialize_pnl_account/1)
     })
   end
 
@@ -198,7 +201,9 @@ defmodule LedgrWeb.ApiController do
 
     start_date =
       case params["start_date"] do
-        nil -> Date.beginning_of_month(today)
+        nil ->
+          Date.beginning_of_month(today)
+
         date_str ->
           case Date.from_iso8601(date_str) do
             {:ok, date} -> date
@@ -208,7 +213,9 @@ defmodule LedgrWeb.ApiController do
 
     end_date =
       case params["end_date"] do
-        nil -> today
+        nil ->
+          today
+
         date_str ->
           case Date.from_iso8601(date_str) do
             {:ok, date} -> date

@@ -33,6 +33,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceController do
     space = Spaces.get_space!(id)
     attrs = %{"hourly_rate_cents" => div(space.hourly_rate_cents || 0, 100)}
     changeset = Spaces.change_space(space, attrs)
+
     render(conn, :edit,
       space: space,
       changeset: changeset,

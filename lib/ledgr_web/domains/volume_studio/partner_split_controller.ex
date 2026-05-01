@@ -163,8 +163,10 @@ defmodule LedgrWeb.Domains.VolumeStudio.PartnerSplitHTML do
 
   @doc "Formats basis points (e.g. 2500 → \"25%\", 3333 → \"33.33%\")."
   def fmt_bps(nil), do: "—"
+
   def fmt_bps(bps) when is_integer(bps) do
     pct = bps / 100
+
     if pct == Float.round(pct) do
       "#{trunc(pct)}%"
     else

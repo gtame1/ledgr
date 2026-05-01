@@ -37,10 +37,11 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
       near_consultation = consultation_fixture(%{scheduled_at: near})
       _far_consultation = consultation_fixture(%{scheduled_at: far})
 
-      consultations = Consultations.list_consultations(
-        from: DateTime.add(now, 3600, :second),
-        to: DateTime.add(now, 14400, :second)
-      )
+      consultations =
+        Consultations.list_consultations(
+          from: DateTime.add(now, 3600, :second),
+          to: DateTime.add(now, 14400, :second)
+        )
 
       assert Enum.any?(consultations, fn c -> c.id == near_consultation.id end)
     end
@@ -99,14 +100,20 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
   describe "update_consultation/2" do
     test "updates status" do
       consultation = consultation_fixture(%{status: "scheduled"})
-      assert {:ok, updated} = Consultations.update_consultation(consultation, %{status: "completed"})
+
+      assert {:ok, updated} =
+               Consultations.update_consultation(consultation, %{status: "completed"})
+
       assert updated.status == "completed"
     end
 
     test "updates amount" do
       consultation = consultation_fixture()
-      assert {:ok, updated} = Consultations.update_consultation(consultation, %{amount_cents: 100000})
-      assert updated.amount_cents == 100000
+
+      assert {:ok, updated} =
+               Consultations.update_consultation(consultation, %{amount_cents: 100_000})
+
+      assert updated.amount_cents == 100_000
     end
   end
 
@@ -160,7 +167,9 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
 
     test "uses custom paid_to_account_code when provided" do
       consultation = consultation_fixture(%{amount_cents: 50000})
-      assert {:ok, _} = Consultations.record_payment(consultation, 50000, paid_to_account_code: "1010")
+
+      assert {:ok, _} =
+               Consultations.record_payment(consultation, 50000, paid_to_account_code: "1010")
     end
   end
 
@@ -188,7 +197,9 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
   describe "change_consultation/2" do
     test "returns a changeset" do
       consultation = consultation_fixture()
-      assert %Ecto.Changeset{} = Consultations.change_consultation(consultation, %{status: "completed"})
+
+      assert %Ecto.Changeset{} =
+               Consultations.change_consultation(consultation, %{status: "completed"})
     end
   end
 
@@ -196,10 +207,13 @@ defmodule Ledgr.Domains.VolumeStudio.ConsultationsTest do
 
   defp create_customer do
     unique = System.unique_integer([:positive])
-    {:ok, customer} = Ledgr.Core.Customers.create_customer(%{
-      name: "Customer #{unique}",
-      phone: "555#{unique}"
-    })
+
+    {:ok, customer} =
+      Ledgr.Core.Customers.create_customer(%{
+        name: "Customer #{unique}",
+        phone: "555#{unique}"
+      })
+
     customer.id
   end
 end

@@ -25,7 +25,10 @@ defmodule Ledgr.Core.AccountsTest do
 
     test "returns error with duplicate email" do
       Accounts.create_user(%{email: "dup@example.com", password: "password123!"})
-      assert {:error, changeset} = Accounts.create_user(%{email: "dup@example.com", password: "password456!"})
+
+      assert {:error, changeset} =
+               Accounts.create_user(%{email: "dup@example.com", password: "password456!"})
+
       assert errors_on(changeset)[:email]
     end
   end
@@ -45,17 +48,23 @@ defmodule Ledgr.Core.AccountsTest do
   describe "authenticate_by_email_and_password/2" do
     test "returns {:ok, user} with correct credentials" do
       {:ok, user} = Accounts.create_user(%{email: "auth@example.com", password: "password123!"})
-      assert {:ok, found} = Accounts.authenticate_by_email_and_password("auth@example.com", "password123!")
+
+      assert {:ok, found} =
+               Accounts.authenticate_by_email_and_password("auth@example.com", "password123!")
+
       assert found.id == user.id
     end
 
     test "returns error with wrong password" do
       Accounts.create_user(%{email: "auth2@example.com", password: "password123!"})
-      assert {:error, :invalid_credentials} = Accounts.authenticate_by_email_and_password("auth2@example.com", "wrong")
+
+      assert {:error, :invalid_credentials} =
+               Accounts.authenticate_by_email_and_password("auth2@example.com", "wrong")
     end
 
     test "returns error when user does not exist" do
-      assert {:error, :invalid_credentials} = Accounts.authenticate_by_email_and_password("ghost@example.com", "password123!")
+      assert {:error, :invalid_credentials} =
+               Accounts.authenticate_by_email_and_password("ghost@example.com", "password123!")
     end
   end
 

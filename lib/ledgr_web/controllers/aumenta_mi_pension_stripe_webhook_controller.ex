@@ -16,7 +16,10 @@ defmodule LedgrWeb.AumentaMiPensionStripeWebhookController do
     webhook_secret = Application.get_env(:ledgr, :aumenta_mi_pension_stripe_webhook_secret)
 
     if is_nil(webhook_secret) or webhook_secret == "" do
-      Logger.debug("[AumentaMiPension] Stripe webhook hit but no webhook secret configured; ignoring")
+      Logger.debug(
+        "[AumentaMiPension] Stripe webhook hit but no webhook secret configured; ignoring"
+      )
+
       send_resp(conn, 200, "ok")
     else
       dispatch(conn, webhook_secret)
@@ -43,7 +46,10 @@ defmodule LedgrWeb.AumentaMiPensionStripeWebhookController do
         send_resp(conn, 200, "ok")
 
       {:error, reason} ->
-        Logger.warning("[AumentaMiPension] Stripe webhook signature verification failed: #{inspect(reason)}")
+        Logger.warning(
+          "[AumentaMiPension] Stripe webhook signature verification failed: #{inspect(reason)}"
+        )
+
         send_resp(conn, 400, "bad request")
     end
   end
@@ -52,11 +58,16 @@ defmodule LedgrWeb.AumentaMiPensionStripeWebhookController do
     amount_pesos = (session.amount_total || 0) / 100.0
     metadata = session.metadata || %{}
 
-    Logger.info("[AumentaMiPension] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, metadata=#{inspect(metadata)}")
+    Logger.info(
+      "[AumentaMiPension] Stripe checkout completed: session=#{session.id}, amount=$#{amount_pesos}, metadata=#{inspect(metadata)}"
+    )
 
     case StripeSync.upsert_payment(session) do
       {:ok, :already_exists} ->
-        Logger.info("[AumentaMiPension] Stripe webhook: payment for session #{session.id} already recorded, skipping")
+        Logger.info(
+          "[AumentaMiPension] Stripe webhook: payment for session #{session.id} already recorded, skipping"
+        )
+
         send_resp(conn, 200, "ok — already recorded")
 
       {:ok, payment} ->
@@ -65,11 +76,17 @@ defmodule LedgrWeb.AumentaMiPensionStripeWebhookController do
             do: " (linked to consultation #{payment.consultation_id})",
             else: " (unlinked — no metadata)"
 
-        Logger.info("[AumentaMiPension] Stripe webhook: recorded payment for session #{session.id}, amount: $#{amount_pesos}#{link_info}")
+        Logger.info(
+          "[AumentaMiPension] Stripe webhook: recorded payment for session #{session.id}, amount: $#{amount_pesos}#{link_info}"
+        )
+
         send_resp(conn, 200, "ok")
 
       {:error, reason} ->
-        Logger.error("[AumentaMiPension] Stripe webhook: failed to record payment for session #{session.id}: #{inspect(reason)}")
+        Logger.error(
+          "[AumentaMiPension] Stripe webhook: failed to record payment for session #{session.id}: #{inspect(reason)}"
+        )
+
         send_resp(conn, 500, "error")
     end
   end
@@ -87,17 +104,23 @@ defmodule LedgrWeb.AumentaMiPensionStripeWebhookController do
 
       case Ledgr.Repo.get_by(StripePayment, stripe_payment_intent_id: payment_intent_id) do
         nil ->
-          Logger.warning("[AumentaMiPension] Stripe webhook: charge.refunded for unknown payment_intent #{payment_intent_id}")
+          Logger.warning(
+            "[AumentaMiPension] Stripe webhook: charge.refunded for unknown payment_intent #{payment_intent_id}"
+          )
 
         payment ->
           payment
           |> StripePayment.changeset(%{status: "refunded"})
           |> Ledgr.Repo.update()
 
-          Logger.info("[AumentaMiPension] Stripe webhook: marked payment #{payment.id} as refunded (charge #{charge.id})")
+          Logger.info(
+            "[AumentaMiPension] Stripe webhook: marked payment #{payment.id} as refunded (charge #{charge.id})"
+          )
       end
     else
-      Logger.warning("[AumentaMiPension] Stripe webhook: charge.refunded with no payment_intent (charge #{charge.id})")
+      Logger.warning(
+        "[AumentaMiPension] Stripe webhook: charge.refunded with no payment_intent (charge #{charge.id})"
+      )
     end
 
     send_resp(conn, 200, "ok")

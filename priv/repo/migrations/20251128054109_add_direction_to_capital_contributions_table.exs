@@ -5,6 +5,5 @@ defmodule Ledgr.Repo.Migrations.AddDirectionAndCashAccountToCapitalContributions
     alter table(:capital_contributions) do
       add :direction, :string, null: false, default: "in"
     end
-
   end
 end

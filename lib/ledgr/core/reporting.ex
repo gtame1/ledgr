@@ -155,7 +155,9 @@ defmodule Ledgr.Core.Reporting do
       end
 
     other_inflows_cents = cash_inflows_cents - sales_inflows_cents - investment_inflows_cents
-    other_outflows_cents = cash_outflows_cents - expense_outflows_cents - withdrawal_outflows_cents
+
+    other_outflows_cents =
+      cash_outflows_cents - expense_outflows_cents - withdrawal_outflows_cents
 
     # IAS 7 / NIF B-2 Standard Classification:
     # Operating: sales receipts, operating expense payments, inventory purchases
@@ -165,7 +167,8 @@ defmodule Ledgr.Core.Reporting do
     operating_outflows = expense_outflows_cents + other_outflows_cents
     net_operating = operating_inflows - operating_outflows
 
-    net_investing = 0  # Future: equipment purchases would be classified here
+    # Future: equipment purchases would be classified here
+    net_investing = 0
 
     financing_inflows = investment_inflows_cents
     financing_outflows = withdrawal_outflows_cents

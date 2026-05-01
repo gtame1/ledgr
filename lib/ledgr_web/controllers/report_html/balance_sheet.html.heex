@@ -2,12 +2,18 @@
   <div class="card-header">
     <h2 class="card-title">Balance Sheet</h2>
     <p class="card-subtitle">
-      As of <%= @as_of %>
+      As of {@as_of}
     </p>
   </div>
-
-  <!-- As-of date filter -->
-  <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/reports/balance_sheet")} class="form-grid" :let={_f}>
+  
+<!-- As-of date filter -->
+  <.form
+    :let={_f}
+    for={%{}}
+    method="get"
+    action={dp(@domain_path_prefix, "/reports/balance_sheet")}
+    class="form-grid"
+  >
     <div class="form-block">
       <div class="field">
         <label>As of date</label>
@@ -23,30 +29,30 @@
 
   <div class="dashboard-metrics" style="margin-top: 1.5rem;">
     <div class="metric-card">
-        <div class="metric-label">Total Assets</div>
-        <div class="metric-value">
-        <%= format_currency(@balance_sheet.total_assets_cents) %>
-        </div>
+      <div class="metric-label">Total Assets</div>
+      <div class="metric-value">
+        {format_currency(@balance_sheet.total_assets_cents)}
+      </div>
     </div>
 
     <div class="metric-card">
-        <div class="metric-label">Liabilities + Equity + Net Income</div>
-        <div class="metric-value">
-        <%= format_currency(@balance_sheet.liabilities_plus_equity_plus_income_cents) %>
-        </div>
+      <div class="metric-label">Liabilities + Equity + Net Income</div>
+      <div class="metric-value">
+        {format_currency(@balance_sheet.liabilities_plus_equity_plus_income_cents)}
+      </div>
     </div>
 
     <div class="metric-card">
-        <div class="metric-label">Balance Check</div>
-        <div class="metric-value">
+      <div class="metric-label">Balance Check</div>
+      <div class="metric-value">
         <%= if @balance_sheet.balance_diff_cents == 0 do %>
-            ✅ Balanced
+          ✅ Balanced
         <% else %>
-            ⚠️ Off by <%= format_currency(@balance_sheet.balance_diff_cents) %>
+          ⚠️ Off by {format_currency(@balance_sheet.balance_diff_cents)}
         <% end %>
-        </div>
+      </div>
     </div>
-    </div>
+  </div>
 
   <div class="content-body" style="margin-top: 1.5rem;">
     <div class="table-wrapper">
@@ -61,8 +67,8 @@
         <tbody>
           <%= for row <- @balance_sheet.assets |> Enum.sort() do %>
             <tr>
-              <td><%= "#{row.account.code} - #{row.account.name}" %></td>
-              <td class="numeric"><%= format_currency(row.amount_cents) %></td>
+              <td>{"#{row.account.code} - #{row.account.name}"}</td>
+              <td class="numeric">{format_currency(row.amount_cents)}</td>
             </tr>
           <% end %>
         </tbody>
@@ -81,8 +87,8 @@
         <tbody>
           <%= for row <- @balance_sheet.liabilities |> Enum.sort() do %>
             <tr>
-              <td><%= "#{row.account.code} - #{row.account.name}" %></td>
-              <td class="numeric"><%= format_currency(row.amount_cents) %></td>
+              <td>{"#{row.account.code} - #{row.account.name}"}</td>
+              <td class="numeric">{format_currency(row.amount_cents)}</td>
             </tr>
           <% end %>
         </tbody>
@@ -99,59 +105,76 @@
           </tr>
         </thead>
         <tbody>
-            <%= for row <- @balance_sheet.equity |> Enum.sort() do %>
-                <tr>
-                <td><%= "#{row.account.code} - #{row.account.name}" %></td>
-                <td class="numeric"><%= format_currency(row.amount_cents) %></td>
-                </tr>
-            <% end %>
-
-            <!-- Synthetic row for current period net income -->
+          <%= for row <- @balance_sheet.equity |> Enum.sort() do %>
             <tr>
-                <td>
-                  <strong>Current Net Income (P&amp;L)*</strong>
-                  <%= if @balance_sheet[:last_close_date] do %>
-                    <br/><small class="text-muted">Since <%= @balance_sheet.last_close_date %></small>
-                  <% end %>
-                </td>
-                <td class="numeric">
-                <b><%= format_currency(@balance_sheet.net_income_cents) %></b>
-                </td>
+              <td>{"#{row.account.code} - #{row.account.name}"}</td>
+              <td class="numeric">{format_currency(row.amount_cents)}</td>
             </tr>
+          <% end %>
+          
+<!-- Synthetic row for current period net income -->
+          <tr>
+            <td>
+              <strong>Current Net Income (P&amp;L)*</strong>
+              <%= if @balance_sheet[:last_close_date] do %>
+                <br /><small class="text-muted">Since {@balance_sheet.last_close_date}</small>
+              <% end %>
+            </td>
+            <td class="numeric">
+              <b>{format_currency(@balance_sheet.net_income_cents)}</b>
+            </td>
+          </tr>
         </tbody>
       </table>
       <p class="section-help" style="margin-top: 0.5rem;">
         <%= if @balance_sheet[:last_close_date] do %>
-          *Net income shown is for the current period (since <%= @balance_sheet.last_close_date %>).
+          *Net income shown is for the current period (since {@balance_sheet.last_close_date}).
           Prior periods have been closed to Retained Earnings.
         <% else %>
           *Net income is shown separately here. Use the year-end close to transfer this amount
           to retained earnings.
         <% end %>
       </p>
-
-      <!-- Year-End Close Section -->
-      <div class="card" style="margin-top: 1.5rem; padding: 1rem; background-color: #fef3c7; border: 1px solid #f59e0b;">
+      
+<!-- Year-End Close Section -->
+      <div
+        class="card"
+        style="margin-top: 1.5rem; padding: 1rem; background-color: #fef3c7; border: 1px solid #f59e0b;"
+      >
         <h4 style="margin-top: 0; color: #92400e;">Year-End Close</h4>
         <p style="color: #78350f; font-size: 0.9rem;">
           Close the fiscal year to transfer Net Income and Owner's Drawings to Retained Earnings.
           This should be done <strong>once per year</strong> at fiscal year-end.
         </p>
 
-        <.form for={%{}} method="post" action={dp(@domain_path_prefix, "/reports/year_end_close")} style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <.form
+          for={%{}}
+          method="post"
+          action={dp(@domain_path_prefix, "/reports/year_end_close")}
+          style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;"
+        >
           <div class="field" style="margin-bottom: 0;">
             <label style="color: #78350f;">Close Date (Year-End)</label>
-            <input type="date" name="close_date" value={Date.new!(today_mx().year - 1, 12, 31)} style="width: auto;" />
+            <input
+              type="date"
+              name="close_date"
+              value={Date.new!(today_mx().year - 1, 12, 31)}
+              style="width: auto;"
+            />
           </div>
-          <button type="submit" class="btn" style="background-color: #f59e0b; border-color: #f59e0b; color: white;"
-            onclick="return confirm('Are you sure you want to close the fiscal year? This will transfer Net Income and Owner\'s Drawings to Retained Earnings. This action cannot be easily undone.');">
+          <button
+            type="submit"
+            class="btn"
+            style="background-color: #f59e0b; border-color: #f59e0b; color: white;"
+            onclick="return confirm('Are you sure you want to close the fiscal year? This will transfer Net Income and Owner\'s Drawings to Retained Earnings. This action cannot be easily undone.');"
+          >
             Close Year
           </button>
         </.form>
 
         <%= if @balance_sheet[:last_close_date] do %>
           <p style="margin-top: 0.75rem; margin-bottom: 0; color: #78350f; font-size: 0.85rem;">
-            <strong>Last closed:</strong> <%= @balance_sheet.last_close_date %>
+            <strong>Last closed:</strong> {@balance_sheet.last_close_date}
           </p>
         <% end %>
       </div>

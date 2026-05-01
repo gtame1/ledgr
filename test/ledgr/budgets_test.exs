@@ -94,9 +94,14 @@ defmodule Ledgr.Core.BudgetsTest do
       cash = accounts["1000"]
       ar = accounts["1100"]
 
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 5, amount_cents: 100, account_id: cash.id})
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 5, amount_cents: 200, account_id: ar.id})
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 6, amount_cents: 300, account_id: cash.id})
+      {:ok, _} =
+        Budgets.create_budget(%{year: 2026, month: 5, amount_cents: 100, account_id: cash.id})
+
+      {:ok, _} =
+        Budgets.create_budget(%{year: 2026, month: 5, amount_cents: 200, account_id: ar.id})
+
+      {:ok, _} =
+        Budgets.create_budget(%{year: 2026, month: 6, amount_cents: 300, account_id: cash.id})
 
       result = Budgets.list_budgets(2026, 5)
       assert length(result) == 2
@@ -113,7 +118,11 @@ defmodule Ledgr.Core.BudgetsTest do
 
       results = Budgets.set_monthly_budgets(2026, 7, items)
       assert length(results) == 2
-      assert Enum.all?(results, fn {:ok, _} -> true; _ -> false end)
+
+      assert Enum.all?(results, fn
+               {:ok, _} -> true
+               _ -> false
+             end)
 
       budgets = Budgets.list_budgets(2026, 7)
       assert length(budgets) == 2
@@ -152,9 +161,19 @@ defmodule Ledgr.Core.BudgetsTest do
       # Record some actual spending: Dr expense 7500, Cr cash 7500
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-01-15], entry_type: "expense", reference: "bva-test-1", description: "test"},
+          %{
+            date: ~D[2026-01-15],
+            entry_type: "expense",
+            reference: "bva-test-1",
+            description: "test"
+          },
           [
-            %{account_id: expense_acc.id, debit_cents: 7_500, credit_cents: 0, description: "exp"},
+            %{
+              account_id: expense_acc.id,
+              debit_cents: 7_500,
+              credit_cents: 0,
+              description: "exp"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 7_500, description: "paid"}
           ]
         )
@@ -187,10 +206,20 @@ defmodule Ledgr.Core.BudgetsTest do
       # Record actual revenue: Dr cash 60_000, Cr revenue 60_000
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-02-10], entry_type: "sale", reference: "bva-rev-1", description: "test sale"},
+          %{
+            date: ~D[2026-02-10],
+            entry_type: "sale",
+            reference: "bva-rev-1",
+            description: "test sale"
+          },
           [
             %{account_id: cash.id, debit_cents: 60_000, credit_cents: 0, description: "cash"},
-            %{account_id: revenue_acc.id, debit_cents: 0, credit_cents: 60_000, description: "rev"}
+            %{
+              account_id: revenue_acc.id,
+              debit_cents: 0,
+              credit_cents: 60_000,
+              description: "rev"
+            }
           ]
         )
 
@@ -229,9 +258,19 @@ defmodule Ledgr.Core.BudgetsTest do
       # Entry in February (should NOT count)
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-02-28], entry_type: "expense", reference: "bva-feb", description: "feb"},
+          %{
+            date: ~D[2026-02-28],
+            entry_type: "expense",
+            reference: "bva-feb",
+            description: "feb"
+          },
           [
-            %{account_id: expense_acc.id, debit_cents: 5_000, credit_cents: 0, description: "exp"},
+            %{
+              account_id: expense_acc.id,
+              debit_cents: 5_000,
+              credit_cents: 0,
+              description: "exp"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 5_000, description: "paid"}
           ]
         )
@@ -239,9 +278,19 @@ defmodule Ledgr.Core.BudgetsTest do
       # Entry in March (should count)
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-03-15], entry_type: "expense", reference: "bva-mar", description: "mar"},
+          %{
+            date: ~D[2026-03-15],
+            entry_type: "expense",
+            reference: "bva-mar",
+            description: "mar"
+          },
           [
-            %{account_id: expense_acc.id, debit_cents: 3_000, credit_cents: 0, description: "exp"},
+            %{
+              account_id: expense_acc.id,
+              debit_cents: 3_000,
+              credit_cents: 0,
+              description: "exp"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 3_000, description: "paid"}
           ]
         )
@@ -264,8 +313,21 @@ defmodule Ledgr.Core.BudgetsTest do
           is_cash: false
         })
 
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 4, amount_cents: 20_000, account_id: revenue_acc.id})
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 4, amount_cents: 8_000, account_id: expense_acc.id})
+      {:ok, _} =
+        Budgets.create_budget(%{
+          year: 2026,
+          month: 4,
+          amount_cents: 20_000,
+          account_id: revenue_acc.id
+        })
+
+      {:ok, _} =
+        Budgets.create_budget(%{
+          year: 2026,
+          month: 4,
+          amount_cents: 8_000,
+          account_id: expense_acc.id
+        })
 
       # Revenue: 25_000
       {:ok, _} =
@@ -273,16 +335,31 @@ defmodule Ledgr.Core.BudgetsTest do
           %{date: ~D[2026-04-10], entry_type: "sale", reference: "bva-net-r", description: "rev"},
           [
             %{account_id: cash.id, debit_cents: 25_000, credit_cents: 0, description: "cash"},
-            %{account_id: revenue_acc.id, debit_cents: 0, credit_cents: 25_000, description: "rev"}
+            %{
+              account_id: revenue_acc.id,
+              debit_cents: 0,
+              credit_cents: 25_000,
+              description: "rev"
+            }
           ]
         )
 
       # Expense: 6_000
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-04-15], entry_type: "expense", reference: "bva-net-e", description: "exp"},
+          %{
+            date: ~D[2026-04-15],
+            entry_type: "expense",
+            reference: "bva-net-e",
+            description: "exp"
+          },
           [
-            %{account_id: expense_acc.id, debit_cents: 6_000, credit_cents: 0, description: "exp"},
+            %{
+              account_id: expense_acc.id,
+              debit_cents: 6_000,
+              credit_cents: 0,
+              description: "exp"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 6_000, description: "paid"}
           ]
         )
@@ -307,25 +384,65 @@ defmodule Ledgr.Core.BudgetsTest do
       cash = accounts["1000"]
 
       # Budget: Jan=5000, Feb=6000, Mar=7000
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 1, amount_cents: 5_000, account_id: expense_acc.id})
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 2, amount_cents: 6_000, account_id: expense_acc.id})
-      {:ok, _} = Budgets.create_budget(%{year: 2026, month: 3, amount_cents: 7_000, account_id: expense_acc.id})
+      {:ok, _} =
+        Budgets.create_budget(%{
+          year: 2026,
+          month: 1,
+          amount_cents: 5_000,
+          account_id: expense_acc.id
+        })
+
+      {:ok, _} =
+        Budgets.create_budget(%{
+          year: 2026,
+          month: 2,
+          amount_cents: 6_000,
+          account_id: expense_acc.id
+        })
+
+      {:ok, _} =
+        Budgets.create_budget(%{
+          year: 2026,
+          month: 3,
+          amount_cents: 7_000,
+          account_id: expense_acc.id
+        })
 
       # Actuals: Jan=4000, Feb=5500
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-01-15], entry_type: "expense", reference: "ytd-jan", description: "jan"},
+          %{
+            date: ~D[2026-01-15],
+            entry_type: "expense",
+            reference: "ytd-jan",
+            description: "jan"
+          },
           [
-            %{account_id: expense_acc.id, debit_cents: 4_000, credit_cents: 0, description: "exp"},
+            %{
+              account_id: expense_acc.id,
+              debit_cents: 4_000,
+              credit_cents: 0,
+              description: "exp"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 4_000, description: "paid"}
           ]
         )
 
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-02-10], entry_type: "expense", reference: "ytd-feb", description: "feb"},
+          %{
+            date: ~D[2026-02-10],
+            entry_type: "expense",
+            reference: "ytd-feb",
+            description: "feb"
+          },
           [
-            %{account_id: expense_acc.id, debit_cents: 5_500, credit_cents: 0, description: "exp"},
+            %{
+              account_id: expense_acc.id,
+              debit_cents: 5_500,
+              credit_cents: 0,
+              description: "exp"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 5_500, description: "paid"}
           ]
         )

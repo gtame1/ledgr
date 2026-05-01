@@ -11,11 +11,11 @@
       </p>
 
       <.form
+        :let={f}
         for={@changeset}
         as={:withdrawal}
         action={dp(@domain_path_prefix, "/investments/create-withdrawal")}
         class="form-grid"
-        :let={f}
       >
         <%= if @changeset.action do %>
           <div class="alert alert-error">

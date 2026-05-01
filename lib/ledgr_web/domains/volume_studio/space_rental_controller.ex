@@ -16,14 +16,15 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
   end
 
   def show(conn, %{"id" => id}) do
-    rental   = Spaces.get_space_rental!(id)
-    summary  = Spaces.payment_summary(rental)
+    rental = Spaces.get_space_rental!(id)
+    summary = Spaces.payment_summary(rental)
     payments = Spaces.list_rental_payments(rental)
     render(conn, :show, rental: rental, summary: summary, payments: payments)
   end
 
   def new(conn, _params) do
     changeset = Spaces.change_space_rental(%SpaceRental{})
+
     render(conn, :new,
       changeset: changeset,
       spaces: Spaces.list_active_spaces(),
@@ -55,11 +56,14 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
 
   def edit(conn, %{"id" => id}) do
     rental = Spaces.get_space_rental!(id)
+
     attrs = %{
-      "amount_cents"   => MoneyHelper.cents_to_pesos(rental.amount_cents),
+      "amount_cents" => MoneyHelper.cents_to_pesos(rental.amount_cents),
       "discount_cents" => MoneyHelper.cents_to_pesos(rental.discount_cents || 0)
     }
+
     changeset = Spaces.change_space_rental(rental, attrs)
+
     render(conn, :edit,
       rental: rental,
       changeset: changeset,
@@ -93,7 +97,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
   end
 
   def new_payment(conn, %{"id" => id}) do
-    rental  = Spaces.get_space_rental!(id)
+    rental = Spaces.get_space_rental!(id)
     summary = Spaces.payment_summary(rental)
 
     total_label = if summary.discount_cents > 0, do: "Effective Total", else: "Total Due"
@@ -114,12 +118,14 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
 
     period_rows =
       if rental.starts_at || rental.ends_at do
-        [%{
-          label: "Period",
-          value_cents: nil,
-          style: :muted,
-          text: "#{fmt_dt.(rental.starts_at)} → #{fmt_dt.(rental.ends_at)}"
-        }]
+        [
+          %{
+            label: "Period",
+            value_cents: nil,
+            style: :muted,
+            text: "#{fmt_dt.(rental.starts_at)} → #{fmt_dt.(rental.ends_at)}"
+          }
+        ]
       else
         []
       end
@@ -127,37 +133,40 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
     summary_rows =
       [
         %{label: "Base Amount", value_cents: summary.base_cents, style: :normal},
-        %{label: "IVA (16%)",   value_cents: summary.iva_cents,  style: :normal}
+        %{label: "IVA (16%)", value_cents: summary.iva_cents, style: :normal}
       ] ++
-      discount_rows ++
-      [%{label: total_label, value_cents: summary.total_cents, style: :total_row}] ++
-      [
-        %{label: "Already Paid", value_cents: summary.paid_cents,        style: :normal},
-        %{label: "Outstanding",  value_cents: summary.outstanding_cents,
-          style: if(summary.outstanding_cents > 0, do: :danger, else: :success)}
-      ] ++
-      period_rows
+        discount_rows ++
+        [%{label: total_label, value_cents: summary.total_cents, style: :total_row}] ++
+        [
+          %{label: "Already Paid", value_cents: summary.paid_cents, style: :normal},
+          %{
+            label: "Outstanding",
+            value_cents: summary.outstanding_cents,
+            style: if(summary.outstanding_cents > 0, do: :danger, else: :success)
+          }
+        ] ++
+        period_rows
 
     render(conn, :new_payment,
-      rental:              rental,
-      summary_rows:        summary_rows,
-      outstanding_cents:   summary.outstanding_cents,
+      rental: rental,
+      summary_rows: summary_rows,
+      outstanding_cents: summary.outstanding_cents,
       default_amount_cents: summary.outstanding_cents,
-      change_accounts:     Accounting.cash_or_bank_account_options(),
-      paid_to_accounts:    Ledgr.Domains.VolumeStudio.paid_to_account_options(),
-      action:              dp(conn, "/space-rentals/#{id}/payment"),
-      back_path:           dp(conn, "/space-rentals/#{id}")
+      change_accounts: Accounting.cash_or_bank_account_options(),
+      paid_to_accounts: Ledgr.Domains.VolumeStudio.paid_to_account_options(),
+      action: dp(conn, "/space-rentals/#{id}/payment"),
+      back_path: dp(conn, "/space-rentals/#{id}")
     )
   end
 
   def record_payment(conn, %{"id" => id, "payment" => payment_params}) do
-    rental             = Spaces.get_space_rental!(id)
-    summary            = Spaces.payment_summary(rental)
+    rental = Spaces.get_space_rental!(id)
+    summary = Spaces.payment_summary(rental)
     outstanding_before = summary.outstanding_cents
-    amount_str         = Map.get(payment_params, "amount", "")
-    method             = Map.get(payment_params, "method")
-    note               = Map.get(payment_params, "note")
-    date_str           = Map.get(payment_params, "payment_date", "")
+    amount_str = Map.get(payment_params, "amount", "")
+    method = Map.get(payment_params, "method")
+    note = Map.get(payment_params, "note")
+    date_str = Map.get(payment_params, "payment_date", "")
     owed_change_choice = Map.get(payment_params, "owed_change_choice", "keep")
     paid_to_account_code = Map.get(payment_params, "paid_to_account_code", "1000")
 
@@ -165,12 +174,11 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
          amount_cents = round(amount_float * 100),
          true <- amount_cents > 0,
          {:ok, payment_date} <- Date.from_iso8601(date_str) do
-
       attrs = %{
-        amount_cents:        amount_cents,
-        payment_date:        payment_date,
-        method:              method,
-        note:                note,
+        amount_cents: amount_cents,
+        payment_date: payment_date,
+        method: method,
+        note: note,
         paid_to_account_code: paid_to_account_code
       }
 
@@ -181,12 +189,13 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
           cond do
             owed_change_choice == "record" and overpayment > 0 ->
               fresh_rental = Spaces.get_space_rental!(id)
+
               VolumeStudioAccounting.record_rental_owed_change_ap(fresh_rental, overpayment,
                 payment_date: payment_date
               )
 
             owed_change_choice == "staff_gave_change" ->
-              change_given_str    = Map.get(payment_params, "change_given", "0")
+              change_given_str = Map.get(payment_params, "change_given", "0")
               change_from_account = Map.get(payment_params, "change_from_account", "")
 
               case Float.parse(change_given_str) do
@@ -195,6 +204,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
 
                   if change_given_cents > 0 and change_from_account != "" do
                     fresh_rental = Spaces.get_space_rental!(id)
+
                     VolumeStudioAccounting.record_rental_change_given(
                       fresh_rental,
                       change_given_cents,
@@ -203,10 +213,12 @@ defmodule LedgrWeb.Domains.VolumeStudio.SpaceRentalController do
                     )
                   end
 
-                :error -> :ok
+                :error ->
+                  :ok
               end
 
-            true -> :ok
+            true ->
+              :ok
           end
 
           conn

@@ -11,15 +11,34 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
     standard_accounts_fixture()
     # Extra inventory accounts not in standard fixture
     extra_accounts = [
-      %{code: "1220", name: "Kitchen Equipment",  type: "asset",   normal_balance: "debit", is_cash: false},
-      %{code: "5010", name: "Packing COGS",        type: "expense", normal_balance: "debit", is_cash: false, is_cogs: true},
-      %{code: "6060", name: "Inventory Waste",     type: "expense", normal_balance: "debit", is_cash: false}
+      %{
+        code: "1220",
+        name: "Kitchen Equipment",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "5010",
+        name: "Packing COGS",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false,
+        is_cogs: true
+      },
+      %{
+        code: "6060",
+        name: "Inventory Waste",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false
+      }
     ]
 
     Enum.each(extra_accounts, fn attrs ->
       case Ledgr.Core.Accounting.get_account_by_code(attrs.code) do
         nil -> {:ok, _} = Ledgr.Core.Accounting.create_account(attrs)
-        _   -> :ok
+        _ -> :ok
       end
     end)
 
@@ -30,6 +49,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
 
   defp ingredient_fixture(attrs \\ %{}) do
     unique = System.unique_integer([:positive])
+
     {:ok, ingredient} =
       Inventory.create_ingredient(
         Enum.into(attrs, %{
@@ -40,18 +60,23 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
           inventory_type: "ingredients"
         })
       )
+
     ingredient
   end
 
   defp location_fixture(attrs \\ %{}) do
     unique = System.unique_integer([:positive])
+
     {:ok, location} =
       %Location{}
-      |> Location.changeset(Enum.into(attrs, %{
-        code: "LOC#{unique}",
-        name: "Location #{unique}"
-      }))
+      |> Location.changeset(
+        Enum.into(attrs, %{
+          code: "LOC#{unique}",
+          name: "Location #{unique}"
+        })
+      )
       |> Repo.insert()
+
     location
   end
 
@@ -107,6 +132,7 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
   describe "create_ingredient/1" do
     test "creates ingredient with valid attrs" do
       unique = System.unique_integer([:positive])
+
       assert {:ok, %Ingredient{} = ing} =
                Inventory.create_ingredient(%{
                  code: "FL#{unique}",
@@ -239,11 +265,26 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
       cash = paid_from_account()
 
       # First purchase: 1000g at 5 cents/g = 5000 cents total
-      Inventory.record_purchase(ingredient.code, location.code, 1000, cash.id, 5, Date.utc_today())
+      Inventory.record_purchase(
+        ingredient.code,
+        location.code,
+        1000,
+        cash.id,
+        5,
+        Date.utc_today()
+      )
 
       # Second purchase: 1000g at 15 cents/g = 15000 cents total
       # Cumulative avg = (5000 + 15000) / (1000 + 1000) = 10 cents/g
-      {:ok, {:ok, _}} = Inventory.record_purchase(ingredient.code, location.code, 1000, cash.id, 15, Date.utc_today())
+      {:ok, {:ok, _}} =
+        Inventory.record_purchase(
+          ingredient.code,
+          location.code,
+          1000,
+          cash.id,
+          15,
+          Date.utc_today()
+        )
 
       stock = Inventory.get_or_create_stock!(ingredient.id, location.id)
       assert stock.quantity_on_hand == 2000
@@ -280,8 +321,17 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
       location = location_fixture()
       cash = paid_from_account()
 
-      Inventory.record_purchase(ingredient.code, location.code, 1000, cash.id, 10, Date.utc_today())
-      {:ok, {:ok, %{stock: stock}}} = Inventory.record_usage(ingredient.code, location.code, 300, Date.utc_today())
+      Inventory.record_purchase(
+        ingredient.code,
+        location.code,
+        1000,
+        cash.id,
+        10,
+        Date.utc_today()
+      )
+
+      {:ok, {:ok, %{stock: stock}}} =
+        Inventory.record_usage(ingredient.code, location.code, 300, Date.utc_today())
 
       assert stock.quantity_on_hand == 700
     end
@@ -291,14 +341,22 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
       location = location_fixture()
       cash = paid_from_account()
 
-      Inventory.record_purchase(ingredient.code, location.code, 1000, cash.id, 10, Date.utc_today())
+      Inventory.record_purchase(
+        ingredient.code,
+        location.code,
+        1000,
+        cash.id,
+        10,
+        Date.utc_today()
+      )
 
       assert {:ok, {:ok, %{movement: movement, total_cost_cents: total_cost}}} =
                Inventory.record_usage(ingredient.code, location.code, 100, Date.utc_today())
 
       assert movement.movement_type == "usage"
       assert movement.quantity == 100
-      assert total_cost == 1000  # 100g × 10 cents/g
+      # 100g × 10 cents/g
+      assert total_cost == 1000
     end
 
     test "allows usage below zero (flags negative stock)" do
@@ -317,13 +375,14 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
 
   describe "inventory_type/1" do
     test "returns :packing for packing ingredient" do
-      {:ok, ing} = Inventory.create_ingredient(%{
-        code: "PACK#{System.unique_integer([:positive])}",
-        name: "Packing material",
-        unit: "units",
-        cost_per_unit_cents: 5,
-        inventory_type: "packing"
-      })
+      {:ok, ing} =
+        Inventory.create_ingredient(%{
+          code: "PACK#{System.unique_integer([:positive])}",
+          name: "Packing material",
+          unit: "units",
+          cost_per_unit_cents: 5,
+          inventory_type: "packing"
+        })
 
       assert Inventory.inventory_type(ing) == :packing
     end
@@ -334,13 +393,14 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
     end
 
     test "returns :kitchen for kitchen type" do
-      {:ok, ing} = Inventory.create_ingredient(%{
-        code: "KITCH#{System.unique_integer([:positive])}",
-        name: "Kitchen tool",
-        unit: "units",
-        cost_per_unit_cents: 100,
-        inventory_type: "kitchen"
-      })
+      {:ok, ing} =
+        Inventory.create_ingredient(%{
+          code: "KITCH#{System.unique_integer([:positive])}",
+          name: "Kitchen tool",
+          unit: "units",
+          cost_per_unit_cents: 100,
+          inventory_type: "kitchen"
+        })
 
       assert Inventory.inventory_type(ing) == :kitchen
     end
@@ -381,10 +441,12 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
       )
 
       value = Inventory.total_inventory_value_cents()
-      value_int = case value do
-        %Decimal{} -> Decimal.to_integer(value)
-        n -> n
-      end
+
+      value_int =
+        case value do
+          %Decimal{} -> Decimal.to_integer(value)
+          n -> n
+        end
 
       assert value_int >= 10_000
     end
@@ -406,7 +468,14 @@ defmodule Ledgr.Domains.MrMunchMe.InventoryTest do
       location = location_fixture()
       cash = paid_from_account()
 
-      Inventory.record_purchase(ingredient.code, location.code, 500, cash.id, 10, Date.utc_today())
+      Inventory.record_purchase(
+        ingredient.code,
+        location.code,
+        500,
+        cash.id,
+        10,
+        Date.utc_today()
+      )
 
       negatives = Inventory.list_negative_stock_items()
       refute Enum.any?(negatives, fn item -> item.ingredient_id == ingredient.id end)

@@ -32,6 +32,7 @@ defmodule LedgrWeb.Domains.Viaxe.TripController do
   def new(conn, _params) do
     changeset = Trips.change_trip(%Trip{})
     customers = Customers.customer_select_options()
+
     render(conn, :new,
       changeset: changeset,
       customers: customers,
@@ -55,6 +56,7 @@ defmodule LedgrWeb.Domains.Viaxe.TripController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         customers = Customers.customer_select_options()
+
         render(conn, :new,
           changeset: changeset,
           customers: customers,

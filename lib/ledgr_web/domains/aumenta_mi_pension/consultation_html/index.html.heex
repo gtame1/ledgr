@@ -1,4 +1,7 @@
-<% fmt = fn nil -> "---"; amount -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}" end %>
+<% fmt = fn
+  nil -> "---"
+  amount -> "$#{:erlang.float_to_binary(amount / 1, decimals: 2)}"
+end %>
 
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
@@ -7,10 +10,20 @@
 
   <%!-- Filters --%>
   <div class="hd-card p-4 mb-6">
-    <form method="get" action={dp(@domain_path_prefix, "/consultations")} class="flex flex-wrap gap-3 items-end">
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/consultations")}
+      class="flex flex-wrap gap-3 items-end"
+    >
       <div class="flex-1 min-w-[150px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Estatus</label>
-        <select name="status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Estatus
+        </label>
+        <select
+          name="status"
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        >
           <option value="">Todos</option>
           <option value="pending" selected={@current_status == "pending"}>Pendiente</option>
           <option value="assigned" selected={@current_status == "assigned"}>Asignada</option>
@@ -20,8 +33,17 @@
         </select>
       </div>
       <div class="flex-1 min-w-[200px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Búsqueda</label>
-        <input type="text" name="search" value={@current_search} placeholder="Nombre de cliente..." class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Búsqueda
+        </label>
+        <input
+          type="text"
+          name="search"
+          value={@current_search}
+          placeholder="Nombre de cliente..."
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        />
       </div>
       <button type="submit" class="hd-btn-secondary">Filtrar</button>
     </form>
@@ -33,43 +55,94 @@
       <table class="hd-table w-full">
         <thead>
           <tr>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Cliente</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Agente</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Estatus</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Pago</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Monto</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fecha</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Acciones</th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Cliente
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Agente
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Estatus
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Pago
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Monto
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Fecha
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Acciones
+            </th>
           </tr>
         </thead>
         <tbody>
           <%= if Enum.empty?(@consultations) do %>
-            <tr><td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">Sin consultas.</td></tr>
+            <tr>
+              <td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">
+                Sin consultas.
+              </td>
+            </tr>
           <% else %>
             <%= for c <- @consultations do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 text-sm font-medium" style="color: var(--text-main);">
-                  <%= if c.customer, do: (c.customer.full_name || c.customer.display_name || "Desconocido"), else: "---" %>
+                  {if c.customer,
+                    do: c.customer.full_name || c.customer.display_name || "Desconocido",
+                    else: "---"}
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-main);">
-                  <%= if c.agent, do: c.agent.name, else: "Sin asignar" %>
+                  {if c.agent, do: c.agent.name, else: "Sin asignar"}
                 </td>
                 <td class="p-3">
-                  <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+                  <span class={"hd-badge hd-badge--#{c.status}"}>
+                    {c.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+                  </span>
                 </td>
                 <td class="p-3">
                   <%= if c.payment_status do %>
-                    <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+                    <span class={"hd-badge hd-badge--#{c.payment_status}"}>
+                      {c.payment_status |> to_string() |> String.capitalize()}
+                    </span>
                   <% else %>
                     <span class="text-sm" style="color: var(--text-muted);">---</span>
                   <% end %>
                 </td>
-                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(c.payment_amount) %></td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
+                  {fmt.(c.payment_amount)}
+                </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= fmt_date(c.assigned_at) || "---" %>
+                  {fmt_date(c.assigned_at) || "---"}
                 </td>
                 <td class="p-3 text-right">
-                  <.link navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/consultations/#{c.id}")}
+                    class="text-sm font-medium"
+                    style="color: var(--accent);"
+                  >
                     Ver
                   </.link>
                 </td>

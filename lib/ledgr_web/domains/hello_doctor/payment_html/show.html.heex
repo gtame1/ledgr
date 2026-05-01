@@ -16,17 +16,27 @@ end %>
   <div class="flex items-center justify-between mb-6">
     <div class="flex items-center gap-3">
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Payment Details</h1>
-      <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+      <span class={"hd-badge hd-badge--#{pay.status}"}>
+        {pay.status |> to_string() |> String.capitalize()}
+      </span>
     </div>
     <div class="flex items-center gap-2">
       <%= if pay.stripe_payment_intent_id do %>
-        <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/check-status")} method="post" class="hd-btn-secondary">
+        <.link
+          href={dp(@domain_path_prefix, "/payments/#{pay.id}/check-status")}
+          method="post"
+          class="hd-btn-secondary"
+        >
           Check Status
         </.link>
       <% end %>
       <%= if pay.status == "paid" && pay.stripe_payment_intent_id do %>
-        <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/refund")} method="post" class="hd-btn-danger"
-          data-confirm="Are you sure you want to refund this payment? This will issue a full refund of #{fmt.(pay.amount)} MXN via Stripe and cannot be undone.">
+        <.link
+          href={dp(@domain_path_prefix, "/payments/#{pay.id}/refund")}
+          method="post"
+          class="hd-btn-danger"
+          data-confirm="Are you sure you want to refund this payment? This will issue a full refund of #{fmt.(pay.amount)} MXN via Stripe and cannot be undone."
+        >
           Refund Payment
         </.link>
       <% end %>
@@ -36,25 +46,33 @@ end %>
   <div class="hd-two-col">
     <div class="space-y-6">
       <div class="hd-card p-5">
-        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">Payment Breakdown</h2>
+        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">
+          Payment Breakdown
+        </h2>
         <div class="space-y-3">
           <div class="flex justify-between text-sm">
             <span style="color: var(--text-muted);">Total Amount</span>
-            <span class="text-lg font-bold" style="color: var(--text-main);"><%= fmt.(pay.amount) %> <%= String.upcase(pay.currency || "mxn") %></span>
+            <span class="text-lg font-bold" style="color: var(--text-main);">
+              {fmt.(pay.amount)} {String.upcase(pay.currency || "mxn")}
+            </span>
           </div>
           <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
             <div class="flex justify-between text-sm mb-2">
               <span style="color: var(--text-muted);">HelloDoctor Commission (15%)</span>
-              <span class="font-medium" style="color: var(--accent);"><%= fmt.(pay.amount && pay.amount * 0.15) %></span>
+              <span class="font-medium" style="color: var(--accent);">
+                {fmt.(pay.amount && pay.amount * 0.15)}
+              </span>
             </div>
             <div class="flex justify-between text-sm mb-2">
               <span style="color: var(--text-muted);">Doctor Payout (85%)</span>
-              <span class="font-medium" style="color: var(--text-main);"><%= fmt.(pay.amount && pay.amount * 0.85) %></span>
+              <span class="font-medium" style="color: var(--text-main);">
+                {fmt.(pay.amount && pay.amount * 0.85)}
+              </span>
             </div>
             <%= if pay.stripe_fee do %>
               <div class="flex justify-between text-sm">
                 <span style="color: var(--text-muted);">Stripe Processing Fee</span>
-                <span class="font-medium" style="color: #dc2626;"><%= fmt.(pay.stripe_fee) %></span>
+                <span class="font-medium" style="color: #dc2626;">{fmt.(pay.stripe_fee)}</span>
               </div>
             <% end %>
           </div>
@@ -63,22 +81,32 @@ end %>
 
       <%= if pay.product_name do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--text-muted);">Product</h2>
-          <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.product_name %></div>
+          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--text-muted);">
+            Product
+          </h2>
+          <div class="text-sm font-medium" style="color: var(--text-main);">
+            {pay.product_name}
+          </div>
         </div>
       <% end %>
 
       <div class="hd-card p-5">
-        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">Stripe Details</h2>
+        <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted);">
+          Stripe Details
+        </h2>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Session ID</span>
-            <span class="font-mono text-xs" style="color: var(--text-main);"><%= pay.stripe_session_id %></span>
+            <span class="font-mono text-xs" style="color: var(--text-main);">
+              {pay.stripe_session_id}
+            </span>
           </div>
           <%= if pay.stripe_payment_intent_id do %>
             <div class="flex justify-between">
               <span style="color: var(--text-muted);">Payment Intent</span>
-              <span class="font-mono text-xs" style="color: var(--text-main);"><%= pay.stripe_payment_intent_id %></span>
+              <span class="font-mono text-xs" style="color: var(--text-main);">
+                {pay.stripe_payment_intent_id}
+              </span>
             </div>
           <% end %>
         </div>
@@ -87,38 +115,59 @@ end %>
 
     <div class="space-y-6">
       <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Customer</h3>
-        <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.customer_name || "Unknown" %></div>
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Customer
+        </h3>
+        <div class="text-sm font-medium" style="color: var(--text-main);">
+          {pay.customer_name || "Unknown"}
+        </div>
         <%= if pay.customer_email do %>
-          <div class="text-sm" style="color: var(--text-muted);"><%= pay.customer_email %></div>
+          <div class="text-sm" style="color: var(--text-muted);">{pay.customer_email}</div>
         <% end %>
       </div>
 
       <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Timeline</h3>
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Timeline
+        </h3>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Paid</span>
-            <span style="color: var(--text-main);"><%= fmt_datetime(pay.paid_at) || "---" %></span>
+            <span style="color: var(--text-main);">{fmt_datetime(pay.paid_at) || "---"}</span>
           </div>
         </div>
       </div>
 
       <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Consultation</h3>
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Consultation
+        </h3>
         <%= if pay.consultation_id do %>
           <div class="flex items-center gap-3">
-            <.link navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")} class="hd-btn-secondary flex-1 justify-center">
+            <.link
+              navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")}
+              class="hd-btn-secondary flex-1 justify-center"
+            >
               View Consultation
             </.link>
-            <.link href={dp(@domain_path_prefix, "/payments/#{pay.id}/unlink")} method="post" class="text-xs" style="color: #dc2626;"
-              data-confirm="Unlink this payment from its consultation?">
+            <.link
+              href={dp(@domain_path_prefix, "/payments/#{pay.id}/unlink")}
+              method="post"
+              class="text-xs"
+              style="color: #dc2626;"
+              data-confirm="Unlink this payment from its consultation?"
+            >
               Unlink
             </.link>
           </div>
         <% else %>
-          <p class="text-sm mb-3" style="color: var(--text-muted);">Not linked to any consultation.</p>
-          <.link navigate={dp(@domain_path_prefix, "/payments/#{pay.id}/link")} class="hd-btn-secondary">
+          <p class="text-sm mb-3" style="color: var(--text-muted);">
+            Not linked to any consultation.
+          </p>
+          <.link
+            navigate={dp(@domain_path_prefix, "/payments/#{pay.id}/link")}
+            class="hd-btn-secondary"
+          >
             Link to Consultation
           </.link>
         <% end %>

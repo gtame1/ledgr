@@ -131,18 +131,21 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
 
     test "recomputes iva when plan changes" do
       original_plan = plan_fixture(%{price_cents: 50000})
-      new_plan = plan_fixture(%{price_cents: 100000})
+      new_plan = plan_fixture(%{price_cents: 100_000})
       customer_id = create_customer()
       today = Date.utc_today()
 
-      {:ok, sub} = Subscriptions.create_subscription(%{
-        "customer_id" => customer_id,
-        "subscription_plan_id" => original_plan.id,
-        "starts_on" => today,
-        "ends_on" => Date.add(today, 30)
-      })
+      {:ok, sub} =
+        Subscriptions.create_subscription(%{
+          "customer_id" => customer_id,
+          "subscription_plan_id" => original_plan.id,
+          "starts_on" => today,
+          "ends_on" => Date.add(today, 30)
+        })
 
-      {:ok, updated} = Subscriptions.update_subscription(sub, %{"subscription_plan_id" => new_plan.id})
+      {:ok, updated} =
+        Subscriptions.update_subscription(sub, %{"subscription_plan_id" => new_plan.id})
+
       # IVA should update to 16% of 100000 = 16000
       assert updated.iva_cents == 16000
     end
@@ -210,7 +213,13 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
 
   describe "apply_refund/2" do
     test "deducts from deferred_revenue_cents first" do
-      sub = subscription_fixture(%{deferred_revenue_cents: 20000, recognized_revenue_cents: 10000, paid_cents: 30000})
+      sub =
+        subscription_fixture(%{
+          deferred_revenue_cents: 20000,
+          recognized_revenue_cents: 10000,
+          paid_cents: 30000
+        })
+
       {:ok, updated} = Subscriptions.apply_refund(sub, 15000)
 
       assert updated.deferred_revenue_cents == 5000
@@ -219,7 +228,13 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
     end
 
     test "deducts from recognized_revenue_cents when deferred is exhausted" do
-      sub = subscription_fixture(%{deferred_revenue_cents: 5000, recognized_revenue_cents: 10000, paid_cents: 15000})
+      sub =
+        subscription_fixture(%{
+          deferred_revenue_cents: 5000,
+          recognized_revenue_cents: 10000,
+          paid_cents: 15000
+        })
+
       {:ok, updated} = Subscriptions.apply_refund(sub, 10000)
 
       assert updated.deferred_revenue_cents == 0
@@ -323,18 +338,22 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
       today = Date.utc_today()
 
       plan = plan_fixture()
-      sub_sooner = subscription_fixture(%{
-        customer_id: customer_id,
-        plan: plan,
-        starts_on: today,
-        ends_on: Date.add(today, 5)
-      })
-      _sub_later = subscription_fixture(%{
-        customer_id: customer_id,
-        plan: plan,
-        starts_on: today,
-        ends_on: Date.add(today, 30)
-      })
+
+      sub_sooner =
+        subscription_fixture(%{
+          customer_id: customer_id,
+          plan: plan,
+          starts_on: today,
+          ends_on: Date.add(today, 5)
+        })
+
+      _sub_later =
+        subscription_fixture(%{
+          customer_id: customer_id,
+          plan: plan,
+          starts_on: today,
+          ends_on: Date.add(today, 30)
+        })
 
       result = Subscriptions.get_soonest_expiring_subscription(customer_id)
       assert result.id == sub_sooner.id
@@ -345,12 +364,13 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
       today = LedgrWeb.Helpers.DomainHelpers.today_mx()
       plan = plan_fixture()
 
-      _expired_sub = subscription_fixture(%{
-        customer_id: customer_id,
-        plan: plan,
-        starts_on: Date.add(today, -30),
-        ends_on: Date.add(today, -1)
-      })
+      _expired_sub =
+        subscription_fixture(%{
+          customer_id: customer_id,
+          plan: plan,
+          starts_on: Date.add(today, -30),
+          ends_on: Date.add(today, -1)
+        })
 
       result = Subscriptions.get_soonest_expiring_subscription(customer_id)
       assert is_nil(result)
@@ -385,10 +405,13 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionsTest do
 
   defp create_customer do
     unique = System.unique_integer([:positive])
-    {:ok, customer} = Ledgr.Core.Customers.create_customer(%{
-      name: "Customer #{unique}",
-      phone: "555#{unique}"
-    })
+
+    {:ok, customer} =
+      Ledgr.Core.Customers.create_customer(%{
+        name: "Customer #{unique}",
+        phone: "555#{unique}"
+      })
+
     customer.id
   end
 end

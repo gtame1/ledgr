@@ -9,229 +9,276 @@
   </div>
 
   <section class="card">
-      <h2 class="card-title">Create New Recipe Version</h2>
-      <p class="card-subtitle">
-        Creating a new version of this recipe. The original recipe (effective from <%= fmt_date(@original_recipe.effective_date, "%Y-%m-%d") %>) will remain unchanged for historical accuracy.
+    <h2 class="card-title">Create New Recipe Version</h2>
+    <p class="card-subtitle">
+      Creating a new version of this recipe. The original recipe (effective from {fmt_date(
+        @original_recipe.effective_date,
+        "%Y-%m-%d"
+      )}) will remain unchanged for historical accuracy.
+    </p>
+
+    <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+      <p>
+        <strong>Note:</strong>
+        Recipes are versioned by date. When you create a new version, it will be used for all orders on or after the new effective date. Orders before that date will continue to use the original recipe.
       </p>
+    </div>
 
-      <div class="alert alert-info" style="margin-bottom: 1.5rem;">
-        <p><strong>Note:</strong> Recipes are versioned by date. When you create a new version, it will be used for all orders on or after the new effective date. Orders before that date will continue to use the original recipe.</p>
-      </div>
+    <.form
+      for={@form}
+      action={@action}
+      class="form-grid"
+      id="recipe-form"
+    >
+      <%= if @changeset.action do %>
+        <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+          <p>
+            <strong>
+              ⚠️ There were problems creating the new recipe version. Please review the errors below:
+            </strong>
+          </p>
 
-      <.form
-        for={@form}
-        action={@action}
-        class="form-grid"
-        id="recipe-form"
-      >
-        <%= if @changeset.action do %>
-          <div class="alert alert-error" style="margin-bottom: 1.5rem;">
-            <p><strong>⚠️ There were problems creating the new recipe version. Please review the errors below:</strong></p>
-            
-            <%!-- Extract all errors using traverse_errors and flatten nested structures --%>
-            <% all_errors = Ecto.Changeset.traverse_errors(@changeset, fn {msg, opts} ->
+          <%!-- Extract all errors using traverse_errors and flatten nested structures --%>
+          <% all_errors =
+            Ecto.Changeset.traverse_errors(@changeset, fn {msg, opts} ->
               Enum.reduce(opts, msg, fn {key, value}, acc ->
                 String.replace(acc, "%{#{key}}", to_string(value))
               end)
             end) %>
-            
-            <%!-- Flatten errors into a list of {path, message} tuples, handling nested maps --%>
-            <% error_list = 
-              all_errors
-              |> Enum.flat_map(fn {field_path, error_value} ->
-                cond do
-                  is_list(error_value) ->
-                    Enum.map(error_value, fn error_msg -> {to_string(field_path), error_msg} end)
-                  is_map(error_value) ->
-                    # Handle nested maps (e.g., recipe_lines.0.recipe_id) - recursively flatten
-                    error_value
-                    |> Enum.flat_map(fn {nested_key, nested_value} ->
-                      nested_path = "#{field_path}.#{nested_key}"
-                      cond do
-                        is_list(nested_value) ->
-                          Enum.map(nested_value, fn error_msg -> {nested_path, error_msg} end)
-                        is_map(nested_value) ->
-                          # Handle deeper nesting (e.g., recipe_lines.0.recipe_id)
-                          nested_value
-                          |> Enum.flat_map(fn {deep_key, deep_value} ->
-                            deep_path = "#{nested_path}.#{deep_key}"
-                            if is_list(deep_value) do
-                              Enum.map(deep_value, fn error_msg -> {deep_path, error_msg} end)
-                            else
-                              [{deep_path, to_string(deep_value)}]
-                            end
-                          end)
-                        true ->
-                          [{nested_path, to_string(nested_value)}]
-                      end
-                    end)
-                  true ->
-                    [{to_string(field_path), to_string(error_value)}]
-                end
-              end)
-            %>
-            
-            <%= if length(error_list) > 0 do %>
-              <ul style="margin-top: 0.75rem; padding-left: 1.5rem; list-style-type: disc;">
-                <%= for {field_path, error_msg} <- error_list do %>
-                  <% field_display = field_path |> to_string() |> String.replace("_", " ") |> String.replace(".", " → ") %>
-                  <li style="margin-bottom: 0.5rem;">
-                    <strong><%= String.capitalize(field_display) %>:</strong> <%= error_msg %>
-                  </li>
-                <% end %>
-              </ul>
-            <% else %>
-              <p style="margin-top: 0.75rem; color: #dc2626;">
-                No specific errors detected. Please check the server logs for more details.
-              </p>
-            <% end %>
-            
-            <p style="margin-top: 0.75rem; font-size: 0.9rem;">Please check the fields highlighted in red below for specific errors.</p>
-          </div>
-        <% end %>
 
-        <%!-- Recipe header fields --%>
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={@form[:variant_id]}
-              type="select"
-              label="Variant"
-              prompt="Choose a variant"
-              options={@variant_options}
-            />
-          </div>
+          <%!-- Flatten errors into a list of {path, message} tuples, handling nested maps --%>
+          <% error_list =
+            all_errors
+            |> Enum.flat_map(fn {field_path, error_value} ->
+              cond do
+                is_list(error_value) ->
+                  Enum.map(error_value, fn error_msg -> {to_string(field_path), error_msg} end)
 
-          <div class="field">
-            <.input
-              field={@form[:effective_date]}
-              type="date"
-              label="Effective Date"
-            />
-            <p class="field-help">This new recipe version will be used for orders on or after this date. The original recipe (effective <%= fmt_date(@original_recipe.effective_date, "%Y-%m-%d") %>) will remain for historical orders.</p>
-          </div>
+                is_map(error_value) ->
+                  # Handle nested maps (e.g., recipe_lines.0.recipe_id) - recursively flatten
+                  error_value
+                  |> Enum.flat_map(fn {nested_key, nested_value} ->
+                    nested_path = "#{field_path}.#{nested_key}"
 
-          <div class="field">
-            <.input
-              field={@form[:name]}
-              type="text"
-              label="Recipe Name (optional)"
-            />
-          </div>
+                    cond do
+                      is_list(nested_value) ->
+                        Enum.map(nested_value, fn error_msg -> {nested_path, error_msg} end)
 
-          <div class="field">
-            <.input
-              field={@form[:description]}
-              type="textarea"
-              label="Description (optional)"
-              rows="3"
-            />
-          </div>
+                      is_map(nested_value) ->
+                        # Handle deeper nesting (e.g., recipe_lines.0.recipe_id)
+                        nested_value
+                        |> Enum.flat_map(fn {deep_key, deep_value} ->
+                          deep_path = "#{nested_path}.#{deep_key}"
+
+                          if is_list(deep_value) do
+                            Enum.map(deep_value, fn error_msg -> {deep_path, error_msg} end)
+                          else
+                            [{deep_path, to_string(deep_value)}]
+                          end
+                        end)
+
+                      true ->
+                        [{nested_path, to_string(nested_value)}]
+                    end
+                  end)
+
+                true ->
+                  [{to_string(field_path), to_string(error_value)}]
+              end
+            end) %>
+
+          <%= if length(error_list) > 0 do %>
+            <ul style="margin-top: 0.75rem; padding-left: 1.5rem; list-style-type: disc;">
+              <%= for {field_path, error_msg} <- error_list do %>
+                <% field_display =
+                  field_path
+                  |> to_string()
+                  |> String.replace("_", " ")
+                  |> String.replace(".", " → ") %>
+                <li style="margin-bottom: 0.5rem;">
+                  <strong>{String.capitalize(field_display)}:</strong> {error_msg}
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p style="margin-top: 0.75rem; color: #dc2626;">
+              No specific errors detected. Please check the server logs for more details.
+            </p>
+          <% end %>
+
+          <p style="margin-top: 0.75rem; font-size: 0.9rem;">
+            Please check the fields highlighted in red below for specific errors.
+          </p>
+        </div>
+      <% end %>
+
+      <%!-- Recipe header fields --%>
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={@form[:variant_id]}
+            type="select"
+            label="Variant"
+            prompt="Choose a variant"
+            options={@variant_options}
+          />
         </div>
 
-        <%!-- Recipe lines --%>
-        <div class="form-block" style="flex-direction: column; width: 100%;">
-          <div class="field" style="width: 100%; min-width: 100%;">
-            <div class="flex items-center justify-between mb-4">
-              <label class="label" style="font-size: 0.95rem; font-weight: 600; margin: 0;">Recipe Lines</label>
-              <button
-                type="button"
-                id="add-line-btn"
-                class="btn"
-                style="font-size: 0.85rem; padding: 0.5rem 1rem;"
+        <div class="field">
+          <.input
+            field={@form[:effective_date]}
+            type="date"
+            label="Effective Date"
+          />
+          <p class="field-help">
+            This new recipe version will be used for orders on or after this date. The original recipe (effective {fmt_date(
+              @original_recipe.effective_date,
+              "%Y-%m-%d"
+            )}) will remain for historical orders.
+          </p>
+        </div>
+
+        <div class="field">
+          <.input
+            field={@form[:name]}
+            type="text"
+            label="Recipe Name (optional)"
+          />
+        </div>
+
+        <div class="field">
+          <.input
+            field={@form[:description]}
+            type="textarea"
+            label="Description (optional)"
+            rows="3"
+          />
+        </div>
+      </div>
+
+      <%!-- Recipe lines --%>
+      <div class="form-block" style="flex-direction: column; width: 100%;">
+        <div class="field" style="width: 100%; min-width: 100%;">
+          <div class="flex items-center justify-between mb-4">
+            <label class="label" style="font-size: 0.95rem; font-weight: 600; margin: 0;">
+              Recipe Lines
+            </label>
+            <button
+              type="button"
+              id="add-line-btn"
+              class="btn"
+              style="font-size: 0.85rem; padding: 0.5rem 1rem;"
+            >
+              <.icon name="hero-plus" class="w-4 h-4" />
+              <span>Add Line</span>
+            </button>
+          </div>
+
+          <div
+            id="recipe-lines-container"
+            style="display: flex; flex-direction: column; gap: 0.5rem;"
+          >
+            <.inputs_for :let={line_f} field={@form[:recipe_lines]}>
+              <div
+                class="recipe-line-row"
+                style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.75rem 1rem; background: #fffaf6; box-shadow: 0 2px 8px rgba(61, 35, 24, 0.05);"
               >
-                <.icon name="hero-plus" class="w-4 h-4" />
-                <span>Add Line</span>
-              </button>
-            </div>
-
-            <div id="recipe-lines-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <.inputs_for :let={line_f} field={@form[:recipe_lines]}>
-                <div class="recipe-line-row" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.75rem 1rem; background: #fffaf6; box-shadow: 0 2px 8px rgba(61, 35, 24, 0.05);">
-                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div style="display: flex; align-items: flex-start; gap: 1rem;">
-                      <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
-                        <div class="field" style="min-width: 0; margin-bottom: 0;">
-                          <.input
-                            field={line_f[:ingredient_code]}
-                            type="select"
-                            label="Ingredient"
-                            prompt="Choose an ingredient"
-                            options={@ingredient_options}
-                            class="line-ingredient-select"
-                          />
-                        </div>
-
-                        <div class="field" style="min-width: 0; margin-bottom: 0;">
-                          <.input
-                            field={line_f[:quantity]}
-                            type="number"
-                            label="Quantity"
-                            step="0.01"
-                            min="0.01"
-                            class="line-quantity"
-                          />
-                          <span class="unit-display" style="font-size: 0.8rem; color: #6b7280; display: block;"></span>
-                        </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                  <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                    <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                      <div class="field" style="min-width: 0; margin-bottom: 0;">
+                        <.input
+                          field={line_f[:ingredient_code]}
+                          type="select"
+                          label="Ingredient"
+                          prompt="Choose an ingredient"
+                          options={@ingredient_options}
+                          class="line-ingredient-select"
+                        />
                       </div>
 
-                      <div style="display: flex; align-items: center; flex-shrink: 0; align-self: flex-end;">
-                        <button
-                          type="button"
-                          class="btn danger remove-line-btn"
-                          aria-label="Remove line"
-                          style="font-size: 0.85rem; padding: 0.5rem 0.85rem;"
+                      <div class="field" style="min-width: 0; margin-bottom: 0;">
+                        <.input
+                          field={line_f[:quantity]}
+                          type="number"
+                          label="Quantity"
+                          step="0.01"
+                          min="0.01"
+                          class="line-quantity"
+                        />
+                        <span
+                          class="unit-display"
+                          style="font-size: 0.8rem; color: #6b7280; display: block;"
                         >
-                          <.icon name="hero-trash" class="w-4 h-4" />
-                          <span>Remove</span>
-                        </button>
+                        </span>
                       </div>
                     </div>
 
-                    <% has_comment = not (is_nil(line_f[:comment].value) or line_f[:comment].value == "") %>
-                    <div class="comment-wrapper">
+                    <div style="display: flex; align-items: center; flex-shrink: 0; align-self: flex-end;">
                       <button
                         type="button"
-                        class="add-comment-btn"
-                        style={"font-size: 0.8rem; color: #6b7280; background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;" <> if(has_comment, do: " display: none;", else: "")}
-                      >＋ Add note</button>
-                      <div class="comment-field" style={"width: 100%;" <> if(has_comment, do: "", else: " display: none;")}>
-                        <.input
-                          field={line_f[:comment]}
-                          type="textarea"
-                          label="Comment/Notes (optional)"
-                          rows="2"
-                          placeholder="Add any notes about this ingredient..."
-                        />
-                      </div>
+                        class="btn danger remove-line-btn"
+                        aria-label="Remove line"
+                        style="font-size: 0.85rem; padding: 0.5rem 0.85rem;"
+                      >
+                        <.icon name="hero-trash" class="w-4 h-4" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <% has_comment =
+                    not (is_nil(line_f[:comment].value) or line_f[:comment].value == "") %>
+                  <div class="comment-wrapper">
+                    <button
+                      type="button"
+                      class="add-comment-btn"
+                      style={"font-size: 0.8rem; color: #6b7280; background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;" <> if(has_comment, do: " display: none;", else: "")}
+                    >
+                      ＋ Add note
+                    </button>
+                    <div
+                      class="comment-field"
+                      style={"width: 100%;" <> if(has_comment, do: "", else: " display: none;")}
+                    >
+                      <.input
+                        field={line_f[:comment]}
+                        type="textarea"
+                        label="Comment/Notes (optional)"
+                        rows="2"
+                        placeholder="Add any notes about this ingredient..."
+                      />
                     </div>
                   </div>
                 </div>
-              </.inputs_for>
-            </div>
-
-            <%= if @form[:recipe_lines].errors != [] do %>
-              <div class="alert alert-error mt-2">
-                <p><strong>⚠️ Recipe Lines Errors:</strong></p>
-                <ul style="margin-top: 0.5rem; padding-left: 1.5rem; list-style-type: disc;">
-                  <%= for {field, {message, _}} <- @form[:recipe_lines].errors do %>
-                    <li style="margin-bottom: 0.25rem;"><strong><%= humanize(field) %>:</strong> <%= message %></li>
-                  <% end %>
-                </ul>
               </div>
-            <% end %>
+            </.inputs_for>
           </div>
-        </div>
 
-        <div class="actions">
-          <button type="submit" class="btn primary">
-            Create New Version
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/recipes")} class="btn">
-            Cancel
-          </.link>
+          <%= if @form[:recipe_lines].errors != [] do %>
+            <div class="alert alert-error mt-2">
+              <p><strong>⚠️ Recipe Lines Errors:</strong></p>
+              <ul style="margin-top: 0.5rem; padding-left: 1.5rem; list-style-type: disc;">
+                <%= for {field, {message, _}} <- @form[:recipe_lines].errors do %>
+                  <li style="margin-bottom: 0.25rem;">
+                    <strong>{humanize(field)}:</strong> {message}
+                  </li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
         </div>
-      </.form>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn primary">
+          Create New Version
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/recipes")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
   </section>
 </div>
 
@@ -404,4 +451,3 @@
     });
   });
 </script>
-

@@ -35,7 +35,12 @@ defmodule Ledgr.Core.CustomersTest do
 
     test "update_customer/2 with valid data updates the customer" do
       customer = customer_fixture()
-      update_attrs = %{name: "some updated name", email: "updated@email.com", phone: "some updated phone"}
+
+      update_attrs = %{
+        name: "some updated name",
+        email: "updated@email.com",
+        phone: "some updated phone"
+      }
 
       assert {:ok, %Customer{} = customer} = Customers.update_customer(customer, update_attrs)
       assert customer.name == "some updated name"

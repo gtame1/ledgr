@@ -9,79 +9,87 @@
   </div>
 
   <section class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
-        <div>
-          <h2 class="card-title">Payment Details</h2>
-          <p class="card-subtitle">
-            Payment #<%= @payment.id %> for Order #<%= @payment.order_id %>
-          </p>
-        </div>
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <.link navigate={dp(@domain_path_prefix, "/order_payments")} class="btn">
-            ← Back to Payments
-          </.link>
-          <.link navigate={dp(@domain_path_prefix, "/orders/#{@payment.order_id}")} class="btn">
-            View Order
-          </.link>
-          <.link navigate={dp(@domain_path_prefix, "/order_payments/#{@payment.id}/edit")} class="btn primary">
-            Edit
-          </.link>
-          <.link
-            href={dp(@domain_path_prefix, "/order_payments/#{@payment.id}")}
-            method="delete"
-            data-confirm="Are you sure you want to delete this payment? This will also reverse the accounting entries."
-            class="btn"
-            style="background-color: #dc2626; color: white;"
-          >
-            Delete
-          </.link>
-        </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+      <div>
+        <h2 class="card-title">Payment Details</h2>
+        <p class="card-subtitle">
+          Payment #{@payment.id} for Order #{@payment.order_id}
+        </p>
       </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <.link navigate={dp(@domain_path_prefix, "/order_payments")} class="btn">
+          ← Back to Payments
+        </.link>
+        <.link navigate={dp(@domain_path_prefix, "/orders/#{@payment.order_id}")} class="btn">
+          View Order
+        </.link>
+        <.link
+          navigate={dp(@domain_path_prefix, "/order_payments/#{@payment.id}/edit")}
+          class="btn primary"
+        >
+          Edit
+        </.link>
+        <.link
+          href={dp(@domain_path_prefix, "/order_payments/#{@payment.id}")}
+          method="delete"
+          data-confirm="Are you sure you want to delete this payment? This will also reverse the accounting entries."
+          class="btn"
+          style="background-color: #dc2626; color: white;"
+        >
+          Delete
+        </.link>
+      </div>
+    </div>
 
-      <ul class="nice-list" style="margin-top: 1rem;">
-        <li><strong>Order:</strong> 
-          <.link navigate={dp(@domain_path_prefix, "/orders/#{@payment.order_id}")} class="link">
-            Order #<%= @payment.order_id %> - <%= @payment.order.customer_name %>
-          </.link>
+    <ul class="nice-list" style="margin-top: 1rem;">
+      <li>
+        <strong>Order:</strong>
+        <.link navigate={dp(@domain_path_prefix, "/orders/#{@payment.order_id}")} class="link">
+          Order #{@payment.order_id} - {@payment.order.customer_name}
+        </.link>
+      </li>
+      <li><strong>Payment Date:</strong> {@payment.payment_date}</li>
+      <li><strong>Total Amount:</strong> {format_currency(@payment.amount_cents)}</li>
+      <li>
+        <strong>Paid to Account:</strong>
+        <%= if @payment.paid_to_account do %>
+          {"#{@payment.paid_to_account.code} – #{@payment.paid_to_account.name}"}
+        <% else %>
+          -
+        <% end %>
+      </li>
+      <%= if @payment.method do %>
+        <li><strong>Payment Method:</strong> {@payment.method}</li>
+      <% end %>
+
+      <%= if @payment.partner_amount_cents && @payment.partner_amount_cents > 0 do %>
+        <li><strong>Split Payment:</strong> <span class="badge">Yes</span></li>
+        <li>
+          <strong>Customer Amount:</strong> {format_currency(@payment.customer_amount_cents || 0)}
         </li>
-        <li><strong>Payment Date:</strong> <%= @payment.payment_date %></li>
-        <li><strong>Total Amount:</strong> <%= format_currency(@payment.amount_cents) %></li>
-        <li><strong>Paid to Account:</strong> 
-          <%= if @payment.paid_to_account do %>
-            <%= "#{@payment.paid_to_account.code} – #{@payment.paid_to_account.name}" %>
+        <li><strong>Partner Amount:</strong> {format_currency(@payment.partner_amount_cents)}</li>
+        <li>
+          <strong>Partner:</strong>
+          <%= if @payment.partner do %>
+            {@payment.partner.name}
           <% else %>
             -
           <% end %>
         </li>
-        <%= if @payment.method do %>
-          <li><strong>Payment Method:</strong> <%= @payment.method %></li>
-        <% end %>
-        
-        <%= if @payment.partner_amount_cents && @payment.partner_amount_cents > 0 do %>
-          <li><strong>Split Payment:</strong> <span class="badge">Yes</span></li>
-          <li><strong>Customer Amount:</strong> <%= format_currency(@payment.customer_amount_cents || 0) %></li>
-          <li><strong>Partner Amount:</strong> <%= format_currency(@payment.partner_amount_cents) %></li>
-          <li><strong>Partner:</strong> 
-            <%= if @payment.partner do %>
-              <%= @payment.partner.name %>
-            <% else %>
-              -
-            <% end %>
-          </li>
-          <li><strong>Partner Accounts Payable Account:</strong> 
-            <%= if @payment.partner_payable_account do %>
-              <%= "#{@payment.partner_payable_account.code} – #{@payment.partner_payable_account.name}" %>
-            <% else %>
-              -
-            <% end %>
-          </li>
-        <% end %>
-        
-        <%= if @payment.note do %>
-          <li><strong>Note:</strong> <%= @payment.note %></li>
-        <% end %>
-        <li><strong>Deposit:</strong> <%= if @payment.is_deposit, do: "Yes", else: "No" %></li>
-      </ul>
+        <li>
+          <strong>Partner Accounts Payable Account:</strong>
+          <%= if @payment.partner_payable_account do %>
+            {"#{@payment.partner_payable_account.code} – #{@payment.partner_payable_account.name}"}
+          <% else %>
+            -
+          <% end %>
+        </li>
+      <% end %>
+
+      <%= if @payment.note do %>
+        <li><strong>Note:</strong> {@payment.note}</li>
+      <% end %>
+      <li><strong>Deposit:</strong> {if @payment.is_deposit, do: "Yes", else: "No"}</li>
+    </ul>
   </section>
 </div>
-

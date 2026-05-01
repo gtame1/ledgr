@@ -38,18 +38,28 @@ defmodule Ledgr.Domains.AumentaMiPension do
   def theme do
     %{
       # Brand palette v1.1 — verde bosque + crema (see Brand Manual v1.1).
-      sidebar_bg: "#1B4332",       # Verde Profundo
-      sidebar_text: "#F5F2EA",     # Crema
-      sidebar_hover: "#2D6A4F",    # Verde Bosque
-      primary: "#2D6A4F",          # Verde Bosque — CTAs, logos
-      primary_soft: "#D8F3DC",     # Verde Suave — card bg, badges
-      accent: "#74C69D",           # Verde Menta — highlights, íconos
-      bg: "#F5F2EA",               # Crema — page bg
+      # Verde Profundo
+      sidebar_bg: "#1B4332",
+      # Crema
+      sidebar_text: "#F5F2EA",
+      # Verde Bosque
+      sidebar_hover: "#2D6A4F",
+      # Verde Bosque — CTAs, logos
+      primary: "#2D6A4F",
+      # Verde Suave — card bg, badges
+      primary_soft: "#D8F3DC",
+      # Verde Menta — highlights, íconos
+      accent: "#74C69D",
+      # Crema — page bg
+      bg: "#F5F2EA",
       bg_surface: "#FFFFFF",
-      border_subtle: "#F0EDE4",    # Arena
+      # Arena
+      border_subtle: "#F0EDE4",
       border_strong: "#D8D3C4",
-      text_main: "#3D2C1E",        # Tierra Oscura
-      text_muted: "#8B7355",       # Tierra Medio
+      # Tierra Oscura
+      text_main: "#3D2C1E",
+      # Tierra Medio
+      text_muted: "#8B7355",
       btn_secondary_bg: "#F0EDE4",
       btn_secondary_text: "#3D2C1E",
       btn_secondary_hover: "#D8D3C4",
@@ -81,7 +91,8 @@ defmodule Ledgr.Domains.AumentaMiPension do
       ct_primary_container: "#2D6A4F",
       ct_primary_fixed: "#D8F3DC",
       ct_secondary_container: "#FFF4E6",
-      ct_error: "#E07A2F",         # Ámbar — urgencia
+      # Ámbar — urgencia
+      ct_error: "#E07A2F",
       ct_font_headline: "DM Serif Display"
     }
   end
@@ -125,20 +136,26 @@ defmodule Ledgr.Domains.AumentaMiPension do
     prefix = path_prefix()
 
     [
-      %{group: "Main", items: [
-        %{label: "Dashboard",       path: prefix,                       icon: :dashboard},
-        %{label: "Conversations",   path: "#{prefix}/conversations",    icon: :receipt},
-        %{label: "Pension Cases",   path: "#{prefix}/pension-cases",    icon: :reports},
-        %{label: "Consultations",   path: "#{prefix}/consultations",    icon: :receipt},
-        %{label: "Agent Chats",     path: "#{prefix}/agent-chats",      icon: :receipt},
-        %{label: "Agents",          path: "#{prefix}/agents",           icon: :customers},
-        %{label: "Customers",       path: "#{prefix}/customers",        icon: :customers}
-      ]},
-      %{group: "Finance", items: [
-        %{label: "Payments",        path: "#{prefix}/payments",         icon: :expenses},
-        %{label: "Balance Sheet",   path: "#{prefix}/reports/balance_sheet", icon: :reports},
-        %{label: "P&L",             path: "#{prefix}/reports/pnl",      icon: :reports}
-      ]}
+      %{
+        group: "Main",
+        items: [
+          %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{label: "Conversations", path: "#{prefix}/conversations", icon: :receipt},
+          %{label: "Pension Cases", path: "#{prefix}/pension-cases", icon: :reports},
+          %{label: "Consultations", path: "#{prefix}/consultations", icon: :receipt},
+          %{label: "Agent Chats", path: "#{prefix}/agent-chats", icon: :receipt},
+          %{label: "Agents", path: "#{prefix}/agents", icon: :customers},
+          %{label: "Customers", path: "#{prefix}/customers", icon: :customers}
+        ]
+      },
+      %{
+        group: "Finance",
+        items: [
+          %{label: "Payments", path: "#{prefix}/payments", icon: :expenses},
+          %{label: "Balance Sheet", path: "#{prefix}/reports/balance_sheet", icon: :reports},
+          %{label: "P&L", path: "#{prefix}/reports/pnl", icon: :reports}
+        ]
+      }
     ]
   end
 

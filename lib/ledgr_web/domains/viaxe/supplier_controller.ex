@@ -34,7 +34,12 @@ defmodule LedgrWeb.Domains.Viaxe.SupplierController do
   def edit(conn, %{"id" => id}) do
     supplier = Suppliers.get_supplier!(id)
     changeset = Suppliers.change_supplier(supplier)
-    render(conn, :edit, supplier: supplier, changeset: changeset, action: dp(conn, "/suppliers/#{id}"))
+
+    render(conn, :edit,
+      supplier: supplier,
+      changeset: changeset,
+      action: dp(conn, "/suppliers/#{id}")
+    )
   end
 
   def update(conn, %{"id" => id, "supplier" => supplier_params}) do
@@ -47,7 +52,11 @@ defmodule LedgrWeb.Domains.Viaxe.SupplierController do
         |> redirect(to: dp(conn, "/suppliers"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :edit, supplier: supplier, changeset: changeset, action: dp(conn, "/suppliers/#{id}"))
+        render(conn, :edit,
+          supplier: supplier,
+          changeset: changeset,
+          action: dp(conn, "/suppliers/#{id}")
+        )
     end
   end
 

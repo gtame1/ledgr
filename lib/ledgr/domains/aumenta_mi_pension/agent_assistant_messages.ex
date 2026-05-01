@@ -10,7 +10,8 @@ defmodule Ledgr.Domains.AumentaMiPension.AgentAssistantMessages do
 
     query =
       from a in Agent,
-        join: m in AgentAssistantMessage, on: m.agent_id == a.id,
+        join: m in AgentAssistantMessage,
+        on: m.agent_id == a.id,
         group_by: a.id,
         select: %{
           agent_id: a.id,

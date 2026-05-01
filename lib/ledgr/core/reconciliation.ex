@@ -54,6 +54,7 @@ defmodule Ledgr.Core.Reconciliation do
     |> Repo.all()
     |> Enum.map(fn account ->
       balance_cents = get_account_balance(account.id, as_of_date)
+
       %{
         account: account,
         balance_cents: balance_cents,
@@ -66,7 +67,12 @@ defmodule Ledgr.Core.Reconciliation do
   Create a reconciliation adjustment journal entry.
   Adjusts the account balance to match the actual balance.
   """
-  def create_account_reconciliation(account_id, actual_balance_pesos, adjustment_date, description \\ nil) do
+  def create_account_reconciliation(
+        account_id,
+        actual_balance_pesos,
+        adjustment_date,
+        description \\ nil
+      ) do
     account = Repo.get!(Account, account_id)
     system_balance_cents = get_account_balance(account_id, adjustment_date)
     actual_balance_cents = round(actual_balance_pesos * 100)
@@ -78,12 +84,17 @@ defmodule Ledgr.Core.Reconciliation do
       # Determine which account to use for the offset
       # For asset accounts, use "Other Expenses" for losses, "Other Income" for gains
       # For liability accounts, reverse the logic
-      offset_account_code = case {account.type, difference_cents > 0} do
-        {"asset", true} -> "6099"  # Other Expenses (loss)
-        {"asset", false} -> "6099"  # Other Expenses (gain, but we'll credit it)
-        {"liability", true} -> "6099"  # Other Expenses
-        {"liability", false} -> "6099"  # Other Expenses
-      end
+      offset_account_code =
+        case {account.type, difference_cents > 0} do
+          # Other Expenses (loss)
+          {"asset", true} -> "6099"
+          # Other Expenses (gain, but we'll credit it)
+          {"asset", false} -> "6099"
+          # Other Expenses
+          {"liability", true} -> "6099"
+          # Other Expenses
+          {"liability", false} -> "6099"
+        end
 
       offset_account = Accounting.get_account_by_code!(offset_account_code)
 
@@ -101,80 +112,80 @@ defmodule Ledgr.Core.Reconciliation do
         description: entry_description
       }
 
-      lines = case account.normal_balance do
-        "debit" ->
-          if difference_cents > 0 do
-            # System shows less than actual - need to debit the account
-            [
-              %{
-                account_id: account_id,
-                debit_cents: difference_cents,
-                credit_cents: 0,
-                description: "Reconciliation adjustment - increase balance"
-              },
-              %{
-                account_id: offset_account.id,
-                debit_cents: 0,
-                credit_cents: difference_cents,
-                description: "Reconciliation adjustment offset"
-              }
-            ]
-          else
-            # System shows more than actual - need to credit the account
-            [
-              %{
-                account_id: account_id,
-                debit_cents: 0,
-                credit_cents: abs(difference_cents),
-                description: "Reconciliation adjustment - decrease balance"
-              },
-              %{
-                account_id: offset_account.id,
-                debit_cents: abs(difference_cents),
-                credit_cents: 0,
-                description: "Reconciliation adjustment offset"
-              }
-            ]
-          end
+      lines =
+        case account.normal_balance do
+          "debit" ->
+            if difference_cents > 0 do
+              # System shows less than actual - need to debit the account
+              [
+                %{
+                  account_id: account_id,
+                  debit_cents: difference_cents,
+                  credit_cents: 0,
+                  description: "Reconciliation adjustment - increase balance"
+                },
+                %{
+                  account_id: offset_account.id,
+                  debit_cents: 0,
+                  credit_cents: difference_cents,
+                  description: "Reconciliation adjustment offset"
+                }
+              ]
+            else
+              # System shows more than actual - need to credit the account
+              [
+                %{
+                  account_id: account_id,
+                  debit_cents: 0,
+                  credit_cents: abs(difference_cents),
+                  description: "Reconciliation adjustment - decrease balance"
+                },
+                %{
+                  account_id: offset_account.id,
+                  debit_cents: abs(difference_cents),
+                  credit_cents: 0,
+                  description: "Reconciliation adjustment offset"
+                }
+              ]
+            end
 
-        "credit" ->
-          if difference_cents > 0 do
-            # System shows less than actual - need to credit the account
-            [
-              %{
-                account_id: account_id,
-                debit_cents: 0,
-                credit_cents: difference_cents,
-                description: "Reconciliation adjustment - increase balance"
-              },
-              %{
-                account_id: offset_account.id,
-                debit_cents: difference_cents,
-                credit_cents: 0,
-                description: "Reconciliation adjustment offset"
-              }
-            ]
-          else
-            # System shows more than actual - need to debit the account
-            [
-              %{
-                account_id: account_id,
-                debit_cents: abs(difference_cents),
-                credit_cents: 0,
-                description: "Reconciliation adjustment - decrease balance"
-              },
-              %{
-                account_id: offset_account.id,
-                debit_cents: 0,
-                credit_cents: abs(difference_cents),
-                description: "Reconciliation adjustment offset"
-              }
-            ]
-          end
-      end
+          "credit" ->
+            if difference_cents > 0 do
+              # System shows less than actual - need to credit the account
+              [
+                %{
+                  account_id: account_id,
+                  debit_cents: 0,
+                  credit_cents: difference_cents,
+                  description: "Reconciliation adjustment - increase balance"
+                },
+                %{
+                  account_id: offset_account.id,
+                  debit_cents: difference_cents,
+                  credit_cents: 0,
+                  description: "Reconciliation adjustment offset"
+                }
+              ]
+            else
+              # System shows more than actual - need to debit the account
+              [
+                %{
+                  account_id: account_id,
+                  debit_cents: abs(difference_cents),
+                  credit_cents: 0,
+                  description: "Reconciliation adjustment - decrease balance"
+                },
+                %{
+                  account_id: offset_account.id,
+                  debit_cents: 0,
+                  credit_cents: abs(difference_cents),
+                  description: "Reconciliation adjustment offset"
+                }
+              ]
+            end
+        end
 
       Accounting.create_journal_entry_with_lines(entry_attrs, lines)
     end
   end
-
 end

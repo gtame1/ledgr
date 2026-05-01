@@ -7,8 +7,17 @@
   <div class="hd-card p-4 mb-6">
     <form method="get" action={dp(@domain_path_prefix, "/customers")} class="flex gap-3 items-end">
       <div class="flex-1">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Búsqueda</label>
-        <input type="text" name="search" value={@current_search} placeholder="Nombre, teléfono, CURP o NSS..." class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Búsqueda
+        </label>
+        <input
+          type="text"
+          name="search"
+          value={@current_search}
+          placeholder="Nombre, teléfono, CURP o NSS..."
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        />
       </div>
       <button type="submit" class="hd-btn-secondary">Buscar</button>
     </form>
@@ -20,35 +29,92 @@
       <table class="hd-table w-full">
         <thead>
           <tr>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Nombre</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Teléfono</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">CURP</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">NSS</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Semanas Cotizadas</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Registrado</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Acciones</th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Nombre
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Teléfono
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              CURP
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              NSS
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Semanas Cotizadas
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Registrado
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Acciones
+            </th>
           </tr>
         </thead>
         <tbody>
           <%= if Enum.empty?(@customers) do %>
-            <tr><td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">Sin clientes.</td></tr>
+            <tr>
+              <td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">
+                Sin clientes.
+              </td>
+            </tr>
           <% else %>
             <%= for customer <- @customers do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3">
-                  <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                    <%= (customer.full_name || customer.display_name || "Desconocido") %>
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")}
+                    class="text-sm font-medium"
+                    style="color: var(--accent);"
+                  >
+                    {customer.full_name || customer.display_name || "Desconocido"}
                   </.link>
                 </td>
-                <td class="p-3 text-sm" style="color: var(--text-main);"><%= customer.phone || "---" %></td>
-                <td class="p-3 text-sm font-mono" style="color: var(--text-main);"><%= customer.curp || "---" %></td>
-                <td class="p-3 text-sm font-mono" style="color: var(--text-main);"><%= customer.nss || "---" %></td>
-                <td class="p-3 text-sm" style="color: var(--text-main);"><%= customer.weeks_contributed || "---" %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {customer.phone || "---"}
+                </td>
+                <td class="p-3 text-sm font-mono" style="color: var(--text-main);">
+                  {customer.curp || "---"}
+                </td>
+                <td class="p-3 text-sm font-mono" style="color: var(--text-main);">
+                  {customer.nss || "---"}
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {customer.weeks_contributed || "---"}
+                </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= fmt_date(customer.created_at) || "---" %>
+                  {fmt_date(customer.created_at) || "---"}
                 </td>
                 <td class="p-3 text-right">
-                  <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")} class="text-sm font-medium" style="color: var(--accent);">Ver</.link>
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")}
+                    class="text-sm font-medium"
+                    style="color: var(--accent);"
+                  >
+                    Ver
+                  </.link>
                 </td>
               </tr>
             <% end %>

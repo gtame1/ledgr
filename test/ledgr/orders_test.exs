@@ -53,8 +53,8 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       options = Orders.product_select_options()
 
       assert Enum.any?(options, fn {name, id} ->
-        id == product.id && String.contains?(name, "Test Product")
-      end)
+               id == product.id && String.contains?(name, "Test Product")
+             end)
     end
 
     test "variant_select_options/0 returns formatted variant options" do
@@ -64,8 +64,9 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       options = Orders.variant_select_options()
 
       assert Enum.any?(options, fn {label, vid} ->
-        vid == variant.id && String.contains?(label, "Test Product") && String.contains?(label, "Grande")
-      end)
+               vid == variant.id && String.contains?(label, "Test Product") &&
+                 String.contains?(label, "Grande")
+             end)
     end
   end
 
@@ -97,9 +98,17 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       assert order.delivery_type == "delivery"
     end
 
-    test "rejects new customer with existing phone, prompting to use existing customer list", %{variant: variant, location: location} do
+    test "rejects new customer with existing phone, prompting to use existing customer list", %{
+      variant: variant,
+      location: location
+    } do
       # Create a customer first
-      _customer = customer_fixture(%{phone: "5559876543", name: "Existing Customer", email: "existing@test.com"})
+      _customer =
+        customer_fixture(%{
+          phone: "5559876543",
+          name: "Existing Customer",
+          email: "existing@test.com"
+        })
 
       attrs = %{
         "customer_name" => "Different Name",
@@ -118,8 +127,12 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       assert msg =~ "existing customer list"
     end
 
-    test "creates order with customer_id directly, syncing customer fields", %{variant: variant, location: location} do
-      customer = customer_fixture(%{phone: "5551111111", name: "Real Name", email: "real@test.com"})
+    test "creates order with customer_id directly, syncing customer fields", %{
+      variant: variant,
+      location: location
+    } do
+      customer =
+        customer_fixture(%{phone: "5551111111", name: "Real Name", email: "real@test.com"})
 
       attrs = %{
         "customer_id" => to_string(customer.id),
@@ -174,7 +187,9 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
     test "returns tuple with product price and zero shipping for pickup order" do
       product = product_fixture()
       variant = variant_fixture(%{product: product, price_cents: 12000})
-      order = order_fixture(%{variant: variant, delivery_type: "pickup", customer_paid_shipping: false})
+
+      order =
+        order_fixture(%{variant: variant, delivery_type: "pickup", customer_paid_shipping: false})
 
       assert {12000, 0} = Orders.order_total_cents(order)
     end
@@ -215,7 +230,13 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
     test "returns zero shipping for delivery without customer_paid_shipping" do
       product = product_fixture()
       variant = variant_fixture(%{product: product, price_cents: 12000})
-      order = order_fixture(%{variant: variant, delivery_type: "delivery", customer_paid_shipping: false})
+
+      order =
+        order_fixture(%{
+          variant: variant,
+          delivery_type: "delivery",
+          customer_paid_shipping: false
+        })
 
       assert {12000, 0} = Orders.order_total_cents(order)
     end
@@ -299,7 +320,14 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
     test "multi-quantity order without discount totals price × quantity" do
       product = product_fixture()
       variant = variant_fixture(%{product: product, price_cents: 8000})
-      order = order_fixture(%{variant: variant, delivery_type: "pickup", customer_paid_shipping: false, quantity: 3})
+
+      order =
+        order_fixture(%{
+          variant: variant,
+          delivery_type: "pickup",
+          customer_paid_shipping: false,
+          quantity: 3
+        })
 
       # 3 × 8000 = 24000, no shipping
       assert {24000, 0} = Orders.order_total_cents(order)
@@ -362,7 +390,8 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       assert summary.fully_paid? == true
     end
 
-    test "overpayment: outstanding is 0, overpaid_cents reflects excess, shipping_paid capped at shipping charge", %{order: order, cash_account: cash_account} do
+    test "overpayment: outstanding is 0, overpaid_cents reflects excess, shipping_paid capped at shipping charge",
+         %{order: order, cash_account: cash_account} do
       # Pay more than the order total (e.g. data entry error or refund scenario)
       _payment = order_payment_fixture(order, cash_account, %{"amount_cents" => 12000})
 
@@ -379,7 +408,9 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       assert summary.product_paid_cents == 10000
     end
 
-    test "overpayment with shipping: shipping_paid capped at actual shipping charge", %{cash_account: cash_account} do
+    test "overpayment with shipping: shipping_paid capped at actual shipping charge", %{
+      cash_account: cash_account
+    } do
       product = product_fixture()
       variant = variant_fixture(%{product: product, price_cents: 10000})
       location = location_fixture()
@@ -499,7 +530,11 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       order2 = order_fixture(%{variant: variant, location: location, status: "delivered"})
       order3 = order_fixture(%{variant: variant, location: location, status: "canceled"})
 
-      {:ok, orders: [order1, order2, order3], product: product, variant: variant, non_canceled: [order1, order2]}
+      {:ok,
+       orders: [order1, order2, order3],
+       product: product,
+       variant: variant,
+       non_canceled: [order1, order2]}
     end
 
     test "excludes canceled orders by default", %{non_canceled: non_canceled} do
@@ -527,14 +562,15 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
       yesterday = Date.add(today, -1)
       tomorrow = Date.add(today, 1)
 
-      result = Orders.list_orders(%{
-        "date_from" => Date.to_iso8601(yesterday),
-        "date_to" => Date.to_iso8601(tomorrow)
-      })
+      result =
+        Orders.list_orders(%{
+          "date_from" => Date.to_iso8601(yesterday),
+          "date_to" => Date.to_iso8601(tomorrow)
+        })
 
       assert Enum.all?(result, fn o ->
-        o.delivery_date >= yesterday and o.delivery_date <= tomorrow
-      end)
+               o.delivery_date >= yesterday and o.delivery_date <= tomorrow
+             end)
     end
   end
 
@@ -675,13 +711,32 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersTest do
   describe "update_order_ingredients/2" do
     test "replaces order ingredients" do
       order = order_fixture()
-      location = Ledgr.Domains.MrMunchMe.Inventory.Location
-                 |> Ledgr.Repo.one() || elem(Ledgr.Repo.insert!(%Ledgr.Domains.MrMunchMe.Inventory.Location{code: "WH", name: "Warehouse"}), 0)
+
+      location =
+        Ledgr.Domains.MrMunchMe.Inventory.Location
+        |> Ledgr.Repo.one() ||
+          elem(
+            Ledgr.Repo.insert!(%Ledgr.Domains.MrMunchMe.Inventory.Location{
+              code: "WH",
+              name: "Warehouse"
+            }),
+            0
+          )
 
       {:ok, updated} =
         Orders.update_order_ingredients(order, [
-          %{"ingredient_code" => "FLOUR_TEST", "ingredient_name" => "Flour", "quantity" => 500, "location_code" => location.code},
-          %{"ingredient_code" => "SUGAR_TEST", "ingredient_name" => "Sugar", "quantity" => 200, "location_code" => location.code}
+          %{
+            "ingredient_code" => "FLOUR_TEST",
+            "ingredient_name" => "Flour",
+            "quantity" => 500,
+            "location_code" => location.code
+          },
+          %{
+            "ingredient_code" => "SUGAR_TEST",
+            "ingredient_name" => "Sugar",
+            "quantity" => 200,
+            "location_code" => location.code
+          }
         ])
 
       assert length(updated.order_ingredients) == 2

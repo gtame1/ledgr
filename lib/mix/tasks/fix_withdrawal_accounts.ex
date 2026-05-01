@@ -76,7 +76,10 @@ defmodule Mix.Tasks.FixWithdrawalAccounts do
     else
       total_amount = Enum.reduce(incorrect_withdrawals, 0, fn w, acc -> acc + w.debit_cents end)
 
-      IO.puts("Found #{length(incorrect_withdrawals)} withdrawal line(s) incorrectly debiting Owner's Equity:")
+      IO.puts(
+        "Found #{length(incorrect_withdrawals)} withdrawal line(s) incorrectly debiting Owner's Equity:"
+      )
+
       IO.puts("")
 
       for w <- incorrect_withdrawals do
@@ -107,9 +110,10 @@ defmodule Mix.Tasks.FixWithdrawalAccounts do
   defp find_incorrect_withdrawals(owners_equity_id) do
     from(jl in JournalLine,
       join: je in assoc(jl, :journal_entry),
-      where: je.entry_type == "withdrawal" and
-             jl.account_id == ^owners_equity_id and
-             jl.debit_cents > 0,
+      where:
+        je.entry_type == "withdrawal" and
+          jl.account_id == ^owners_equity_id and
+          jl.debit_cents > 0,
       select: %{
         journal_entry_id: je.id,
         journal_line_id: jl.id,
@@ -139,7 +143,8 @@ defmodule Mix.Tasks.FixWithdrawalAccounts do
       date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
       entry_type: "other",
       reference: "Withdrawal Account Correction",
-      description: "Correct historical withdrawals: move from Owner's Equity (3000) to Owner's Drawings (3100)"
+      description:
+        "Correct historical withdrawals: move from Owner's Equity (3000) to Owner's Drawings (3100)"
     }
 
     lines = [

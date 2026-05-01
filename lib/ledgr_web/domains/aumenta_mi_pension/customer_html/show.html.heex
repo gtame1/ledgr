@@ -270,75 +270,279 @@ end %>
     </div>
   </div>
 
-  <%!-- ─────────── Reiniciar cliente ─────────── --%>
+  <a id="reset-section"></a>
+  <%!-- ─────────── Reset blocked card (if any) ─────────── --%>
+  <%= if @blocked do %>
+    <% pending = @blocked["pending"] || [] %>
+
+    <div class="hd-card p-5 mt-8" style="border: 2px solid #E07A2F; background: #FFF4E6;">
+      <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <h2 class="text-sm font-semibold uppercase" style="color: #E07A2F;">
+          ⚠ Reset blocked — unfulfilled payments
+        </h2>
+        <span class="text-xs" style="color: var(--text-muted);">
+          <%= @blocked["blocked_at"] %>
+        </span>
+      </div>
+
+      <p class="text-sm mb-3" style="color: var(--text-main);">
+        The bot refused this <%= @blocked["attempted_action"] %> because the
+        customer has <%= length(pending) %> paid item(s) the bot considers
+        unfulfilled. Each one needs to be either delivered/refunded, or you
+        can re-run with <strong>Force</strong> checked to override.
+      </p>
+
+      <div class="overflow-x-auto mb-4">
+        <table class="text-sm w-full" style="border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--bg-surface); text-align: left;">
+              <th style="padding: 8px; border-bottom: 1px solid var(--border-strong);">Product</th>
+              <th style="padding: 8px; border-bottom: 1px solid var(--border-strong);">Paid at</th>
+              <th style="padding: 8px; border-bottom: 1px solid var(--border-strong);">Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for p <- pending do %>
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid var(--border-subtle);">
+                  <strong><%= p["product"] %></strong>
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid var(--border-subtle); font-family: monospace; font-size: 12px;">
+                  <%= p["paid_at"] %>
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid var(--border-subtle); font-family: monospace; font-size: 12px;">
+                  <%= p["detail"] %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-sm mb-3" style="color: var(--text-muted);">
+        Suggested next steps:
+      </p>
+      <ul class="text-sm mb-4 ml-5" style="color: var(--text-main); list-style: disc;">
+        <li>Refund or mark delivered each pending item via the
+          <.link navigate={dp(@domain_path_prefix, "/payments")} style="color: var(--primary); text-decoration: underline;">Payments</.link> page,
+          then re-run preview.</li>
+        <li>Or re-run preview below with <strong>Force</strong> checked
+          (the bot will record the override in its audit log).</li>
+      </ul>
+
+      <form
+        action={dp(@domain_path_prefix, "/customers/#{c.id}/reset")}
+        method="post"
+        style="display: inline;"
+      >
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+        <input type="hidden" name="action" value="dismiss_blocked" />
+        <button
+          type="submit"
+          style="background: var(--btn-secondary-bg, #F0EDE4); color: var(--btn-secondary-text, #3D2C1E); border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer;"
+        >
+          Dismiss
+        </button>
+      </form>
+    </div>
+  <% end %>
+
+  <%!-- ─────────── Last preview card (if any) ─────────── --%>
+  <%= if @preview do %>
+    <% body = @preview["body"] || %{} %>
+    <% pending = body["pending_obligations"] || [] %>
+    <% fields_nulled = body["fields_nulled"] || [] %>
+    <% forced? = body["forced"] == true %>
+
+    <div class="hd-card p-5 mt-8" style="border: 1px solid var(--accent); background: var(--primary-soft, #D8F3DC);">
+      <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <h2 class="text-sm font-semibold uppercase" style="color: var(--primary);">
+          Reset preview
+          <%= if forced? do %>
+            <span style="background: #E07A2F; color: white; padding: 2px 8px; border-radius: 999px; font-size: 11px; margin-left: 8px;">FORCED</span>
+          <% end %>
+        </h2>
+        <span class="text-xs" style="color: var(--text-muted);">
+          Generated <%= @preview["previewed_at"] %>
+        </span>
+      </div>
+
+      <p class="text-sm mb-3" style="color: var(--text-main);">
+        Reason: <em><%= @preview["reason"] %></em>
+      </p>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 text-sm" style="color: var(--text-main);">
+        <div>
+          <strong>Conversations closed</strong>
+          <div style="font-size: 18px;"><%= body["conversations_closed"] || 0 %></div>
+        </div>
+        <div>
+          <strong>Messages orphaned</strong>
+          <div style="font-size: 18px;"><%= body["messages_orphaned"] || 0 %></div>
+        </div>
+        <div>
+          <strong>Pension cases deleted</strong>
+          <div style="font-size: 18px;"><%= body["pension_cases_deleted"] || 0 %></div>
+        </div>
+        <div>
+          <strong>Consultations preserved</strong>
+          <div style="font-size: 18px;"><%= body["consultations_preserved"] || 0 %></div>
+        </div>
+        <div>
+          <strong>Payments preserved</strong>
+          <div style="font-size: 18px;"><%= body["payments_preserved"] || 0 %></div>
+        </div>
+        <div>
+          <strong>Onboarding fields</strong>
+          <div style="font-size: 18px;"><%= length(fields_nulled) %></div>
+        </div>
+      </div>
+
+      <%= if fields_nulled != [] do %>
+        <details class="mb-4">
+          <summary class="text-sm cursor-pointer" style="color: var(--text-muted);">
+            Fields that will be nulled (<%= length(fields_nulled) %>)
+          </summary>
+          <ul class="text-sm mt-2 ml-4" style="color: var(--text-main);">
+            <%= for f <- fields_nulled do %>
+              <li><code><%= f %></code></li>
+            <% end %>
+          </ul>
+        </details>
+      <% end %>
+
+      <%= if pending != [] do %>
+        <div class="p-3 mb-4" style="background: #FFF4E6; border: 1px solid #E07A2F; border-radius: 6px;">
+          <strong style="color: #E07A2F;">⚠ Pending obligations (<%= length(pending) %>)</strong>
+          <ul class="text-sm mt-2 ml-4" style="color: var(--text-main);">
+            <%= for p <- pending do %>
+              <li>
+                <strong><%= p["product"] %></strong> paid <%= p["paid_at"] %> — <%= p["detail"] %>
+              </li>
+            <% end %>
+          </ul>
+          <%= if not forced? do %>
+            <p class="text-sm mt-2" style="color: var(--text-muted);">
+              Execute will be blocked unless Force was checked when running the preview.
+            </p>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="flex gap-3 items-center flex-wrap">
+        <form
+          action={dp(@domain_path_prefix, "/customers/#{c.id}/reset")}
+          method="post"
+          onsubmit={"return confirm('Execute reset for #{c.full_name || c.display_name || c.phone}? This action cannot be undone.');"}
+          style="display: inline;"
+        >
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="action" value="execute_preview" />
+          <button
+            type="submit"
+            style="background: #E07A2F; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer;"
+          >
+            Execute reset
+          </button>
+        </form>
+
+        <form
+          action={dp(@domain_path_prefix, "/customers/#{c.id}/reset")}
+          method="post"
+          style="display: inline;"
+        >
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="action" value="discard_preview" />
+          <button
+            type="submit"
+            style="background: var(--btn-secondary-bg, #F0EDE4); color: var(--btn-secondary-text, #3D2C1E); border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer;"
+          >
+            Discard preview
+          </button>
+        </form>
+      </div>
+    </div>
+  <% end %>
+
+  <%!-- ─────────── Reset customer (via bot) ─────────── --%>
   <div class="hd-card p-5 mt-8" style="border: 1px solid #E07A2F;">
     <h2 class="text-sm font-semibold uppercase mb-2" style="color: #E07A2F;">
-      Reiniciar cliente
+      Reset customer
     </h2>
     <p class="text-sm mb-3" style="color: var(--text-muted);">
-      Borra el historial del bot para este cliente. <strong>Las conversaciones
-      con pagos se preservan</strong> (junto con sus mensajes y consultas, ya
-      que están vinculadas a registros financieros). Las demás conversaciones,
-      consultas, mensajes y pension cases se eliminan. La fila del cliente
-      permanece. <strong>Esta acción no se puede deshacer.</strong>
+      Calls the bot service to reset this customer's history. The bot closes
+      their conversations, orphans messages, deletes pension cases, clears
+      onboarding fields (name, CURP, NSS, etc.), and
+      <strong>preserves</strong> paid consultations and payment records. If
+      there are unfulfilled obligations (paid but not delivered / refunded)
+      the bot blocks the reset unless <em>Force</em> is checked.
     </p>
 
     <form
       action={dp(@domain_path_prefix, "/customers/#{c.id}/reset")}
       method="post"
-      onsubmit={"return confirm('¿Reiniciar a #{c.full_name || c.display_name || c.phone}? El historial del bot se borrará.');"}
     >
       <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
 
-      <fieldset class="mb-4" style="border: none; padding: 0;">
-        <legend class="text-sm font-semibold mb-2" style="color: var(--text-main);">
-          Nivel de reinicio
-        </legend>
+      <div class="mb-3">
+        <label class="text-sm font-semibold block mb-1" style="color: var(--text-main);">
+          Reason (optional)
+        </label>
+        <input
+          type="text"
+          name="reason"
+          placeholder="e.g. test cleanup, support request"
+          autocomplete="off"
+          style="border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; width: 100%; max-width: 480px;"
+        />
+      </div>
 
-        <label class="flex items-start gap-2 mb-2 cursor-pointer">
-          <input type="radio" name="level" value="conversation" checked class="mt-1" />
-          <span class="text-sm" style="color: var(--text-main);">
-            <strong>Solo conversación</strong>
+      <div class="mb-3">
+        <label class="flex items-center gap-2 text-sm cursor-pointer" style="color: var(--text-main);">
+          <input type="checkbox" name="force" />
+          <span>
+            <strong>Force</strong>
             <span style="color: var(--text-muted);">
-              — borra conversaciones, mensajes, consultas y pension cases.
-              Los datos del cliente (nombre, CURP, NSS, etc.) se conservan, así
-              que el bot lo reconocerá y saltará el onboarding.
+              — skip the unfulfilled-payments guard. Only check this if you
+              know what you're doing.
             </span>
           </span>
         </label>
-
-        <label class="flex items-start gap-2 cursor-pointer">
-          <input type="radio" name="level" value="onboarding" class="mt-1" />
-          <span class="text-sm" style="color: var(--text-main);">
-            <strong>Onboarding completo</strong>
-            <span style="color: var(--text-muted);">
-              — además del reinicio de conversación, borra los datos personales
-              que el bot recolecta (nombre, CURP, NSS, semanas, ley 73, etc.) y
-              resetea la aceptación de términos. El bot pedirá todo de nuevo.
-            </span>
-          </span>
-        </label>
-      </fieldset>
+      </div>
 
       <p class="text-sm mb-3" style="color: var(--text-muted);">
-        Para confirmar, escribe el teléfono del cliente
+        Confirm by typing the customer's phone number
         (<code style="background: var(--bg-surface); padding: 2px 6px; border-radius: 4px;"><%= c.phone %></code>):
       </p>
 
-      <div class="flex gap-3 items-center flex-wrap">
+      <div class="flex gap-3 items-center flex-wrap mb-3">
         <input
           type="text"
           name="confirm_phone"
-          placeholder="Escribe el teléfono"
+          placeholder="Type the phone number"
           required
           autocomplete="off"
           style="border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; font-family: monospace; min-width: 220px;"
         />
+      </div>
+
+      <div class="flex gap-3 items-center flex-wrap">
         <button
           type="submit"
+          name="action"
+          value="preview"
+          style="background: var(--btn-secondary-bg, #F0EDE4); color: var(--btn-secondary-text, #3D2C1E); border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer;"
+        >
+          Preview (dry run)
+        </button>
+        <button
+          type="submit"
+          name="action"
+          value="execute"
+          onclick={"return confirm('Execute reset for #{c.full_name || c.display_name || c.phone}? This action cannot be undone.');"}
           style="background: #E07A2F; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer;"
         >
-          Reiniciar cliente
+          Execute reset
         </button>
       </div>
     </form>

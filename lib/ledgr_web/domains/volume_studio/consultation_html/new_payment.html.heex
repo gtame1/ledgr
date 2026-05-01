@@ -1,14 +1,12 @@
 <div class="new-subscription-card">
-
   <section class="card" style="margin-bottom: 1.5rem;">
     <div class="card-header">
       <div>
         <h2 class="card-title">Record Payment</h2>
         <p class="card-subtitle">
-          <%= @consultation.customer.name %> ·
-          <%= @consultation.instructor.name %> ·
+          {@consultation.customer.name} · {@consultation.instructor.name} ·
           <span class={"status-badge #{status_class(@consultation.status)}"}>
-            <%= String.capitalize(@consultation.status) %>
+            {String.capitalize(@consultation.status)}
           </span>
         </p>
       </div>
@@ -26,5 +24,4 @@
     change_accounts={@change_accounts}
     paid_to_accounts={@paid_to_accounts}
   />
-
 </div>

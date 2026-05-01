@@ -42,7 +42,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
               end
 
             {:error, reason} ->
-              Logger.error("[HelloDoctor] Stripe refund failed for payment #{payment.id}: #{inspect(reason)}")
+              Logger.error(
+                "[HelloDoctor] Stripe refund failed for payment #{payment.id}: #{inspect(reason)}"
+              )
+
               Repo.rollback(reason)
           end
         end)
@@ -53,9 +56,14 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
   defp issue_stripe_refund(payment, api_key) do
     cond do
       payment.stripe_payment_intent_id ->
-        case Stripe.Refund.create(%{payment_intent: payment.stripe_payment_intent_id}, api_key: api_key) do
+        case Stripe.Refund.create(%{payment_intent: payment.stripe_payment_intent_id},
+               api_key: api_key
+             ) do
           {:ok, refund} ->
-            Logger.info("[HelloDoctor] Stripe refund created: #{refund.id} for PI #{payment.stripe_payment_intent_id}")
+            Logger.info(
+              "[HelloDoctor] Stripe refund created: #{refund.id} for PI #{payment.stripe_payment_intent_id}"
+            )
+
             {:ok, refund}
 
           {:error, %Stripe.Error{} = err} ->
@@ -97,20 +105,44 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
 
       lines = [
         # Reverse the revenue recognition
-        %{account_id: consultation_revenue.id, debit_cents: amount_cents, credit_cents: 0,
-          description: "Reverse consultation revenue (refund)"},
-        %{account_id: stripe_receivable.id, debit_cents: 0, credit_cents: amount_cents,
-          description: "Reduce Stripe receivable (refund sent)"},
+        %{
+          account_id: consultation_revenue.id,
+          debit_cents: amount_cents,
+          credit_cents: 0,
+          description: "Reverse consultation revenue (refund)"
+        },
+        %{
+          account_id: stripe_receivable.id,
+          debit_cents: 0,
+          credit_cents: amount_cents,
+          description: "Reduce Stripe receivable (refund sent)"
+        },
         # Reverse the doctor payable
-        %{account_id: doctor_payable.id, debit_cents: doctor_payout_cents, credit_cents: 0,
-          description: "Reverse doctor payable (refund)"},
-        %{account_id: consultation_revenue.id, debit_cents: 0, credit_cents: doctor_payout_cents,
-          description: "Reverse doctor share reclassification"},
+        %{
+          account_id: doctor_payable.id,
+          debit_cents: doctor_payout_cents,
+          credit_cents: 0,
+          description: "Reverse doctor payable (refund)"
+        },
+        %{
+          account_id: consultation_revenue.id,
+          debit_cents: 0,
+          credit_cents: doctor_payout_cents,
+          description: "Reverse doctor share reclassification"
+        },
         # Record refund expense (Stripe doesn't return the processing fee)
-        %{account_id: refunds_expense.id, debit_cents: round((payment.stripe_fee || 0) * 100), credit_cents: 0,
-          description: "Stripe fee lost on refund (non-refundable)"},
-        %{account_id: stripe_receivable.id, debit_cents: round((payment.stripe_fee || 0) * 100), credit_cents: 0,
-          description: "Stripe fee adjustment on receivable"}
+        %{
+          account_id: refunds_expense.id,
+          debit_cents: round((payment.stripe_fee || 0) * 100),
+          credit_cents: 0,
+          description: "Stripe fee lost on refund (non-refundable)"
+        },
+        %{
+          account_id: stripe_receivable.id,
+          debit_cents: round((payment.stripe_fee || 0) * 100),
+          credit_cents: 0,
+          description: "Stripe fee adjustment on receivable"
+        }
       ]
 
       # Filter out zero-amount fee lines
@@ -119,7 +151,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
       Accounting.create_journal_entry_with_lines(entry_attrs, lines)
     rescue
       e ->
-        Logger.warning("[HelloDoctor] Failed to create refund journal entry for payment #{payment.id}: #{inspect(e)}")
+        Logger.warning(
+          "[HelloDoctor] Failed to create refund journal entry for payment #{payment.id}: #{inspect(e)}"
+        )
+
         :ok
     end
   end

@@ -10,13 +10,17 @@ defmodule LedgrWeb.TransferController do
     extra =
       if Ledgr.Domain.current() == Ledgr.Domains.CasaTame do
         import Ecto.Query
-        fx = Ledgr.Repo.all(
-          from je in Ledgr.Core.Accounting.JournalEntry,
-            where: je.entry_type == "internal_transfer" and like(je.description, "FX Transfer%"),
-            order_by: [desc: je.date, desc: je.inserted_at],
-            preload: [journal_lines: :account],
-            limit: 50
-        )
+
+        fx =
+          Ledgr.Repo.all(
+            from je in Ledgr.Core.Accounting.JournalEntry,
+              where:
+                je.entry_type == "internal_transfer" and like(je.description, "FX Transfer%"),
+              order_by: [desc: je.date, desc: je.inserted_at],
+              preload: [journal_lines: :account],
+              limit: 50
+          )
+
         [fx_transfers: fx]
       else
         []
@@ -63,7 +67,8 @@ defmodule LedgrWeb.TransferController do
     transfer = Accounting.get_money_transfer!(id)
 
     # Convert amount_cents to pesos for form display
-    amount_pesos = Decimal.div(Decimal.new(transfer.amount_cents), Decimal.new(100)) |> Decimal.to_float()
+    amount_pesos =
+      Decimal.div(Decimal.new(transfer.amount_cents), Decimal.new(100)) |> Decimal.to_float()
 
     attrs = %{
       "from_account_id" => transfer.from_account_id,
@@ -120,7 +125,6 @@ defmodule LedgrWeb.TransferController do
     end
   end
 end
-
 
 defmodule LedgrWeb.TransferHTML do
   use LedgrWeb, :html

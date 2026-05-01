@@ -4,7 +4,15 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
   alias Ledgr.Core.Accounting
   alias Ledgr.Domains.MrMunchMe.Inventory
   alias Ledgr.Repo
-  alias Ledgr.Domains.MrMunchMe.Inventory.{Ingredient, Location, InventoryItem, InventoryMovement, Verification}
+
+  alias Ledgr.Domains.MrMunchMe.Inventory.{
+    Ingredient,
+    Location,
+    InventoryItem,
+    InventoryMovement,
+    Verification
+  }
+
   alias Ledgr.Domains.MrMunchMe.Orders.{Order, OrderPayment, Product, ProductVariant}
 
   # Get or create an account, handling the case where it already exists
@@ -14,6 +22,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
       nil ->
         {:ok, account} = Accounting.create_account(attrs)
         account
+
       existing ->
         existing
     end
@@ -21,18 +30,113 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
 
   setup do
     # Create accounts needed by verification checks (get-or-create to handle async conflicts)
-    cash_account = get_or_create_account!(%{code: "1000", name: "Cash", type: "asset", normal_balance: "debit", is_cash: true})
-    ar_account = get_or_create_account!(%{code: "1100", name: "Accounts Receivable", type: "asset", normal_balance: "debit", is_cash: false})
-    ingredients_account = get_or_create_account!(%{code: "1200", name: "Ingredients Inventory", type: "asset", normal_balance: "debit", is_cash: false})
-    wip_account = get_or_create_account!(%{code: "1220", name: "WIP Inventory", type: "asset", normal_balance: "debit", is_cash: false})
-    customer_deposits_account = get_or_create_account!(%{code: "2200", name: "Customer Deposits", type: "liability", normal_balance: "credit", is_cash: false})
-    owners_equity_account = get_or_create_account!(%{code: "3000", name: "Owner's Equity", type: "equity", normal_balance: "credit", is_cash: false})
-    owners_drawings_account = get_or_create_account!(%{code: "3100", name: "Owner's Drawings", type: "equity", normal_balance: "debit", is_cash: false})
-    sales_account = get_or_create_account!(%{code: "4000", name: "Sales Revenue", type: "revenue", normal_balance: "credit", is_cash: false})
-    gift_contributions_account = get_or_create_account!(%{code: "4100", name: "Gift Contributions", type: "revenue", normal_balance: "credit", is_cash: false})
-    cogs_account = get_or_create_account!(%{code: "5000", name: "Ingredients COGS", type: "expense", normal_balance: "debit", is_cash: false})
-    waste_account = get_or_create_account!(%{code: "6060", name: "Inventory Waste & Shrinkage", type: "expense", normal_balance: "debit", is_cash: false})
-    samples_gifts_account = get_or_create_account!(%{code: "6070", name: "Samples & Gifts", type: "expense", normal_balance: "debit", is_cash: false})
+    cash_account =
+      get_or_create_account!(%{
+        code: "1000",
+        name: "Cash",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      })
+
+    ar_account =
+      get_or_create_account!(%{
+        code: "1100",
+        name: "Accounts Receivable",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      })
+
+    ingredients_account =
+      get_or_create_account!(%{
+        code: "1200",
+        name: "Ingredients Inventory",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      })
+
+    wip_account =
+      get_or_create_account!(%{
+        code: "1220",
+        name: "WIP Inventory",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      })
+
+    customer_deposits_account =
+      get_or_create_account!(%{
+        code: "2200",
+        name: "Customer Deposits",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      })
+
+    owners_equity_account =
+      get_or_create_account!(%{
+        code: "3000",
+        name: "Owner's Equity",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      })
+
+    owners_drawings_account =
+      get_or_create_account!(%{
+        code: "3100",
+        name: "Owner's Drawings",
+        type: "equity",
+        normal_balance: "debit",
+        is_cash: false
+      })
+
+    sales_account =
+      get_or_create_account!(%{
+        code: "4000",
+        name: "Sales Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      })
+
+    gift_contributions_account =
+      get_or_create_account!(%{
+        code: "4100",
+        name: "Gift Contributions",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      })
+
+    cogs_account =
+      get_or_create_account!(%{
+        code: "5000",
+        name: "Ingredients COGS",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false
+      })
+
+    waste_account =
+      get_or_create_account!(%{
+        code: "6060",
+        name: "Inventory Waste & Shrinkage",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false
+      })
+
+    samples_gifts_account =
+      get_or_create_account!(%{
+        code: "6070",
+        name: "Samples & Gifts",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false
+      })
 
     # Create ingredient
     {:ok, ingredient} =
@@ -118,6 +222,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
         })
 
       stock = Inventory.get_or_create_stock!(ingredient.id, location.id)
+
       stock
       |> InventoryItem.changeset(%{quantity_on_hand: 9999})
       |> Repo.update!()
@@ -262,7 +367,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
           ]
         })
 
-      assert {:ok, %{checked: "all withdrawals", issues: 0}} = Verification.verify_withdrawal_accounts()
+      assert {:ok, %{checked: "all withdrawals", issues: 0}} =
+               Verification.verify_withdrawal_accounts()
     end
 
     test "returns error when withdrawal debits Owner's Equity instead of Drawings", %{
@@ -486,7 +592,6 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
     end
   end
 
-
   # ── verify_ar_balance ───────────────────────────────────────────────────
 
   describe "verify_ar_balance/0" do
@@ -511,10 +616,18 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
           "entry_type" => "order_delivered",
           "reference" => "Order ##{order.id}",
           "journal_lines" => [
-            %{"account_id" => ar_account.id, "debit_cents" => 10000, "credit_cents" => 0,
-              "description" => "AR for order"},
-            %{"account_id" => sales_account.id, "debit_cents" => 0, "credit_cents" => 10000,
-              "description" => "Sales revenue"}
+            %{
+              "account_id" => ar_account.id,
+              "debit_cents" => 10000,
+              "credit_cents" => 0,
+              "description" => "AR for order"
+            },
+            %{
+              "account_id" => sales_account.id,
+              "debit_cents" => 0,
+              "credit_cents" => 10000,
+              "description" => "Sales revenue"
+            }
           ]
         })
 
@@ -537,10 +650,18 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
           "entry_type" => "order_payment",
           "reference" => "Order ##{order.id} payment #1",
           "journal_lines" => [
-            %{"account_id" => cash_account.id, "debit_cents" => 10000, "credit_cents" => 0,
-              "description" => "Cash received"},
-            %{"account_id" => ar_account.id, "debit_cents" => 0, "credit_cents" => 10000,
-              "description" => "Reduce AR"}
+            %{
+              "account_id" => cash_account.id,
+              "debit_cents" => 10000,
+              "credit_cents" => 0,
+              "description" => "Cash received"
+            },
+            %{
+              "account_id" => ar_account.id,
+              "debit_cents" => 0,
+              "credit_cents" => 10000,
+              "description" => "Reduce AR"
+            }
           ]
         })
 
@@ -563,10 +684,18 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
           "entry_type" => "order_delivered",
           "reference" => "Order ##{order.id}",
           "journal_lines" => [
-            %{"account_id" => ar_account.id, "debit_cents" => 5000, "credit_cents" => 0,
-              "description" => "AR for order"},
-            %{"account_id" => sales_account.id, "debit_cents" => 0, "credit_cents" => 5000,
-              "description" => "Sales revenue"}
+            %{
+              "account_id" => ar_account.id,
+              "debit_cents" => 5000,
+              "credit_cents" => 0,
+              "description" => "AR for order"
+            },
+            %{
+              "account_id" => sales_account.id,
+              "debit_cents" => 0,
+              "credit_cents" => 5000,
+              "description" => "Sales revenue"
+            }
           ]
         })
 
@@ -577,7 +706,6 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.VerificationTest do
       assert hd(issues) =~ "Difference"
     end
   end
-
 
   # ── run_all_checks ─────────────────────────────────────────────────────
 

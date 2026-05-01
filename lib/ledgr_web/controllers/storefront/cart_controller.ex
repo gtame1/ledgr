@@ -72,7 +72,11 @@ defmodule LedgrWeb.Storefront.CartController do
               variant = Orders.get_variant!(id)
               product = variant.product
               subtotal = variant.price_cents * quantity
-              [%{product: product, variant: variant, quantity: quantity, subtotal: subtotal} | acc]
+
+              [
+                %{product: product, variant: variant, quantity: quantity, subtotal: subtotal}
+                | acc
+              ]
             rescue
               Ecto.NoResultsError -> acc
             end

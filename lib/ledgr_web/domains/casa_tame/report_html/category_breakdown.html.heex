@@ -1,13 +1,14 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="content">
   <header class="content-header">
@@ -17,7 +18,11 @@
 
   <div class="content-body">
     <!-- Filters -->
-    <form method="get" action={dp(@domain_path_prefix, "/reports/category-breakdown")} style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/reports/category-breakdown")}
+      style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;"
+    >
       <input type="date" name="start_date" value={@start_date} class="input input-sm" />
       <span style="color: var(--text-muted);">to</span>
       <input type="date" name="end_date" value={@end_date} class="input input-sm" />
@@ -31,17 +36,19 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
       <!-- Chart -->
       <section class="card">
-        <h2 class="card-title">Distribution (<%= @currency %>)</h2>
+        <h2 class="card-title">Distribution ({@currency})</h2>
         <%= if @by_category != [] do %>
           <div id="category-chart-wrapper" phx-hook="DoughnutChart" style="height: 300px;">
             <canvas id="category-chart" data-chart-data={Jason.encode!(@chart_data)}></canvas>
           </div>
         <% else %>
-          <p style="color: var(--text-muted); text-align: center; padding: 2rem;">No expenses in this period.</p>
+          <p style="color: var(--text-muted); text-align: center; padding: 2rem;">
+            No expenses in this period.
+          </p>
         <% end %>
       </section>
-
-      <!-- Table -->
+      
+<!-- Table -->
       <section class="card">
         <h2 class="card-title">By Category</h2>
         <div class="table-wrapper">
@@ -56,13 +63,17 @@
             <tbody>
               <%= for cat <- @by_category do %>
                 <tr>
-                  <td><%= cat.name %></td>
-                  <td class="numeric"><%= cat.count %></td>
-                  <td class="numeric"><%= fmt.(cat.total_cents) %></td>
+                  <td>{cat.name}</td>
+                  <td class="numeric">{cat.count}</td>
+                  <td class="numeric">{fmt.(cat.total_cents)}</td>
                 </tr>
               <% end %>
               <%= if @by_category == [] do %>
-                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No expenses found.</td></tr>
+                <tr>
+                  <td colspan="3" style="text-align: center; color: var(--text-muted);">
+                    No expenses found.
+                  </td>
+                </tr>
               <% end %>
             </tbody>
           </table>

@@ -4,9 +4,14 @@
   </header>
 
   <div class="content-body">
-    <.period_selector action={dp(@domain_path_prefix, "/reports/unit_economics_list")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
-
-    <!-- Navigation link to single product view -->
+    <.period_selector
+      action={dp(@domain_path_prefix, "/reports/unit_economics_list")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
+    
+<!-- Navigation link to single product view -->
     <div style="margin-bottom: 1rem;">
       <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics")} class="btn">
         View Single Product Details
@@ -24,7 +29,7 @@
       <section class="card">
         <h2 class="card-title">Unit Economics Summary</h2>
         <p class="card-subtitle">
-          Period: <%= @start_date %> to <%= @end_date %>
+          Period: {@start_date} to {@end_date}
         </p>
 
         <div class="table-wrapper" style="margin-top: 1rem;">
@@ -47,26 +52,36 @@
               <%= for ue <- @all_unit_economics do %>
                 <tr>
                   <td>
-                    <strong><%= ue.product.name %></strong>
+                    <strong>{ue.product.name}</strong>
                   </td>
-                  <td class="numeric"><%= ue.units_sold %></td>
-                  <td class="numeric"><%= format_currency(ue.revenue_cents) %></td>
-                  <td class="numeric"><%= format_currency(ue.revenue_per_unit_cents) %></td>
-                  <td class="numeric"><%= format_currency(ue.cogs_cents) %></td>
-                  <td class="numeric"><%= format_currency(ue.cogs_per_unit_cents) %></td>
-                  <td class="numeric"><%= format_currency(ue.gross_margin_cents) %></td>
-                  <td class="numeric"><%= format_currency(ue.gross_margin_per_unit_cents) %></td>
+                  <td class="numeric">{ue.units_sold}</td>
+                  <td class="numeric">{format_currency(ue.revenue_cents)}</td>
+                  <td class="numeric">{format_currency(ue.revenue_per_unit_cents)}</td>
+                  <td class="numeric">{format_currency(ue.cogs_cents)}</td>
+                  <td class="numeric">{format_currency(ue.cogs_per_unit_cents)}</td>
+                  <td class="numeric">{format_currency(ue.gross_margin_cents)}</td>
+                  <td class="numeric">{format_currency(ue.gross_margin_per_unit_cents)}</td>
                   <td class="numeric">
-                    <span class={cond do
-                      ue.gross_margin_percent >= 50 -> "text-success"
-                      ue.gross_margin_percent >= 30 -> ""
-                      true -> "text-danger"
-                    end}>
-                      <%= ue.gross_margin_percent %>%
+                    <span class={
+                      cond do
+                        ue.gross_margin_percent >= 50 -> "text-success"
+                        ue.gross_margin_percent >= 30 -> ""
+                        true -> "text-danger"
+                      end
+                    }>
+                      {ue.gross_margin_percent}%
                     </span>
                   </td>
                   <td>
-                    <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?product_id=#{ue.product.id}&start_date=#{Date.to_iso8601(@start_date)}&end_date=#{Date.to_iso8601(@end_date)}")} class="btn btn-sm">
+                    <.link
+                      navigate={
+                        dp(
+                          @domain_path_prefix,
+                          "/reports/unit_economics?product_id=#{ue.product.id}&start_date=#{Date.to_iso8601(@start_date)}&end_date=#{Date.to_iso8601(@end_date)}"
+                        )
+                      }
+                      class="btn btn-sm"
+                    >
                       Details
                     </.link>
                   </td>
@@ -76,14 +91,14 @@
             <tfoot style="background-color: #f0f9ff; font-weight: 600;">
               <tr>
                 <td><strong>TOTAL</strong></td>
-                <td class="numeric"><%= @totals.units_sold %></td>
-                <td class="numeric"><%= format_currency(@totals.revenue_cents) %></td>
-                <td class="numeric"><%= format_currency(@totals.revenue_per_unit_cents) %></td>
-                <td class="numeric"><%= format_currency(@totals.cogs_cents) %></td>
-                <td class="numeric"><%= format_currency(@totals.cogs_per_unit_cents) %></td>
-                <td class="numeric"><%= format_currency(@totals.gross_margin_cents) %></td>
-                <td class="numeric"><%= format_currency(@totals.gross_margin_per_unit_cents) %></td>
-                <td class="numeric"><%= @totals.gross_margin_percent %>%</td>
+                <td class="numeric">{@totals.units_sold}</td>
+                <td class="numeric">{format_currency(@totals.revenue_cents)}</td>
+                <td class="numeric">{format_currency(@totals.revenue_per_unit_cents)}</td>
+                <td class="numeric">{format_currency(@totals.cogs_cents)}</td>
+                <td class="numeric">{format_currency(@totals.cogs_per_unit_cents)}</td>
+                <td class="numeric">{format_currency(@totals.gross_margin_cents)}</td>
+                <td class="numeric">{format_currency(@totals.gross_margin_per_unit_cents)}</td>
+                <td class="numeric">{@totals.gross_margin_percent}%</td>
                 <td></td>
               </tr>
             </tfoot>

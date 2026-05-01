@@ -13,16 +13,34 @@ defmodule Ledgr.Domains.Viaxe.Bookings.BookingAccountingTest do
     Ledgr.Domain.put_current(Ledgr.Domains.Viaxe)
 
     accounts = [
-      %{code: "1000", name: "Cash",                  type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1100", name: "Commission Receivable",  type: "asset",     normal_balance: "debit",  is_cash: false},
-      %{code: "2200", name: "Advance Commission",     type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "4000", name: "Commission Revenue",     type: "revenue",   normal_balance: "credit", is_cash: false}
+      %{code: "1000", name: "Cash", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1100",
+        name: "Commission Receivable",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "2200",
+        name: "Advance Commission",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Commission Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      }
     ]
 
     Enum.each(accounts, fn attrs ->
       case Accounting.get_account_by_code(attrs.code) do
         nil -> {:ok, _} = Accounting.create_account(attrs)
-        _   -> :ok
+        _ -> :ok
       end
     end)
 
@@ -31,12 +49,25 @@ defmodule Ledgr.Domains.Viaxe.Bookings.BookingAccountingTest do
 
   defp customer_fixture do
     unique = System.unique_integer([:positive])
-    {:ok, c} = Customers.create_customer(%{first_name: "T", last_name: "C#{unique}", phone: "+52551#{unique}"})
+
+    {:ok, c} =
+      Customers.create_customer(%{
+        first_name: "T",
+        last_name: "C#{unique}",
+        phone: "+52551#{unique}"
+      })
+
     c
   end
 
   defp trip_fixture do
-    {:ok, t} = Trips.create_trip(%{title: "Trip #{System.unique_integer([:positive])}", start_date: ~D[2026-08-01], status: "planning"})
+    {:ok, t} =
+      Trips.create_trip(%{
+        title: "Trip #{System.unique_integer([:positive])}",
+        start_date: ~D[2026-08-01],
+        status: "planning"
+      })
+
     t
   end
 

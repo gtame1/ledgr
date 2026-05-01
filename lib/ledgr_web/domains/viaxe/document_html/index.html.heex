@@ -6,7 +6,7 @@
 <section class="card">
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Passports</h3>
-    <span style="font-size: 0.8rem; color: var(--text-muted);"><%= length(@passports) %> total</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">{length(@passports)} total</span>
   </div>
 
   <%= if Enum.empty?(@passports) do %>
@@ -27,16 +27,21 @@
           <% status = expiry_status(passport.expiry_date, @today) %>
           <tr>
             <td>
-              <.link navigate={dp(@domain_path_prefix, "/customers/#{passport.customer_id}")} class="table-link">
-                <%= full_name(passport.customer) %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/customers/#{passport.customer_id}")}
+                class="table-link"
+              >
+                {full_name(passport.customer)}
               </.link>
             </td>
-            <td><%= passport.country %></td>
+            <td>{passport.country}</td>
             <td>
-              <%= passport.number %>
-              <%= if passport.is_primary do %><span class="status-badge status-paid" style="font-size: 0.7rem;">Primary</span><% end %>
+              {passport.number}
+              <%= if passport.is_primary do %>
+                <span class="status-badge status-paid" style="font-size: 0.7rem;">Primary</span>
+              <% end %>
             </td>
-            <td><%= passport.expiry_date || "—" %></td>
+            <td>{passport.expiry_date || "—"}</td>
             <td>
               <%= cond do %>
                 <% status == :expired -> %>
@@ -54,17 +59,29 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Passport</summary>
-    <.form for={@passport_changeset} id="new-passport-form" action="#" as={:passport} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Passport
+    </summary>
+    <.form
+      :let={f}
+      for={@passport_changeset}
+      id="new-passport-form"
+      action="#"
+      as={:passport}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
             <label>Customer *</label>
-            <select class="input" required
-              onchange={"document.getElementById('new-passport-form').action = '#{@domain_path_prefix}/customers/' + this.value + '/passports'"}>
+            <select
+              class="input"
+              required
+              onchange={"document.getElementById('new-passport-form').action = '#{@domain_path_prefix}/customers/' + this.value + '/passports'"}
+            >
               <option value="">Select customer...</option>
               <%= for c <- @customers do %>
-                <option value={c.id}><%= full_name(c) %></option>
+                <option value={c.id}>{full_name(c)}</option>
               <% end %>
             </select>
           </div>
@@ -86,16 +103,18 @@
           </div>
           <div class="field">
             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <.input type="checkbox" field={f[:is_primary]} />
-              Primary passport
+              <.input type="checkbox" field={f[:is_primary]} /> Primary passport
             </label>
           </div>
         </div>
       </div>
       <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
         <button type="submit" class="btn primary">Add Passport</button>
-        <button type="button" class="btn"
-          onclick="this.closest('details').open = false; this.closest('form').reset()">
+        <button
+          type="button"
+          class="btn"
+          onclick="this.closest('details').open = false; this.closest('form').reset()"
+        >
           Cancel
         </button>
       </div>
@@ -107,7 +126,7 @@
 <section class="card" style="margin-top: 1.5rem;">
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Visas</h3>
-    <span style="font-size: 0.8rem; color: var(--text-muted);"><%= length(@visas) %> total</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">{length(@visas)} total</span>
   </div>
 
   <%= if Enum.empty?(@visas) do %>
@@ -129,14 +148,21 @@
           <% status = expiry_status(visa.expiry_date, @today) %>
           <tr>
             <td>
-              <.link navigate={dp(@domain_path_prefix, "/customers/#{visa.customer_id}")} class="table-link">
-                <%= full_name(visa.customer) %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/customers/#{visa.customer_id}")}
+                class="table-link"
+              >
+                {full_name(visa.customer)}
               </.link>
             </td>
-            <td><%= visa.country %></td>
-            <td><%= if visa.visa_type, do: String.replace(visa.visa_type, "_", " ") |> String.capitalize(), else: "—" %></td>
-            <td><%= visa.visa_number || "—" %></td>
-            <td><%= visa.expiry_date || "—" %></td>
+            <td>{visa.country}</td>
+            <td>
+              {if visa.visa_type,
+                do: String.replace(visa.visa_type, "_", " ") |> String.capitalize(),
+                else: "—"}
+            </td>
+            <td>{visa.visa_number || "—"}</td>
+            <td>{visa.expiry_date || "—"}</td>
             <td>
               <%= cond do %>
                 <% status == :expired -> %>
@@ -154,17 +180,29 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Visa</summary>
-    <.form for={@visa_changeset} id="new-visa-form" action="#" as={:visa} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Visa
+    </summary>
+    <.form
+      :let={f}
+      for={@visa_changeset}
+      id="new-visa-form"
+      action="#"
+      as={:visa}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
             <label>Customer *</label>
-            <select class="input" required
-              onchange={"document.getElementById('new-visa-form').action = '#{@domain_path_prefix}/customers/' + this.value + '/visas'"}>
+            <select
+              class="input"
+              required
+              onchange={"document.getElementById('new-visa-form').action = '#{@domain_path_prefix}/customers/' + this.value + '/visas'"}
+            >
               <option value="">Select customer...</option>
               <%= for c <- @customers do %>
-                <option value={c.id}><%= full_name(c) %></option>
+                <option value={c.id}>{full_name(c)}</option>
               <% end %>
             </select>
           </div>
@@ -174,14 +212,18 @@
           </div>
           <div class="field">
             <label>Visa Type</label>
-            <.input type="select" field={f[:visa_type]} options={[
-              {"Select type...", ""},
-              {"Tourist", "tourist"},
-              {"Work", "work"},
-              {"Student", "student"},
-              {"Transit", "transit"},
-              {"Multiple Entry", "multiple_entry"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:visa_type]}
+              options={[
+                {"Select type...", ""},
+                {"Tourist", "tourist"},
+                {"Work", "work"},
+                {"Student", "student"},
+                {"Transit", "transit"},
+                {"Multiple Entry", "multiple_entry"}
+              ]}
+            />
           </div>
           <div class="field">
             <label>Visa Number</label>
@@ -195,8 +237,11 @@
       </div>
       <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
         <button type="submit" class="btn primary">Add Visa</button>
-        <button type="button" class="btn"
-          onclick="this.closest('details').open = false; this.closest('form').reset()">
+        <button
+          type="button"
+          class="btn"
+          onclick="this.closest('details').open = false; this.closest('form').reset()"
+        >
           Cancel
         </button>
       </div>
@@ -208,7 +253,9 @@
 <section class="card" style="margin-top: 1.5rem;">
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Loyalty Programs</h3>
-    <span style="font-size: 0.8rem; color: var(--text-muted);"><%= length(@loyalty_programs) %> total</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">
+      {length(@loyalty_programs)} total
+    </span>
   </div>
 
   <%= if Enum.empty?(@loyalty_programs) do %>
@@ -228,17 +275,26 @@
         <%= for lp <- @loyalty_programs do %>
           <tr>
             <td>
-              <.link navigate={dp(@domain_path_prefix, "/customers/#{lp.customer_id}")} class="table-link">
-                <%= full_name(lp.customer) %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/customers/#{lp.customer_id}")}
+                class="table-link"
+              >
+                {full_name(lp.customer)}
               </.link>
             </td>
-            <td><%= lp.program_name %></td>
-            <td><%= if lp.program_type, do: String.replace(lp.program_type, "_", " ") |> String.capitalize(), else: "—" %></td>
-            <td><%= lp.member_number %></td>
+            <td>{lp.program_name}</td>
+            <td>
+              {if lp.program_type,
+                do: String.replace(lp.program_type, "_", " ") |> String.capitalize(),
+                else: "—"}
+            </td>
+            <td>{lp.member_number}</td>
             <td>
               <%= if lp.tier do %>
-                <span class="status-badge"><%= lp.tier %></span>
-              <% else %>—<% end %>
+                <span class="status-badge">{lp.tier}</span>
+              <% else %>
+                —
+              <% end %>
             </td>
           </tr>
         <% end %>
@@ -247,17 +303,29 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Loyalty Program</summary>
-    <.form for={@loyalty_changeset} id="new-loyalty-form" action="#" as={:loyalty_program} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Loyalty Program
+    </summary>
+    <.form
+      :let={f}
+      for={@loyalty_changeset}
+      id="new-loyalty-form"
+      action="#"
+      as={:loyalty_program}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
             <label>Customer *</label>
-            <select class="input" required
-              onchange={"document.getElementById('new-loyalty-form').action = '#{@domain_path_prefix}/customers/' + this.value + '/loyalty_programs'"}>
+            <select
+              class="input"
+              required
+              onchange={"document.getElementById('new-loyalty-form').action = '#{@domain_path_prefix}/customers/' + this.value + '/loyalty_programs'"}
+            >
               <option value="">Select customer...</option>
               <%= for c <- @customers do %>
-                <option value={c.id}><%= full_name(c) %></option>
+                <option value={c.id}>{full_name(c)}</option>
               <% end %>
             </select>
           </div>
@@ -267,13 +335,17 @@
           </div>
           <div class="field">
             <label>Type</label>
-            <.input type="select" field={f[:program_type]} options={[
-              {"Select type...", ""},
-              {"Airline", "airline"},
-              {"Hotel", "hotel"},
-              {"Car Rental", "car_rental"},
-              {"Other", "other"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:program_type]}
+              options={[
+                {"Select type...", ""},
+                {"Airline", "airline"},
+                {"Hotel", "hotel"},
+                {"Car Rental", "car_rental"},
+                {"Other", "other"}
+              ]}
+            />
           </div>
           <div class="field">
             <label>Member Number *</label>
@@ -287,8 +359,11 @@
       </div>
       <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
         <button type="submit" class="btn primary">Add Program</button>
-        <button type="button" class="btn"
-          onclick="this.closest('details').open = false; this.closest('form').reset()">
+        <button
+          type="button"
+          class="btn"
+          onclick="this.closest('details').open = false; this.closest('form').reset()"
+        >
           Cancel
         </button>
       </div>

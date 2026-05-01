@@ -2,14 +2,16 @@
 <section class="card">
   <div class="card-header">
     <div>
-      <h2 class="card-title" style="margin: 0 0 0.25rem;"><%= full_name(@customer) %></h2>
+      <h2 class="card-title" style="margin: 0 0 0.25rem;">{full_name(@customer)}</h2>
       <p class="card-subtitle" style="margin: 0;">
-        <%= @customer.phone %>
-        <%= if @customer.email, do: " · #{@customer.email}" %>
+        {@customer.phone}
+        {if @customer.email, do: " · #{@customer.email}"}
       </p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
-      <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}/edit")} class="btn">Edit</.link>
+      <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}/edit")} class="btn">
+        Edit
+      </.link>
       <.link navigate={dp(@domain_path_prefix, "/customers")} class="btn">← Back</.link>
     </div>
   </div>
@@ -17,59 +19,81 @@
 
 <!-- ─── Travel Preferences ────────────────────────────────────── -->
 <%= if @travel_profile && @travel_profile.id do %>
-<section class="card" style="margin-top: 1.5rem;">
-  <div class="card-header">
-    <h3 class="card-title" style="font-size: 1rem;">Travel Preferences</h3>
-  </div>
+  <section class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+      <h3 class="card-title" style="font-size: 1rem;">Travel Preferences</h3>
+    </div>
 
-  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem 1.5rem;">
-    <div>
-      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Date of Birth</div>
-      <div><%= @travel_profile.dob || "—" %></div>
-    </div>
-    <div>
-      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Nationality</div>
-      <div><%= @travel_profile.nationality || "—" %></div>
-    </div>
-    <div>
-      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Seat Preference</div>
-      <div><%= String.replace(@travel_profile.seat_preference || "—", "_", " ") |> String.capitalize() %></div>
-    </div>
-    <div>
-      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Meal Preference</div>
-      <div><%= String.replace(@travel_profile.meal_preference || "—", "_", " ") |> String.capitalize() %></div>
-    </div>
-    <div>
-      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">TSA Precheck / KTN</div>
-      <div><%= @travel_profile.tsa_precheck_number || "—" %></div>
-    </div>
-    <div>
-      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Emergency Contact</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem 1.5rem;">
       <div>
-        <%= if @travel_profile.emergency_contact_name do %>
-          <%= @travel_profile.emergency_contact_name %>
-          <%= if @travel_profile.emergency_contact_phone do %>
-            <span style="color: var(--text-muted); font-size: 0.875rem;"> · <%= @travel_profile.emergency_contact_phone %></span>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">
+          Date of Birth
+        </div>
+        <div>{@travel_profile.dob || "—"}</div>
+      </div>
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">
+          Nationality
+        </div>
+        <div>{@travel_profile.nationality || "—"}</div>
+      </div>
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">
+          Seat Preference
+        </div>
+        <div>
+          {String.replace(@travel_profile.seat_preference || "—", "_", " ") |> String.capitalize()}
+        </div>
+      </div>
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">
+          Meal Preference
+        </div>
+        <div>
+          {String.replace(@travel_profile.meal_preference || "—", "_", " ") |> String.capitalize()}
+        </div>
+      </div>
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">
+          TSA Precheck / KTN
+        </div>
+        <div>{@travel_profile.tsa_precheck_number || "—"}</div>
+      </div>
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">
+          Emergency Contact
+        </div>
+        <div>
+          <%= if @travel_profile.emergency_contact_name do %>
+            {@travel_profile.emergency_contact_name}
+            <%= if @travel_profile.emergency_contact_phone do %>
+              <span style="color: var(--text-muted); font-size: 0.875rem;">
+                · {@travel_profile.emergency_contact_phone}
+              </span>
+            <% end %>
+          <% else %>
+            —
           <% end %>
-        <% else %>—<% end %>
+        </div>
       </div>
     </div>
-  </div>
 
-  <%= if @travel_profile.home_address do %>
-    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
-      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">Home Address</div>
-      <div style="white-space: pre-line;"><%= @travel_profile.home_address %></div>
-    </div>
-  <% end %>
+    <%= if @travel_profile.home_address do %>
+      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.2rem;">
+          Home Address
+        </div>
+        <div style="white-space: pre-line;">{@travel_profile.home_address}</div>
+      </div>
+    <% end %>
 
-  <%= if @travel_profile.medical_notes do %>
-    <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: #fef9c3; border-left: 3px solid #ca8a04; border-radius: 0 0.4rem 0.4rem 0; font-size: 0.875rem;">
-      <strong>⚠️ Medical / Allergy Notes</strong>
-      <div style="margin-top: 0.25rem;"><%= @travel_profile.medical_notes %></div>
-    </div>
-  <% end %>
-</section>
+    <%= if @travel_profile.medical_notes do %>
+      <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: #fef9c3; border-left: 3px solid #ca8a04; border-radius: 0 0.4rem 0.4rem 0; font-size: 0.875rem;">
+        <strong>⚠️ Medical / Allergy Notes</strong>
+        <div style="margin-top: 0.25rem;">{@travel_profile.medical_notes}</div>
+      </div>
+    <% end %>
+  </section>
 <% end %>
 
 <!-- ─── Passports ──────────────────────────────────────────────── -->
@@ -77,12 +101,16 @@
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Passports</h3>
     <%= if !Enum.empty?(@customer.passports) do %>
-      <span style="font-size: 0.8rem; color: var(--text-muted);"><%= length(@customer.passports) %> on file</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted);">
+        {length(@customer.passports)} on file
+      </span>
     <% end %>
   </div>
 
   <%= if Enum.empty?(@customer.passports) do %>
-    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">No passports on file.</p>
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">
+      No passports on file.
+    </p>
   <% else %>
     <table class="table">
       <thead>
@@ -98,17 +126,36 @@
         <%= for passport <- @customer.passports do %>
           <tr>
             <td>
-              <strong><%= passport.country %></strong>
+              <strong>{passport.country}</strong>
               <%= if passport.is_primary do %>
-                <span class="status-badge status-paid" style="font-size: 0.7rem; margin-left: 0.3rem;">Primary</span>
+                <span
+                  class="status-badge status-paid"
+                  style="font-size: 0.7rem; margin-left: 0.3rem;"
+                >
+                  Primary
+                </span>
               <% end %>
             </td>
-            <td style="font-family: monospace; letter-spacing: 0.04em;"><%= passport.number %></td>
-            <td style="color: var(--text-muted);"><%= passport.issue_date || "—" %></td>
-            <td style="color: var(--text-muted);"><%= passport.expiry_date || "—" %></td>
+            <td style="font-family: monospace; letter-spacing: 0.04em;">{passport.number}</td>
+            <td style="color: var(--text-muted);">{passport.issue_date || "—"}</td>
+            <td style="color: var(--text-muted);">{passport.expiry_date || "—"}</td>
             <td style="text-align: right; white-space: nowrap;">
-              <.form for={%{}} as={:delete} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/passports/#{passport.id}")} method="delete" style="display: inline;">
-                <button type="submit" class="btn btn-sm danger" onclick="return confirm('Remove this passport?')">Remove</button>
+              <.form
+                for={%{}}
+                as={:delete}
+                action={
+                  dp(@domain_path_prefix, "/customers/#{@customer.id}/passports/#{passport.id}")
+                }
+                method="delete"
+                style="display: inline;"
+              >
+                <button
+                  type="submit"
+                  class="btn btn-sm danger"
+                  onclick="return confirm('Remove this passport?')"
+                >
+                  Remove
+                </button>
               </.form>
             </td>
           </tr>
@@ -118,8 +165,16 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Passport</summary>
-    <.form for={@passport_changeset} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/passports")} as={:passport} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Passport
+    </summary>
+    <.form
+      :let={f}
+      for={@passport_changeset}
+      action={dp(@domain_path_prefix, "/customers/#{@customer.id}/passports")}
+      as={:passport}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
@@ -140,16 +195,18 @@
           </div>
           <div class="field">
             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <.input type="checkbox" field={f[:is_primary]} />
-              Primary passport
+              <.input type="checkbox" field={f[:is_primary]} /> Primary passport
             </label>
           </div>
         </div>
       </div>
       <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
         <button type="submit" class="btn primary">Add Passport</button>
-        <button type="button" class="btn"
-          onclick="this.closest('details').open = false; this.closest('form').reset()">
+        <button
+          type="button"
+          class="btn"
+          onclick="this.closest('details').open = false; this.closest('form').reset()"
+        >
           Cancel
         </button>
       </div>
@@ -162,12 +219,16 @@
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Visas</h3>
     <%= if !Enum.empty?(@customer.visas) do %>
-      <span style="font-size: 0.8rem; color: var(--text-muted);"><%= length(@customer.visas) %> on file</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted);">
+        {length(@customer.visas)} on file
+      </span>
     <% end %>
   </div>
 
   <%= if Enum.empty?(@customer.visas) do %>
-    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">No visas on file.</p>
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">
+      No visas on file.
+    </p>
   <% else %>
     <table class="table">
       <thead>
@@ -182,13 +243,31 @@
       <tbody>
         <%= for visa <- @customer.visas do %>
           <tr>
-            <td><strong><%= visa.country %></strong></td>
-            <td><%= if visa.visa_type, do: String.replace(visa.visa_type, "_", " ") |> String.capitalize(), else: "—" %></td>
-            <td style="font-family: monospace; letter-spacing: 0.04em;"><%= visa.visa_number || "—" %></td>
-            <td style="color: var(--text-muted);"><%= visa.expiry_date || "—" %></td>
+            <td><strong>{visa.country}</strong></td>
+            <td>
+              {if visa.visa_type,
+                do: String.replace(visa.visa_type, "_", " ") |> String.capitalize(),
+                else: "—"}
+            </td>
+            <td style="font-family: monospace; letter-spacing: 0.04em;">
+              {visa.visa_number || "—"}
+            </td>
+            <td style="color: var(--text-muted);">{visa.expiry_date || "—"}</td>
             <td style="text-align: right; white-space: nowrap;">
-              <.form for={%{}} as={:delete} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas/#{visa.id}")} method="delete" style="display: inline;">
-                <button type="submit" class="btn btn-sm danger" onclick="return confirm('Remove this visa?')">Remove</button>
+              <.form
+                for={%{}}
+                as={:delete}
+                action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas/#{visa.id}")}
+                method="delete"
+                style="display: inline;"
+              >
+                <button
+                  type="submit"
+                  class="btn btn-sm danger"
+                  onclick="return confirm('Remove this visa?')"
+                >
+                  Remove
+                </button>
               </.form>
             </td>
           </tr>
@@ -198,8 +277,16 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Visa</summary>
-    <.form for={@visa_changeset} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas")} as={:visa} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Visa
+    </summary>
+    <.form
+      :let={f}
+      for={@visa_changeset}
+      action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas")}
+      as={:visa}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
@@ -208,14 +295,18 @@
           </div>
           <div class="field">
             <label>Visa Type</label>
-            <.input type="select" field={f[:visa_type]} options={[
-              {"Select type...", ""},
-              {"Tourist", "tourist"},
-              {"Work", "work"},
-              {"Student", "student"},
-              {"Transit", "transit"},
-              {"Multiple Entry", "multiple_entry"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:visa_type]}
+              options={[
+                {"Select type...", ""},
+                {"Tourist", "tourist"},
+                {"Work", "work"},
+                {"Student", "student"},
+                {"Transit", "transit"},
+                {"Multiple Entry", "multiple_entry"}
+              ]}
+            />
           </div>
           <div class="field">
             <label>Visa Number</label>
@@ -229,8 +320,11 @@
       </div>
       <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
         <button type="submit" class="btn primary">Add Visa</button>
-        <button type="button" class="btn"
-          onclick="this.closest('details').open = false; this.closest('form').reset()">
+        <button
+          type="button"
+          class="btn"
+          onclick="this.closest('details').open = false; this.closest('form').reset()"
+        >
           Cancel
         </button>
       </div>
@@ -243,12 +337,16 @@
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Loyalty Programs</h3>
     <%= if !Enum.empty?(@customer.loyalty_programs) do %>
-      <span style="font-size: 0.8rem; color: var(--text-muted);"><%= length(@customer.loyalty_programs) %> on file</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted);">
+        {length(@customer.loyalty_programs)} on file
+      </span>
     <% end %>
   </div>
 
   <%= if Enum.empty?(@customer.loyalty_programs) do %>
-    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">No loyalty programs on file.</p>
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">
+      No loyalty programs on file.
+    </p>
   <% else %>
     <table class="table">
       <thead>
@@ -263,17 +361,37 @@
       <tbody>
         <%= for lp <- @customer.loyalty_programs do %>
           <tr>
-            <td><strong><%= lp.program_name %></strong></td>
-            <td><%= if lp.program_type, do: String.replace(lp.program_type, "_", " ") |> String.capitalize(), else: "—" %></td>
-            <td style="font-family: monospace; letter-spacing: 0.04em;"><%= lp.member_number %></td>
+            <td><strong>{lp.program_name}</strong></td>
+            <td>
+              {if lp.program_type,
+                do: String.replace(lp.program_type, "_", " ") |> String.capitalize(),
+                else: "—"}
+            </td>
+            <td style="font-family: monospace; letter-spacing: 0.04em;">{lp.member_number}</td>
             <td>
               <%= if lp.tier do %>
-                <span class="status-badge"><%= lp.tier %></span>
-              <% else %>—<% end %>
+                <span class="status-badge">{lp.tier}</span>
+              <% else %>
+                —
+              <% end %>
             </td>
             <td style="text-align: right; white-space: nowrap;">
-              <.form for={%{}} as={:delete} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs/#{lp.id}")} method="delete" style="display: inline;">
-                <button type="submit" class="btn btn-sm danger" onclick="return confirm('Remove this loyalty program?')">Remove</button>
+              <.form
+                for={%{}}
+                as={:delete}
+                action={
+                  dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs/#{lp.id}")
+                }
+                method="delete"
+                style="display: inline;"
+              >
+                <button
+                  type="submit"
+                  class="btn btn-sm danger"
+                  onclick="return confirm('Remove this loyalty program?')"
+                >
+                  Remove
+                </button>
               </.form>
             </td>
           </tr>
@@ -283,8 +401,16 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Loyalty Program</summary>
-    <.form for={@loyalty_changeset} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs")} as={:loyalty_program} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Loyalty Program
+    </summary>
+    <.form
+      :let={f}
+      for={@loyalty_changeset}
+      action={dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs")}
+      as={:loyalty_program}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
@@ -293,13 +419,17 @@
           </div>
           <div class="field">
             <label>Type</label>
-            <.input type="select" field={f[:program_type]} options={[
-              {"Select type...", ""},
-              {"Airline", "airline"},
-              {"Hotel", "hotel"},
-              {"Car Rental", "car_rental"},
-              {"Other", "other"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:program_type]}
+              options={[
+                {"Select type...", ""},
+                {"Airline", "airline"},
+                {"Hotel", "hotel"},
+                {"Car Rental", "car_rental"},
+                {"Other", "other"}
+              ]}
+            />
           </div>
           <div class="field">
             <label>Member Number *</label>
@@ -313,8 +443,11 @@
       </div>
       <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
         <button type="submit" class="btn primary">Add Program</button>
-        <button type="button" class="btn"
-          onclick="this.closest('details').open = false; this.closest('form').reset()">
+        <button
+          type="button"
+          class="btn"
+          onclick="this.closest('details').open = false; this.closest('form').reset()"
+        >
           Cancel
         </button>
       </div>

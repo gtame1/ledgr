@@ -6,7 +6,7 @@
     </div>
   </div>
 
-  <.form for={@changeset} action={@action} as={:subscription} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} as={:subscription}>
     <input type="hidden" name="subscription[mode]" id="sub_mode" value={@mode} />
 
     <%!-- ── Member ─────────────────────────────────────────── --%>
@@ -15,24 +15,31 @@
         <h3 class="section-title">Member</h3>
         <%= if is_nil(@preselected_customer_id) do %>
           <div class="mode-toggle" role="group">
-            <button type="button"
+            <button
+              type="button"
               class={"mode-toggle-btn #{if @mode != "new", do: "active"}"}
               id="btn-existing"
-              onclick="setMemberMode('existing')">Existing</button>
-            <button type="button"
+              onclick="setMemberMode('existing')"
+            >
+              Existing
+            </button>
+            <button
+              type="button"
               class={"mode-toggle-btn #{if @mode == "new", do: "active"}"}
               id="btn-new"
-              onclick="setMemberMode('new')">+ New Member</button>
+              onclick="setMemberMode('new')"
+            >
+              + New Member
+            </button>
           </div>
         <% end %>
       </div>
 
       <%= if @preselected_customer_id do %>
-        <%
-          {customer_label, _} = Enum.find(@customers, {"", @preselected_customer_id}, fn {_l, id} ->
+        <% {customer_label, _} =
+          Enum.find(@customers, {"", @preselected_customer_id}, fn {_l, id} ->
             to_string(id) == to_string(@preselected_customer_id)
-          end)
-        %>
+          end) %>
         <input type="hidden" name="subscription[customer_id]" value={@preselected_customer_id} />
         <div class="field">
           <label>Member</label>
@@ -42,8 +49,11 @@
         <div id="section-existing" style={if @mode == "new", do: "display:none"}>
           <div class="field">
             <label>Select Member *</label>
-            <.input type="select" field={f[:customer_id]}
-              options={[{"Search member...", ""} | @customers]} />
+            <.input
+              type="select"
+              field={f[:customer_id]}
+              options={[{"Search member...", ""} | @customers]}
+            />
           </div>
         </div>
 
@@ -51,27 +61,42 @@
           <div class="form-block" style="gap: 0.75rem 1rem;">
             <div class="field" style="flex: 1 1 200px;">
               <label>Full Name *</label>
-              <input class="input" type="text"
+              <input
+                class="input"
+                type="text"
                 name="subscription[new_customer][name]"
                 placeholder="e.g. María García"
-                value={Ecto.Changeset.get_field(@customer_changeset, :name)} />
-              <%= if e = @customer_changeset.errors[:name] do %><span class="phx-field-error"><%= elem(e, 0) %></span><% end %>
+                value={Ecto.Changeset.get_field(@customer_changeset, :name)}
+              />
+              <%= if e = @customer_changeset.errors[:name] do %>
+                <span class="phx-field-error">{elem(e, 0)}</span>
+              <% end %>
             </div>
             <div class="field" style="flex: 1 1 160px;">
               <label>Phone *</label>
-              <input class="input" type="tel"
+              <input
+                class="input"
+                type="tel"
                 name="subscription[new_customer][phone]"
                 placeholder="+52 55 1234 5678"
-                value={Ecto.Changeset.get_field(@customer_changeset, :phone)} />
-              <%= if e = @customer_changeset.errors[:phone] do %><span class="phx-field-error"><%= elem(e, 0) %></span><% end %>
+                value={Ecto.Changeset.get_field(@customer_changeset, :phone)}
+              />
+              <%= if e = @customer_changeset.errors[:phone] do %>
+                <span class="phx-field-error">{elem(e, 0)}</span>
+              <% end %>
             </div>
             <div class="field" style="flex: 1 1 200px;">
               <label>Email <small style="font-weight:normal;">(optional)</small></label>
-              <input class="input" type="email"
+              <input
+                class="input"
+                type="email"
                 name="subscription[new_customer][email]"
                 placeholder="email@example.com"
-                value={Ecto.Changeset.get_field(@customer_changeset, :email)} />
-              <%= if e = @customer_changeset.errors[:email] do %><span class="phx-field-error"><%= elem(e, 0) %></span><% end %>
+                value={Ecto.Changeset.get_field(@customer_changeset, :email)}
+              />
+              <%= if e = @customer_changeset.errors[:email] do %>
+                <span class="phx-field-error">{elem(e, 0)}</span>
+              <% end %>
             </div>
           </div>
         </div>
@@ -83,9 +108,12 @@
       <h3 class="section-title">Plan</h3>
       <div class="field">
         <label>Subscription Plan *</label>
-        <.input type="select" field={f[:subscription_plan_id]}
+        <.input
+          type="select"
+          field={f[:subscription_plan_id]}
           options={[{"Choose a plan...", ""} | Enum.map(@plans, &{plan_label(&1), &1.id})]}
-          onchange="updatePlanPreview(this.value)" />
+          onchange="updatePlanPreview(this.value)"
+        />
       </div>
 
       <div id="plan-preview" class="plan-preview" style="display:none;">
@@ -119,14 +147,25 @@
           </select>
           <input
             id="discount_value_input"
-            type="number" step="0.01" min="0" value="0"
+            type="number"
+            step="0.01"
+            min="0"
+            value="0"
             class="form-input"
             style="width: 120px;"
           />
-          <input type="hidden" id="discount_cents_hidden"
-                 name="subscription[discount_cents]" value="0" />
+          <input
+            type="hidden"
+            id="discount_cents_hidden"
+            name="subscription[discount_cents]"
+            value="0"
+          />
         </div>
-        <span id="discount_preview" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;"></span>
+        <span
+          id="discount_preview"
+          style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;"
+        >
+        </span>
       </div>
     </div>
 
@@ -141,21 +180,30 @@
         <div class="field">
           <label>End Date *</label>
           <.input type="date" field={f[:ends_on]} id="sub-ends-on" />
-          <span id="end-date-hint" class="field-hint" style="display:none;">Calculated from plan</span>
+          <span id="end-date-hint" class="field-hint" style="display:none;">
+            Calculated from plan
+          </span>
         </div>
         <div class="field">
           <label>Status</label>
-          <.input type="select" field={f[:status]} options={[
-            {"Active", "active"},
-            {"Paused", "paused"},
-            {"Cancelled", "cancelled"},
-            {"Expired", "expired"}
-          ]} />
+          <.input
+            type="select"
+            field={f[:status]}
+            options={[
+              {"Active", "active"},
+              {"Paused", "paused"},
+              {"Cancelled", "cancelled"},
+              {"Expired", "expired"}
+            ]}
+          />
         </div>
         <div class="field">
           <label>Partner Split <small style="font-weight: normal;">(optional)</small></label>
-          <.input type="select" field={f[:partner_split_id]}
-            options={[{"— unattributed —", ""} | @partner_split_options]} />
+          <.input
+            type="select"
+            field={f[:partner_split_id]}
+            options={[{"— unattributed —", ""} | @partner_split_options]}
+          />
         </div>
       </div>
     </div>
@@ -163,10 +211,17 @@
     <%!-- ── Notes ───────────────────────────────────────── --%>
     <div class="form-section">
       <h3 class="section-title">
-        Notes <small style="font-weight: normal; font-size: 0.8rem; color: var(--text-muted);">(optional)</small>
+        Notes
+        <small style="font-weight: normal; font-size: 0.8rem; color: var(--text-muted);">
+          (optional)
+        </small>
       </h3>
       <div class="field">
-        <.input type="textarea" field={f[:notes]} placeholder="Any notes about this subscription..." />
+        <.input
+          type="textarea"
+          field={f[:notes]}
+          placeholder="Any notes about this subscription..."
+        />
       </div>
     </div>
 

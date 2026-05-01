@@ -1,11 +1,11 @@
 <section class="content">
   <header class="content-header">
     <div>
-      <h1 class="page-title"><%= @rental.space.name %></h1>
+      <h1 class="page-title">{@rental.space.name}</h1>
       <p class="page-subtitle">
-        <%= @rental.renter_name %> ·
+        {@rental.renter_name} ·
         <span class={"status-badge #{status_class(@rental.status)}"}>
-          <%= String.capitalize(@rental.status) %>
+          {String.capitalize(@rental.status)}
         </span>
       </p>
     </div>
@@ -29,36 +29,37 @@
   </header>
 
   <div class="content-body">
-
     <%!-- Payment summary --%>
     <section class="card" style="margin-bottom: 1.25rem;">
       <h3 class="ledger-title">Payment Summary</h3>
       <div class="ledger-rows">
         <div class="ledger-row">
           <span class="ledger-label">Base Amount</span>
-          <span class="ledger-value"><%= format_currency(@rental.amount_cents) %></span>
+          <span class="ledger-value">{format_currency(@rental.amount_cents)}</span>
         </div>
         <div class="ledger-row">
           <span class="ledger-label">IVA (16%)</span>
-          <span class="ledger-value"><%= format_currency(@rental.iva_cents || 0) %></span>
+          <span class="ledger-value">{format_currency(@rental.iva_cents || 0)}</span>
         </div>
         <%= if (@rental.discount_cents || 0) > 0 do %>
           <div class="ledger-row">
             <span class="ledger-label">Discount</span>
-            <span class="ledger-value ledger-value--discount">− <%= format_currency(@rental.discount_cents) %></span>
+            <span class="ledger-value ledger-value--discount">
+              − {format_currency(@rental.discount_cents)}
+            </span>
           </div>
         <% end %>
         <div class="ledger-row ledger-row--total">
           <span class="ledger-label">Total Due</span>
-          <span class="ledger-value"><%= format_currency(@summary.total_cents) %></span>
+          <span class="ledger-value">{format_currency(@summary.total_cents)}</span>
         </div>
         <div class="ledger-row">
           <span class="ledger-label">Paid</span>
-          <span class="ledger-value"><%= format_currency(@summary.paid_cents) %></span>
+          <span class="ledger-value">{format_currency(@summary.paid_cents)}</span>
         </div>
         <div class={"ledger-row #{if @summary.outstanding_cents > 0, do: "ledger-row--danger", else: "ledger-row--success"}"}>
           <span class="ledger-label">Outstanding</span>
-          <span class="ledger-value"><%= format_currency(@summary.outstanding_cents) %></span>
+          <span class="ledger-value">{format_currency(@summary.outstanding_cents)}</span>
         </div>
       </div>
     </section>
@@ -67,28 +68,28 @@
       <div class="info-grid">
         <div class="info-item">
           <span class="info-label">Starts</span>
-          <span class="info-value"><%= format_datetime(@rental.starts_at) %></span>
+          <span class="info-value">{format_datetime(@rental.starts_at)}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Ends</span>
-          <span class="info-value"><%= format_datetime(@rental.ends_at) %></span>
+          <span class="info-value">{format_datetime(@rental.ends_at)}</span>
         </div>
         <%= if @rental.renter_phone do %>
           <div class="info-item">
             <span class="info-label">Phone</span>
-            <span class="info-value"><%= @rental.renter_phone %></span>
+            <span class="info-value">{@rental.renter_phone}</span>
           </div>
         <% end %>
         <%= if @rental.renter_email do %>
           <div class="info-item">
             <span class="info-label">Email</span>
-            <span class="info-value"><%= @rental.renter_email %></span>
+            <span class="info-value">{@rental.renter_email}</span>
           </div>
         <% end %>
         <%= if @rental.customer do %>
           <div class="info-item">
             <span class="info-label">Member</span>
-            <span class="info-value"><%= @rental.customer.name %></span>
+            <span class="info-value">{@rental.customer.name}</span>
           </div>
         <% end %>
         <div class="info-item">
@@ -98,7 +99,7 @@
               <span class="status-badge status-paid">Fully Paid</span>
               <%= if @rental.paid_at do %>
                 <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.35rem;">
-                  <%= format_date(@rental.paid_at) %>
+                  {format_date(@rental.paid_at)}
                 </span>
               <% end %>
             <% else %>
@@ -124,10 +125,12 @@
           <tbody>
             <%= for payment <- @payments do %>
               <tr>
-                <td><%= format_date(payment.payment_date) %></td>
-                <td style="font-weight: 500;"><%= format_currency(payment.amount_cents) %></td>
-                <td><%= if payment.method, do: String.capitalize(payment.method), else: "—" %></td>
-                <td style="color: var(--text-muted); font-size: 0.875rem;"><%= payment.note || "—" %></td>
+                <td>{format_date(payment.payment_date)}</td>
+                <td style="font-weight: 500;">{format_currency(payment.amount_cents)}</td>
+                <td>{if payment.method, do: String.capitalize(payment.method), else: "—"}</td>
+                <td style="color: var(--text-muted); font-size: 0.875rem;">
+                  {payment.note || "—"}
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -140,9 +143,8 @@
         <div class="card-header">
           <h2 class="card-title">Notes</h2>
         </div>
-        <p class="card-body-text"><%= @rental.notes %></p>
+        <p class="card-body-text">{@rental.notes}</p>
       </section>
     <% end %>
-
   </div>
 </section>

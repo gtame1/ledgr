@@ -1,165 +1,201 @@
 <section class="content">
-    <header class="content-header">
-      <h1 class="page-title">Inventory Reconciliation</h1>
-    </header>
+  <header class="content-header">
+    <h1 class="page-title">Inventory Reconciliation</h1>
+  </header>
 
-    <div class="content-body">
-      <section class="card">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
-          <div>
-            <h2 class="card-title" style="margin: 0;">Reconcile Inventory Quantities</h2>
-            <p class="card-subtitle" style="margin: 0.25rem 0 0 0;">
-              Compare system quantities against actual counts and adjust as needed.
-            </p>
-          </div>
-          <div style="font-size: 0.85rem; color: #6b7280;">
-            <%= if @last_reconciled_date do %>
-              Last reconciled: <strong style="color: #1e40af;"><%= @last_reconciled_date %></strong>
-            <% else %>
-              Last reconciled: <strong style="color: #9ca3af;">Never</strong>
-            <% end %>
-          </div>
+  <div class="content-body">
+    <section class="card">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+        <div>
+          <h2 class="card-title" style="margin: 0;">Reconcile Inventory Quantities</h2>
+          <p class="card-subtitle" style="margin: 0.25rem 0 0 0;">
+            Compare system quantities against actual counts and adjust as needed.
+          </p>
         </div>
+        <div style="font-size: 0.85rem; color: #6b7280;">
+          <%= if @last_reconciled_date do %>
+            Last reconciled: <strong style="color: #1e40af;">{@last_reconciled_date}</strong>
+          <% else %>
+            Last reconciled: <strong style="color: #9ca3af;">Never</strong>
+          <% end %>
+        </div>
+      </div>
 
-        <% grouped = Enum.group_by(@inventory_items, & &1.ingredient) %>
+      <% grouped = Enum.group_by(@inventory_items, & &1.ingredient) %>
 
-        <div class="table-wrapper">
-          <table class="table" style="font-size: 0.9rem;">
-            <thead>
-              <tr>
-                <th style="white-space: nowrap;">Item</th>
-                <th style="white-space: nowrap;">Location</th>
-                <th style="white-space: nowrap; text-align: right;">System Qty</th>
-                <th style="white-space: nowrap; text-align: center;">Actual Qty</th>
-                <th style="white-space: nowrap; text-align: right;">Diff</th>
-                <th style="white-space: nowrap; text-align: right;">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              <%= for {ingredient, items} <- Enum.sort_by(grouped, fn {ing, _} -> ing.code end) do %>
-                <% location_count = length(items) %>
-                <%= for {item, idx} <- Enum.with_index(items) do %>
-                  <tr style={if(idx == 0, do: "border-top: 2px solid #e5e7eb;", else: "")}>
-                    <%= if idx == 0 do %>
-                      <td rowspan={location_count} style="white-space: nowrap; vertical-align: top; padding-top: 0.6rem;">
-                        <strong><%= ingredient.code %></strong>
-                        <span style="color: #8b6f5b; margin-left: 0.25rem;"><%= ingredient.name %></span>
-                        <span style="font-size: 0.75rem; color: #9ca3af;">(<%= ingredient.unit %>)</span>
-                        <br/>
-                        <button
-                          type="button"
-                          class="transfer-toggle"
-                          data-ingredient={ingredient.code}
-                          style="font-size: 0.75rem; color: #3b82f6; background: none; border: none; cursor: pointer; padding: 0.15rem 0; text-decoration: underline;"
-                        >
-                          Transfer &rarr;
-                        </button>
-                      </td>
-                    <% end %>
-                    <td><.location_badge location={ item.location } /></td>
-                    <td class="numeric" style="text-align: right; font-variant-numeric: tabular-nums;"><%= item.quantity_on_hand %></td>
-                    <td style="text-align: center;">
-                      <.form
-                        for={%{}}
-                        method="post"
-                        action={dp(@domain_path_prefix, "/reconciliation/inventory/adjust")}
-                        class="inline-form"
-                        id={"adjust-form-#{item.ingredient.id}-#{item.location.id}"}
-                        style="display: inline-flex; gap: 0.4rem; align-items: center; margin: 0;"
+      <div class="table-wrapper">
+        <table class="table" style="font-size: 0.9rem;">
+          <thead>
+            <tr>
+              <th style="white-space: nowrap;">Item</th>
+              <th style="white-space: nowrap;">Location</th>
+              <th style="white-space: nowrap; text-align: right;">System Qty</th>
+              <th style="white-space: nowrap; text-align: center;">Actual Qty</th>
+              <th style="white-space: nowrap; text-align: right;">Diff</th>
+              <th style="white-space: nowrap; text-align: right;">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for {ingredient, items} <- Enum.sort_by(grouped, fn {ing, _} -> ing.code end) do %>
+              <% location_count = length(items) %>
+              <%= for {item, idx} <- Enum.with_index(items) do %>
+                <tr style={if(idx == 0, do: "border-top: 2px solid #e5e7eb;", else: "")}>
+                  <%= if idx == 0 do %>
+                    <td
+                      rowspan={location_count}
+                      style="white-space: nowrap; vertical-align: top; padding-top: 0.6rem;"
+                    >
+                      <strong>{ingredient.code}</strong>
+                      <span style="color: #8b6f5b; margin-left: 0.25rem;">{ingredient.name}</span>
+                      <span style="font-size: 0.75rem; color: #9ca3af;">({ingredient.unit})</span>
+                      <br />
+                      <button
+                        type="button"
+                        class="transfer-toggle"
+                        data-ingredient={ingredient.code}
+                        style="font-size: 0.75rem; color: #3b82f6; background: none; border: none; cursor: pointer; padding: 0.15rem 0; text-decoration: underline;"
                       >
-                        <input type="hidden" name="ingredient_id" value={item.ingredient.id} />
-                        <input type="hidden" name="location_id" value={item.location.id} />
-                        <input type="hidden" name="adjustment_date" value={today_mx()} />
-                        <input type="hidden" name="description" value="" />
-                        <input
-                          type="number"
-                          name="actual_quantity"
-                          step="1"
-                          value={item.quantity_on_hand}
-                          style="width: 70px; text-align: right; padding: 0.2rem 0.35rem;"
-                          class="numeric"
-                          data-item-key={"#{item.ingredient.id}-#{item.location.id}"}
-                        />
-                        <button class="btn btn-sm" type="submit" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">Adjust</button>
-                      </.form>
+                        Transfer &rarr;
+                      </button>
                     </td>
-                    <td class="numeric" style="text-align: right; font-variant-numeric: tabular-nums;" id={"diff-#{item.ingredient.id}-#{item.location.id}"}>
-                      <span style="color: #8b6f5b;">—</span>
-                    </td>
-                    <td style="text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;">
-                      <%= format_currency(item.total_value_cents) %>
-                      <%= if item.avg_cost_per_unit_cents > 0 do %>
-                        <span style="font-size: 0.75rem; color: #9ca3af;">
-                          (<%= format_currency(item.avg_cost_per_unit_cents) %>/u)
-                        </span>
-                      <% end %>
-                    </td>
-                  </tr>
-                <% end %>
-                <!-- Transfer row (hidden by default) -->
-                <tr class="transfer-row" data-ingredient={ingredient.code} style="display: none; background: #f8fafc;">
-                  <td colspan="6" style="padding: 0.5rem 0.75rem;">
+                  <% end %>
+                  <td><.location_badge location={item.location} /></td>
+                  <td
+                    class="numeric"
+                    style="text-align: right; font-variant-numeric: tabular-nums;"
+                  >
+                    {item.quantity_on_hand}
+                  </td>
+                  <td style="text-align: center;">
                     <.form
                       for={%{}}
                       method="post"
-                      action={dp(@domain_path_prefix, "/reconciliation/inventory/quick_transfer")}
-                      style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0;"
+                      action={dp(@domain_path_prefix, "/reconciliation/inventory/adjust")}
+                      class="inline-form"
+                      id={"adjust-form-#{item.ingredient.id}-#{item.location.id}"}
+                      style="display: inline-flex; gap: 0.4rem; align-items: center; margin: 0;"
                     >
-                      <input type="hidden" name="ingredient_code" value={ingredient.code} />
-                      <span style="font-size: 0.85rem; font-weight: 600; color: #374151;">Move</span>
+                      <input type="hidden" name="ingredient_id" value={item.ingredient.id} />
+                      <input type="hidden" name="location_id" value={item.location.id} />
+                      <input type="hidden" name="adjustment_date" value={today_mx()} />
+                      <input type="hidden" name="description" value="" />
                       <input
                         type="number"
-                        name="quantity"
-                        min="1"
+                        name="actual_quantity"
                         step="1"
-                        value="1"
-                        style="width: 60px; text-align: right; padding: 0.2rem 0.35rem;"
+                        value={item.quantity_on_hand}
+                        style="width: 70px; text-align: right; padding: 0.2rem 0.35rem;"
+                        class="numeric"
+                        data-item-key={"#{item.ingredient.id}-#{item.location.id}"}
                       />
-                      <span style="font-size: 0.85rem; color: #6b7280;">from</span>
-                      <select name="from_location_code" style="padding: 0.2rem 0.35rem; font-size: 0.85rem;">
-                        <%= for loc <- @locations do %>
-                          <option value={loc.code}><%= loc.name %></option>
-                        <% end %>
-                      </select>
-                      <span style="font-size: 0.85rem; color: #6b7280;">&rarr;</span>
-                      <select name="to_location_code" style="padding: 0.2rem 0.35rem; font-size: 0.85rem;">
-                        <%= for loc <- Enum.reverse(@locations) do %>
-                          <option value={loc.code}><%= loc.name %></option>
-                        <% end %>
-                      </select>
-                      <button class="btn btn-sm" type="submit" style="padding: 0.2rem 0.6rem; font-size: 0.8rem; background: #3b82f6; color: white;">Transfer</button>
+                      <button
+                        class="btn btn-sm"
+                        type="submit"
+                        style="padding: 0.2rem 0.5rem; font-size: 0.8rem;"
+                      >
+                        Adjust
+                      </button>
                     </.form>
+                  </td>
+                  <td
+                    class="numeric"
+                    style="text-align: right; font-variant-numeric: tabular-nums;"
+                    id={"diff-#{item.ingredient.id}-#{item.location.id}"}
+                  >
+                    <span style="color: #8b6f5b;">—</span>
+                  </td>
+                  <td style="text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;">
+                    {format_currency(item.total_value_cents)}
+                    <%= if item.avg_cost_per_unit_cents > 0 do %>
+                      <span style="font-size: 0.75rem; color: #9ca3af;">
+                        ({format_currency(item.avg_cost_per_unit_cents)}/u)
+                      </span>
+                    <% end %>
                   </td>
                 </tr>
               <% end %>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Reconcile All button -->
-        <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end;">
-          <button
-            type="button"
-            class="btn"
-            id="reconcile-all-btn"
-            style="background: #1e40af; color: white; padding: 0.5rem 1.25rem; font-weight: 600;"
-          >
-            Reconcile All
-          </button>
-        </div>
-
-        <!-- Hidden form for Reconcile All (populated by JS) -->
-        <.form
-          for={%{}}
-          method="post"
-          action={dp(@domain_path_prefix, "/reconciliation/inventory/reconcile_all")}
-          id="reconcile-all-form"
-          style="display: none;"
+              <!-- Transfer row (hidden by default) -->
+              <tr
+                class="transfer-row"
+                data-ingredient={ingredient.code}
+                style="display: none; background: #f8fafc;"
+              >
+                <td colspan="6" style="padding: 0.5rem 0.75rem;">
+                  <.form
+                    for={%{}}
+                    method="post"
+                    action={dp(@domain_path_prefix, "/reconciliation/inventory/quick_transfer")}
+                    style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0;"
+                  >
+                    <input type="hidden" name="ingredient_code" value={ingredient.code} />
+                    <span style="font-size: 0.85rem; font-weight: 600; color: #374151;">
+                      Move
+                    </span>
+                    <input
+                      type="number"
+                      name="quantity"
+                      min="1"
+                      step="1"
+                      value="1"
+                      style="width: 60px; text-align: right; padding: 0.2rem 0.35rem;"
+                    />
+                    <span style="font-size: 0.85rem; color: #6b7280;">from</span>
+                    <select
+                      name="from_location_code"
+                      style="padding: 0.2rem 0.35rem; font-size: 0.85rem;"
+                    >
+                      <%= for loc <- @locations do %>
+                        <option value={loc.code}>{loc.name}</option>
+                      <% end %>
+                    </select>
+                    <span style="font-size: 0.85rem; color: #6b7280;">&rarr;</span>
+                    <select
+                      name="to_location_code"
+                      style="padding: 0.2rem 0.35rem; font-size: 0.85rem;"
+                    >
+                      <%= for loc <- Enum.reverse(@locations) do %>
+                        <option value={loc.code}>{loc.name}</option>
+                      <% end %>
+                    </select>
+                    <button
+                      class="btn btn-sm"
+                      type="submit"
+                      style="padding: 0.2rem 0.6rem; font-size: 0.8rem; background: #3b82f6; color: white;"
+                    >
+                      Transfer
+                    </button>
+                  </.form>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+<!-- Reconcile All button -->
+      <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end;">
+        <button
+          type="button"
+          class="btn"
+          id="reconcile-all-btn"
+          style="background: #1e40af; color: white; padding: 0.5rem 1.25rem; font-weight: 600;"
         >
-        </.form>
-      </section>
-    </div>
-  </section>
+          Reconcile All
+        </button>
+      </div>
+      
+<!-- Hidden form for Reconcile All (populated by JS) -->
+      <.form
+        for={%{}}
+        method="post"
+        action={dp(@domain_path_prefix, "/reconciliation/inventory/reconcile_all")}
+        id="reconcile-all-form"
+        style="display: none;"
+      >
+      </.form>
+    </section>
+  </div>
+</section>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {

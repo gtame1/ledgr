@@ -17,7 +17,18 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.InventoryItem do
 
   def changeset(stock, attrs) do
     stock
-    |> cast(attrs, [:quantity_on_hand, :avg_cost_per_unit_cents, :ingredient_id, :location_id, :negative_stock])
-    |> validate_required([:quantity_on_hand, :avg_cost_per_unit_cents, :ingredient_id, :location_id])
+    |> cast(attrs, [
+      :quantity_on_hand,
+      :avg_cost_per_unit_cents,
+      :ingredient_id,
+      :location_id,
+      :negative_stock
+    ])
+    |> validate_required([
+      :quantity_on_hand,
+      :avg_cost_per_unit_cents,
+      :ingredient_id,
+      :location_id
+    ])
   end
 end

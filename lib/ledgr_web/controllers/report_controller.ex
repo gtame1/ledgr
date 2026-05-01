@@ -28,15 +28,16 @@ defmodule LedgrWeb.ReportController do
 
     metrics = domain.dashboard_metrics(start_date, end_date)
 
-    template = cond do
-      domain == Ledgr.Domains.VolumeStudio  -> :volume_studio_dashboard
-      domain == Ledgr.Domains.LedgrHQ       -> :ledgr_hq_dashboard
-      domain == Ledgr.Domains.CasaTame      -> :casa_tame_dashboard
-      domain == Ledgr.Domains.MrMunchMe     -> :mr_munch_me_dashboard
-      domain == Ledgr.Domains.HelloDoctor   -> :hello_doctor_dashboard
-      domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_dashboard
-      true                                   -> :dashboard
-    end
+    template =
+      cond do
+        domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
+        domain == Ledgr.Domains.LedgrHQ -> :ledgr_hq_dashboard
+        domain == Ledgr.Domains.CasaTame -> :casa_tame_dashboard
+        domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_dashboard
+        domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_dashboard
+        domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_dashboard
+        true -> :dashboard
+      end
 
     render(conn, template,
       metrics: metrics,
@@ -55,31 +56,37 @@ defmodule LedgrWeb.ReportController do
     {start_date, end_date} = resolve_period(params)
     {earliest_date, latest_date} = domain.data_date_range()
 
-    summary  = Accounting.profit_and_loss(start_date, end_date)
-    monthly  = Accounting.profit_and_loss_monthly(5)  # last 6 months including current
+    summary = Accounting.profit_and_loss(start_date, end_date)
+    # last 6 months including current
+    monthly = Accounting.profit_and_loss_monthly(5)
 
-    template = cond do
-      domain == Ledgr.Domains.CasaTame -> :casa_tame_pnl
-      domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_pnl
-      domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_pnl
-      domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_pnl
-      true -> :pnl
-    end
+    template =
+      cond do
+        domain == Ledgr.Domains.CasaTame -> :casa_tame_pnl
+        domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_pnl
+        domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_pnl
+        domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_pnl
+        true -> :pnl
+      end
 
     # Casa Tame needs expense/income totals by currency for the split P&L
     extra_assigns =
       if domain == Ledgr.Domains.CasaTame do
         [
           expense_totals: Ledgr.Domains.CasaTame.Expenses.total_by_currency(start_date, end_date),
-          expense_by_account: Ledgr.Domains.CasaTame.Expenses.totals_by_account_and_currency(start_date, end_date),
-          income_by_category: Ledgr.Domains.CasaTame.Income.totals_by_category_and_currency(start_date, end_date),
+          expense_by_account:
+            Ledgr.Domains.CasaTame.Expenses.totals_by_account_and_currency(start_date, end_date),
+          income_by_category:
+            Ledgr.Domains.CasaTame.Income.totals_by_category_and_currency(start_date, end_date),
           income_totals: Ledgr.Domains.CasaTame.Income.total_by_currency(start_date, end_date)
         ]
       else
         []
       end
 
-    render(conn, template,
+    render(
+      conn,
+      template,
       [
         summary: summary,
         monthly: monthly,
@@ -102,13 +109,14 @@ defmodule LedgrWeb.ReportController do
 
     bs = Accounting.balance_sheet(as_of)
 
-    template = cond do
-      Domain.current() == Ledgr.Domains.CasaTame -> :casa_tame_balance_sheet
-      Domain.current() == Ledgr.Domains.MrMunchMe -> :mr_munch_me_balance_sheet
-      Domain.current() == Ledgr.Domains.HelloDoctor -> :hello_doctor_balance_sheet
-      Domain.current() == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_balance_sheet
-      true -> :balance_sheet
-    end
+    template =
+      cond do
+        Domain.current() == Ledgr.Domains.CasaTame -> :casa_tame_balance_sheet
+        Domain.current() == Ledgr.Domains.MrMunchMe -> :mr_munch_me_balance_sheet
+        Domain.current() == Ledgr.Domains.HelloDoctor -> :hello_doctor_balance_sheet
+        Domain.current() == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_balance_sheet
+        true -> :balance_sheet
+      end
 
     render(conn, template,
       balance_sheet: bs,
@@ -158,14 +166,19 @@ defmodule LedgrWeb.ReportController do
             [{_label, id} | _] -> id
             [] -> nil
           end
-        "" -> nil
+
+        "" ->
+          nil
+
         id_str when is_binary(id_str) ->
           case Integer.parse(id_str) do
             {id, _} -> id
             :error -> nil
           end
+
         id when is_integer(id) ->
           id
+
         _ ->
           nil
       end
@@ -203,11 +216,12 @@ defmodule LedgrWeb.ReportController do
 
     cash_flow_data = Reporting.cash_flow(start_date, end_date)
 
-    template = cond do
-      domain == Ledgr.Domains.CasaTame -> :casa_tame_cash_flow
-      domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_cash_flow
-      true -> :cash_flow
-    end
+    template =
+      cond do
+        domain == Ledgr.Domains.CasaTame -> :casa_tame_cash_flow
+        domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_cash_flow
+        true -> :cash_flow
+      end
 
     render(conn, template,
       cash_flow: cash_flow_data,
@@ -239,21 +253,25 @@ defmodule LedgrWeb.ReportController do
   end
 
   defp calculate_totals(all_unit_economics) do
-    Enum.reduce(all_unit_economics, %{
-      units_sold: 0,
-      revenue_cents: 0,
-      cogs_cents: 0,
-      gross_margin_cents: 0,
-      net_profit_cents: 0
-    }, fn ue, acc ->
+    Enum.reduce(
+      all_unit_economics,
       %{
-        units_sold: acc.units_sold + ue.units_sold,
-        revenue_cents: acc.revenue_cents + ue.revenue_cents,
-        cogs_cents: acc.cogs_cents + ue.cogs_cents,
-        gross_margin_cents: acc.gross_margin_cents + ue.gross_margin_cents,
-        net_profit_cents: acc.net_profit_cents + ue.net_profit_cents
-      }
-    end)
+        units_sold: 0,
+        revenue_cents: 0,
+        cogs_cents: 0,
+        gross_margin_cents: 0,
+        net_profit_cents: 0
+      },
+      fn ue, acc ->
+        %{
+          units_sold: acc.units_sold + ue.units_sold,
+          revenue_cents: acc.revenue_cents + ue.revenue_cents,
+          cogs_cents: acc.cogs_cents + ue.cogs_cents,
+          gross_margin_cents: acc.gross_margin_cents + ue.gross_margin_cents,
+          net_profit_cents: acc.net_profit_cents + ue.net_profit_cents
+        }
+      end
+    )
     |> then(fn totals ->
       gross_margin_percent =
         if totals.revenue_cents > 0 do
@@ -270,9 +288,14 @@ defmodule LedgrWeb.ReportController do
         end
 
       # Calculate per-unit averages
-      revenue_per_unit_cents = if totals.units_sold > 0, do: div(totals.revenue_cents, totals.units_sold), else: 0
-      cogs_per_unit_cents = if totals.units_sold > 0, do: div(totals.cogs_cents, totals.units_sold), else: 0
-      gross_margin_per_unit_cents = if totals.units_sold > 0, do: div(totals.gross_margin_cents, totals.units_sold), else: 0
+      revenue_per_unit_cents =
+        if totals.units_sold > 0, do: div(totals.revenue_cents, totals.units_sold), else: 0
+
+      cogs_per_unit_cents =
+        if totals.units_sold > 0, do: div(totals.cogs_cents, totals.units_sold), else: 0
+
+      gross_margin_per_unit_cents =
+        if totals.units_sold > 0, do: div(totals.gross_margin_cents, totals.units_sold), else: 0
 
       totals
       |> Map.put(:gross_margin_percent, gross_margin_percent)
@@ -298,7 +321,10 @@ defmodule LedgrWeb.ReportController do
         delivered_order_count: delivered_order_count
       )
 
-    template = if Domain.current() == Ledgr.Domains.MrMunchMe, do: :mr_munch_me_financial_analysis, else: :financial_analysis
+    template =
+      if Domain.current() == Ledgr.Domains.MrMunchMe,
+        do: :mr_munch_me_financial_analysis,
+        else: :financial_analysis
 
     render(conn, template,
       analysis: analysis,
@@ -350,6 +376,7 @@ defmodule LedgrWeb.ReportController do
         today = today_mx()
         start_of_month = %Date{today | day: 1}
         {start_of_month, today}
+
       {earliest, latest} ->
         # Start from the 1st of the earliest month
         start_date = %Date{earliest | day: 1}
@@ -386,10 +413,13 @@ defmodule LedgrWeb.ReportController do
               all_lines
               |> Enum.group_by(fn line -> line.journal_entry.payee || "(No payee)" end)
               |> Enum.map(fn {payee, lines} ->
-                balance = Enum.reduce(lines, 0, fn l, acc -> acc + l.credit_cents - l.debit_cents end)
+                balance =
+                  Enum.reduce(lines, 0, fn l, acc -> acc + l.credit_cents - l.debit_cents end)
+
                 %{payee: payee, balance_cents: balance, lines: Enum.take(lines, 10)}
               end)
-              |> Enum.sort_by(& -&1.balance_cents)
+              |> Enum.sort_by(&(-&1.balance_cents))
+
             {:general, payee_groups}
           else
             {:named, Enum.take(all_lines, 10)}
@@ -407,7 +437,6 @@ defmodule LedgrWeb.ReportController do
   end
 end
 
-
 defmodule LedgrWeb.ReportHTML do
   use LedgrWeb, :html
 
@@ -415,9 +444,9 @@ defmodule LedgrWeb.ReportHTML do
 
   embed_templates "report_html/*"
 
-  def status_dot_color("active"),  do: "#16a34a"
-  def status_dot_color("trial"),   do: "#d97706"
-  def status_dot_color("paused"),  do: "#9ca3af"
+  def status_dot_color("active"), do: "#16a34a"
+  def status_dot_color("trial"), do: "#d97706"
+  def status_dot_color("paused"), do: "#9ca3af"
   def status_dot_color("churned"), do: "#ef4444"
-  def status_dot_color(_),         do: "#9ca3af"
+  def status_dot_color(_), do: "#9ca3af"
 end

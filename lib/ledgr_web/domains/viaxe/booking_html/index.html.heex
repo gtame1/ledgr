@@ -4,22 +4,29 @@
     <p class="card-subtitle">Manage travel bookings and reservations</p>
   </div>
 
-  <div class="actions" style="margin-bottom: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+  <div
+    class="actions"
+    style="margin-bottom: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;"
+  >
     <.link navigate={dp(@domain_path_prefix, "/bookings/new")} class="btn primary">
       + New Booking
     </.link>
   </div>
-
-  <!-- Status filter tabs -->
+  
+<!-- Status filter tabs -->
   <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-    <.link navigate={dp(@domain_path_prefix, "/bookings")}
-      class={"btn btn-sm #{if !@current_status, do: "primary", else: ""}"}>
-      All (<%= Map.values(@status_counts) |> Enum.sum() %>)
+    <.link
+      navigate={dp(@domain_path_prefix, "/bookings")}
+      class={"btn btn-sm #{if !@current_status, do: "primary", else: ""}"}
+    >
+      All ({Map.values(@status_counts) |> Enum.sum()})
     </.link>
     <%= for {status, label} <- [{"draft", "Draft"}, {"confirmed", "Confirmed"}, {"in_progress", "In Progress"}, {"completed", "Completed"}, {"canceled", "Canceled"}] do %>
-      <.link navigate={dp(@domain_path_prefix, "/bookings?status=#{status}")}
-        class={"btn btn-sm #{if @current_status == status, do: "primary", else: ""}"}>
-        <%= label %> (<%= Map.get(@status_counts, status, 0) %>)
+      <.link
+        navigate={dp(@domain_path_prefix, "/bookings?status=#{status}")}
+        class={"btn btn-sm #{if @current_status == status, do: "primary", else: ""}"}
+      >
+        {label} ({Map.get(@status_counts, status, 0)})
       </.link>
     <% end %>
   </div>
@@ -48,23 +55,29 @@
           <%= for booking <- @bookings do %>
             <tr>
               <td>
-                <.link navigate={dp(@domain_path_prefix, "/bookings/#{booking.id}")} class="link-text">
-                  <%= booking.id %>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/bookings/#{booking.id}")}
+                  class="link-text"
+                >
+                  {booking.id}
                 </.link>
               </td>
-              <td><%= booking.customer_name %></td>
-              <td><%= booking_type_label(booking.booking_type) %></td>
-              <td><%= booking.destination || "—" %></td>
-              <td><%= booking.travel_date || "—" %></td>
-              <td><%= format_currency(booking.total_price_cents) %></td>
-              <td><%= format_currency(booking.commission_cents) %></td>
+              <td>{booking.customer_name}</td>
+              <td>{booking_type_label(booking.booking_type)}</td>
+              <td>{booking.destination || "—"}</td>
+              <td>{booking.travel_date || "—"}</td>
+              <td>{format_currency(booking.total_price_cents)}</td>
+              <td>{format_currency(booking.commission_cents)}</td>
               <td>
                 <span class={"status-badge #{status_class(booking.status)}"}>
-                  <%= String.capitalize(String.replace(booking.status, "_", " ")) %>
+                  {String.capitalize(String.replace(booking.status, "_", " "))}
                 </span>
               </td>
               <td>
-                <.link navigate={dp(@domain_path_prefix, "/bookings/#{booking.id}")} class="btn btn-sm">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/bookings/#{booking.id}")}
+                  class="btn btn-sm"
+                >
                   View
                 </.link>
               </td>

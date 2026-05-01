@@ -9,15 +9,30 @@
   <div class="content-body">
     <%!-- ── Period selector ─────────────────────────────────────────── --%>
     <section class="card">
-      <.form for={%{}} as={:period} method="get" action={dp(@domain_path_prefix, "/partner-splits/breakdown")}
-             style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap;">
+      <.form
+        for={%{}}
+        as={:period}
+        method="get"
+        action={dp(@domain_path_prefix, "/partner-splits/breakdown")}
+        style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap;"
+      >
         <div class="field" style="margin: 0;">
           <label>Start date</label>
-          <input type="date" name="start_date" value={Date.to_iso8601(@start_date)} class="form-input" />
+          <input
+            type="date"
+            name="start_date"
+            value={Date.to_iso8601(@start_date)}
+            class="form-input"
+          />
         </div>
         <div class="field" style="margin: 0;">
           <label>End date</label>
-          <input type="date" name="end_date" value={Date.to_iso8601(@end_date)} class="form-input" />
+          <input
+            type="date"
+            name="end_date"
+            value={Date.to_iso8601(@end_date)}
+            class="form-input"
+          />
         </div>
         <div>
           <button type="submit" class="btn primary">Apply</button>
@@ -28,21 +43,30 @@
     <%!-- ── Totals ──────────────────────────────────────────────────── --%>
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title">Totals — <%= Calendar.strftime(@start_date, "%b %d, %Y") %> to <%= Calendar.strftime(@end_date, "%b %d, %Y") %></h2>
+        <h2 class="card-title">
+          Totals — {Calendar.strftime(@start_date, "%b %d, %Y")} to {Calendar.strftime(
+            @end_date,
+            "%b %d, %Y"
+          )}
+        </h2>
       </div>
 
       <div class="dashboard-metrics">
         <div class="metric-card">
           <div class="metric-label">Total Revenue</div>
-          <div class="metric-value" style="color: var(--vs-green, #16a34a);"><%= format_currency(@breakdown.total.revenue_cents) %></div>
+          <div class="metric-value" style="color: var(--vs-green, #16a34a);">
+            {format_currency(@breakdown.total.revenue_cents)}
+          </div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Total Expenses</div>
-          <div class="metric-value" style="color: var(--vs-red, #dc2626);"><%= format_currency(@breakdown.total.expense_cents) %></div>
+          <div class="metric-value" style="color: var(--vs-red, #dc2626);">
+            {format_currency(@breakdown.total.expense_cents)}
+          </div>
         </div>
         <div class="metric-card metric-card--featured">
           <div class="metric-label">Net</div>
-          <div class="metric-value"><%= format_currency(@breakdown.total.net_cents) %></div>
+          <div class="metric-value">{format_currency(@breakdown.total.net_cents)}</div>
         </div>
       </div>
     </section>
@@ -66,15 +90,21 @@
           <tbody>
             <%= if Enum.empty?(@breakdown.partners) do %>
               <tr>
-                <td colspan="4" style="color: var(--text-muted); font-style: italic;">No partners configured.</td>
+                <td colspan="4" style="color: var(--text-muted); font-style: italic;">
+                  No partners configured.
+                </td>
               </tr>
             <% else %>
               <%= for row <- @breakdown.partners do %>
                 <tr>
-                  <td><strong><%= row.partner.name %></strong></td>
-                  <td class="numeric" style="color: #16a34a;"><%= format_currency(row.revenue_cents) %></td>
-                  <td class="numeric" style="color: #dc2626;"><%= format_currency(row.expense_cents) %></td>
-                  <td class="numeric"><strong><%= format_currency(row.net_cents) %></strong></td>
+                  <td><strong>{row.partner.name}</strong></td>
+                  <td class="numeric" style="color: #16a34a;">
+                    {format_currency(row.revenue_cents)}
+                  </td>
+                  <td class="numeric" style="color: #dc2626;">
+                    {format_currency(row.expense_cents)}
+                  </td>
+                  <td class="numeric"><strong>{format_currency(row.net_cents)}</strong></td>
                 </tr>
               <% end %>
             <% end %>
@@ -83,9 +113,9 @@
             <%= if @breakdown.unattributed.revenue_cents > 0 or @breakdown.unattributed.expense_cents > 0 do %>
               <tr style="border-top: 2px solid var(--border-strong); font-style: italic;">
                 <td><span style="color: var(--text-muted);">Unattributed</span></td>
-                <td class="numeric"><%= format_currency(@breakdown.unattributed.revenue_cents) %></td>
-                <td class="numeric"><%= format_currency(@breakdown.unattributed.expense_cents) %></td>
-                <td class="numeric"><%= format_currency(@breakdown.unattributed.net_cents) %></td>
+                <td class="numeric">{format_currency(@breakdown.unattributed.revenue_cents)}</td>
+                <td class="numeric">{format_currency(@breakdown.unattributed.expense_cents)}</td>
+                <td class="numeric">{format_currency(@breakdown.unattributed.net_cents)}</td>
               </tr>
             <% end %>
           </tbody>

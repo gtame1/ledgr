@@ -159,7 +159,7 @@ defmodule Ledgr.Domains.VolumeStudio.SpacesTest do
       attrs = %{
         space_id: space.id,
         renter_name: "Test Renter",
-        amount_cents: 100000,
+        amount_cents: 100_000,
         starts_at: now,
         ends_at: DateTime.add(now, 3600, :second)
       }
@@ -185,28 +185,30 @@ defmodule Ledgr.Domains.VolumeStudio.SpacesTest do
 
   describe "payment_summary/1" do
     test "returns correct summary for unpaid rental" do
-      rental = rental_fixture(%{amount_cents: 100000})
+      rental = rental_fixture(%{amount_cents: 100_000})
       summary = Spaces.payment_summary(rental)
 
-      assert summary.base_cents == 100000
+      assert summary.base_cents == 100_000
       assert summary.paid_cents == 0
       assert summary.outstanding_cents == summary.total_cents
     end
 
     test "accounts for discount in total" do
-      rental = rental_fixture(%{amount_cents: 100000})
+      rental = rental_fixture(%{amount_cents: 100_000})
       {:ok, discounted} = Spaces.update_space_rental(rental, %{discount_cents: 10000})
       summary = Spaces.payment_summary(discounted)
 
       # base(100000) + iva(16000) - discount(10000) = 106000
       assert summary.discount_cents == 10000
-      assert summary.total_cents == 106000
+      assert summary.total_cents == 106_000
     end
 
     test "outstanding is 0 when fully paid" do
-      rental = rental_fixture(%{amount_cents: 100000})
+      rental = rental_fixture(%{amount_cents: 100_000})
       # total = 100000 base + 16000 IVA = 116000
-      {:ok, paid_rental} = Spaces.record_payment(rental, %{amount_cents: 116000, payment_date: Date.utc_today()})
+      {:ok, paid_rental} =
+        Spaces.record_payment(rental, %{amount_cents: 116_000, payment_date: Date.utc_today()})
+
       summary = Spaces.payment_summary(paid_rental)
       assert summary.outstanding_cents == 0
     end
@@ -214,7 +216,7 @@ defmodule Ledgr.Domains.VolumeStudio.SpacesTest do
 
   describe "record_payment/2" do
     test "increments paid_cents and creates a journal entry" do
-      rental = rental_fixture(%{amount_cents: 100000})
+      rental = rental_fixture(%{amount_cents: 100_000})
       attrs = %{amount_cents: 50000, payment_date: Date.utc_today(), method: "cash"}
 
       assert {:ok, updated} = Spaces.record_payment(rental, attrs)
@@ -222,16 +224,16 @@ defmodule Ledgr.Domains.VolumeStudio.SpacesTest do
     end
 
     test "sets paid_at when fully paid" do
-      rental = rental_fixture(%{amount_cents: 100000})
+      rental = rental_fixture(%{amount_cents: 100_000})
       # Total = 100000 + 16000 iva = 116000
-      attrs = %{amount_cents: 116000, payment_date: Date.utc_today()}
+      attrs = %{amount_cents: 116_000, payment_date: Date.utc_today()}
 
       {:ok, updated} = Spaces.record_payment(rental, attrs)
       assert updated.paid_at != nil
     end
 
     test "allows multiple partial payments" do
-      rental = rental_fixture(%{amount_cents: 100000})
+      rental = rental_fixture(%{amount_cents: 100_000})
       attrs1 = %{amount_cents: 50000, payment_date: Date.utc_today()}
       {:ok, after_first} = Spaces.record_payment(rental, attrs1)
 
@@ -249,8 +251,10 @@ defmodule Ledgr.Domains.VolumeStudio.SpacesTest do
     end
 
     test "returns payments after recording" do
-      rental = rental_fixture(%{amount_cents: 100000})
-      {:ok, updated} = Spaces.record_payment(rental, %{amount_cents: 50000, payment_date: Date.utc_today()})
+      rental = rental_fixture(%{amount_cents: 100_000})
+
+      {:ok, updated} =
+        Spaces.record_payment(rental, %{amount_cents: 50000, payment_date: Date.utc_today()})
 
       payments = Spaces.list_rental_payments(updated)
       assert length(payments) == 1

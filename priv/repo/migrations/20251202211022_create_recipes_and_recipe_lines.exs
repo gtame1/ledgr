@@ -11,7 +11,10 @@ defmodule Ledgr.Repo.Migrations.CreateRecipesAndRecipeLines do
       timestamps()
     end
 
-    create unique_index(:recipes, [:product_id, :effective_date], name: :recipes_product_id_effective_date_index)
+    create unique_index(:recipes, [:product_id, :effective_date],
+             name: :recipes_product_id_effective_date_index
+           )
+
     create index(:recipes, [:product_id])
     create index(:recipes, [:effective_date])
 

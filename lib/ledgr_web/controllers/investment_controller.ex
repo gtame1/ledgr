@@ -97,7 +97,6 @@ defmodule LedgrWeb.InvestmentController do
   end
 end
 
-
 defmodule LedgrWeb.InvestmentHTML do
   use LedgrWeb, :html
   import LedgrWeb.CoreComponents

@@ -8,19 +8,23 @@
   <%!-- Header --%>
   <div class="flex items-center gap-4 mb-6">
     <div class="hd-doctor-avatar text-2xl" style="width: 4rem; height: 4rem;">
-      <%= String.first(@doctor.name) %>
+      {String.first(@doctor.name)}
     </div>
     <div>
-      <h1 class="text-2xl font-bold" style="color: var(--text-main);"><%= @doctor.name %></h1>
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">{@doctor.name}</h1>
       <div class="flex items-center gap-3 mt-1">
-        <span class="text-sm" style="color: var(--text-muted);"><%= @doctor.specialty %></span>
-        <.link navigate={dp(@domain_path_prefix, "/doctors/#{@doctor.id}")} class="text-xs font-medium" style="color: var(--accent);">
+        <span class="text-sm" style="color: var(--text-muted);">{@doctor.specialty}</span>
+        <.link
+          navigate={dp(@domain_path_prefix, "/doctors/#{@doctor.id}")}
+          class="text-xs font-medium"
+          style="color: var(--accent);"
+        >
           View doctor profile →
         </.link>
       </div>
     </div>
     <div class="ml-auto text-sm" style="color: var(--text-muted);">
-      <%= Enum.reduce(@grouped_messages, 0, fn {_, msgs}, acc -> acc + length(msgs) end) %> messages total
+      {Enum.reduce(@grouped_messages, 0, fn {_, msgs}, acc -> acc + length(msgs) end)} messages total
     </div>
   </div>
 
@@ -35,55 +39,62 @@
       <%= for {consultation_id, messages} <- @grouped_messages do %>
         <div class="hd-card overflow-hidden">
           <%!-- Thread header --%>
-          <div class="px-5 py-3 border-b flex items-center justify-between"
-            style="background: var(--ct-surface-container-high); border-color: var(--border-subtle);">
+          <div
+            class="px-5 py-3 border-b flex items-center justify-between"
+            style="background: var(--ct-surface-container-high); border-color: var(--border-subtle);"
+          >
             <div class="flex items-center gap-2">
               <span class="text-xs font-semibold uppercase" style="color: var(--text-muted);">
-                <%= if consultation_id, do: "Consultation Thread", else: "General Chat" %>
+                {if consultation_id, do: "Consultation Thread", else: "General Chat"}
               </span>
               <%= if consultation_id do %>
-                <.link navigate={dp(@domain_path_prefix, "/consultations/#{consultation_id}")}
-                  class="text-xs font-medium" style="color: var(--accent);">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/consultations/#{consultation_id}")}
+                  class="text-xs font-medium"
+                  style="color: var(--accent);"
+                >
                   View consultation →
                 </.link>
               <% end %>
             </div>
             <span class="text-xs" style="color: var(--text-muted);">
-              <%= length(messages) %> messages
-              · <%= fmt_date(List.first(messages).created_at) %>
+              {length(messages)} messages
+              · {fmt_date(List.first(messages).created_at)}
             </span>
           </div>
 
           <%!-- Messages --%>
           <div class="p-5 space-y-3 max-h-[600px] overflow-y-auto">
             <%= for msg <- messages do %>
-              <%
-                is_user = msg.role == "user"
-                is_tool = msg.role == "tool"
-              %>
+              <% is_user = msg.role == "user"
+              is_tool = msg.role == "tool" %>
               <%= if is_tool do %>
                 <%!-- Tool call — compact pill style --%>
                 <div class="flex justify-center">
-                  <div class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
-                    style="background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0;">
+                  <div
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+                    style="background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0;"
+                  >
                     <span>⚙</span>
-                    <span class="font-medium"><%= msg.tool_name || "tool" %></span>
+                    <span class="font-medium">{msg.tool_name || "tool"}</span>
                     <%= if msg.tool_args && msg.tool_args != "" do %>
-                      <span class="opacity-60 max-w-[300px] truncate"><%= msg.tool_args %></span>
+                      <span class="opacity-60 max-w-[300px] truncate">{msg.tool_args}</span>
                     <% end %>
-                    <span class="opacity-50"><%= fmt_time(msg.created_at) %></span>
+                    <span class="opacity-50">{fmt_time(msg.created_at)}</span>
                   </div>
                 </div>
               <% else %>
                 <div class={"flex #{if is_user, do: "justify-end", else: "justify-start"}"}>
-                  <div class={"max-w-[80%] rounded-xl p-3 text-sm #{if is_user, do: "rounded-br-sm", else: "rounded-bl-sm"}"}
-                    style={"background: #{if is_user, do: "var(--primary)", else: "#f1f5f9"}; color: #{if is_user, do: "#ffffff", else: "var(--text-main)"}"}>
+                  <div
+                    class={"max-w-[80%] rounded-xl p-3 text-sm #{if is_user, do: "rounded-br-sm", else: "rounded-bl-sm"}"}
+                    style={"background: #{if is_user, do: "var(--primary)", else: "#f1f5f9"}; color: #{if is_user, do: "#ffffff", else: "var(--text-main)"}"}
+                  >
                     <div class="text-xs font-semibold mb-1 opacity-75">
-                      <%= if is_user, do: "Doctor", else: "Assistant" %>
+                      {if is_user, do: "Doctor", else: "Assistant"}
                     </div>
-                    <div class="whitespace-pre-line leading-relaxed"><%= msg.content %></div>
+                    <div class="whitespace-pre-line leading-relaxed">{msg.content}</div>
                     <div class="text-xs mt-1.5 opacity-50 text-right">
-                      <%= fmt_time(msg.created_at) %>
+                      {fmt_time(msg.created_at)}
                     </div>
                   </div>
                 </div>

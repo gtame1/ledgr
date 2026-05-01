@@ -10,19 +10,55 @@ defmodule Ledgr.Domains.ViaxeDomainTest do
 
     # Create Viaxe accounts needed for dashboard_metrics (P&L)
     viaxe_accounts = [
-      %{code: "1000", name: "Cash",                  type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1100", name: "Commission Receivable",  type: "asset",     normal_balance: "debit",  is_cash: false},
-      %{code: "2200", name: "Advance Commission",     type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "3000", name: "Owner's Equity",         type: "equity",    normal_balance: "credit", is_cash: false},
-      %{code: "3050", name: "Retained Earnings",      type: "equity",    normal_balance: "credit", is_cash: false},
-      %{code: "3100", name: "Owner's Drawings",       type: "equity",    normal_balance: "debit",  is_cash: false},
-      %{code: "4000", name: "Commission Revenue",     type: "revenue",   normal_balance: "credit", is_cash: false}
+      %{code: "1000", name: "Cash", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1100",
+        name: "Commission Receivable",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "2200",
+        name: "Advance Commission",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3000",
+        name: "Owner's Equity",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3050",
+        name: "Retained Earnings",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3100",
+        name: "Owner's Drawings",
+        type: "equity",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Commission Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      }
     ]
 
     Enum.each(viaxe_accounts, fn attrs ->
       case Accounting.get_account_by_code(attrs.code) do
         nil -> {:ok, _} = Accounting.create_account(attrs)
-        _   -> :ok
+        _ -> :ok
       end
     end)
 

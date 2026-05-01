@@ -67,6 +67,7 @@ defmodule LedgrWeb.Storefront.CheckoutController do
 
       # Validate discount code if provided
       discount_code_str = String.trim(checkout_params["discount_code"] || "")
+
       {discount_result, discount_struct} =
         if discount_code_str != "" do
           case Orders.validate_discount_code(discount_code_str) do
@@ -135,8 +136,25 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         case Customers.find_or_create_by_phone(customer_phone, customer_attrs) do
           {:ok, customer} ->
             case checkout_params["payment_method"] do
-              "stripe" -> redirect_to_stripe(conn, cart, cart_items, customer, checkout_params, discount_struct)
-              "cod" -> create_cod_orders(conn, cart, cart_items, customer, checkout_params, discount_struct)
+              "stripe" ->
+                redirect_to_stripe(
+                  conn,
+                  cart,
+                  cart_items,
+                  customer,
+                  checkout_params,
+                  discount_struct
+                )
+
+              "cod" ->
+                create_cod_orders(
+                  conn,
+                  cart,
+                  cart_items,
+                  customer,
+                  checkout_params,
+                  discount_struct
+                )
             end
 
           {:error, _} ->
@@ -182,17 +200,28 @@ defmodule LedgrWeb.Storefront.CheckoutController do
       delivery_date = first_order.delivery_date
       special_instructions = Enum.find_value(orders, fn o -> o.special_instructions end)
 
-      items = Enum.map(orders, fn o ->
-        %{
-          product_name: o.variant.product.name,
-          variant_name: o.variant.name,
-          quantity: o.quantity || 1,
-          subtotal_cents: o.variant.price_cents * (o.quantity || 1)
-        }
-      end)
+      items =
+        Enum.map(orders, fn o ->
+          %{
+            product_name: o.variant.product.name,
+            variant_name: o.variant.name,
+            quantity: o.quantity || 1,
+            subtotal_cents: o.variant.price_cents * (o.quantity || 1)
+          }
+        end)
 
       order_ids = Enum.map(orders, & &1.id)
-      whatsapp_url = build_whatsapp_url(customer_name, order_ids, items, delivery_type, delivery_date, "stripe", special_instructions)
+
+      whatsapp_url =
+        build_whatsapp_url(
+          customer_name,
+          order_ids,
+          items,
+          delivery_type,
+          delivery_date,
+          "stripe",
+          special_instructions
+        )
 
       conn
       |> delete_session(:cart)
@@ -235,21 +264,26 @@ defmodule LedgrWeb.Storefront.CheckoutController do
       end)
 
     order_ids_str = Enum.join(order_ids, ",")
-    base_url = "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
+
+    base_url =
+      "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
 
     case Stripe.Checkout.Session.create(%{
            mode: "payment",
            currency: "mxn",
            line_items: line_items,
            metadata: %{order_ids: order_ids_str},
-           success_url: "#{base_url}/mr-munch-me/checkout/success?session_id={CHECKOUT_SESSION_ID}",
+           success_url:
+             "#{base_url}/mr-munch-me/checkout/success?session_id={CHECKOUT_SESSION_ID}",
            cancel_url: "#{base_url}/mr-munch-me/checkout/cancel"
          }) do
       {:ok, session} ->
         redirect(conn, external: session.url)
 
       {:error, reason} ->
-        Logger.error("Stripe session creation failed for existing orders #{order_ids_str}: #{inspect(reason)}")
+        Logger.error(
+          "Stripe session creation failed for existing orders #{order_ids_str}: #{inspect(reason)}"
+        )
 
         conn
         |> put_flash(:error, "No se pudo iniciar el pago. Por favor intenta de nuevo.")
@@ -295,7 +329,11 @@ defmodule LedgrWeb.Storefront.CheckoutController do
         pending = PendingCheckouts.get_by_stripe_session(stripe_session_id)
 
         if pending && !PendingCheckouts.already_processed?(pending) do
-          case Orders.create_orders_from_pending_checkout(pending, stripe_session_id, session.amount_total) do
+          case Orders.create_orders_from_pending_checkout(
+                 pending,
+                 stripe_session_id,
+                 session.amount_total
+               ) do
             {:ok, _} ->
               PendingCheckouts.mark_processed(pending)
               :ok
@@ -388,7 +426,17 @@ defmodule LedgrWeb.Storefront.CheckoutController do
           end)
 
         order_ids = Enum.map(orders, & &1.id)
-        whatsapp_url = build_whatsapp_url(customer.name, order_ids, items, delivery_type, delivery_date, "cod", special_instructions)
+
+        whatsapp_url =
+          build_whatsapp_url(
+            customer.name,
+            order_ids,
+            items,
+            delivery_type,
+            delivery_date,
+            "cod",
+            special_instructions
+          )
 
         conn
         |> delete_session(:cart)
@@ -438,11 +486,14 @@ defmodule LedgrWeb.Storefront.CheckoutController do
       end)
 
     if discount_struct do
-      total_cents = Enum.reduce(cart_items, 0, fn i, acc -> acc + i.variant.price_cents * i.quantity end)
+      total_cents =
+        Enum.reduce(cart_items, 0, fn i, acc -> acc + i.variant.price_cents * i.quantity end)
 
       discount_cents =
         case discount_struct.discount_type do
-          "flat" -> round(Decimal.to_float(discount_struct.discount_value) * 100)
+          "flat" ->
+            round(Decimal.to_float(discount_struct.discount_value) * 100)
+
           "percentage" ->
             pct = Decimal.to_float(discount_struct.discount_value) / 100
             round(total_cents * pct)
@@ -466,7 +517,8 @@ defmodule LedgrWeb.Storefront.CheckoutController do
   end
 
   defp create_stripe_session(pending_checkout_id, line_items, conn) do
-    base_url = "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
+    base_url =
+      "#{conn.scheme}://#{conn.host}#{if conn.port not in [80, 443], do: ":#{conn.port}", else: ""}"
 
     Stripe.Checkout.Session.create(%{
       mode: "payment",
@@ -478,7 +530,15 @@ defmodule LedgrWeb.Storefront.CheckoutController do
     })
   end
 
-  defp build_whatsapp_url(customer_name, order_ids, items, delivery_type, delivery_date, payment_method, special_instructions) do
+  defp build_whatsapp_url(
+         customer_name,
+         order_ids,
+         items,
+         delivery_type,
+         delivery_date,
+         payment_method,
+         special_instructions
+       ) do
     delivery_label =
       case delivery_type do
         "pickup" -> "Recoger en local"
@@ -490,7 +550,8 @@ defmodule LedgrWeb.Storefront.CheckoutController do
 
     {intro, payment_line} =
       if payment_method == "cod" do
-        {"¡Hola! Acabo de hacer un pedido en MrMunchMe.", "Pago: Al recibir (efectivo / transferencia)"}
+        {"¡Hola! Acabo de hacer un pedido en MrMunchMe.",
+         "Pago: Al recibir (efectivo / transferencia)"}
       else
         {"¡Hola! Acabo de pagar mi pedido en MrMunchMe.", "Pago: Realizado con tarjeta en línea"}
       end
@@ -553,8 +614,12 @@ defmodule LedgrWeb.Storefront.CheckoutController do
     end
   end
 
-  defp discount_label(%{discount_type: "flat", discount_value: v}), do: "$#{Decimal.to_string(v)} MXN"
-  defp discount_label(%{discount_type: "percentage", discount_value: v}), do: "#{Decimal.to_string(v)}%"
+  defp discount_label(%{discount_type: "flat", discount_value: v}),
+    do: "$#{Decimal.to_string(v)} MXN"
+
+  defp discount_label(%{discount_type: "percentage", discount_value: v}),
+    do: "#{Decimal.to_string(v)}%"
+
   defp discount_label(_), do: ""
 
   defp load_cart_items(cart) when map_size(cart) == 0, do: {[], 0}
@@ -568,7 +633,11 @@ defmodule LedgrWeb.Storefront.CheckoutController do
               variant = Orders.get_variant!(id)
               product = variant.product
               subtotal = variant.price_cents * quantity
-              [%{product: product, variant: variant, quantity: quantity, subtotal: subtotal} | acc]
+
+              [
+                %{product: product, variant: variant, quantity: quantity, subtotal: subtotal}
+                | acc
+              ]
             rescue
               Ecto.NoResultsError -> acc
             end

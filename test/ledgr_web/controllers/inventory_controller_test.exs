@@ -170,7 +170,6 @@ defmodule LedgrWeb.Domains.MrMunchMe.InventoryControllerTest do
       # Verify movement still exists
       assert Repo.get(InventoryMovement, movement.id)
     end
-
   end
 
   describe "delete_movement/2" do

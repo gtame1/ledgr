@@ -105,18 +105,31 @@ defmodule Ledgr.Domains.LedgrHQ do
     prefix = path_prefix()
 
     [
-      %{group: "Main Menu", items: [
-        %{label: "Dashboard",      path: prefix,                                             icon: :dashboard},
-        %{label: "Clients",        path: "#{prefix}/clients",                               icon: :customers},
-        %{label: "Subscriptions",  path: "#{prefix}/client-subscriptions?status=active",    icon: :subscriptions}
-      ]},
-      %{group: "Products", items: [
-        %{label: "Plans",   path: "#{prefix}/subscription-plans", icon: :services},
-        %{label: "Costs",   path: "#{prefix}/costs",              icon: :expenses}
-      ]},
-      %{group: "Finance", items: [
-        %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
-      ]}
+      %{
+        group: "Main Menu",
+        items: [
+          %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{label: "Clients", path: "#{prefix}/clients", icon: :customers},
+          %{
+            label: "Subscriptions",
+            path: "#{prefix}/client-subscriptions?status=active",
+            icon: :subscriptions
+          }
+        ]
+      },
+      %{
+        group: "Products",
+        items: [
+          %{label: "Plans", path: "#{prefix}/subscription-plans", icon: :services},
+          %{label: "Costs", path: "#{prefix}/costs", icon: :expenses}
+        ]
+      },
+      %{
+        group: "Finance",
+        items: [
+          %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
+        ]
+      }
     ]
   end
 

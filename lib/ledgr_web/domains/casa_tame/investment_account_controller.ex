@@ -69,87 +69,174 @@ defmodule LedgrWeb.Domains.CasaTame.InvestmentAccountController do
       end
 
     # Parse source_account_id only when needed (deposit/withdrawal)
-    source_id = case source_account_id do
-      nil -> nil
-      "" -> nil
-      id_str -> String.to_integer(id_str)
-    end
+    source_id =
+      case source_account_id do
+        nil -> nil
+        "" -> nil
+        id_str -> String.to_integer(id_str)
+      end
 
     # Build journal entry lines based on movement type
-    lines = case movement_type do
-      "deposit" when source_id != nil ->
-        # Money goes INTO investment: DR investment, CR source
-        [
-          %{account_id: account.id, debit_cents: amount, credit_cents: 0, description: "Deposit to #{account.name}"},
-          %{account_id: source_id, debit_cents: 0, credit_cents: amount, description: "Transfer to #{account.name}"}
-        ]
+    lines =
+      case movement_type do
+        "deposit" when source_id != nil ->
+          # Money goes INTO investment: DR investment, CR source
+          [
+            %{
+              account_id: account.id,
+              debit_cents: amount,
+              credit_cents: 0,
+              description: "Deposit to #{account.name}"
+            },
+            %{
+              account_id: source_id,
+              debit_cents: 0,
+              credit_cents: amount,
+              description: "Transfer to #{account.name}"
+            }
+          ]
 
-      "withdrawal" when source_id != nil ->
-        # Money comes OUT of investment: DR source, CR investment
-        [
-          %{account_id: source_id, debit_cents: amount, credit_cents: 0, description: "Withdrawal from #{account.name}"},
-          %{account_id: account.id, debit_cents: 0, credit_cents: amount, description: "Withdrawal from #{account.name}"}
-        ]
+        "withdrawal" when source_id != nil ->
+          # Money comes OUT of investment: DR source, CR investment
+          [
+            %{
+              account_id: source_id,
+              debit_cents: amount,
+              credit_cents: 0,
+              description: "Withdrawal from #{account.name}"
+            },
+            %{
+              account_id: account.id,
+              debit_cents: 0,
+              credit_cents: amount,
+              description: "Withdrawal from #{account.name}"
+            }
+          ]
 
-      "dividend" ->
-        # Dividend income: DR investment (value increases), CR revenue
-        revenue = Accounting.get_account_by_code!("4030")
-        [
-          %{account_id: account.id, debit_cents: amount, credit_cents: 0, description: "Dividend - #{account.name}"},
-          %{account_id: revenue.id, debit_cents: 0, credit_cents: amount, description: "Investment return - #{account.name}"}
-        ]
+        "dividend" ->
+          # Dividend income: DR investment (value increases), CR revenue
+          revenue = Accounting.get_account_by_code!("4030")
 
-      "interest" ->
-        # Interest earned: same as dividend
-        revenue = Accounting.get_account_by_code!("4030")
-        [
-          %{account_id: account.id, debit_cents: amount, credit_cents: 0, description: "Interest earned - #{account.name}"},
-          %{account_id: revenue.id, debit_cents: 0, credit_cents: amount, description: "Investment return - #{account.name}"}
-        ]
+          [
+            %{
+              account_id: account.id,
+              debit_cents: amount,
+              credit_cents: 0,
+              description: "Dividend - #{account.name}"
+            },
+            %{
+              account_id: revenue.id,
+              debit_cents: 0,
+              credit_cents: amount,
+              description: "Investment return - #{account.name}"
+            }
+          ]
 
-      "gain_adjustment" ->
-        # Unrealized gain: DR investment, CR equity (retained earnings)
-        equity = Accounting.get_account_by_code!("3050")
-        [
-          %{account_id: account.id, debit_cents: amount, credit_cents: 0, description: "Market gain adjustment - #{account.name}"},
-          %{account_id: equity.id, debit_cents: 0, credit_cents: amount, description: "Unrealized gain - #{account.name}"}
-        ]
+        "interest" ->
+          # Interest earned: same as dividend
+          revenue = Accounting.get_account_by_code!("4030")
 
-      "loss_adjustment" ->
-        # Unrealized loss: DR equity, CR investment
-        equity = Accounting.get_account_by_code!("3050")
-        [
-          %{account_id: equity.id, debit_cents: amount, credit_cents: 0, description: "Unrealized loss - #{account.name}"},
-          %{account_id: account.id, debit_cents: 0, credit_cents: amount, description: "Market loss adjustment - #{account.name}"}
-        ]
+          [
+            %{
+              account_id: account.id,
+              debit_cents: amount,
+              credit_cents: 0,
+              description: "Interest earned - #{account.name}"
+            },
+            %{
+              account_id: revenue.id,
+              debit_cents: 0,
+              credit_cents: amount,
+              description: "Investment return - #{account.name}"
+            }
+          ]
 
-      "fee" ->
-        # Fee charged: DR expense, CR investment
-        expense = Accounting.get_account_by_code!("6098")
-        [
-          %{account_id: expense.id, debit_cents: amount, credit_cents: 0, description: "Investment fee - #{account.name}"},
-          %{account_id: account.id, debit_cents: 0, credit_cents: amount, description: "Fee deducted - #{account.name}"}
-        ]
+        "gain_adjustment" ->
+          # Unrealized gain: DR investment, CR equity (retained earnings)
+          equity = Accounting.get_account_by_code!("3050")
 
-      _ ->
-        []
-    end
+          [
+            %{
+              account_id: account.id,
+              debit_cents: amount,
+              credit_cents: 0,
+              description: "Market gain adjustment - #{account.name}"
+            },
+            %{
+              account_id: equity.id,
+              debit_cents: 0,
+              credit_cents: amount,
+              description: "Unrealized gain - #{account.name}"
+            }
+          ]
+
+        "loss_adjustment" ->
+          # Unrealized loss: DR equity, CR investment
+          equity = Accounting.get_account_by_code!("3050")
+
+          [
+            %{
+              account_id: equity.id,
+              debit_cents: amount,
+              credit_cents: 0,
+              description: "Unrealized loss - #{account.name}"
+            },
+            %{
+              account_id: account.id,
+              debit_cents: 0,
+              credit_cents: amount,
+              description: "Market loss adjustment - #{account.name}"
+            }
+          ]
+
+        "fee" ->
+          # Fee charged: DR expense, CR investment
+          expense = Accounting.get_account_by_code!("6098")
+
+          [
+            %{
+              account_id: expense.id,
+              debit_cents: amount,
+              credit_cents: 0,
+              description: "Investment fee - #{account.name}"
+            },
+            %{
+              account_id: account.id,
+              debit_cents: 0,
+              credit_cents: amount,
+              description: "Fee deducted - #{account.name}"
+            }
+          ]
+
+        _ ->
+          []
+      end
 
     if lines != [] do
       case Accounting.create_journal_entry_with_lines(
-        %{date: date, entry_type: "investment_deposit", description: description},
-        lines
-      ) do
+             %{date: date, entry_type: "investment_deposit", description: description},
+             lines
+           ) do
         {:ok, _je} ->
-          conn |> put_flash(:info, "Movement recorded.") |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
+          conn
+          |> put_flash(:info, "Movement recorded.")
+          |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
 
         {:error, reason} ->
           Logger.warning("[CasaTame] Investment movement failed: #{inspect(reason)}")
-          conn |> put_flash(:error, "Failed to record movement.") |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
+
+          conn
+          |> put_flash(:error, "Failed to record movement.")
+          |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
       end
     else
-      Logger.warning("[CasaTame] Invalid movement type '#{movement_type}' or missing source for deposit/withdrawal")
-      conn |> put_flash(:error, "Invalid movement type or missing source account.") |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
+      Logger.warning(
+        "[CasaTame] Invalid movement type '#{movement_type}' or missing source for deposit/withdrawal"
+      )
+
+      conn
+      |> put_flash(:error, "Invalid movement type or missing source account.")
+      |> redirect(to: dp(conn, "/investment-accounts/#{account.id}"))
     end
   end
 

@@ -124,7 +124,7 @@ defmodule Ledgr.Domains.CasaTame do
   def journal_entry_types do
     [
       {"Personal Expense", "personal_expense"},
-      {"Personal Refund",  "personal_refund"},
+      {"Personal Refund", "personal_refund"},
       {"Income", "income"},
       {"Investment Deposit", "investment_deposit"},
       {"Investment Withdrawal", "investment_withdrawal"},
@@ -139,28 +139,48 @@ defmodule Ledgr.Domains.CasaTame do
     prefix = path_prefix()
 
     [
-      %{group: "Main", items: [
-        %{label: "Dashboard",  path: prefix,                    icon: :dashboard},
-        %{label: "Expenses",   path: "#{prefix}/expenses",      icon: :expenses},
-        %{label: "Income",     path: "#{prefix}/income",        icon: :receipt},
-        %{label: "Transfers",  path: "#{prefix}/transfers",     icon: :transfers},
-        %{label: "Bills",      path: "#{prefix}/bills",         icon: :documents}
-      ]},
-      %{group: "Accounts", items: [
-        %{label: "Investments", path: "#{prefix}/investment-accounts", icon: :services},
-        %{label: "Debts",       path: "#{prefix}/debt-accounts",      icon: :documents}
-      ]},
-      %{group: "Reports", items: [
-        %{label: "Net Worth",          path: "#{prefix}/reports/net-worth",           icon: :reports},
-        %{label: "Balance Sheet",      path: "#{prefix}/reports/balance_sheet",       icon: :reports},
-        %{label: "Income & Expenses",  path: "#{prefix}/reports/pnl",                icon: :reports},
-        %{label: "Monthly Trends",     path: "#{prefix}/reports/monthly-trends",      icon: :reports}
-      ]},
-      %{group: "Settings", items: [
-        %{label: "Reconciliation",        path: "#{prefix}/reconciliation/accounting",  icon: :reconciliation},
-        %{label: "All Transactions",      path: "#{prefix}/transactions",               icon: :transactions},
-        %{label: "Account Transactions",  path: "#{prefix}/account-transactions",       icon: :transactions}
-      ]}
+      %{
+        group: "Main",
+        items: [
+          %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses},
+          %{label: "Income", path: "#{prefix}/income", icon: :receipt},
+          %{label: "Transfers", path: "#{prefix}/transfers", icon: :transfers},
+          %{label: "Bills", path: "#{prefix}/bills", icon: :documents}
+        ]
+      },
+      %{
+        group: "Accounts",
+        items: [
+          %{label: "Investments", path: "#{prefix}/investment-accounts", icon: :services},
+          %{label: "Debts", path: "#{prefix}/debt-accounts", icon: :documents}
+        ]
+      },
+      %{
+        group: "Reports",
+        items: [
+          %{label: "Net Worth", path: "#{prefix}/reports/net-worth", icon: :reports},
+          %{label: "Balance Sheet", path: "#{prefix}/reports/balance_sheet", icon: :reports},
+          %{label: "Income & Expenses", path: "#{prefix}/reports/pnl", icon: :reports},
+          %{label: "Monthly Trends", path: "#{prefix}/reports/monthly-trends", icon: :reports}
+        ]
+      },
+      %{
+        group: "Settings",
+        items: [
+          %{
+            label: "Reconciliation",
+            path: "#{prefix}/reconciliation/accounting",
+            icon: :reconciliation
+          },
+          %{label: "All Transactions", path: "#{prefix}/transactions", icon: :transactions},
+          %{
+            label: "Account Transactions",
+            path: "#{prefix}/account-transactions",
+            icon: :transactions
+          }
+        ]
+      }
     ]
   end
 

@@ -13,10 +13,34 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
   # Extra accounts needed beyond standard_accounts_fixture
   defp extra_accounts_fixture do
     extras = [
-      %{code: "1300", name: "Kitchen Equipment", type: "asset", normal_balance: "debit", is_cash: false},
-      %{code: "2300", name: "Owed Change Payable", type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "4010", name: "Sales Discounts", type: "revenue", normal_balance: "debit", is_cash: false},
-      %{code: "6070", name: "Samples & Gifts", type: "expense", normal_balance: "debit", is_cash: false}
+      %{
+        code: "1300",
+        name: "Kitchen Equipment",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "2300",
+        name: "Owed Change Payable",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4010",
+        name: "Sales Discounts",
+        type: "revenue",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "6070",
+        name: "Samples & Gifts",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false
+      }
     ]
 
     Enum.each(extras, fn attrs ->
@@ -45,7 +69,10 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
   end
 
   describe "record_order_in_prep/2" do
-    test "creates WIP journal entry from ingredients cost", %{variant: variant, location: location} do
+    test "creates WIP journal entry from ingredients cost", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location})
       cost_breakdown = %{ingredients: 5000, packing: 1000, kitchen: 0, total: 6000}
 
@@ -61,7 +88,10 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
       assert entry.entry_type == "order_in_prep"
     end
 
-    test "is idempotent — returns existing entry if already recorded", %{variant: variant, location: location} do
+    test "is idempotent — returns existing entry if already recorded", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location})
       cost_breakdown = %{ingredients: 5000, packing: 0, kitchen: 0, total: 5000}
 
@@ -81,7 +111,10 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
   end
 
   describe "record_order_delivered/1" do
-    test "creates order_delivered journal entry for a basic sale order", %{variant: variant, location: location} do
+    test "creates order_delivered journal entry for a basic sale order", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location, status: "delivered"})
       order = Repo.preload(order, :variant)
 
@@ -96,7 +129,10 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
       assert entry != nil
     end
 
-    test "is idempotent — returns existing entry if already recorded", %{variant: variant, location: location} do
+    test "is idempotent — returns existing entry if already recorded", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location, status: "delivered"})
       order = Repo.preload(order, :variant)
 
@@ -129,7 +165,10 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
       assert reversal != nil
     end
 
-    test "is idempotent — returns existing reversal if already canceled", %{variant: variant, location: location} do
+    test "is idempotent — returns existing reversal if already canceled", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location})
       cost_breakdown = %{ingredients: 4000, packing: 0, kitchen: 0, total: 4000}
       {:ok, _} = OrderAccounting.record_order_in_prep(order, cost_breakdown)
@@ -151,14 +190,20 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
   end
 
   describe "record_owed_change_ap/4" do
-    test "creates owed_change_ap entry for delivered order (AR debit)", %{variant: variant, location: location} do
+    test "creates owed_change_ap entry for delivered order (AR debit)", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location, status: "delivered"})
 
       assert {:ok, entry} = OrderAccounting.record_owed_change_ap(order, 500)
       assert entry.entry_type == "owed_change_ap"
     end
 
-    test "creates owed_change_ap entry for deposit order (Customer Deposits debit)", %{variant: variant, location: location} do
+    test "creates owed_change_ap entry for deposit order (Customer Deposits debit)", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location})
 
       assert {:ok, entry} = OrderAccounting.record_owed_change_ap(order, 500, nil, true)
@@ -185,13 +230,19 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
       assert :ok = OrderAccounting.handle_order_status_change(order, "unknown_status")
     end
 
-    test "returns :ok for delivered status on a basic order", %{variant: variant, location: location} do
+    test "returns :ok for delivered status on a basic order", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location, status: "delivered"})
       order = Repo.preload(order, :variant)
       assert {:ok, _} = OrderAccounting.handle_order_status_change(order, "delivered")
     end
 
-    test "returns :ok for canceled when no in_prep entry exists", %{variant: variant, location: location} do
+    test "returns :ok for canceled when no in_prep entry exists", %{
+      variant: variant,
+      location: location
+    } do
       order = order_fixture(%{variant: variant, location: location})
       assert :ok = OrderAccounting.handle_order_status_change(order, "canceled")
     end
@@ -204,10 +255,28 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
       assert result == []
     end
 
-    test "aggregates revenue for delivered orders by product", %{variant: variant, location: location, product: product} do
+    test "aggregates revenue for delivered orders by product", %{
+      variant: variant,
+      location: location,
+      product: product
+    } do
       today = Date.utc_today()
-      _order1 = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
-      _order2 = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+
+      _order1 =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
+
+      _order2 =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
 
       result = OrderAccounting.revenue_by_product(today, today)
 
@@ -220,7 +289,14 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
 
     test "excludes non-delivered orders", %{variant: variant, location: location} do
       today = Date.utc_today()
-      _order = order_fixture(%{variant: variant, location: location, status: "new_order", delivery_date: today})
+
+      _order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "new_order",
+          delivery_date: today
+        })
 
       result = OrderAccounting.revenue_by_product(today, today)
       assert result == []
@@ -233,8 +309,21 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
       product_b = product_fixture(%{name: "Product B"})
       variant_b = variant_fixture(%{product: product_b, price_cents: 25000})
 
-      _order_a = order_fixture(%{variant: variant_a, location: location, status: "delivered", delivery_date: today})
-      _order_b = order_fixture(%{variant: variant_b, location: location, status: "delivered", delivery_date: today})
+      _order_a =
+        order_fixture(%{
+          variant: variant_a,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
+
+      _order_b =
+        order_fixture(%{
+          variant: variant_b,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
 
       result = OrderAccounting.revenue_by_product(today, today)
       assert length(result) == 2
@@ -254,9 +343,20 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccountingTest do
       assert result == []
     end
 
-    test "returns product row with zero cogs when no in_prep entry exists", %{variant: variant, location: location, product: product} do
+    test "returns product row with zero cogs when no in_prep entry exists", %{
+      variant: variant,
+      location: location,
+      product: product
+    } do
       today = Date.utc_today()
-      _order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+
+      _order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
 
       result = OrderAccounting.cogs_by_product(today, today)
       assert length(result) == 1

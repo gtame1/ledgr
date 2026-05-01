@@ -1,6 +1,8 @@
 <% m = @metrics %>
 <% fmt_money = fn
-  nil -> "$0.00"
+  nil ->
+    "$0.00"
+
   amount when is_number(amount) ->
     "$" <> (amount |> :erlang.float_to_binary(decimals: 2))
 end %>
@@ -25,7 +27,12 @@ end %>
   datasets: [
     %{
       label: "Count",
-      data: [m.funnel.conversations, m.funnel.doctor_recommended, m.funnel.consultations, m.funnel.paid],
+      data: [
+        m.funnel.conversations,
+        m.funnel.doctor_recommended,
+        m.funnel.consultations,
+        m.funnel.paid
+      ],
       backgroundColor: [c_primary, c_accent, c_amber, c_red],
       borderWidth: 0,
       borderRadius: 6
@@ -55,7 +62,18 @@ end %>
     %{
       label: "Count",
       data: Enum.map(m.top_diagnoses, & &1.count),
-      backgroundColor: [c_primary, c_accent, c_amber, "#7c3aed", "#0891b2", "#059669", "#d97706", "#e11d48", "#2563eb", "#64748b"],
+      backgroundColor: [
+        c_primary,
+        c_accent,
+        c_amber,
+        "#7c3aed",
+        "#0891b2",
+        "#059669",
+        "#d97706",
+        "#e11d48",
+        "#2563eb",
+        "#64748b"
+      ],
       borderWidth: 0
     }
   ]
@@ -67,7 +85,11 @@ end %>
   datasets: [
     %{
       label: "Count",
-      data: [m.prescription_mix.requires, m.prescription_mix.does_not_require, m.prescription_mix.unknown],
+      data: [
+        m.prescription_mix.requires,
+        m.prescription_mix.does_not_require,
+        m.prescription_mix.unknown
+      ],
       backgroundColor: [c_red, c_accent, "#cbd5e1"],
       borderWidth: 0
     }
@@ -136,16 +158,23 @@ end %>
     <div>
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Dashboard</h1>
       <p class="text-sm mt-1" style="color: var(--text-muted);">
-        <%= fmt_date(@start_date, "%b %d, %Y") %> &mdash; <%= fmt_date(@end_date, "%b %d, %Y") %>
+        {fmt_date(@start_date, "%b %d, %Y")} &mdash; {fmt_date(@end_date, "%b %d, %Y")}
       </p>
     </div>
-    <div class="flex gap-1 p-1 rounded-lg" style="background: var(--bg-surface); border: 1px solid var(--border-subtle);">
+    <div
+      class="flex gap-1 p-1 rounded-lg"
+      style="background: var(--bg-surface); border: 1px solid var(--border-subtle);"
+    >
       <%= for {label, value} <- [{"7d", "last_7_days"}, {"30d", "last_30_days"}, {"90d", "last_90_days"}, {"All", "all_time"}] do %>
         <% active = (@current_period || "last_30_days") == value %>
-        <.link navigate={dp(@domain_path_prefix, "/?period=#{value}")}
-          class={"px-3 py-1.5 text-sm font-medium rounded-md transition-colors"}
-          style={if active, do: "background: #02ba97; color: white;", else: "color: var(--text-muted);"}>
-          <%= label %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/?period=#{value}")}
+          class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+          style={
+            if active, do: "background: #02ba97; color: white;", else: "color: var(--text-muted);"
+          }
+        >
+          {label}
         </.link>
       <% end %>
     </div>
@@ -153,28 +182,35 @@ end %>
 
   <%!-- ═══ FUNNEL ═══ --%>
   <div class="mb-8">
-    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Funnel</h2>
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Funnel
+    </h2>
 
     <div class="hd-kpi-grid mb-4">
       <div class="hd-kpi">
         <div class="hd-kpi-label">Conversations</div>
-        <div class="hd-kpi-value"><%= m.funnel.conversations %></div>
+        <div class="hd-kpi-value">{m.funnel.conversations}</div>
         <div class="hd-kpi-sub">started in period</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Doctor Recommended</div>
-        <div class="hd-kpi-value"><%= m.funnel.doctor_recommended %></div>
-        <div class="hd-kpi-sub"><%= fmt_pct.(m.funnel.doctor_recommended_rate) %> of conversations</div>
+        <div class="hd-kpi-value">{m.funnel.doctor_recommended}</div>
+        <div class="hd-kpi-sub">
+          {fmt_pct.(m.funnel.doctor_recommended_rate)} of conversations
+        </div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Consultations</div>
-        <div class="hd-kpi-value"><%= m.funnel.consultations %></div>
-        <div class="hd-kpi-sub"><%= fmt_pct.(m.funnel.consultation_rate) %> of recommended</div>
+        <div class="hd-kpi-value">{m.funnel.consultations}</div>
+        <div class="hd-kpi-sub">{fmt_pct.(m.funnel.consultation_rate)} of recommended</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Paid</div>
-        <div class="hd-kpi-value" style="color: #02ba97;"><%= m.funnel.paid %></div>
-        <div class="hd-kpi-sub"><%= fmt_pct.(m.funnel.overall_conversion) %> overall conversion</div>
+        <div class="hd-kpi-value" style="color: #02ba97;">{m.funnel.paid}</div>
+        <div class="hd-kpi-sub">{fmt_pct.(m.funnel.overall_conversion)} overall conversion</div>
       </div>
     </div>
 
@@ -195,36 +231,45 @@ end %>
 
   <%!-- ═══ OPERATIONS ═══ --%>
   <div class="mb-8">
-    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Operations</h2>
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Operations
+    </h2>
 
     <div class="hd-kpi-grid mb-4">
       <div class="hd-kpi">
         <div class="hd-kpi-label">Active Now</div>
-        <div class="hd-kpi-value"><%= m.operations.active_consultations %></div>
+        <div class="hd-kpi-value">{m.operations.active_consultations}</div>
         <div class="hd-kpi-sub">in progress</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Avg Response</div>
-        <div class="hd-kpi-value"><%= m.operations.avg_response_minutes %> <span class="text-base">min</span></div>
+        <div class="hd-kpi-value">
+          {m.operations.avg_response_minutes} <span class="text-base">min</span>
+        </div>
         <div class="hd-kpi-sub">assigned → accepted</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Avg Duration</div>
-        <div class="hd-kpi-value"><%= m.operations.avg_duration_minutes %> <span class="text-base">min</span></div>
+        <div class="hd-kpi-value">
+          {m.operations.avg_duration_minutes} <span class="text-base">min</span>
+        </div>
         <div class="hd-kpi-sub">per consultation</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Avg Rating</div>
         <div class="hd-kpi-value" style="color: #f59e0b;">
-          <%= if m.operations.avg_rating > 0, do: m.operations.avg_rating, else: "—" %>
-          <%= if m.operations.avg_rating > 0, do: "★", else: "" %>
+          {if m.operations.avg_rating > 0, do: m.operations.avg_rating, else: "—"}
+          {if m.operations.avg_rating > 0, do: "★", else: ""}
         </div>
-        <div class="hd-kpi-sub"><%= m.operations.rated_count %> ratings</div>
+        <div class="hd-kpi-sub">{m.operations.rated_count} ratings</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Video Adoption</div>
-        <div class="hd-kpi-value"><%= fmt_pct.(m.operations.video_adoption_rate) %></div>
-        <div class="hd-kpi-sub"><%= m.operations.video_count %> video calls</div>
+        <div class="hd-kpi-value">{fmt_pct.(m.operations.video_adoption_rate)}</div>
+        <div class="hd-kpi-sub">{m.operations.video_count} video calls</div>
       </div>
     </div>
 
@@ -261,7 +306,7 @@ end %>
       <div class="flex items-center justify-between mb-4">
         <div class="hd-card-title" style="margin-bottom: 0;">Direct Doctor Requests</div>
         <span class="text-sm font-semibold" style="color: var(--accent);">
-          <%= fmt_pct.(m.direct_requests.targeted_rate) %> of consultations
+          {fmt_pct.(m.direct_requests.targeted_rate)} of consultations
         </span>
       </div>
       <%= if m.direct_requests.total == 0 do %>
@@ -271,7 +316,9 @@ end %>
         </div>
       <% else %>
         <div class="flex gap-6 mb-4 text-sm" style="color: var(--text-muted);">
-          <span><%= m.direct_requests.targeted %> targeted / <%= m.direct_requests.total %> total consultations</span>
+          <span>
+            {m.direct_requests.targeted} targeted / {m.direct_requests.total} total consultations
+          </span>
         </div>
         <%= if Enum.empty?(m.direct_requests.per_doctor) do %>
           <p class="text-sm" style="color: var(--text-muted);">No per-doctor data available.</p>
@@ -279,21 +326,46 @@ end %>
           <table class="hd-table w-full text-sm">
             <thead>
               <tr>
-                <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Doctor</th>
-                <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Total</th>
-                <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Requested directly</th>
-                <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">% Direct</th>
+                <th
+                  class="text-left p-2 text-xs font-medium uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Doctor
+                </th>
+                <th
+                  class="text-right p-2 text-xs font-medium uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Total
+                </th>
+                <th
+                  class="text-right p-2 text-xs font-medium uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Requested directly
+                </th>
+                <th
+                  class="text-right p-2 text-xs font-medium uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  % Direct
+                </th>
               </tr>
             </thead>
             <tbody>
               <%= for row <- m.direct_requests.per_doctor do %>
                 <tr class="border-t" style="border-color: var(--border-subtle);">
-                  <td class="p-2 font-medium" style="color: var(--text-main);"><%= row.name %></td>
-                  <td class="p-2 text-right" style="color: var(--text-muted);"><%= row.total %></td>
-                  <td class="p-2 text-right" style="color: var(--text-main);"><%= row.targeted || 0 %></td>
+                  <td class="p-2 font-medium" style="color: var(--text-main);">{row.name}</td>
+                  <td class="p-2 text-right" style="color: var(--text-muted);">{row.total}</td>
+                  <td class="p-2 text-right" style="color: var(--text-main);">
+                    {row.targeted || 0}
+                  </td>
                   <td class="p-2 text-right">
-                    <span class="font-semibold" style={"color: #{if row.targeted_rate > 0, do: "var(--accent)", else: "var(--text-muted)"};"}>
-                      <%= fmt_pct.(row.targeted_rate) %>
+                    <span
+                      class="font-semibold"
+                      style={"color: #{if row.targeted_rate > 0, do: "var(--accent)", else: "var(--text-muted)"};"}
+                    >
+                      {fmt_pct.(row.targeted_rate)}
                     </span>
                   </td>
                 </tr>
@@ -309,17 +381,21 @@ end %>
         <div class="hd-card-title" style="margin-bottom: 0;">Conversations per Patient</div>
         <%= if m.conversations_per_patient.total_patients > 0 do %>
           <span class="text-xs font-semibold" style="color: var(--accent);">
-            avg <%= m.conversations_per_patient.avg %> per patient
+            avg {m.conversations_per_patient.avg} per patient
           </span>
         <% end %>
       </div>
       <%= if m.conversations_per_patient.total_patients > 0 do %>
         <div id="conv-per-patient-chart-wrapper" phx-hook="BarChart" style="height: 250px;">
-          <canvas id="conv-per-patient-chart" data-chart-data={Jason.encode!(conversations_per_patient_chart)}></canvas>
+          <canvas
+            id="conv-per-patient-chart"
+            data-chart-data={Jason.encode!(conversations_per_patient_chart)}
+          >
+          </canvas>
         </div>
         <div class="flex gap-4 mt-3 text-xs" style="color: var(--text-muted);">
-          <span><%= m.conversations_per_patient.total_patients %> unique patients</span>
-          <span><%= m.conversations_per_patient.total_conversations %> total conversations</span>
+          <span>{m.conversations_per_patient.total_patients} unique patients</span>
+          <span>{m.conversations_per_patient.total_conversations} total conversations</span>
         </div>
       <% else %>
         <div class="hd-empty">
@@ -332,7 +408,12 @@ end %>
 
   <%!-- ═══ CLINICAL ═══ --%>
   <div class="mb-8">
-    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Clinical</h2>
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Clinical
+    </h2>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="hd-card p-5">
@@ -344,7 +425,8 @@ end %>
           </div>
         <% else %>
           <div id="diagnoses-chart-wrapper" phx-hook="DoughnutChart" style="height: 320px;">
-            <canvas id="diagnoses-chart" data-chart-data={Jason.encode!(diagnoses_chart)}></canvas>
+            <canvas id="diagnoses-chart" data-chart-data={Jason.encode!(diagnoses_chart)}>
+            </canvas>
           </div>
         <% end %>
       </div>
@@ -354,7 +436,7 @@ end %>
           <div class="hd-card-title" style="margin-bottom: 0;">Prescription Requirement</div>
           <%= if m.prescription_mix.total > 0 do %>
             <span class="text-xs font-semibold" style="color: var(--accent);">
-              <%= :erlang.float_to_binary(m.prescription_mix.requires_rate * 1.0, decimals: 1) %>% require Rx
+              {:erlang.float_to_binary(m.prescription_mix.requires_rate * 1.0, decimals: 1)}% require Rx
             </span>
           <% end %>
         </div>
@@ -365,7 +447,11 @@ end %>
           </div>
         <% else %>
           <div id="prescription-mix-chart-wrapper" phx-hook="DoughnutChart" style="height: 320px;">
-            <canvas id="prescription-mix-chart" data-chart-data={Jason.encode!(prescription_mix_chart)}></canvas>
+            <canvas
+              id="prescription-mix-chart"
+              data-chart-data={Jason.encode!(prescription_mix_chart)}
+            >
+            </canvas>
           </div>
         <% end %>
       </div>
@@ -374,28 +460,37 @@ end %>
 
   <%!-- ═══ REVENUE ═══ --%>
   <div class="mb-8">
-    <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: 0.05em;">Revenue</h2>
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Revenue
+    </h2>
 
     <div class="hd-kpi-grid mb-4">
       <div class="hd-kpi">
         <div class="hd-kpi-label">Total Revenue</div>
-        <div class="hd-kpi-value" style="color: #02ba97;"><%= fmt_money.(m.revenue.total_revenue) %></div>
-        <div class="hd-kpi-sub"><%= m.revenue.paid_count %> payments</div>
+        <div class="hd-kpi-value" style="color: #02ba97;">
+          {fmt_money.(m.revenue.total_revenue)}
+        </div>
+        <div class="hd-kpi-sub">{m.revenue.paid_count} payments</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Commission (15%)</div>
-        <div class="hd-kpi-value"><%= fmt_money.(m.revenue.commission) %></div>
+        <div class="hd-kpi-value">{fmt_money.(m.revenue.commission)}</div>
         <div class="hd-kpi-sub">HelloDoctor's share</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Avg Consultation</div>
-        <div class="hd-kpi-value"><%= fmt_money.(m.revenue.avg_consultation_value) %></div>
+        <div class="hd-kpi-value">{fmt_money.(m.revenue.avg_consultation_value)}</div>
         <div class="hd-kpi-sub">per paid consult</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Refunds</div>
-        <div class="hd-kpi-value" style="color: #dc2626;"><%= fmt_money.(m.revenue.total_refunds) %></div>
-        <div class="hd-kpi-sub"><%= m.revenue.refund_count %> refunded</div>
+        <div class="hd-kpi-value" style="color: #dc2626;">
+          {fmt_money.(m.revenue.total_refunds)}
+        </div>
+        <div class="hd-kpi-sub">{m.revenue.refund_count} refunded</div>
       </div>
     </div>
 
@@ -417,17 +512,30 @@ end %>
   <%!-- ═══ INFRASTRUCTURE ═══ --%>
   <div class="mb-8">
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted); letter-spacing: 0.05em;">Infrastructure &amp; Costs</h2>
+      <h2
+        class="text-sm font-semibold uppercase"
+        style="color: var(--text-muted); letter-spacing: 0.05em;"
+      >
+        Infrastructure &amp; Costs
+      </h2>
       <div class="flex gap-2">
         <form action={dp(@domain_path_prefix, "/billing/sync-costs")} method="post">
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-          <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
+          <button
+            type="submit"
+            class="hd-btn-sm"
+            style="font-size: 0.75rem; padding: 0.25rem 0.75rem;"
+          >
             ↻ Sync costs
           </button>
         </form>
         <form action={dp(@domain_path_prefix, "/billing/post-all-costs")} method="post">
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-          <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; background: var(--accent); color: #fff;">
+          <button
+            type="submit"
+            class="hd-btn-sm"
+            style="font-size: 0.75rem; padding: 0.25rem 0.75rem; background: var(--accent); color: #fff;"
+          >
             ↑ Post all to GL
           </button>
         </form>
@@ -438,10 +546,13 @@ end %>
     <div class="hd-kpi-grid mb-4">
       <div class="hd-kpi">
         <div class="hd-kpi-label">Total Ext. Costs (period)</div>
-        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.total_usd, 2) %> <span class="text-base font-normal" style="color: var(--text-muted);">USD</span></div>
+        <div class="hd-kpi-value">
+          ${Float.round(m.infrastructure_costs.total_usd, 2)}
+          <span class="text-base font-normal" style="color: var(--text-muted);">USD</span>
+        </div>
         <div class="hd-kpi-sub">
           <%= if m.infrastructure_costs.last_synced do %>
-            Last synced <%= fmt_date(m.infrastructure_costs.last_synced, "%b %d") %>
+            Last synced {fmt_date(m.infrastructure_costs.last_synced, "%b %d")}
           <% else %>
             Never synced — click Sync costs
           <% end %>
@@ -449,17 +560,21 @@ end %>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">OpenAI</div>
-        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.openai.total_usd, 4) %></div>
+        <div class="hd-kpi-value">${Float.round(m.infrastructure_costs.openai.total_usd, 4)}</div>
         <div class="hd-kpi-sub">completions + embeddings</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Whereby</div>
-        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.whereby.total_usd, 4) %></div>
+        <div class="hd-kpi-value">
+          ${Float.round(m.infrastructure_costs.whereby.total_usd, 4)}
+        </div>
         <div class="hd-kpi-sub">video meetings</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">AWS App Runner</div>
-        <div class="hd-kpi-value">$<%= Float.round(m.infrastructure_costs.aws_app_runner.total_usd, 4) %></div>
+        <div class="hd-kpi-value">
+          ${Float.round(m.infrastructure_costs.aws_app_runner.total_usd, 4)}
+        </div>
         <div class="hd-kpi-sub">compute hosting</div>
       </div>
     </div>
@@ -475,31 +590,77 @@ end %>
         <table class="w-full text-sm">
           <thead>
             <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
-              <th class="text-left p-2 pl-4 text-xs font-medium uppercase" style="color: var(--text-muted);">Service</th>
-              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
-              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Model / Detail</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Units</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Cost (USD)</th>
-              <th class="text-right p-2 pr-4 text-xs font-medium uppercase" style="color: var(--text-muted);">GL</th>
+              <th
+                class="text-left p-2 pl-4 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Service
+              </th>
+              <th
+                class="text-left p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Date
+              </th>
+              <th
+                class="text-left p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Model / Detail
+              </th>
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Units
+              </th>
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Cost (USD)
+              </th>
+              <th
+                class="text-right p-2 pr-4 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                GL
+              </th>
             </tr>
           </thead>
           <tbody>
             <%= for row <- m.infrastructure_costs.detail do %>
               <tr style="border-bottom: 1px solid var(--border-subtle);">
-                <td class="p-2 pl-4 font-medium"><%= row.service %></td>
-                <td class="p-2" style="color: var(--text-muted);"><%= row.date %></td>
-                <td class="p-2" style="color: var(--text-muted);"><%= row.model || "—" %></td>
+                <td class="p-2 pl-4 font-medium">{row.service}</td>
+                <td class="p-2" style="color: var(--text-muted);">{row.date}</td>
+                <td class="p-2" style="color: var(--text-muted);">{row.model || "—"}</td>
                 <td class="p-2 text-right" style="color: var(--text-muted);">
-                  <%= if row.units, do: "#{Float.round(row.units * 1.0, 1)} #{row.unit_type || ""}", else: "—" %>
+                  {if row.units,
+                    do: "#{Float.round(row.units * 1.0, 1)} #{row.unit_type || ""}",
+                    else: "—"}
                 </td>
-                <td class="p-2 text-right font-medium">$<%= Float.round(row.amount_usd, 6) %></td>
+                <td class="p-2 text-right font-medium">${Float.round(row.amount_usd, 6)}</td>
                 <td class="p-2 pr-4 text-right">
                   <%= if row.posted_at do %>
-                    <span class="text-xs font-medium" style="color: var(--accent);">✓ JE#<%= row.journal_entry_id %></span>
+                    <span class="text-xs font-medium" style="color: var(--accent);">
+                      ✓ JE#{row.journal_entry_id}
+                    </span>
                   <% else %>
-                    <form action={dp(@domain_path_prefix, "/billing/post-cost/#{row.id}")} method="post" style="display:inline;">
-                      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-                      <button type="submit" class="hd-btn-sm" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">
+                    <form
+                      action={dp(@domain_path_prefix, "/billing/post-cost/#{row.id}")}
+                      method="post"
+                      style="display:inline;"
+                    >
+                      <input
+                        type="hidden"
+                        name="_csrf_token"
+                        value={Phoenix.Controller.get_csrf_token()}
+                      />
+                      <button
+                        type="submit"
+                        class="hd-btn-sm"
+                        style="font-size: 0.65rem; padding: 0.15rem 0.5rem;"
+                      >
                         Post
                       </button>
                     </form>
@@ -514,42 +675,72 @@ end %>
 
     <%!-- FX rate setting --%>
     <div class="hd-card mb-4 flex items-center gap-4" style="padding: 0.75rem 1rem;">
-      <span class="text-sm font-medium" style="color: var(--text-muted);">USD → MXN rate for GL posting:</span>
-      <form action={dp(@domain_path_prefix, "/settings/fx-rate")} method="post" class="flex items-center gap-2">
+      <span class="text-sm font-medium" style="color: var(--text-muted);">
+        USD → MXN rate for GL posting:
+      </span>
+      <form
+        action={dp(@domain_path_prefix, "/settings/fx-rate")}
+        method="post"
+        class="flex items-center gap-2"
+      >
         <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-        <input type="number" name="fx_rate" step="0.01" min="1"
-               value={@usd_mxn_rate}
-               class="hd-input text-sm" style="width: 6rem; padding: 0.25rem 0.5rem;" />
-        <button type="submit" class="hd-btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
+        <input
+          type="number"
+          name="fx_rate"
+          step="0.01"
+          min="1"
+          value={@usd_mxn_rate}
+          class="hd-input text-sm"
+          style="width: 6rem; padding: 0.25rem 0.5rem;"
+        />
+        <button
+          type="submit"
+          class="hd-btn-sm"
+          style="font-size: 0.75rem; padding: 0.25rem 0.75rem;"
+        >
           Save rate
         </button>
       </form>
-      <span class="text-xs" style="color: var(--text-muted);">Applied when "Post to GL" runs.</span>
+      <span class="text-xs" style="color: var(--text-muted);">
+        Applied when "Post to GL" runs.
+      </span>
     </div>
 
     <%!-- Platform stats --%>
     <div class="hd-kpi-grid">
       <div class="hd-kpi">
         <div class="hd-kpi-label">Database Storage</div>
-        <div class="hd-kpi-value"><%= m.db_size.mb %> <span class="text-base font-normal" style="color: var(--text-muted);">/ <%= m.db_size.cap_mb %> MB</span></div>
-        <div class="hd-kpi-sub"><%= m.db_size.percent %>% of Neon free tier</div>
+        <div class="hd-kpi-value">
+          {m.db_size.mb}
+          <span class="text-base font-normal" style="color: var(--text-muted);">
+            / {m.db_size.cap_mb} MB
+          </span>
+        </div>
+        <div class="hd-kpi-sub">{m.db_size.percent}% of Neon free tier</div>
         <div class="mt-3 w-full rounded-full h-2.5" style="background: var(--border-subtle);">
-          <%
-            bar_color = cond do
+          <% bar_color =
+            cond do
               m.db_size.percent > 80 -> "#dc2626"
               m.db_size.percent > 60 -> "#f59e0b"
               true -> "#02ba97"
-            end
-          %>
-          <div class="h-2.5 rounded-full transition-all" style={"width: #{min(m.db_size.percent, 100)}%; background: #{bar_color};"}></div>
+            end %>
+          <div
+            class="h-2.5 rounded-full transition-all"
+            style={"width: #{min(m.db_size.percent, 100)}%; background: #{bar_color};"}
+          >
+          </div>
         </div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Active Doctors</div>
-        <div class="hd-kpi-value"><%= m.active_doctors %> <span class="text-base font-normal" style="color: var(--text-muted);">/ <%= m.total_doctors %></span></div>
+        <div class="hd-kpi-value">
+          {m.active_doctors}
+          <span class="text-base font-normal" style="color: var(--text-muted);">
+            / {m.total_doctors}
+          </span>
+        </div>
         <div class="hd-kpi-sub">available on platform</div>
       </div>
     </div>
   </div>
-
 </div>

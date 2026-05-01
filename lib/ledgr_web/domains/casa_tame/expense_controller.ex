@@ -6,11 +6,12 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
   alias LedgrWeb.Helpers.MoneyHelper
 
   def index(conn, params) do
-    expenses = Expenses.list_expenses(
-      currency: params["currency"],
-      date_from: params["date_from"],
-      date_to: params["date_to"]
-    )
+    expenses =
+      Expenses.list_expenses(
+        currency: params["currency"],
+        date_from: params["date_from"],
+        date_to: params["date_to"]
+      )
 
     render(conn, :index,
       expenses: expenses,
@@ -22,20 +23,30 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
 
   def new(conn, params) do
     # Support prefilled values from bill payment flow
-    date = case params["date"] do
-      nil -> Ledgr.Domains.CasaTame.today()
-      d -> case Date.from_iso8601(d) do
-        {:ok, date} -> date
-        _ -> Ledgr.Domains.CasaTame.today()
+    date =
+      case params["date"] do
+        nil ->
+          Ledgr.Domains.CasaTame.today()
+
+        d ->
+          case Date.from_iso8601(d) do
+            {:ok, date} -> date
+            _ -> Ledgr.Domains.CasaTame.today()
+          end
       end
-    end
 
     prefill = %Expense{
       date: date,
       currency: params["currency"] || "MXN",
       description: params["description"],
-      expense_account_id: if(params["expense_account_id"] && params["expense_account_id"] != "", do: String.to_integer(params["expense_account_id"])),
-      paid_from_account_id: if(params["paid_from_account_id"] && params["paid_from_account_id"] != "", do: String.to_integer(params["paid_from_account_id"]))
+      expense_account_id:
+        if(params["expense_account_id"] && params["expense_account_id"] != "",
+          do: String.to_integer(params["expense_account_id"])
+        ),
+      paid_from_account_id:
+        if(params["paid_from_account_id"] && params["paid_from_account_id"] != "",
+          do: String.to_integer(params["paid_from_account_id"])
+        )
     }
 
     attrs = if params["amount"], do: %{"amount_cents" => params["amount"]}, else: %{}
@@ -50,8 +61,15 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
         []
       end
 
-    render(conn, :new,
-      [changeset: changeset, action: dp(conn, "/expenses"), from_bill: params["from_bill"], initial_splits: initial_splits] ++ form_assigns()
+    render(
+      conn,
+      :new,
+      [
+        changeset: changeset,
+        action: dp(conn, "/expenses"),
+        from_bill: params["from_bill"],
+        initial_splits: initial_splits
+      ] ++ form_assigns()
     )
   end
 
@@ -67,7 +85,17 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         changeset = Map.put(changeset, :action, :insert)
-        render(conn, :new, [changeset: changeset, action: dp(conn, "/expenses"), from_bill: nil, initial_splits: splits] ++ form_assigns())
+
+        render(
+          conn,
+          :new,
+          [
+            changeset: changeset,
+            action: dp(conn, "/expenses"),
+            from_bill: nil,
+            initial_splits: splits
+          ] ++ form_assigns()
+        )
     end
   end
 
@@ -80,8 +108,11 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
     expense = Expenses.get_expense!(id)
     changeset = Expenses.change_expense(expense, %{})
 
-    render(conn, :edit,
-      [expense: expense, changeset: changeset, action: dp(conn, "/expenses/#{expense.id}")] ++ form_assigns()
+    render(
+      conn,
+      :edit,
+      [expense: expense, changeset: changeset, action: dp(conn, "/expenses/#{expense.id}")] ++
+        form_assigns()
     )
   end
 
@@ -99,8 +130,15 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
       {:error, %Ecto.Changeset{} = changeset} ->
         changeset = Map.put(changeset, :action, :update)
 
-        render(conn, :edit,
-          [expense: expense, changeset: changeset, action: dp(conn, "/expenses/#{expense.id}"), initial_splits: splits] ++ form_assigns()
+        render(
+          conn,
+          :edit,
+          [
+            expense: expense,
+            changeset: changeset,
+            action: dp(conn, "/expenses/#{expense.id}"),
+            initial_splits: splits
+          ] ++ form_assigns()
         )
     end
   end
@@ -113,7 +151,9 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
         conn |> put_flash(:info, "Expense deleted.") |> redirect(to: dp(conn, "/expenses"))
 
       {:error, _} ->
-        conn |> put_flash(:error, "Failed to delete expense.") |> redirect(to: dp(conn, "/expenses/#{expense.id}"))
+        conn
+        |> put_flash(:error, "Failed to delete expense.")
+        |> redirect(to: dp(conn, "/expenses/#{expense.id}"))
     end
   end
 
@@ -127,19 +167,19 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
 
   # Expense account category groups — maps code ranges to parent labels
   @expense_groups [
-    {"Auto & Transportation",  "6000", "6009"},
-    {"Housekeeper & Drivers",  "6010", "6019"},
-    {"Utilities",              "6020", "6029"},
-    {"Home & Furniture",       "6030", "6039"},
-    {"Education",              "6040", "6049"},
-    {"Entertainment",          "6050", "6059"},
-    {"Food & Dining",          "6060", "6069"},
+    {"Auto & Transportation", "6000", "6009"},
+    {"Housekeeper & Drivers", "6010", "6019"},
+    {"Utilities", "6020", "6029"},
+    {"Home & Furniture", "6030", "6039"},
+    {"Education", "6040", "6049"},
+    {"Entertainment", "6050", "6059"},
+    {"Food & Dining", "6060", "6069"},
     {"Health & Personal Care", "6070", "6079"},
-    {"Kids",                   "6080", "6084"},
-    {"Shopping",               "6085", "6089"},
-    {"Travel",                 "6090", "6094"},
-    {"Pets",                   "6095", "6097"},
-    {"Financial & Other",      "6098", "6105"}
+    {"Kids", "6080", "6084"},
+    {"Shopping", "6085", "6089"},
+    {"Travel", "6090", "6094"},
+    {"Pets", "6095", "6097"},
+    {"Financial & Other", "6098", "6105"}
   ]
 
   defp grouped_expense_account_options do
@@ -156,8 +196,12 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
         end)
 
       case children do
-        [] -> []
-        [single] -> [{"#{group_label} > #{single.name}", single.id}]
+        [] ->
+          []
+
+        [single] ->
+          [{"#{group_label} > #{single.name}", single.id}]
+
         items ->
           # The first account in each group may be the "parent/general" account
           # (e.g., 6000 "Auto & Transportation" is the catch-all for 600x)
@@ -203,12 +247,12 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
   # Payment account ranges grouped by currency
   # Each entry: {group_label, from_code, to_code, currency}
   @paid_from_ranges [
-    {"Cash & Bank",     "1000", "1019", "USD"},
-    {"Credit Cards",    "2000", "2009", "USD"},
-    {"Accounts Payable","2010", "2019", "USD"},
-    {"Cash & Bank",     "1100", "1119", "MXN"},
-    {"Credit Cards",    "2100", "2109", "MXN"},
-    {"Accounts Payable","2110", "2119", "MXN"}
+    {"Cash & Bank", "1000", "1019", "USD"},
+    {"Credit Cards", "2000", "2009", "USD"},
+    {"Accounts Payable", "2010", "2019", "USD"},
+    {"Cash & Bank", "1100", "1119", "MXN"},
+    {"Credit Cards", "2100", "2109", "MXN"},
+    {"Accounts Payable", "2110", "2119", "MXN"}
   ]
 
   defp paid_from_options do
@@ -218,10 +262,11 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
     accounts =
       Ledgr.Repo.all(
         from a in Account,
-          where: (a.code >= "1000" and a.code <= "1019")
-              or (a.code >= "1100" and a.code <= "1119")
-              or (a.code >= "2000" and a.code <= "2019")
-              or (a.code >= "2100" and a.code <= "2119"),
+          where:
+            (a.code >= "1000" and a.code <= "1019") or
+              (a.code >= "1100" and a.code <= "1119") or
+              (a.code >= "2000" and a.code <= "2019") or
+              (a.code >= "2100" and a.code <= "2119"),
           order_by: [asc: a.code]
       )
 
@@ -230,7 +275,9 @@ defmodule LedgrWeb.Domains.CasaTame.ExpenseController do
       group_accounts = Enum.filter(accounts, &(&1.code >= from_code and &1.code <= to_code))
 
       case group_accounts do
-        [] -> []
+        [] ->
+          []
+
         items ->
           Enum.map(items, &{"#{currency}: #{group_label} > #{&1.name}", &1.id})
       end

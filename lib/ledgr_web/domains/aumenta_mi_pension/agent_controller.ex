@@ -74,11 +74,13 @@ defmodule LedgrWeb.Domains.AumentaMiPension.AgentController do
         |> redirect(to: dp(conn, "/agents/#{agent.id}"))
 
       {:error, changeset} ->
-        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-          Enum.reduce(opts, msg, fn {k, v}, acc ->
-            String.replace(acc, "%{#{k}}", to_string(v))
+        errors =
+          Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+            Enum.reduce(opts, msg, fn {k, v}, acc ->
+              String.replace(acc, "%{#{k}}", to_string(v))
+            end)
           end)
-        end)
+
         conn
         |> put_flash(:error, "Failed to update availability: #{inspect(errors)}")
         |> redirect(to: dp(conn, "/agents/#{id}"))

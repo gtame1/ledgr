@@ -20,19 +20,79 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
 
   defp casa_tame_accounts_fixture do
     accounts = [
-      %{code: "1000", name: "Cash USD",          type: "asset",   normal_balance: "debit",  is_cash: true},
-      %{code: "1010", name: "Checking USD",      type: "asset",   normal_balance: "debit",  is_cash: true},
-      %{code: "1100", name: "Cash MXN",          type: "asset",   normal_balance: "debit",  is_cash: true},
-      %{code: "1110", name: "Checking MXN",      type: "asset",   normal_balance: "debit",  is_cash: true},
-      %{code: "3000", name: "Owner's Equity",    type: "equity",  normal_balance: "credit", is_cash: false},
-      %{code: "3050", name: "Retained Earnings", type: "equity",  normal_balance: "credit", is_cash: false},
-      %{code: "4000", name: "Wages USD",         type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4010", name: "Wages MXN",         type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4020", name: "Freelance",         type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4030", name: "Investment Returns", type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4040", name: "Rental Income",     type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4050", name: "Other Income",      type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "6000", name: "Housing",           type: "expense", normal_balance: "debit",  is_cash: false}
+      %{code: "1000", name: "Cash USD", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1010",
+        name: "Checking USD",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      },
+      %{code: "1100", name: "Cash MXN", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1110",
+        name: "Checking MXN",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      },
+      %{
+        code: "3000",
+        name: "Owner's Equity",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3050",
+        name: "Retained Earnings",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Wages USD",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4010",
+        name: "Wages MXN",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4020",
+        name: "Freelance",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4030",
+        name: "Investment Returns",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4040",
+        name: "Rental Income",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4050",
+        name: "Other Income",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{code: "6000", name: "Housing", type: "expense", normal_balance: "debit", is_cash: false}
     ]
 
     Enum.each(accounts, fn attrs ->
@@ -166,18 +226,26 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
     test "creates an associated journal entry" do
       {:ok, entry} = Income.create_income_entry_with_journal(income_attrs())
       reference = "Income ##{entry.id}"
-      je = Repo.one(from j in Ledgr.Core.Accounting.JournalEntry, where: j.reference == ^reference)
+
+      je =
+        Repo.one(from j in Ledgr.Core.Accounting.JournalEntry, where: j.reference == ^reference)
+
       assert je != nil
       assert je.entry_type == "income"
     end
 
     test "creates journal entry with correct debit/credit lines" do
-      {:ok, entry} = Income.create_income_entry_with_journal(income_attrs(%{amount_cents: 300_000}))
+      {:ok, entry} =
+        Income.create_income_entry_with_journal(income_attrs(%{amount_cents: 300_000}))
+
       reference = "Income ##{entry.id}"
-      je = Repo.one(from j in Ledgr.Core.Accounting.JournalEntry,
-        where: j.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      je =
+        Repo.one(
+          from j in Ledgr.Core.Accounting.JournalEntry,
+            where: j.reference == ^reference,
+            preload: :journal_lines
+        )
 
       debit_line = Enum.find(je.journal_lines, &(&1.debit_cents == 300_000))
       credit_line = Enum.find(je.journal_lines, &(&1.credit_cents == 300_000))
@@ -191,30 +259,45 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
     end
 
     test "returns error for zero amount" do
-      assert {:error, _} = Income.create_income_entry_with_journal(income_attrs(%{amount_cents: 0}))
+      assert {:error, _} =
+               Income.create_income_entry_with_journal(income_attrs(%{amount_cents: 0}))
     end
 
     test "returns error for invalid currency" do
-      assert {:error, _} = Income.create_income_entry_with_journal(income_attrs(%{currency: "GBP"}))
+      assert {:error, _} =
+               Income.create_income_entry_with_journal(income_attrs(%{currency: "GBP"}))
     end
 
     test "accepts USD currency" do
-      assert {:ok, entry} = Income.create_income_entry_with_journal(
-        income_attrs(%{currency: "USD", deposit_account_id: deposit_account().id})
-      )
+      assert {:ok, entry} =
+               Income.create_income_entry_with_journal(
+                 income_attrs(%{currency: "USD", deposit_account_id: deposit_account().id})
+               )
+
       assert entry.currency == "USD"
     end
 
     test "resolves wages USD revenue account for Wages & Salary category in USD" do
       cat = income_category_fixture("Wages & Salary")
-      {:ok, entry} = Income.create_income_entry_with_journal(
-        income_attrs(%{currency: "USD", deposit_account_id: deposit_account().id, income_category_id: cat.id})
-      )
+
+      {:ok, entry} =
+        Income.create_income_entry_with_journal(
+          income_attrs(%{
+            currency: "USD",
+            deposit_account_id: deposit_account().id,
+            income_category_id: cat.id
+          })
+        )
+
       reference = "Income ##{entry.id}"
-      je = Repo.one(from j in Ledgr.Core.Accounting.JournalEntry,
-        where: j.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      je =
+        Repo.one(
+          from j in Ledgr.Core.Accounting.JournalEntry,
+            where: j.reference == ^reference,
+            preload: :journal_lines
+        )
+
       wages_usd = Accounting.get_account_by_code!("4000")
       credit_line = Enum.find(je.journal_lines, &(&1.credit_cents > 0))
       assert credit_line.account_id == wages_usd.id
@@ -222,14 +305,21 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
 
     test "resolves wages MXN revenue account for Wages & Salary category in MXN" do
       cat = income_category_fixture("Wages & Salary")
-      {:ok, entry} = Income.create_income_entry_with_journal(
-        income_attrs(%{currency: "MXN", income_category_id: cat.id})
-      )
+
+      {:ok, entry} =
+        Income.create_income_entry_with_journal(
+          income_attrs(%{currency: "MXN", income_category_id: cat.id})
+        )
+
       reference = "Income ##{entry.id}"
-      je = Repo.one(from j in Ledgr.Core.Accounting.JournalEntry,
-        where: j.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      je =
+        Repo.one(
+          from j in Ledgr.Core.Accounting.JournalEntry,
+            where: j.reference == ^reference,
+            preload: :journal_lines
+        )
+
       wages_mxn = Accounting.get_account_by_code!("4010")
       credit_line = Enum.find(je.journal_lines, &(&1.credit_cents > 0))
       assert credit_line.account_id == wages_mxn.id
@@ -237,14 +327,19 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
 
     test "falls back to other income account for unknown category" do
       cat = income_category_fixture("Random")
-      {:ok, entry} = Income.create_income_entry_with_journal(
-        income_attrs(%{income_category_id: cat.id})
-      )
+
+      {:ok, entry} =
+        Income.create_income_entry_with_journal(income_attrs(%{income_category_id: cat.id}))
+
       reference = "Income ##{entry.id}"
-      je = Repo.one(from j in Ledgr.Core.Accounting.JournalEntry,
-        where: j.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      je =
+        Repo.one(
+          from j in Ledgr.Core.Accounting.JournalEntry,
+            where: j.reference == ^reference,
+            preload: :journal_lines
+        )
+
       other_income = Accounting.get_account_by_code!("4050")
       credit_line = Enum.find(je.journal_lines, &(&1.credit_cents > 0))
       assert credit_line.account_id == other_income.id
@@ -253,10 +348,14 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
     test "falls back to other income account when no category" do
       {:ok, entry} = Income.create_income_entry_with_journal(income_attrs())
       reference = "Income ##{entry.id}"
-      je = Repo.one(from j in Ledgr.Core.Accounting.JournalEntry,
-        where: j.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      je =
+        Repo.one(
+          from j in Ledgr.Core.Accounting.JournalEntry,
+            where: j.reference == ^reference,
+            preload: :journal_lines
+        )
+
       other_income = Accounting.get_account_by_code!("4050")
       credit_line = Enum.find(je.journal_lines, &(&1.credit_cents > 0))
       assert credit_line.account_id == other_income.id
@@ -268,20 +367,30 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
   describe "update_income_entry_with_journal/2" do
     test "updates entry fields" do
       entry = income_fixture()
-      assert {:ok, updated} = Income.update_income_entry_with_journal(entry, %{description: "Updated salary"})
+
+      assert {:ok, updated} =
+               Income.update_income_entry_with_journal(entry, %{description: "Updated salary"})
+
       assert updated.description == "Updated salary"
     end
 
     test "updates amount and refreshes journal entry lines" do
       entry = income_fixture(%{amount_cents: 100_000})
-      assert {:ok, updated} = Income.update_income_entry_with_journal(entry, %{amount_cents: 250_000})
+
+      assert {:ok, updated} =
+               Income.update_income_entry_with_journal(entry, %{amount_cents: 250_000})
+
       assert updated.amount_cents == 250_000
 
       reference = "Income ##{entry.id}"
-      je = Repo.one(from j in Ledgr.Core.Accounting.JournalEntry,
-        where: j.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      je =
+        Repo.one(
+          from j in Ledgr.Core.Accounting.JournalEntry,
+            where: j.reference == ^reference,
+            preload: :journal_lines
+        )
+
       assert Enum.any?(je.journal_lines, &(&1.debit_cents == 250_000))
     end
 
@@ -311,10 +420,12 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
       reference = "Income ##{entry.id}"
       {:ok, _} = Income.delete_income_entry(entry)
 
-      count = Repo.aggregate(
-        from(j in Ledgr.Core.Accounting.JournalEntry, where: j.reference == ^reference),
-        :count
-      )
+      count =
+        Repo.aggregate(
+          from(j in Ledgr.Core.Accounting.JournalEntry, where: j.reference == ^reference),
+          :count
+        )
+
       assert count == 0
     end
   end
@@ -325,7 +436,12 @@ defmodule Ledgr.Domains.CasaTame.IncomeTest do
     test "returns totals grouped by currency" do
       income_fixture(%{currency: "MXN", amount_cents: 200_000})
       income_fixture(%{currency: "MXN", amount_cents: 100_000})
-      income_fixture(%{currency: "USD", amount_cents: 50_000, deposit_account_id: deposit_account().id})
+
+      income_fixture(%{
+        currency: "USD",
+        amount_cents: 50_000,
+        deposit_account_id: deposit_account().id
+      })
 
       totals = Income.total_by_currency(~D[2026-01-01], ~D[2026-12-31])
       assert totals.mxn == 300_000

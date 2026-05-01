@@ -1,13 +1,14 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="card">
   <div class="card-header">
@@ -28,24 +29,35 @@
       <tbody>
         <%= for item <- @accounts do %>
           <tr>
-            <td style="color: var(--text-muted); font-size: 0.85rem;"><%= item.account.code %></td>
-            <td><%= item.account.name %></td>
-            <td class="numeric ct-amount-positive" style="font-weight: 600;"><%= fmt.(item.balance_cents) %></td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">{item.account.code}</td>
+            <td>{item.account.name}</td>
+            <td class="numeric ct-amount-positive" style="font-weight: 600;">
+              {fmt.(item.balance_cents)}
+            </td>
             <td>
-              <.link navigate={dp(@domain_path_prefix, "/investment-accounts/#{item.account.id}")} class="btn">
+              <.link
+                navigate={dp(@domain_path_prefix, "/investment-accounts/#{item.account.id}")}
+                class="btn"
+              >
                 View & Record
               </.link>
             </td>
           </tr>
         <% end %>
         <%= if @accounts == [] do %>
-          <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No investment accounts configured.</td></tr>
+          <tr>
+            <td colspan="4" style="text-align: center; color: var(--text-muted);">
+              No investment accounts configured.
+            </td>
+          </tr>
         <% end %>
       </tbody>
       <tfoot>
         <tr style="font-weight: 700;">
           <td colspan="2">Total</td>
-          <td class="numeric ct-amount-positive"><%= fmt.(Enum.reduce(@accounts, 0, & &1.balance_cents + &2)) %></td>
+          <td class="numeric ct-amount-positive">
+            {fmt.(Enum.reduce(@accounts, 0, &(&1.balance_cents + &2)))}
+          </td>
           <td></td>
         </tr>
       </tfoot>

@@ -9,67 +9,74 @@
   </div>
 
   <div style="max-width: 600px; margin: 0 auto;">
-
-  <section class="card">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Order Summary</h3>
-    <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem;">
-      <div style="display: flex; justify-content: space-between;">
-        <span style="color: var(--text-muted);">Customer</span>
-        <span><%= @order.customer_name %></span>
+    <section class="card">
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">
+        Order Summary
+      </h3>
+      <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Customer</span>
+          <span>{@order.customer_name}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Product</span>
+          <span>
+            {@order.variant.product.name} — {@order.variant.name}{if (@order.quantity || 1) > 1,
+              do: " x#{@order.quantity}"}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
+          <span>Amount</span>
+          <span>{format_currency(@order.variant.price_cents * (@order.quantity || 1))}</span>
+        </div>
       </div>
-      <div style="display: flex; justify-content: space-between;">
-        <span style="color: var(--text-muted);">Product</span>
-        <span><%= @order.variant.product.name %> — <%= @order.variant.name %><%= if (@order.quantity || 1) > 1, do: " x#{@order.quantity}" %></span>
+    </section>
+
+    <section class="card" style="margin-top: 1rem;">
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">
+        Stripe Payment Link
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">
+        Copy this link and share it with the customer. It expires once used or after 24 hours.
+      </p>
+
+      <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+        <input
+          id="stripe-payment-url"
+          type="text"
+          value={@stripe_url}
+          readonly
+          class="input"
+          style="flex: 1; font-size: 0.8rem; font-family: monospace; cursor: text;"
+        />
+        <button
+          onclick="copyStripeUrl()"
+          id="copy-btn"
+          class="btn"
+          style="flex-shrink: 0; white-space: nowrap;"
+        >
+          Copy
+        </button>
       </div>
-      <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle);">
-        <span>Amount</span>
-        <span><%= format_currency(@order.variant.price_cents * (@order.quantity || 1)) %></span>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="card" style="margin-top: 1rem;">
-    <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 0.75rem 0;">Stripe Payment Link</h3>
-    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">
-      Copy this link and share it with the customer. It expires once used or after 24 hours.
-    </p>
-
-    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
-      <input
-        id="stripe-payment-url"
-        type="text"
-        value={@stripe_url}
-        readonly
-        class="input"
-        style="flex: 1; font-size: 0.8rem; font-family: monospace; cursor: text;"
-      />
-      <button
-        onclick="copyStripeUrl()"
-        id="copy-btn"
-        class="btn"
-        style="flex-shrink: 0; white-space: nowrap;"
-      >
-        Copy
-      </button>
-    </div>
-  </section>
-
-  <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-    <%= if @order.customer_phone && @order.customer_phone != "" do %>
-      <% wa_phone = String.replace(@order.customer_phone, ~r/\D/, "") %>
-      <% wa_message = "Hola #{@order.customer_name}, aquí está tu enlace de pago con tarjeta para tu pedido ##{@order.id} de #{@order.variant.product.name}: #{@stripe_url}" %>
-      <a
-        href={"https://wa.me/#{wa_phone}?text=#{URI.encode(wa_message)}"}
-        target="_blank"
-        class="btn"
-        style="background: #25D366; color: white; border-color: #25D366;"
-      >
-        Enviar por WhatsApp
-      </a>
-    <% end %>
-    <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn btn-secondary">
-      Back to Order
-    </.link>
+    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <%= if @order.customer_phone && @order.customer_phone != "" do %>
+        <% wa_phone = String.replace(@order.customer_phone, ~r/\D/, "") %>
+        <% wa_message =
+          "Hola #{@order.customer_name}, aquí está tu enlace de pago con tarjeta para tu pedido ##{@order.id} de #{@order.variant.product.name}: #{@stripe_url}" %>
+        <a
+          href={"https://wa.me/#{wa_phone}?text=#{URI.encode(wa_message)}"}
+          target="_blank"
+          class="btn"
+          style="background: #25D366; color: white; border-color: #25D366;"
+        >
+          Enviar por WhatsApp
+        </a>
+      <% end %>
+      <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn btn-secondary">
+        Back to Order
+      </.link>
     </div>
   </div>
 </div>

@@ -6,8 +6,10 @@ defmodule Ledgr.Repo.Migrations.CreateExpenses do
       add :date, :date, null: false
       add :description, :text, null: false
       add :amount_cents, :integer, null: false
-      add :expense_account_id, references(:accounts, on_delete: :restrict), null: false #(e.g. “Rent”, “Marketing”, “Utilities”)
-      add :paid_from_account_id, references(:accounts, on_delete: :restrict), null: false # (e.g. Cash, Bank, Credit Card)
+      # (e.g. “Rent”, “Marketing”, “Utilities”)
+      add :expense_account_id, references(:accounts, on_delete: :restrict), null: false
+      # (e.g. Cash, Bank, Credit Card)
+      add :paid_from_account_id, references(:accounts, on_delete: :restrict), null: false
       add :category, :string
 
       timestamps()

@@ -3,7 +3,7 @@
     <h2 class="card-title">Add Cost</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:cost} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} as={:cost}>
     <div class="form-block" style="margin-bottom: 1.75rem;">
       <div class="field">
         <label>Name</label>
@@ -11,15 +11,27 @@
       </div>
 
       <div class="field">
-        <label>Vendor <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span></label>
+        <label>
+          Vendor
+          <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">
+            — optional
+          </span>
+        </label>
         <.input type="text" field={f[:vendor]} placeholder="e.g. Fly.io" />
       </div>
 
       <div class="field">
         <label>Category</label>
-        <.input type="select" field={f[:category]}
-          options={[{"Cloud & Hosting", "cloud_hosting"}, {"Domains & DNS", "domain_dns"}, {"SaaS & Tools", "saas_tools"}]}
-          prompt="Select category…" />
+        <.input
+          type="select"
+          field={f[:category]}
+          options={[
+            {"Cloud & Hosting", "cloud_hosting"},
+            {"Domains & DNS", "domain_dns"},
+            {"SaaS & Tools", "saas_tools"}
+          ]}
+          prompt="Select category…"
+        />
       </div>
 
       <div class="field">
@@ -29,8 +41,11 @@
 
       <div class="field">
         <label>Billing Period</label>
-        <.input type="select" field={f[:billing_period]}
-          options={[{"Monthly", "monthly"}, {"Annual", "annual"}, {"One-time", "one_time"}]} />
+        <.input
+          type="select"
+          field={f[:billing_period]}
+          options={[{"Monthly", "monthly"}, {"Annual", "annual"}, {"One-time", "one_time"}]}
+        />
       </div>
 
       <div class="field">
@@ -40,7 +55,10 @@
     </div>
 
     <div class="field full" style="margin-bottom: 1.75rem;">
-      <label>Notes <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span></label>
+      <label>
+        Notes
+        <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span>
+      </label>
       <.input type="textarea" field={f[:notes]} placeholder="e.g. Covers all 3 apps" />
     </div>
 

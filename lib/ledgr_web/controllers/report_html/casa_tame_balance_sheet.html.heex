@@ -1,276 +1,352 @@
-<%
-  bs = @balance_sheet
+<% bs = @balance_sheet
 
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas =
-      whole
-      |> String.reverse()
-      |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
-      |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
+fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
 
-  usd_cash = Enum.filter(bs.assets, fn i -> i.account.code >= "1000" and i.account.code < "1050" end)
-  usd_investments = Enum.filter(bs.assets, fn i -> i.account.code >= "1050" and i.account.code < "1100" end)
-  mxn_cash = Enum.filter(bs.assets, fn i -> i.account.code >= "1100" and i.account.code < "1150" end)
-  mxn_fixed = Enum.filter(bs.assets, fn i -> i.account.code >= "1150" and i.account.code < "1200" end)
+  whole_with_commas =
+    whole
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+    |> String.reverse()
 
-  usd_cc = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2000" and i.account.code < "2010" end)
-  usd_ap = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2010" and i.account.code < "2050" end)
-  usd_loans = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2050" and i.account.code < "2100" end)
-  mxn_cc = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2100" and i.account.code < "2110" end)
-  mxn_ap = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2110" and i.account.code < "2150" end)
-  mxn_loans = Enum.filter(bs.liabilities, fn i -> i.account.code >= "2150" and i.account.code < "2200" end)
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end
 
-  sum = fn items -> Enum.reduce(items, 0, fn i, acc -> i.amount_cents + acc end) end
+usd_cash =
+  Enum.filter(bs.assets, fn i -> i.account.code >= "1000" and i.account.code < "1050" end)
 
-  total_usd_assets = sum.(usd_cash) + sum.(usd_investments)
-  total_mxn_assets = sum.(mxn_cash) + sum.(mxn_fixed)
-  total_usd_liabilities = sum.(usd_cc) + sum.(usd_ap) + sum.(usd_loans)
-  total_mxn_liabilities = sum.(mxn_cc) + sum.(mxn_ap) + sum.(mxn_loans)
-  net_usd = total_usd_assets - total_usd_liabilities
-  net_mxn = total_mxn_assets - total_mxn_liabilities
-%>
+usd_investments =
+  Enum.filter(bs.assets, fn i -> i.account.code >= "1050" and i.account.code < "1100" end)
+
+mxn_cash =
+  Enum.filter(bs.assets, fn i -> i.account.code >= "1100" and i.account.code < "1150" end)
+
+mxn_fixed =
+  Enum.filter(bs.assets, fn i -> i.account.code >= "1150" and i.account.code < "1200" end)
+
+usd_cc =
+  Enum.filter(bs.liabilities, fn i -> i.account.code >= "2000" and i.account.code < "2010" end)
+
+usd_ap =
+  Enum.filter(bs.liabilities, fn i -> i.account.code >= "2010" and i.account.code < "2050" end)
+
+usd_loans =
+  Enum.filter(bs.liabilities, fn i -> i.account.code >= "2050" and i.account.code < "2100" end)
+
+mxn_cc =
+  Enum.filter(bs.liabilities, fn i -> i.account.code >= "2100" and i.account.code < "2110" end)
+
+mxn_ap =
+  Enum.filter(bs.liabilities, fn i -> i.account.code >= "2110" and i.account.code < "2150" end)
+
+mxn_loans =
+  Enum.filter(bs.liabilities, fn i -> i.account.code >= "2150" and i.account.code < "2200" end)
+
+sum = fn items -> Enum.reduce(items, 0, fn i, acc -> i.amount_cents + acc end) end
+
+total_usd_assets = sum.(usd_cash) + sum.(usd_investments)
+total_mxn_assets = sum.(mxn_cash) + sum.(mxn_fixed)
+total_usd_liabilities = sum.(usd_cc) + sum.(usd_ap) + sum.(usd_loans)
+total_mxn_liabilities = sum.(mxn_cc) + sum.(mxn_ap) + sum.(mxn_loans)
+net_usd = total_usd_assets - total_usd_liabilities
+net_mxn = total_mxn_assets - total_mxn_liabilities %>
 
 <section class="content">
   <header class="content-header">
     <div class="ct-hero-label">Financial Atelier</div>
     <h1 class="page-title">Balance Sheet</h1>
-    <p class="card-subtitle">As of <%= @as_of %></p>
+    <p class="card-subtitle">As of {@as_of}</p>
   </header>
 
   <div class="content-body">
-    <form method="get" action={dp(@domain_path_prefix, "/reports/balance_sheet")} style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/reports/balance_sheet")}
+      style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;"
+    >
       <input type="date" name="as_of" value={@as_of} class="input input-sm" />
       <button type="submit" class="btn sm">Update</button>
     </form>
 
     <div class="ct-bs-currencies">
-    <!-- USD Section -->
-    <details open class="card">
-      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
-        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-          <span class="ct-badge ct-badge--usd">USD</span>
-          Accounts
-        </span>
-        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_usd) %></span>
-      </summary>
+      <!-- USD Section -->
+      <details open class="card">
+        <summary
+          class="ct-hero-detail"
+          style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;"
+        >
+          <span
+            class="card-title"
+            style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"
+          >
+            <span class="ct-badge ct-badge--usd">USD</span> Accounts
+          </span>
+          <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;">
+            {fmt.(net_usd)}
+          </span>
+        </summary>
 
-      <div style="padding: 0 1rem 1.25rem;">
-        <!-- Assets -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--asset">Assets</div>
+        <div style="padding: 0 1rem 1.25rem;">
+          <!-- Assets -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--asset">Assets</div>
 
-          <div class="ct-report-subgroup-label">Cash & Bank</div>
-          <%= for item <- usd_cash do %>
-            <div class="ct-report-row ct-report-row--indent">
-              <span class="ct-report-row-label"><%= item.account.name %></span>
-              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
+            <div class="ct-report-subgroup-label">Cash & Bank</div>
+            <%= for item <- usd_cash do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label">{item.account.name}</span>
+                <span class="ct-report-row-amount ct-amount-positive">
+                  {fmt.(item.amount_cents)}
+                </span>
+              </div>
+            <% end %>
+            <div class="ct-report-row ct-report-row--subtotal">
+              <span class="ct-report-row-label">Subtotal Cash & Bank</span>
+              <span class="ct-report-row-amount ct-amount-positive">{fmt.(sum.(usd_cash))}</span>
             </div>
-          <% end %>
-          <div class="ct-report-row ct-report-row--subtotal">
-            <span class="ct-report-row-label">Subtotal Cash & Bank</span>
-            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(usd_cash)) %></span>
+
+            <%= if usd_investments != [] do %>
+              <div class="ct-report-subgroup-label">Investments</div>
+              <%= for item <- usd_investments do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-positive">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal Investments</span>
+                <span class="ct-report-row-amount ct-amount-positive">
+                  {fmt.(sum.(usd_investments))}
+                </span>
+              </div>
+            <% end %>
+
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total USD Assets</span>
+              <span class="ct-report-row-amount ct-amount-positive">
+                {fmt.(total_usd_assets)}
+              </span>
+            </div>
           </div>
 
-          <%= if usd_investments != [] do %>
-            <div class="ct-report-subgroup-label">Investments</div>
-            <%= for item <- usd_investments do %>
-              <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
+          <div class="ct-report-spacer"></div>
+          
+<!-- Liabilities -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--liability">
+              Liabilities
+            </div>
+
+            <%= if usd_cc != [] do %>
+              <div class="ct-report-subgroup-label">Credit Cards</div>
+              <%= for item <- usd_cc do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal Credit Cards</span>
+                <span class="ct-report-row-amount ct-amount-negative">{fmt.(sum.(usd_cc))}</span>
               </div>
             <% end %>
-            <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal Investments</span>
-              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(usd_investments)) %></span>
-            </div>
-          <% end %>
 
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total USD Assets</span>
-            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_usd_assets) %></span>
-          </div>
-        </div>
-
-        <div class="ct-report-spacer"></div>
-
-        <!-- Liabilities -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--liability">Liabilities</div>
-
-          <%= if usd_cc != [] do %>
-            <div class="ct-report-subgroup-label">Credit Cards</div>
-            <%= for item <- usd_cc do %>
-              <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+            <%= if usd_ap != [] do %>
+              <div class="ct-report-subgroup-label">Accounts Payable</div>
+              <%= for item <- usd_ap do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal AP</span>
+                <span class="ct-report-row-amount ct-amount-negative">{fmt.(sum.(usd_ap))}</span>
               </div>
             <% end %>
-            <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal Credit Cards</span>
-              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(usd_cc)) %></span>
-            </div>
-          <% end %>
 
-          <%= if usd_ap != [] do %>
-            <div class="ct-report-subgroup-label">Accounts Payable</div>
-            <%= for item <- usd_ap do %>
-              <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+            <%= if usd_loans != [] do %>
+              <div class="ct-report-subgroup-label">Long-Term Loans</div>
+              <%= for item <- usd_loans do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal Loans</span>
+                <span class="ct-report-row-amount ct-amount-negative">
+                  {fmt.(sum.(usd_loans))}
+                </span>
               </div>
             <% end %>
-            <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal AP</span>
-              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(usd_ap)) %></span>
+
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total USD Liabilities</span>
+              <span class="ct-report-row-amount ct-amount-negative">
+                {fmt.(total_usd_liabilities)}
+              </span>
             </div>
-          <% end %>
-
-          <%= if usd_loans != [] do %>
-            <div class="ct-report-subgroup-label">Long-Term Loans</div>
-            <%= for item <- usd_loans do %>
-              <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
-              </div>
-            <% end %>
-            <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal Loans</span>
-              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(usd_loans)) %></span>
-            </div>
-          <% end %>
-
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total USD Liabilities</span>
-            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(total_usd_liabilities) %></span>
-          </div>
-        </div>
-
-        <div class="ct-report-spacer"></div>
-
-        <!-- Net Position -->
-        <div class="ct-report-row ct-report-row--net">
-          <span class="ct-report-row-label">USD Net Position</span>
-          <span class="ct-report-row-amount"><%= fmt.(net_usd) %></span>
-        </div>
-      </div>
-    </details>
-
-    <!-- MXN Section -->
-    <details open class="card">
-      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
-        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-          <span class="ct-badge ct-badge--mxn">MXN</span>
-          Accounts
-        </span>
-        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_mxn) %></span>
-      </summary>
-
-      <div style="padding: 0 1rem 1.25rem;">
-        <!-- Assets -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--asset">Assets</div>
-
-          <div class="ct-report-subgroup-label">Cash & Bank</div>
-          <%= for item <- mxn_cash do %>
-            <div class="ct-report-row ct-report-row--indent">
-              <span class="ct-report-row-label"><%= item.account.name %></span>
-              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
-            </div>
-          <% end %>
-          <div class="ct-report-row ct-report-row--subtotal">
-            <span class="ct-report-row-label">Subtotal Cash & Bank</span>
-            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(mxn_cash)) %></span>
           </div>
 
-          <%= if mxn_fixed != [] do %>
-            <div class="ct-report-subgroup-label">Fixed Assets</div>
-            <%= for item <- mxn_fixed do %>
-              <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.amount_cents) %></span>
-              </div>
-            <% end %>
-            <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal Fixed Assets</span>
-              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(sum.(mxn_fixed)) %></span>
-            </div>
-          <% end %>
-
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total MXN Assets</span>
-            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_mxn_assets) %></span>
+          <div class="ct-report-spacer"></div>
+          
+<!-- Net Position -->
+          <div class="ct-report-row ct-report-row--net">
+            <span class="ct-report-row-label">USD Net Position</span>
+            <span class="ct-report-row-amount">{fmt.(net_usd)}</span>
           </div>
         </div>
+      </details>
+      
+<!-- MXN Section -->
+      <details open class="card">
+        <summary
+          class="ct-hero-detail"
+          style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;"
+        >
+          <span
+            class="card-title"
+            style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"
+          >
+            <span class="ct-badge ct-badge--mxn">MXN</span> Accounts
+          </span>
+          <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;">
+            {fmt.(net_mxn)}
+          </span>
+        </summary>
 
-        <div class="ct-report-spacer"></div>
+        <div style="padding: 0 1rem 1.25rem;">
+          <!-- Assets -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--asset">Assets</div>
 
-        <!-- Liabilities -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--liability">Liabilities</div>
-
-          <%= if mxn_cc != [] do %>
-            <div class="ct-report-subgroup-label">Credit Cards</div>
-            <%= for item <- mxn_cc do %>
+            <div class="ct-report-subgroup-label">Cash & Bank</div>
+            <%= for item <- mxn_cash do %>
               <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+                <span class="ct-report-row-label">{item.account.name}</span>
+                <span class="ct-report-row-amount ct-amount-positive">
+                  {fmt.(item.amount_cents)}
+                </span>
               </div>
             <% end %>
             <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal Credit Cards</span>
-              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(mxn_cc)) %></span>
+              <span class="ct-report-row-label">Subtotal Cash & Bank</span>
+              <span class="ct-report-row-amount ct-amount-positive">{fmt.(sum.(mxn_cash))}</span>
             </div>
-          <% end %>
 
-          <%= if mxn_ap != [] do %>
-            <div class="ct-report-subgroup-label">Accounts Payable</div>
-            <%= for item <- mxn_ap do %>
-              <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+            <%= if mxn_fixed != [] do %>
+              <div class="ct-report-subgroup-label">Fixed Assets</div>
+              <%= for item <- mxn_fixed do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-positive">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal Fixed Assets</span>
+                <span class="ct-report-row-amount ct-amount-positive">
+                  {fmt.(sum.(mxn_fixed))}
+                </span>
               </div>
             <% end %>
-            <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal AP</span>
-              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(mxn_ap)) %></span>
-            </div>
-          <% end %>
 
-          <%= if mxn_loans != [] do %>
-            <div class="ct-report-subgroup-label">Long-Term Loans</div>
-            <%= for item <- mxn_loans do %>
-              <div class="ct-report-row ct-report-row--indent">
-                <span class="ct-report-row-label"><%= item.account.name %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.amount_cents) %></span>
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total MXN Assets</span>
+              <span class="ct-report-row-amount ct-amount-positive">
+                {fmt.(total_mxn_assets)}
+              </span>
+            </div>
+          </div>
+
+          <div class="ct-report-spacer"></div>
+          
+<!-- Liabilities -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--liability">
+              Liabilities
+            </div>
+
+            <%= if mxn_cc != [] do %>
+              <div class="ct-report-subgroup-label">Credit Cards</div>
+              <%= for item <- mxn_cc do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal Credit Cards</span>
+                <span class="ct-report-row-amount ct-amount-negative">{fmt.(sum.(mxn_cc))}</span>
               </div>
             <% end %>
-            <div class="ct-report-row ct-report-row--subtotal">
-              <span class="ct-report-row-label">Subtotal Loans</span>
-              <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(sum.(mxn_loans)) %></span>
-            </div>
-          <% end %>
 
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total MXN Liabilities</span>
-            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(total_mxn_liabilities) %></span>
+            <%= if mxn_ap != [] do %>
+              <div class="ct-report-subgroup-label">Accounts Payable</div>
+              <%= for item <- mxn_ap do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal AP</span>
+                <span class="ct-report-row-amount ct-amount-negative">{fmt.(sum.(mxn_ap))}</span>
+              </div>
+            <% end %>
+
+            <%= if mxn_loans != [] do %>
+              <div class="ct-report-subgroup-label">Long-Term Loans</div>
+              <%= for item <- mxn_loans do %>
+                <div class="ct-report-row ct-report-row--indent">
+                  <span class="ct-report-row-label">{item.account.name}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">
+                    {fmt.(item.amount_cents)}
+                  </span>
+                </div>
+              <% end %>
+              <div class="ct-report-row ct-report-row--subtotal">
+                <span class="ct-report-row-label">Subtotal Loans</span>
+                <span class="ct-report-row-amount ct-amount-negative">
+                  {fmt.(sum.(mxn_loans))}
+                </span>
+              </div>
+            <% end %>
+
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total MXN Liabilities</span>
+              <span class="ct-report-row-amount ct-amount-negative">
+                {fmt.(total_mxn_liabilities)}
+              </span>
+            </div>
+          </div>
+
+          <div class="ct-report-spacer"></div>
+          
+<!-- Net Position -->
+          <div class="ct-report-row ct-report-row--net">
+            <span class="ct-report-row-label">MXN Net Position</span>
+            <span class="ct-report-row-amount">{fmt.(net_mxn)}</span>
           </div>
         </div>
-
-        <div class="ct-report-spacer"></div>
-
-        <!-- Net Position -->
-        <div class="ct-report-row ct-report-row--net">
-          <span class="ct-report-row-label">MXN Net Position</span>
-          <span class="ct-report-row-amount"><%= fmt.(net_mxn) %></span>
-        </div>
-      </div>
-    </details>
+      </details>
     </div>
   </div>
 </section>

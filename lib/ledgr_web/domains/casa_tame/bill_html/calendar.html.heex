@@ -1,13 +1,14 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <div class="calendar-page">
   <!-- Desktop header -->
@@ -16,22 +17,63 @@
       <h1 class="calendar-title">Bills Calendar</h1>
     </div>
     <div class="calendar-header-actions">
-      <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}")} class="ct-quick-pill">&larr; Prev</.link>
-      <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{today_mx().year}&month=#{today_mx().month}")} class="ct-quick-pill">Today</.link>
-      <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}")} class="ct-quick-pill">Next &rarr;</.link>
-      <.link navigate={dp(@domain_path_prefix, "/bills")} class="ct-quick-pill ct-quick-pill--primary">List</.link>
+      <.link
+        navigate={
+          dp(
+            @domain_path_prefix,
+            "/bills/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}"
+          )
+        }
+        class="ct-quick-pill"
+      >
+        &larr; Prev
+      </.link>
+      <.link
+        navigate={
+          dp(
+            @domain_path_prefix,
+            "/bills/calendar?year=#{today_mx().year}&month=#{today_mx().month}"
+          )
+        }
+        class="ct-quick-pill"
+      >
+        Today
+      </.link>
+      <.link
+        navigate={
+          dp(
+            @domain_path_prefix,
+            "/bills/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}"
+          )
+        }
+        class="ct-quick-pill"
+      >
+        Next &rarr;
+      </.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/bills")}
+        class="ct-quick-pill ct-quick-pill--primary"
+      >
+        List
+      </.link>
     </div>
   </div>
-
-  <!-- Mobile header -->
+  
+<!-- Mobile header -->
   <div class="cal-mobile-only" style="margin-bottom: 0.5rem;">
     <h1 class="calendar-title">Bills Calendar</h1>
   </div>
   <div class="cal-mobile-only" style="margin-bottom: 0.75rem;">
-    <.link navigate={dp(@domain_path_prefix, "/bills")} class="ct-quick-pill ct-quick-pill--primary" style="width: 100%; text-align: center; justify-content: center;">View Bill List</.link>
+    <.link
+      navigate={dp(@domain_path_prefix, "/bills")}
+      class="ct-quick-pill ct-quick-pill--primary"
+      style="width: 100%; text-align: center; justify-content: center;"
+    >
+      View Bill List
+    </.link>
   </div>
 
-  <div class="calendar-month-title"><%= fmt_date(@first_day, "%B %Y") %></div>
+  <div class="calendar-month-title">{fmt_date(@first_day, "%B %Y")}</div>
 
   <div class="calendar-grid">
     <div class="calendar-weekday">S</div>
@@ -43,30 +85,48 @@
     <div class="calendar-weekday">S</div>
 
     <%= for date <- Date.range(@calendar_start, @calendar_end) do %>
-      <%
-        day_bills = Map.get(@bills_by_date, date, [])
-        has_bills = day_bills != []
-      %>
+      <% day_bills = Map.get(@bills_by_date, date, [])
+      has_bills = day_bills != [] %>
       <div
         class={[
           "calendar-day",
-          if(Date.compare(date, @first_day) == :lt or Date.compare(date, @last_day) == :gt, do: "calendar-day-other-month"),
+          if(Date.compare(date, @first_day) == :lt or Date.compare(date, @last_day) == :gt,
+            do: "calendar-day-other-month"
+          ),
           if(Date.compare(date, @today) == :eq, do: "calendar-day-today"),
           if(has_bills, do: "calendar-day-clickable")
         ]}
         {if has_bills, do: [onclick: "showBillPopup(this)"], else: []}
         data-bill-date={date}
-        data-bill-info={if has_bills, do: Jason.encode!(Enum.map(day_bills, fn b ->
-          %{name: b.name, category: b.category, amount: if(b.amount_cents, do: fmt.(b.amount_cents), else: "Variable"), currency: b.currency}
-        end)), else: "[]"}
+        data-bill-info={
+          if has_bills,
+            do:
+              Jason.encode!(
+                Enum.map(day_bills, fn b ->
+                  %{
+                    name: b.name,
+                    category: b.category,
+                    amount: if(b.amount_cents, do: fmt.(b.amount_cents), else: "Variable"),
+                    currency: b.currency
+                  }
+                end)
+              ),
+            else: "[]"
+        }
       >
-        <div class="calendar-day-number"><%= date.day %></div>
+        <div class="calendar-day-number">{date.day}</div>
         <div class="calendar-day-orders">
           <%= for bill <- day_bills do %>
-            <div style="display: flex; align-items: center; gap: 0.2rem; margin-bottom: 0.1rem;" title={bill.name}>
+            <div
+              style="display: flex; align-items: center; gap: 0.2rem; margin-bottom: 0.1rem;"
+              title={bill.name}
+            >
               <span class={"ct-cal-dot ct-cal-dot--#{bill.category || "other"}"}></span>
-              <span class="bill-item-text" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; font-size: 0.65rem;">
-                <%= bill.name %>
+              <span
+                class="bill-item-text"
+                style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; font-size: 0.65rem;"
+              >
+                {bill.name}
               </span>
             </div>
           <% end %>
@@ -74,33 +134,92 @@
       </div>
     <% end %>
   </div>
-
-  <!-- Mobile bottom nav -->
+  
+<!-- Mobile bottom nav -->
   <div class="cal-mobile-only cal-bottom-nav">
-    <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}")} class="cal-nav-arrow">&larr;</.link>
-    <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{today_mx().year}&month=#{today_mx().month}")} class="cal-nav-today">Today</.link>
-    <.link navigate={dp(@domain_path_prefix, "/bills/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}")} class="cal-nav-arrow">&rarr;</.link>
+    <.link
+      navigate={
+        dp(
+          @domain_path_prefix,
+          "/bills/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}"
+        )
+      }
+      class="cal-nav-arrow"
+    >
+      &larr;
+    </.link>
+    <.link
+      navigate={
+        dp(
+          @domain_path_prefix,
+          "/bills/calendar?year=#{today_mx().year}&month=#{today_mx().month}"
+        )
+      }
+      class="cal-nav-today"
+    >
+      Today
+    </.link>
+    <.link
+      navigate={
+        dp(
+          @domain_path_prefix,
+          "/bills/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}"
+        )
+      }
+      class="cal-nav-arrow"
+    >
+      &rarr;
+    </.link>
   </div>
-
-  <!-- Legend with CSS class colors -->
+  
+<!-- Legend with CSS class colors -->
   <div class="calendar-legend">
     <div class="calendar-legend-items">
-      <div class="calendar-legend-item"><span class="ct-cal-dot ct-cal-dot--credit_card"></span><span>Credit Card</span></div>
-      <div class="calendar-legend-item"><span class="ct-cal-dot ct-cal-dot--utility"></span><span>Utility</span></div>
-      <div class="calendar-legend-item"><span class="ct-cal-dot ct-cal-dot--loan"></span><span>Loan</span></div>
-      <div class="calendar-legend-item"><span class="ct-cal-dot ct-cal-dot--insurance"></span><span>Insurance</span></div>
-      <div class="calendar-legend-item"><span class="ct-cal-dot ct-cal-dot--subscription"></span><span>Subscription</span></div>
-      <div class="calendar-legend-item"><span class="ct-cal-dot ct-cal-dot--other"></span><span>Other</span></div>
+      <div class="calendar-legend-item">
+        <span class="ct-cal-dot ct-cal-dot--credit_card"></span><span>Credit Card</span>
+      </div>
+      <div class="calendar-legend-item">
+        <span class="ct-cal-dot ct-cal-dot--utility"></span><span>Utility</span>
+      </div>
+      <div class="calendar-legend-item">
+        <span class="ct-cal-dot ct-cal-dot--loan"></span><span>Loan</span>
+      </div>
+      <div class="calendar-legend-item">
+        <span class="ct-cal-dot ct-cal-dot--insurance"></span><span>Insurance</span>
+      </div>
+      <div class="calendar-legend-item">
+        <span class="ct-cal-dot ct-cal-dot--subscription"></span><span>Subscription</span>
+      </div>
+      <div class="calendar-legend-item">
+        <span class="ct-cal-dot ct-cal-dot--other"></span><span>Other</span>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Bill popup overlay -->
-<div id="bill-popup-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 999;" onclick="closeBillPopup()"></div>
-<div id="bill-popup" style="display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1000; background: #fbf9f4; border-radius: 16px; box-shadow: 0 12px 42px rgba(27,28,25,0.12); padding: 1.25rem; min-width: 280px; max-width: 90vw;">
+<div
+  id="bill-popup-overlay"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 999;"
+  onclick="closeBillPopup()"
+>
+</div>
+<div
+  id="bill-popup"
+  style="display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1000; background: #fbf9f4; border-radius: 16px; box-shadow: 0 12px 42px rgba(27,28,25,0.12); padding: 1.25rem; min-width: 280px; max-width: 90vw;"
+>
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-    <h3 id="bill-popup-title" style="margin: 0; font-family: Manrope, sans-serif; font-size: 1rem; font-weight: 700;"></h3>
-    <button onclick="closeBillPopup()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;">&times;</button>
+    <h3
+      id="bill-popup-title"
+      style="margin: 0; font-family: Manrope, sans-serif; font-size: 1rem; font-weight: 700;"
+    >
+    </h3>
+    <button
+      onclick="closeBillPopup()"
+      style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;"
+    >
+      &times;
+    </button>
   </div>
   <div id="bill-popup-content"></div>
 </div>

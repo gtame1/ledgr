@@ -10,16 +10,30 @@ end %>
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Balance Sheet</h1>
-      <p class="text-sm mt-1" style="color: var(--text-muted);">As of <%= fmt_date(@as_of, "%B %d, %Y") %></p>
+      <p class="text-sm mt-1" style="color: var(--text-muted);">
+        As of {fmt_date(@as_of, "%B %d, %Y")}
+      </p>
     </div>
   </div>
 
   <%!-- Date Picker --%>
   <div class="hd-card p-4 mb-6">
-    <form method="get" action={dp(@domain_path_prefix, "/reports/balance_sheet")} class="flex flex-wrap gap-3 items-end">
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/reports/balance_sheet")}
+      class="flex flex-wrap gap-3 items-end"
+    >
       <div class="flex-1 min-w-[140px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">As of date</label>
-        <input type="date" name="as_of" value={@as_of} class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          As of date
+        </label>
+        <input
+          type="date"
+          name="as_of"
+          value={@as_of}
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        />
       </div>
       <button type="submit" class="hd-btn-secondary">Update</button>
     </form>
@@ -29,18 +43,22 @@ end %>
   <div class="hd-kpi-grid mb-6">
     <div class="hd-kpi">
       <div class="hd-kpi-label">Total Assets</div>
-      <div class="hd-kpi-value"><%= fmt.(@balance_sheet.total_assets_cents) %></div>
+      <div class="hd-kpi-value">{fmt.(@balance_sheet.total_assets_cents)}</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Liabilities + Equity + Net Income</div>
-      <div class="hd-kpi-value"><%= fmt.(@balance_sheet.liabilities_plus_equity_plus_income_cents) %></div>
+      <div class="hd-kpi-value">
+        {fmt.(@balance_sheet.liabilities_plus_equity_plus_income_cents)}
+      </div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Balance Check</div>
       <%= if @balance_sheet.balance_diff_cents == 0 do %>
         <div class="hd-kpi-value" style="color: #16a34a;">&#10003; Balanced</div>
       <% else %>
-        <div class="hd-kpi-value" style="color: #dc2626;">&#9888; Off by <%= fmt.(@balance_sheet.balance_diff_cents) %></div>
+        <div class="hd-kpi-value" style="color: #dc2626;">
+          &#9888; Off by {fmt.(@balance_sheet.balance_diff_cents)}
+        </div>
       <% end %>
     </div>
   </div>
@@ -53,20 +71,36 @@ end %>
         <table class="hd-table w-full">
           <thead>
             <tr>
-              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Account</th>
-              <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
+              <th
+                class="text-left p-3 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Account
+              </th>
+              <th
+                class="text-right p-3 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Amount
+              </th>
             </tr>
           </thead>
           <tbody>
             <%= for row <- Enum.sort_by(@balance_sheet.assets, & &1.account.code) do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
-                <td class="p-3 text-sm" style="color: var(--text-main);"><%= row.account.code %> - <%= row.account.name %></td>
-                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.amount_cents) %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {row.account.code} - {row.account.name}
+                </td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
+                  {fmt.(row.amount_cents)}
+                </td>
               </tr>
             <% end %>
             <tr class="border-t" style="border-color: var(--border-subtle);">
               <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total Assets</td>
-              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);"><%= fmt.(@balance_sheet.total_assets_cents) %></td>
+              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);">
+                {fmt.(@balance_sheet.total_assets_cents)}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -80,21 +114,42 @@ end %>
         <table class="hd-table w-full">
           <thead>
             <tr>
-              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Account</th>
-              <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
+              <th
+                class="text-left p-3 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Account
+              </th>
+              <th
+                class="text-right p-3 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Amount
+              </th>
             </tr>
           </thead>
           <tbody>
             <%= for row <- Enum.sort_by(@balance_sheet.liabilities, & &1.account.code) do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
-                <td class="p-3 text-sm" style="color: var(--text-main);"><%= row.account.code %> - <%= row.account.name %></td>
-                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.amount_cents) %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {row.account.code} - {row.account.name}
+                </td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
+                  {fmt.(row.amount_cents)}
+                </td>
               </tr>
             <% end %>
-            <% liabilities_total = Enum.reduce(@balance_sheet.liabilities, 0, fn r, acc -> acc + (r.amount_cents || 0) end) %>
+            <% liabilities_total =
+              Enum.reduce(@balance_sheet.liabilities, 0, fn r, acc ->
+                acc + (r.amount_cents || 0)
+              end) %>
             <tr class="border-t" style="border-color: var(--border-subtle);">
-              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total Liabilities</td>
-              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);"><%= fmt.(liabilities_total) %></td>
+              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">
+                Total Liabilities
+              </td>
+              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);">
+                {fmt.(liabilities_total)}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -108,25 +163,48 @@ end %>
         <table class="hd-table w-full">
           <thead>
             <tr>
-              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Account</th>
-              <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Amount</th>
+              <th
+                class="text-left p-3 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Account
+              </th>
+              <th
+                class="text-right p-3 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Amount
+              </th>
             </tr>
           </thead>
           <tbody>
             <%= for row <- Enum.sort_by(@balance_sheet.equity, & &1.account.code) do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
-                <td class="p-3 text-sm" style="color: var(--text-main);"><%= row.account.code %> - <%= row.account.name %></td>
-                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);"><%= fmt.(row.amount_cents) %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {row.account.code} - {row.account.name}
+                </td>
+                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
+                  {fmt.(row.amount_cents)}
+                </td>
               </tr>
             <% end %>
             <tr class="border-t" style="border-color: var(--border-subtle);">
-              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Current Net Income (P&L)*</td>
-              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);"><%= fmt.(@balance_sheet.net_income_cents) %></td>
+              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">
+                Current Net Income (P&L)*
+              </td>
+              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);">
+                {fmt.(@balance_sheet.net_income_cents)}
+              </td>
             </tr>
-            <% equity_total = Enum.reduce(@balance_sheet.equity, 0, fn r, acc -> acc + (r.amount_cents || 0) end) %>
+            <% equity_total =
+              Enum.reduce(@balance_sheet.equity, 0, fn r, acc -> acc + (r.amount_cents || 0) end) %>
             <tr class="border-t" style="border-color: var(--border-subtle);">
-              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total Equity + Net Income</td>
-              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);"><%= fmt.(equity_total + (@balance_sheet.net_income_cents || 0)) %></td>
+              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">
+                Total Equity + Net Income
+              </td>
+              <td class="p-3 text-sm text-right font-bold" style="color: var(--text-main);">
+                {fmt.(equity_total + (@balance_sheet.net_income_cents || 0))}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -137,15 +215,28 @@ end %>
   <%!-- Year-End Close --%>
   <div class="hd-card p-4" style="background: #fffbeb; border-color: #f59e0b;">
     <div class="hd-card-title" style="color: #92400e;">Year-End Close</div>
-    <p class="text-sm mb-3" style="color: #92400e;">Close the books for a fiscal year. This transfers net income to retained earnings.</p>
+    <p class="text-sm mb-3" style="color: #92400e;">
+      Close the books for a fiscal year. This transfers net income to retained earnings.
+    </p>
     <%= if @balance_sheet.last_close_date do %>
-      <p class="text-sm mb-3" style="color: #92400e;">Last closed: <strong><%= @balance_sheet.last_close_date %></strong></p>
+      <p class="text-sm mb-3" style="color: #92400e;">
+        Last closed: <strong>{@balance_sheet.last_close_date}</strong>
+      </p>
     <% end %>
-    <form method="post" action={dp(@domain_path_prefix, "/reports/balance_sheet/close_year")} class="flex flex-wrap gap-3 items-end">
+    <form
+      method="post"
+      action={dp(@domain_path_prefix, "/reports/balance_sheet/close_year")}
+      class="flex flex-wrap gap-3 items-end"
+    >
       <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
       <div>
         <label class="block text-xs font-medium mb-1" style="color: #92400e;">Close date</label>
-        <input type="date" name="close_date" class="rounded-md border px-3 py-2 text-sm" style="background: #ffffff; border-color: #f59e0b; color: #92400e;" />
+        <input
+          type="date"
+          name="close_date"
+          class="rounded-md border px-3 py-2 text-sm"
+          style="background: #ffffff; border-color: #f59e0b; color: #92400e;"
+        />
       </div>
       <button type="submit" class="hd-btn-primary">Close Year</button>
     </form>

@@ -2,7 +2,9 @@
   <div class="card-header">
     <div>
       <h2 class="card-title">Partner Splits</h2>
-      <p class="card-subtitle">Reusable allocations of revenue or expenses across partners. Lines must sum to 100%.</p>
+      <p class="card-subtitle">
+        Reusable allocations of revenue or expenses across partners. Lines must sum to 100%.
+      </p>
     </div>
     <div style="display: flex; gap: 0.5rem;">
       <.link navigate={dp(@domain_path_prefix, "/partner-splits/expenses")} class="btn">
@@ -34,21 +36,29 @@
         <% else %>
           <%= for split <- @splits do %>
             <tr>
-              <td><strong><%= split.name %></strong></td>
+              <td><strong>{split.name}</strong></td>
               <td>
                 <div style="display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.875rem;">
                   <%= for line <- split.lines do %>
-                    <span><%= line.partner.name %> — <strong><%= fmt_bps(line.share_bps) %></strong></span>
+                    <span>{line.partner.name} — <strong>{fmt_bps(line.share_bps)}</strong></span>
                   <% end %>
                 </div>
               </td>
-              <td style="color: var(--text-muted); font-size: 0.875rem;"><%= split.notes || "—" %></td>
+              <td style="color: var(--text-muted); font-size: 0.875rem;">{split.notes || "—"}</td>
               <td>
                 <div style="display: flex; gap: 0.5rem;">
-                  <.link navigate={dp(@domain_path_prefix, "/partner-splits/#{split.id}/edit")} class="btn btn-sm">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/partner-splits/#{split.id}/edit")}
+                    class="btn btn-sm"
+                  >
                     Edit
                   </.link>
-                  <.link href={dp(@domain_path_prefix, "/partner-splits/#{split.id}")} method="delete" data-confirm="Remove this split? Records currently using it will become unattributed." class="btn btn-sm danger">
+                  <.link
+                    href={dp(@domain_path_prefix, "/partner-splits/#{split.id}")}
+                    method="delete"
+                    data-confirm="Remove this split? Records currently using it will become unattributed."
+                    class="btn btn-sm danger"
+                  >
                     Delete
                   </.link>
                 </div>

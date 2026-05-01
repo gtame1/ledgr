@@ -9,19 +9,22 @@
   <div class="dashboard-metrics" style="margin-top: 1.5rem;">
     <div class="metric-card">
       <div class="metric-label">Total AP Balance</div>
-      <div class="metric-value" style={"color: #{if @total_ap_cents > 0, do: "#dc2626", else: "#059669"}"}>
-        <%= format_currency(@total_ap_cents) %>
+      <div
+        class="metric-value"
+        style={"color: #{if @total_ap_cents > 0, do: "#dc2626", else: "#059669"}"}
+      >
+        {format_currency(@total_ap_cents)}
       </div>
     </div>
 
     <div class="metric-card">
       <div class="metric-label">Vendor Accounts</div>
-      <div class="metric-value"><%= length(@ap_accounts) %></div>
+      <div class="metric-value">{length(@ap_accounts)}</div>
     </div>
 
     <div class="metric-card">
       <div class="metric-label">Accounts with Balance</div>
-      <div class="metric-value"><%= Enum.count(@ap_accounts, fn e -> e.balance_cents > 0 end) %></div>
+      <div class="metric-value">{Enum.count(@ap_accounts, fn e -> e.balance_cents > 0 end)}</div>
     </div>
   </div>
 </section>
@@ -39,7 +42,7 @@
       <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
         <div>
           <h2 class="card-title" style="margin-bottom: 0;">
-            <%= entry.account.code %> — <%= entry.account.name %>
+            {entry.account.code} — {entry.account.name}
           </h2>
           <%= if entry.account.code == "2000" do %>
             <p class="card-subtitle" style="margin-top: 0.25rem;">
@@ -48,14 +51,16 @@
           <% end %>
         </div>
         <div style={"font-size: 1.25rem; font-weight: 700; color: #{if entry.balance_cents > 0, do: "#dc2626", else: "#059669"}"}>
-          <%= format_currency(entry.balance_cents) %>
+          {format_currency(entry.balance_cents)}
         </div>
       </div>
 
       <%= case entry.detail do %>
         <% {:named, recent_lines} -> %>
           <%= if Enum.empty?(recent_lines) do %>
-            <p style="color: var(--text-muted); font-style: italic;">No transactions recorded for this account.</p>
+            <p style="color: var(--text-muted); font-style: italic;">
+              No transactions recorded for this account.
+            </p>
           <% else %>
             <div class="table-wrapper">
               <table class="table">
@@ -70,36 +75,52 @@
                 <tbody>
                   <%= for line <- recent_lines do %>
                     <tr>
-                      <td style="white-space: nowrap;"><%= line.journal_entry.date %></td>
+                      <td style="white-space: nowrap;">{line.journal_entry.date}</td>
                       <td>
-                        <.link navigate={dp(@domain_path_prefix, "/transactions/#{line.journal_entry_id}")} class="table-link">
-                          <%= line.journal_entry.description %>
+                        <.link
+                          navigate={
+                            dp(@domain_path_prefix, "/transactions/#{line.journal_entry_id}")
+                          }
+                          class="table-link"
+                        >
+                          {line.journal_entry.description}
                         </.link>
                       </td>
-                      <td class="numeric"><%= if line.debit_cents > 0, do: format_currency(line.debit_cents) %></td>
-                      <td class="numeric"><%= if line.credit_cents > 0, do: format_currency(line.credit_cents) %></td>
+                      <td class="numeric">
+                        {if line.debit_cents > 0, do: format_currency(line.debit_cents)}
+                      </td>
+                      <td class="numeric">
+                        {if line.credit_cents > 0, do: format_currency(line.credit_cents)}
+                      </td>
                     </tr>
                   <% end %>
                 </tbody>
               </table>
             </div>
             <div style="margin-top: 0.75rem; text-align: right;">
-              <.link navigate={dp(@domain_path_prefix, "/account-transactions?account_id=#{entry.account.id}")} class="btn" style="font-size: 0.8rem;">
+              <.link
+                navigate={
+                  dp(@domain_path_prefix, "/account-transactions?account_id=#{entry.account.id}")
+                }
+                class="btn"
+                style="font-size: 0.8rem;"
+              >
                 View all transactions &rarr;
               </.link>
             </div>
           <% end %>
-
         <% {:general, payee_groups} -> %>
           <%= if Enum.empty?(payee_groups) do %>
-            <p style="color: var(--text-muted); font-style: italic;">No transactions recorded for this account.</p>
+            <p style="color: var(--text-muted); font-style: italic;">
+              No transactions recorded for this account.
+            </p>
           <% else %>
             <%= for group <- payee_groups do %>
               <div style="margin-bottom: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
-                  <h3 style="font-size: 1rem; font-weight: 600; margin: 0;"><%= group.payee %></h3>
+                  <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">{group.payee}</h3>
                   <span style={"font-weight: 600; color: #{if group.balance_cents > 0, do: "#dc2626", else: "#059669"}"}>
-                    <%= format_currency(group.balance_cents) %>
+                    {format_currency(group.balance_cents)}
                   </span>
                 </div>
                 <div class="table-wrapper">
@@ -115,14 +136,23 @@
                     <tbody>
                       <%= for line <- group.lines do %>
                         <tr>
-                          <td style="white-space: nowrap;"><%= line.journal_entry.date %></td>
+                          <td style="white-space: nowrap;">{line.journal_entry.date}</td>
                           <td>
-                            <.link navigate={dp(@domain_path_prefix, "/transactions/#{line.journal_entry_id}")} class="table-link">
-                              <%= line.journal_entry.description %>
+                            <.link
+                              navigate={
+                                dp(@domain_path_prefix, "/transactions/#{line.journal_entry_id}")
+                              }
+                              class="table-link"
+                            >
+                              {line.journal_entry.description}
                             </.link>
                           </td>
-                          <td class="numeric"><%= if line.debit_cents > 0, do: format_currency(line.debit_cents) %></td>
-                          <td class="numeric"><%= if line.credit_cents > 0, do: format_currency(line.credit_cents) %></td>
+                          <td class="numeric">
+                            {if line.debit_cents > 0, do: format_currency(line.debit_cents)}
+                          </td>
+                          <td class="numeric">
+                            {if line.credit_cents > 0, do: format_currency(line.credit_cents)}
+                          </td>
                         </tr>
                       <% end %>
                     </tbody>
@@ -131,7 +161,13 @@
               </div>
             <% end %>
             <div style="margin-top: 0.5rem; text-align: right;">
-              <.link navigate={dp(@domain_path_prefix, "/account-transactions?account_id=#{entry.account.id}")} class="btn" style="font-size: 0.8rem;">
+              <.link
+                navigate={
+                  dp(@domain_path_prefix, "/account-transactions?account_id=#{entry.account.id}")
+                }
+                class="btn"
+                style="font-size: 0.8rem;"
+              >
                 View all General AP transactions &rarr;
               </.link>
             </div>

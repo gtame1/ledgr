@@ -22,21 +22,36 @@
       </thead>
       <tbody>
         <%= if Enum.empty?(@customers) do %>
-          <tr><td colspan="4">No customers yet.</td></tr>
+          <tr>
+            <td colspan="4">No customers yet.</td>
+          </tr>
         <% else %>
           <%= for customer <- @customers do %>
             <tr>
               <td>
-                <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")} class="link-text">
-                  <%= full_name(customer) %>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")}
+                  class="link-text"
+                >
+                  {full_name(customer)}
                 </.link>
               </td>
-              <td><%= customer.phone %></td>
-              <td><%= customer.email || "—" %></td>
+              <td>{customer.phone}</td>
+              <td>{customer.email || "—"}</td>
               <td>
                 <div style="display: flex; gap: 0.5rem;">
-                  <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")} class="btn btn-sm">View</.link>
-                  <.link navigate={dp(@domain_path_prefix, "/customers/#{customer.id}/edit")} class="btn btn-sm">Edit</.link>
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")}
+                    class="btn btn-sm"
+                  >
+                    View
+                  </.link>
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/customers/#{customer.id}/edit")}
+                    class="btn btn-sm"
+                  >
+                    Edit
+                  </.link>
                 </div>
               </td>
             </tr>

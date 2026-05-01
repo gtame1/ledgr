@@ -12,6 +12,5 @@ defmodule Ledgr.Repo.Migrations.CreateJournalEntries do
     end
 
     create index(:journal_entries, [:date])
-
   end
 end

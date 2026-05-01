@@ -4,42 +4,49 @@
   </header>
 
   <div class="content-body">
-    <.period_selector action={dp(@domain_path_prefix, "/reports/financial_analysis")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
-
-    <!-- Key Highlights -->
+    <.period_selector
+      action={dp(@domain_path_prefix, "/reports/financial_analysis")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
+    
+<!-- Key Highlights -->
     <section class="card">
       <h2 class="card-title">
-        Key Ratios: <%= @analysis.period.start_date %> to <%= @analysis.period.end_date %>
+        Key Ratios: {@analysis.period.start_date} to {@analysis.period.end_date}
       </h2>
       <p class="card-subtitle">
-        <%= @analysis.raw.period_days %> day period.
+        {@analysis.raw.period_days} day period.
       </p>
 
       <div class="dashboard-metrics" style="margin-top: 1rem;">
         <div class="metric-card">
           <div class="metric-label">Gross Margin</div>
           <div class="metric-value" style="color: #059669;">
-            <%= @analysis.profitability.gross_margin_percent %>%
+            {@analysis.profitability.gross_margin_percent}%
           </div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Net Margin</div>
-          <% net_color = if @analysis.profitability.net_margin_percent >= 0, do: "#059669", else: "#dc2626" %>
+          <% net_color =
+            if @analysis.profitability.net_margin_percent >= 0, do: "#059669", else: "#dc2626" %>
           <div class="metric-value" style={"color: #{net_color}"}>
-            <%= @analysis.profitability.net_margin_percent %>%
+            {@analysis.profitability.net_margin_percent}%
           </div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Current Ratio</div>
-          <% cr_color = cond do
-            @analysis.liquidity.current_ratio >= 1.5 -> "#059669"
-            @analysis.liquidity.current_ratio >= 1.0 -> "#f59e0b"
-            true -> "#dc2626"
-          end %>
+          <% cr_color =
+            cond do
+              @analysis.liquidity.current_ratio >= 1.5 -> "#059669"
+              @analysis.liquidity.current_ratio >= 1.0 -> "#f59e0b"
+              true -> "#dc2626"
+            end %>
           <div class="metric-value" style={"color: #{cr_color}"}>
-            <%= @analysis.liquidity.current_ratio %>
+            {@analysis.liquidity.current_ratio}
           </div>
         </div>
 
@@ -47,7 +54,7 @@
           <div class="metric-label">Cash Runway</div>
           <div class="metric-value">
             <%= if @analysis.bakery.cash_runway_months do %>
-              <%= @analysis.bakery.cash_runway_months %> mo
+              {@analysis.bakery.cash_runway_months} mo
             <% else %>
               N/A
             <% end %>
@@ -55,8 +62,8 @@
         </div>
       </div>
     </section>
-
-    <!-- Profitability -->
+    
+<!-- Profitability -->
     <section class="card">
       <h2 class="card-title">Profitability</h2>
       <p class="card-subtitle">How efficiently the business generates profit from revenue.</p>
@@ -73,33 +80,41 @@
           <tbody>
             <tr>
               <td>Gross Profit Margin</td>
-              <td class="numeric"><%= @analysis.profitability.gross_margin_percent %>%</td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Gross Profit / Revenue</td>
+              <td class="numeric">{@analysis.profitability.gross_margin_percent}%</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Gross Profit / Revenue
+              </td>
             </tr>
             <tr>
               <td>Operating Margin</td>
-              <td class="numeric"><%= @analysis.profitability.operating_margin_percent %>%</td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Operating Income / Revenue</td>
+              <td class="numeric">{@analysis.profitability.operating_margin_percent}%</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Operating Income / Revenue
+              </td>
             </tr>
             <tr>
               <td>Net Profit Margin</td>
-              <td class="numeric"><%= @analysis.profitability.net_margin_percent %>%</td>
+              <td class="numeric">{@analysis.profitability.net_margin_percent}%</td>
               <td style="color: var(--text-muted); font-size: 0.85rem;">Net Income / Revenue</td>
             </tr>
             <tr>
               <td>Return on Equity (ROE)</td>
-              <td class="numeric"><%= @analysis.profitability.roe_percent %>%</td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Net Income (annualized) / Total Equity</td>
+              <td class="numeric">{@analysis.profitability.roe_percent}%</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Net Income (annualized) / Total Equity
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Efficiency -->
+    
+<!-- Efficiency -->
     <section class="card">
       <h2 class="card-title">Efficiency</h2>
-      <p class="card-subtitle">How effectively the business uses its assets to generate revenue.</p>
+      <p class="card-subtitle">
+        How effectively the business uses its assets to generate revenue.
+      </p>
 
       <div class="table-wrapper" style="margin-top: 1rem;">
         <table class="table">
@@ -113,33 +128,49 @@
           <tbody>
             <tr>
               <td>Asset Turnover</td>
-              <td class="numeric"><%= @analysis.efficiency.asset_turnover %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Revenue / Total Assets</td>
+              <td class="numeric">{@analysis.efficiency.asset_turnover}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Revenue / Total Assets
+              </td>
             </tr>
             <tr>
               <td colspan="3" style="height: 0.5rem; border: none;"></td>
             </tr>
             <tr>
               <td>Inventory Turnover</td>
-              <td class="numeric"><%= @analysis.efficiency.inventory_turnover %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">COGS / Inventory Value</td>
+              <td class="numeric">{@analysis.efficiency.inventory_turnover}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                COGS / Inventory Value
+              </td>
             </tr>
             <tr>
               <td>Days Inventory</td>
-              <td class="numeric"><%= if @analysis.efficiency.days_inventory, do: "#{@analysis.efficiency.days_inventory} days", else: "N/A" %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">365 / Inventory Turnover</td>
+              <td class="numeric">
+                {if @analysis.efficiency.days_inventory,
+                  do: "#{@analysis.efficiency.days_inventory} days",
+                  else: "N/A"}
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                365 / Inventory Turnover
+              </td>
             </tr>
             <tr>
               <td colspan="3" style="height: 0.5rem; border: none;"></td>
             </tr>
             <tr>
               <td>A/R Turnover</td>
-              <td class="numeric"><%= @analysis.efficiency.ar_turnover %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Revenue / Accounts Receivable</td>
+              <td class="numeric">{@analysis.efficiency.ar_turnover}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Revenue / Accounts Receivable
+              </td>
             </tr>
             <tr>
               <td>Average Collection Period</td>
-              <td class="numeric"><%= if @analysis.efficiency.avg_collection_period, do: "#{@analysis.efficiency.avg_collection_period} days", else: "N/A" %></td>
+              <td class="numeric">
+                {if @analysis.efficiency.avg_collection_period,
+                  do: "#{@analysis.efficiency.avg_collection_period} days",
+                  else: "N/A"}
+              </td>
               <td style="color: var(--text-muted); font-size: 0.85rem;">365 / A/R Turnover</td>
             </tr>
             <tr>
@@ -147,32 +178,45 @@
             </tr>
             <tr>
               <td>A/P Turnover</td>
-              <td class="numeric"><%= @analysis.efficiency.ap_turnover %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">COGS / Current Liabilities</td>
+              <td class="numeric">{@analysis.efficiency.ap_turnover}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                COGS / Current Liabilities
+              </td>
             </tr>
             <tr>
               <td>Days Purchases Outstanding</td>
-              <td class="numeric"><%= if @analysis.efficiency.days_payable, do: "#{@analysis.efficiency.days_payable} days", else: "N/A" %></td>
+              <td class="numeric">
+                {if @analysis.efficiency.days_payable,
+                  do: "#{@analysis.efficiency.days_payable} days",
+                  else: "N/A"}
+              </td>
               <td style="color: var(--text-muted); font-size: 0.85rem;">365 / A/P Turnover</td>
             </tr>
             <tr style="font-weight: 600; background-color: var(--table-header-bg); border-top: 2px solid var(--border-strong);">
               <td>Cash Conversion Cycle</td>
               <td class="numeric">
                 <%= if @analysis.efficiency.cash_conversion_cycle do %>
-                  <% ccc_color = if @analysis.efficiency.cash_conversion_cycle <= 30, do: "#059669", else: "#f59e0b" %>
-                  <span style={"color: #{ccc_color}"}><%= @analysis.efficiency.cash_conversion_cycle %> days</span>
+                  <% ccc_color =
+                    if @analysis.efficiency.cash_conversion_cycle <= 30,
+                      do: "#059669",
+                      else: "#f59e0b" %>
+                  <span style={"color: #{ccc_color}"}>
+                    {@analysis.efficiency.cash_conversion_cycle} days
+                  </span>
                 <% else %>
                   N/A
                 <% end %>
               </td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Days Inventory + Avg Collection - Days Payable</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Days Inventory + Avg Collection - Days Payable
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Leverage -->
+    
+<!-- Leverage -->
     <section class="card">
       <h2 class="card-title">Leverage</h2>
       <p class="card-subtitle">How the business finances its assets (debt vs equity).</p>
@@ -189,20 +233,24 @@
           <tbody>
             <tr>
               <td>Assets / Equity</td>
-              <td class="numeric"><%= @analysis.leverage.assets_to_equity %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Total Assets / Total Equity</td>
+              <td class="numeric">{@analysis.leverage.assets_to_equity}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Total Assets / Total Equity
+              </td>
             </tr>
             <tr>
               <td>Debt / Equity</td>
-              <td class="numeric"><%= @analysis.leverage.debt_to_equity %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Total Liabilities / Total Equity</td>
+              <td class="numeric">{@analysis.leverage.debt_to_equity}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Total Liabilities / Total Equity
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Liquidity -->
+    
+<!-- Liquidity -->
     <section class="card">
       <h2 class="card-title">Liquidity</h2>
       <p class="card-subtitle">Ability to meet short-term obligations.</p>
@@ -219,20 +267,24 @@
           <tbody>
             <tr>
               <td>Current Ratio</td>
-              <td class="numeric"><%= @analysis.liquidity.current_ratio %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Current Assets / Current Liabilities</td>
+              <td class="numeric">{@analysis.liquidity.current_ratio}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Current Assets / Current Liabilities
+              </td>
             </tr>
             <tr>
               <td>Quick Ratio</td>
-              <td class="numeric"><%= @analysis.liquidity.quick_ratio %></td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">(Current Assets - Inventory) / Current Liabilities</td>
+              <td class="numeric">{@analysis.liquidity.quick_ratio}</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                (Current Assets - Inventory) / Current Liabilities
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Business Operations -->
+    
+<!-- Business Operations -->
     <section class="card">
       <h2 class="card-title">Business Operations</h2>
       <p class="card-subtitle">Operational metrics specific to food/bakery businesses.</p>
@@ -250,37 +302,53 @@
             <tr>
               <td>Cash Runway</td>
               <td class="numeric">
-                <%= if @analysis.bakery.cash_runway_months, do: "#{@analysis.bakery.cash_runway_months} months", else: "N/A" %>
+                {if @analysis.bakery.cash_runway_months,
+                  do: "#{@analysis.bakery.cash_runway_months} months",
+                  else: "N/A"}
               </td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Months of operating expenses covered by current cash</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Months of operating expenses covered by current cash
+              </td>
             </tr>
             <tr>
               <td>Inventory Coverage</td>
               <td class="numeric">
-                <%= if @analysis.bakery.inventory_coverage_months, do: "#{@analysis.bakery.inventory_coverage_months} months", else: "N/A" %>
+                {if @analysis.bakery.inventory_coverage_months,
+                  do: "#{@analysis.bakery.inventory_coverage_months} months",
+                  else: "N/A"}
               </td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Months of inventory purchases covered by current cash</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Months of inventory purchases covered by current cash
+              </td>
             </tr>
             <tr>
               <td>Revenue per Order</td>
               <td class="numeric">
-                <%= if @analysis.bakery.revenue_per_order_cents, do: format_currency(@analysis.bakery.revenue_per_order_cents), else: "N/A" %>
+                {if @analysis.bakery.revenue_per_order_cents,
+                  do: format_currency(@analysis.bakery.revenue_per_order_cents),
+                  else: "N/A"}
               </td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Total revenue / delivered orders (<%= @analysis.raw.delivered_order_count %> orders)</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Total revenue / delivered orders ({@analysis.raw.delivered_order_count} orders)
+              </td>
             </tr>
             <tr>
               <td>Gross Profit per Order</td>
               <td class="numeric">
-                <%= if @analysis.bakery.gross_profit_per_order_cents, do: format_currency(@analysis.bakery.gross_profit_per_order_cents), else: "N/A" %>
+                {if @analysis.bakery.gross_profit_per_order_cents,
+                  do: format_currency(@analysis.bakery.gross_profit_per_order_cents),
+                  else: "N/A"}
               </td>
-              <td style="color: var(--text-muted); font-size: 0.85rem;">Gross profit / delivered orders</td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                Gross profit / delivered orders
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Underlying Data -->
+    
+<!-- Underlying Data -->
     <section class="card">
       <details>
         <summary style="cursor: pointer; font-weight: 600; font-size: 1rem;">
@@ -299,83 +367,102 @@
             </thead>
             <tbody>
               <tr>
-                <td colspan="2" style="font-weight: 600; background-color: var(--table-header-bg);">Income Statement</td>
+                <td
+                  colspan="2"
+                  style="font-weight: 600; background-color: var(--table-header-bg);"
+                >
+                  Income Statement
+                </td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Revenue</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.revenue_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.revenue_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">COGS</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.cogs_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.cogs_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Gross Profit</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.gross_profit_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.gross_profit_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Operating Expenses</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.total_opex_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.total_opex_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Operating Income</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.operating_income_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.operating_income_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Net Income</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.net_income_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.net_income_cents)}</td>
               </tr>
 
               <tr>
-                <td colspan="2" style="font-weight: 600; background-color: var(--table-header-bg); padding-top: 1rem;">Balance Sheet</td>
+                <td
+                  colspan="2"
+                  style="font-weight: 600; background-color: var(--table-header-bg); padding-top: 1rem;"
+                >
+                  Balance Sheet
+                </td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Cash Balance</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.cash_balance_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.cash_balance_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Accounts Receivable</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.ar_balance_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.ar_balance_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Inventory Value</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.inventory_value_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.inventory_value_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Work in Progress</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.wip_balance_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.wip_balance_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Current Assets (total)</td>
-                <td class="numeric" style="font-weight: 600;"><%= format_currency(@analysis.raw.current_assets_cents) %></td>
+                <td class="numeric" style="font-weight: 600;">
+                  {format_currency(@analysis.raw.current_assets_cents)}
+                </td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Current Liabilities</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.current_liabilities_cents) %></td>
+                <td class="numeric">
+                  {format_currency(@analysis.raw.current_liabilities_cents)}
+                </td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Total Assets</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.total_assets_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.total_assets_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Total Liabilities</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.total_liabilities_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.total_liabilities_cents)}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Total Equity</td>
-                <td class="numeric"><%= format_currency(@analysis.raw.total_equity_cents) %></td>
+                <td class="numeric">{format_currency(@analysis.raw.total_equity_cents)}</td>
               </tr>
 
               <tr>
-                <td colspan="2" style="font-weight: 600; background-color: var(--table-header-bg); padding-top: 1rem;">Operations</td>
+                <td
+                  colspan="2"
+                  style="font-weight: 600; background-color: var(--table-header-bg); padding-top: 1rem;"
+                >
+                  Operations
+                </td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Delivered Orders</td>
-                <td class="numeric"><%= @analysis.raw.delivered_order_count %></td>
+                <td class="numeric">{@analysis.raw.delivered_order_count}</td>
               </tr>
               <tr>
                 <td style="padding-left: 2rem;">Period Length</td>
-                <td class="numeric"><%= @analysis.raw.period_days %> days</td>
+                <td class="numeric">{@analysis.raw.period_days} days</td>
               </tr>
             </tbody>
           </table>

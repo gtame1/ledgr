@@ -7,6 +7,5 @@ defmodule Ledgr.Repo.Migrations.UpdateJournalEntryEntryTypeCheck do
     ALTER TABLE journal_entries
     DROP CONSTRAINT IF EXISTS entry_type_check;
     """)
-
   end
 end

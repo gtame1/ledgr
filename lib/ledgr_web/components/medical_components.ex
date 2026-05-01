@@ -36,7 +36,10 @@ defmodule LedgrWeb.MedicalComponents do
             {c["condition"]}
           </span>
           <%= if present?(c["icd10"]) do %>
-            <span class="text-xs px-1.5 py-0.5 rounded font-mono" style="background: rgba(0,0,0,0.04); color: var(--text-muted);">
+            <span
+              class="text-xs px-1.5 py-0.5 rounded font-mono"
+              style="background: rgba(0,0,0,0.04); color: var(--text-muted);"
+            >
               {c["icd10"]}
             </span>
           <% end %>

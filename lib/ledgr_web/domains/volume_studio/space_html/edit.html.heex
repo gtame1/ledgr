@@ -1,12 +1,12 @@
 <section class="content">
   <header class="content-header">
     <h1 class="page-title">Edit Space</h1>
-    <p class="page-subtitle"><%= @space.name %></p>
+    <p class="page-subtitle">{@space.name}</p>
   </header>
 
   <div class="content-body">
     <section class="card">
-      <.form for={@changeset} action={@action} as={:space} method="put" :let={f}>
+      <.form :let={f} for={@changeset} action={@action} as={:space} method="put">
         <div class="form-grid">
           <div class="form-block">
             <div class="field">
@@ -18,7 +18,13 @@
             </div>
 
             <div class="field">
-              <.input type="number" field={f[:hourly_rate_cents]} label="Hourly Rate (MXN)" step="0.01" min="0" />
+              <.input
+                type="number"
+                field={f[:hourly_rate_cents]}
+                label="Hourly Rate (MXN)"
+                step="0.01"
+                min="0"
+              />
             </div>
 
             <div class="field">

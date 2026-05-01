@@ -9,12 +9,14 @@ defmodule LedgrWeb.Helpers.MoneyHelper do
   """
   def pesos_to_cents(nil), do: 0
   def pesos_to_cents(""), do: 0
+
   def pesos_to_cents(value) when is_binary(value) do
     case Float.parse(value) do
       {float_value, _} -> round(float_value * 100)
       :error -> 0
     end
   end
+
   def pesos_to_cents(value) when is_float(value), do: round(value * 100)
   def pesos_to_cents(value) when is_integer(value), do: value * 100
   def pesos_to_cents(_), do: 0
@@ -30,10 +32,12 @@ defmodule LedgrWeb.Helpers.MoneyHelper do
   Formats cents as a MXN currency string (e.g. "$45.00 MXN").
   """
   def format_price(nil), do: ""
+
   def format_price(cents) when is_integer(cents) do
     pesos = cents / 100
     "$#{:erlang.float_to_binary(pesos, decimals: 2)} MXN"
   end
+
   def format_price(_), do: ""
 
   @doc """
@@ -44,11 +48,12 @@ defmodule LedgrWeb.Helpers.MoneyHelper do
       field_str = to_string(field)
 
       # Try both string and atom keys
-      value = cond do
-        Map.has_key?(acc, field_str) -> Map.get(acc, field_str)
-        Map.has_key?(acc, field) -> Map.get(acc, field)
-        true -> nil
-      end
+      value =
+        cond do
+          Map.has_key?(acc, field_str) -> Map.get(acc, field_str)
+          Map.has_key?(acc, field) -> Map.get(acc, field)
+          true -> nil
+        end
 
       if value != nil do
         cents_value = pesos_to_cents(value)
@@ -56,8 +61,8 @@ defmodule LedgrWeb.Helpers.MoneyHelper do
         acc
         |> Map.put(field_str, cents_value)
         |> (fn map ->
-          if Map.has_key?(map, field), do: Map.put(map, field, cents_value), else: map
-        end).()
+              if Map.has_key?(map, field), do: Map.put(map, field, cents_value), else: map
+            end).()
       else
         acc
       end

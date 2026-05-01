@@ -46,9 +46,16 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
           cost_breakdown = Inventory.consume_for_order(order)
           record_order_in_prep(order, cost_breakdown)
         end
-      "delivered" -> record_order_delivered(order)
-      "new_order" -> record_order_created(order)
-      "canceled" -> record_order_canceled(order)
+
+      "delivered" ->
+        record_order_delivered(order)
+
+      "new_order" ->
+        record_order_created(order)
+
+      "canceled" ->
+        record_order_canceled(order)
+
       _ ->
         :ok
     end
@@ -112,6 +119,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
         |> Enum.filter(fn {cents, _code, _label} -> cents > 0 end)
         |> Enum.map(fn {cents, account_code, label} ->
           account = Accounting.get_account_by_code!(account_code)
+
           %{
             account_id: account.id,
             debit_cents: 0,
@@ -217,15 +225,19 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
   def maybe_issue_stripe_refund(%Order{} = order) do
     with {:ok, session} <- Stripe.Checkout.Session.retrieve(order.stripe_checkout_session_id),
          payment_intent_id when is_binary(payment_intent_id) <- session.payment_intent,
-         {:ok, refund} <- Stripe.Refund.create(%{
-           payment_intent: payment_intent_id,
-           reason: :requested_by_customer
-         }) do
+         {:ok, refund} <-
+           Stripe.Refund.create(%{
+             payment_intent: payment_intent_id,
+             reason: :requested_by_customer
+           }) do
       Logger.info("Stripe refund #{refund.id} issued for canceled order ##{order.id}")
       :ok
     else
       nil ->
-        Logger.warning("Stripe refund skipped for order ##{order.id}: no payment intent on session #{order.stripe_checkout_session_id}")
+        Logger.warning(
+          "Stripe refund skipped for order ##{order.id}: no payment intent on session #{order.stripe_checkout_session_id}"
+        )
+
         :ok
 
       {:error, reason} ->
@@ -235,7 +247,8 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
   end
 
   def record_order_payment(%OrderPayment{} = payment) do
-    payment = Repo.preload(payment, [:order, :paid_to_account, :partner, :partner_payable_account])
+    payment =
+      Repo.preload(payment, [:order, :paid_to_account, :partner, :partner_payable_account])
 
     order = payment.order
     paid_to = payment.paid_to_account
@@ -253,14 +266,15 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     }
 
     # Build journal entry lines
-    lines = build_payment_journal_lines(
-      paid_to,
-      order,
-      payment,
-      total_amount,
-      customer_amount,
-      partner_amount
-    )
+    lines =
+      build_payment_journal_lines(
+        paid_to,
+        order,
+        payment,
+        total_amount,
+        customer_amount,
+        partner_amount
+      )
 
     Accounting.create_journal_entry_with_lines(entry_attrs, lines)
   end
@@ -345,14 +359,15 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
         }
 
         # Build journal entry lines
-        lines = build_payment_journal_lines(
-          paid_to,
-          order,
-          payment,
-          total_amount,
-          customer_amount,
-          partner_amount
-        )
+        lines =
+          build_payment_journal_lines(
+            paid_to,
+            order,
+            payment,
+            total_amount,
+            customer_amount,
+            partner_amount
+          )
 
         Accounting.update_journal_entry_with_lines(journal_entry, entry_attrs, lines)
       end
@@ -375,13 +390,24 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     from(o in Order,
       join: v in assoc(o, :variant),
       join: p in assoc(v, :product),
-      where: fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) >= ^start_date and fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) <= ^end_date and o.status == "delivered",
+      where:
+        fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) >= ^start_date and
+          fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) <= ^end_date and
+          o.status == "delivered",
       group_by: [p.id, p.name],
       select: %{
         product_id: p.id,
         product_name: p.name,
         # Group by product so all variants roll up into a single P&L line per product.
-        revenue_cents: fragment("SUM(? * COALESCE(?, 1)) + SUM(CASE WHEN ? THEN COALESCE(?, ?) ELSE 0 END)", v.price_cents, o.quantity, o.customer_paid_shipping, o.shipping_fee_cents, ^fallback_shipping_fee)
+        revenue_cents:
+          fragment(
+            "SUM(? * COALESCE(?, 1)) + SUM(CASE WHEN ? THEN COALESCE(?, ?) ELSE 0 END)",
+            v.price_cents,
+            o.quantity,
+            o.customer_paid_shipping,
+            o.shipping_fee_cents,
+            ^fallback_shipping_fee
+          )
       }
     )
     |> Repo.all()
@@ -399,7 +425,10 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
       from(o in Order,
         join: v in assoc(o, :variant),
         join: p in assoc(v, :product),
-        where: fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) >= ^start_date and fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) <= ^end_date and o.status == "delivered",
+        where:
+          fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) >= ^start_date and
+            fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) <= ^end_date and
+            o.status == "delivered",
         select: {o.id, p.id, p.name}
       )
       |> Repo.all()
@@ -431,6 +460,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
           case reference_patterns do
             [] ->
               base_query
+
             patterns ->
               base_query
               |> where([je], je.reference in ^patterns)
@@ -448,6 +478,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
               [_, id_str] -> String.to_integer(id_str)
               _ -> nil
             end
+
           {order_id, cogs || 0}
         end)
       end
@@ -486,7 +517,10 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     wip = Accounting.get_account_by_code!(@wip_inventory_code)
     samples_gifts = Accounting.get_account_by_code!(@samples_gifts_code)
     cost_cents = get_order_production_cost(order.id, wip.id) || 0
-    date = order.actual_delivery_date || order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
+
+    date =
+      order.actual_delivery_date || order.delivery_date ||
+        LedgrWeb.Helpers.DomainHelpers.today_mx()
 
     entry_attrs = %{
       date: date,
@@ -520,11 +554,13 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
 
   defp do_record_sale_order_delivered(order, reference) do
     quantity = order.quantity || 1
+
     unit_price =
       case order.variant do
         %ProductVariant{price_cents: p} when is_integer(p) -> p
         _ -> 0
       end
+
     gross_product_price = unit_price * quantity
 
     # Calculate discount using the Orders context helper
@@ -544,15 +580,17 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     wip = Accounting.get_account_by_code!(@wip_inventory_code)
     cost_cents = get_order_production_cost(order.id, wip.id) || 0
 
-    ar               = Accounting.get_account_by_code!(@ar_code)
-    sales            = Accounting.get_account_by_code!(@sales_code)
+    ar = Accounting.get_account_by_code!(@ar_code)
+    sales = Accounting.get_account_by_code!(@sales_code)
     shipping_revenue = Accounting.get_account_by_code!(@shipping_revenue_code)
     customer_deposits = Accounting.get_account_by_code!(@customer_deposits_code)
 
     ingredients_cogs = Accounting.get_account_by_code!(@ingredients_cogs_code)
     packing_cogs = Accounting.get_account_by_code!(@packing_cogs_code)
 
-    date = order.actual_delivery_date || order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
+    date =
+      order.actual_delivery_date || order.delivery_date ||
+        LedgrWeb.Helpers.DomainHelpers.today_mx()
 
     entry_attrs = %{
       date: date,
@@ -563,7 +601,9 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
 
     # Collect deposits received on or before delivery date — these created a 2200 liability
     # that must be cleared at delivery (Dr 2200 / Cr AR via deposit_transfer_lines below).
-    delivery_date = order.actual_delivery_date || order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
+    delivery_date =
+      order.actual_delivery_date || order.delivery_date ||
+        LedgrWeb.Helpers.DomainHelpers.today_mx()
 
     # Use customer_amount_cents for split payments (partner portion doesn't touch AR/2200)
     deposit_total_cents =
@@ -607,12 +647,14 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
 
         shipping_line =
           if shipping_cents > 0 do
-            [%{
-              account_id: shipping_revenue.id,
-              debit_cents: 0,
-              credit_cents: shipping_cents,
-              description: "Shipping revenue for order ##{order.id}"
-            }]
+            [
+              %{
+                account_id: shipping_revenue.id,
+                debit_cents: 0,
+                credit_cents: shipping_cents,
+                description: "Shipping revenue for order ##{order.id}"
+              }
+            ]
           else
             []
           end
@@ -620,12 +662,15 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
         discount_line =
           if discount_cents > 0 do
             sales_discounts = Accounting.get_account_by_code!(@sales_discounts_code)
-            [%{
-              account_id: sales_discounts.id,
-              debit_cents: discount_cents,
-              credit_cents: 0,
-              description: "Sales discount for order ##{order.id}"
-            }]
+
+            [
+              %{
+                account_id: sales_discounts.id,
+                debit_cents: discount_cents,
+                credit_cents: 0,
+                description: "Sales discount for order ##{order.id}"
+              }
+            ]
           else
             []
           end
@@ -699,7 +744,14 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     Accounting.create_journal_entry_with_lines(entry_attrs, lines)
   end
 
-  defp build_payment_journal_lines(paid_to, order, payment, total_amount, customer_amount, partner_amount) do
+  defp build_payment_journal_lines(
+         paid_to,
+         order,
+         payment,
+         total_amount,
+         customer_amount,
+         partner_amount
+       ) do
     # Always debit the cash/receiving account for the total amount
     debit_line = %{
       account_id: paid_to.id,
@@ -709,61 +761,67 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
     }
 
     # Build credit lines based on split payment
-    credit_lines = if partner_amount > 0 do
-      # Split payment: customer portion goes to AR, partner portion goes to Accounts Payable
-      ar_account = if payment.is_deposit do
-        Accounting.get_account_by_code!(@customer_deposits_code)
-      else
-        Accounting.get_account_by_code!(@ar_code)
-      end
-
-      partner_account = payment.partner_payable_account
-
-      if is_nil(partner_account) do
-        raise ArgumentError, "Partner payable account is required for split payments. Payment ID: #{payment.id}, Partner ID: #{payment.partner_id}"
-      end
-
-      partner_name = if payment.partner, do: payment.partner.name, else: "Partner"
-
-      [
-        %{
-          account_id: ar_account.id,
-          debit_cents: 0,
-          credit_cents: customer_amount,
-          description: if payment.is_deposit do
-            "Increase Customer Deposits for order ##{order.id} (customer portion)"
+    credit_lines =
+      if partner_amount > 0 do
+        # Split payment: customer portion goes to AR, partner portion goes to Accounts Payable
+        ar_account =
+          if payment.is_deposit do
+            Accounting.get_account_by_code!(@customer_deposits_code)
           else
-            "Reduce Accounts Receivable for order ##{order.id} (customer portion)"
+            Accounting.get_account_by_code!(@ar_code)
           end
-        },
-        %{
-          account_id: partner_account.id,
-          debit_cents: 0,
-          credit_cents: partner_amount,
-          description: "Accounts Payable to #{partner_name} for order ##{order.id}"
-        }
-      ]
-    else
-      # Regular payment: all goes to AR or Customer Deposits
-      ar_account = if payment.is_deposit do
-        Accounting.get_account_by_code!(@customer_deposits_code)
-      else
-        Accounting.get_account_by_code!(@ar_code)
-      end
 
-      [
-        %{
-          account_id: ar_account.id,
-          debit_cents: 0,
-          credit_cents: total_amount,
-          description: if payment.is_deposit do
-            "Increase Customer Deposits for order ##{order.id}"
+        partner_account = payment.partner_payable_account
+
+        if is_nil(partner_account) do
+          raise ArgumentError,
+                "Partner payable account is required for split payments. Payment ID: #{payment.id}, Partner ID: #{payment.partner_id}"
+        end
+
+        partner_name = if payment.partner, do: payment.partner.name, else: "Partner"
+
+        [
+          %{
+            account_id: ar_account.id,
+            debit_cents: 0,
+            credit_cents: customer_amount,
+            description:
+              if payment.is_deposit do
+                "Increase Customer Deposits for order ##{order.id} (customer portion)"
+              else
+                "Reduce Accounts Receivable for order ##{order.id} (customer portion)"
+              end
+          },
+          %{
+            account_id: partner_account.id,
+            debit_cents: 0,
+            credit_cents: partner_amount,
+            description: "Accounts Payable to #{partner_name} for order ##{order.id}"
+          }
+        ]
+      else
+        # Regular payment: all goes to AR or Customer Deposits
+        ar_account =
+          if payment.is_deposit do
+            Accounting.get_account_by_code!(@customer_deposits_code)
           else
-            "Reduce Accounts Receivable for order ##{order.id}"
+            Accounting.get_account_by_code!(@ar_code)
           end
-        }
-      ]
-    end
+
+        [
+          %{
+            account_id: ar_account.id,
+            debit_cents: 0,
+            credit_cents: total_amount,
+            description:
+              if payment.is_deposit do
+                "Increase Customer Deposits for order ##{order.id}"
+              else
+                "Reduce Accounts Receivable for order ##{order.id}"
+              end
+          }
+        ]
+      end
 
     base_lines = [debit_line | credit_lines]
 
@@ -876,12 +934,13 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
       zero_cost_names =
         from(ing in "ingredients",
           where: ing.code in ^ingredient_codes,
-          left_join: loc in "inventory_locations", on: loc.code == ^location_code,
+          left_join: loc in "inventory_locations",
+          on: loc.code == ^location_code,
           left_join: inv in "inventories",
-            on: inv.ingredient_id == ing.id and inv.location_id == loc.id,
+          on: inv.ingredient_id == ing.id and inv.location_id == loc.id,
           where:
             (is_nil(inv.avg_cost_per_unit_cents) or inv.avg_cost_per_unit_cents == 0) and
-            (is_nil(ing.cost_per_unit_cents) or ing.cost_per_unit_cents == 0),
+              (is_nil(ing.cost_per_unit_cents) or ing.cost_per_unit_cents == 0),
           select: ing.name
         )
         |> Repo.all()
@@ -891,7 +950,9 @@ defmodule Ledgr.Domains.MrMunchMe.OrderAccounting do
       else
         verb = if length(zero_cost_names) == 1, do: "has", else: "have"
         names = Enum.join(zero_cost_names, ", ")
-        {:error, "Cannot move to in_prep: #{names} #{verb} no unit cost set. Update the ingredient cost in Inventory before processing this order."}
+
+        {:error,
+         "Cannot move to in_prep: #{names} #{verb} no unit cost set. Update the ingredient cost in Inventory before processing this order."}
       end
     end
   end

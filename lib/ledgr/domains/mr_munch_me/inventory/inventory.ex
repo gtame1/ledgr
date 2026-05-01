@@ -10,8 +10,20 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   alias Ledgr.Core.Accounting.JournalEntry
   alias Ledgr.Domains.MrMunchMe.Orders
   alias Ledgr.Domains.MrMunchMe.Orders.Order
-  alias __MODULE__.{Ingredient, Location, InventoryItem, InventoryMovement, PurchaseForm, PurchaseListForm, MovementForm, MovementListForm, Recepies, PurchaseItemForm, MovementItemForm}
 
+  alias __MODULE__.{
+    Ingredient,
+    Location,
+    InventoryItem,
+    InventoryMovement,
+    PurchaseForm,
+    PurchaseListForm,
+    MovementForm,
+    MovementListForm,
+    Recepies,
+    PurchaseItemForm,
+    MovementItemForm
+  }
 
   # ---------- Helper functions ----------
 
@@ -31,32 +43,46 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       |> Repo.one()
 
     # Convert Decimal values from SQL SUM to integers
-    total_cost = case result do
-      %{total_cost: cost} when is_integer(cost) -> cost
-      %{total_cost: %Decimal{} = cost} -> Decimal.to_integer(cost)
-      _ -> 0
-    end
+    total_cost =
+      case result do
+        %{total_cost: cost} when is_integer(cost) -> cost
+        %{total_cost: %Decimal{} = cost} -> Decimal.to_integer(cost)
+        _ -> 0
+      end
 
-    total_quantity = case result do
-      %{total_quantity: qty} when is_integer(qty) -> qty
-      %{total_quantity: %Decimal{} = qty} -> Decimal.to_integer(qty)
-      _ -> 0
-    end
+    total_quantity =
+      case result do
+        %{total_quantity: qty} when is_integer(qty) -> qty
+        %{total_quantity: %Decimal{} = qty} -> Decimal.to_integer(qty)
+        _ -> 0
+      end
 
     case {total_cost, total_quantity} do
-      {0, 0} -> nil
-      {_, 0} -> nil
+      {0, 0} ->
+        nil
+
+      {_, 0} ->
+        nil
+
       {cost, qty} when qty > 0 ->
         exact_avg = cost / qty
         round(exact_avg)
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
 
   # Calculates the weighted average cost per unit, rounded to the nearest cent.
   # Uses floating point division and proper rounding to avoid precision loss.
   # DEPRECATED: Use calculate_cumulative_avg_cost instead for actual purchase costs.
-  defp calculate_weighted_avg_cost(old_qty, old_cost_cents, new_qty_added, new_unit_cost_cents, total_new_qty) do
+  defp calculate_weighted_avg_cost(
+         old_qty,
+         old_cost_cents,
+         new_qty_added,
+         new_unit_cost_cents,
+         total_new_qty
+       ) do
     if total_new_qty <= 0 do
       new_unit_cost_cents
     else
@@ -67,7 +93,6 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       round(exact_avg)
     end
   end
-
 
   # ---------- Lookups ----------
 
@@ -134,16 +159,16 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     - source_id:       e.g. expense_id
   """
   def record_purchase(
-      ingredient_code,
-      location_code,
-      quantity,
-      paid_from_account_id,
-      unit_cost_cents,
-      purchase_date,
-      source_type \\ nil,
-      source_id \\ nil,
-      total_cost_cents \\ nil
-    ) do
+        ingredient_code,
+        location_code,
+        quantity,
+        paid_from_account_id,
+        unit_cost_cents,
+        purchase_date,
+        source_type \\ nil,
+        source_id \\ nil,
+        total_cost_cents \\ nil
+      ) do
     Repo.transaction(fn ->
       do_record_purchase(
         ingredient_code,
@@ -172,17 +197,17 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
          total_cost_cents
        ) do
     ingredient = get_ingredient_by_code!(ingredient_code)
-    location   = get_location_by_code!(location_code)
+    location = get_location_by_code!(location_code)
     paid_from_account = Accounting.get_account!(paid_from_account_id)
 
     stock = get_or_create_stock!(ingredient.id, location.id)
 
-    old_qty  = stock.quantity_on_hand
-    new_qty  = old_qty + quantity
+    old_qty = stock.quantity_on_hand
+    new_qty = old_qty + quantity
 
     # Use provided total_cost_cents if available (actual purchase cost),
     # otherwise calculate from unit_cost_cents (for backward compatibility)
-    actual_total_cost_cents = total_cost_cents || (quantity * unit_cost_cents)
+    actual_total_cost_cents = total_cost_cents || quantity * unit_cost_cents
 
     # 1) Insert movement first
     {:ok, movement} =
@@ -224,11 +249,17 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   Consume inventory from a location at its current avg cost.
   Returns {total_cost_cents, new_stock}.
   """
-  def record_usage(ingredient_code, location_code, quantity, movement_date, source_type \\ nil, source_id \\ nil) do
-
+  def record_usage(
+        ingredient_code,
+        location_code,
+        quantity,
+        movement_date,
+        source_type \\ nil,
+        source_id \\ nil
+      ) do
     Repo.transaction(fn ->
       ingredient = get_ingredient_by_code!(ingredient_code)
-      location   = get_location_by_code!(location_code)
+      location = get_location_by_code!(location_code)
 
       stock = get_or_create_stock!(ingredient.id, location.id)
 
@@ -236,7 +267,9 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       going_negative = stock.quantity_on_hand < quantity
 
       if going_negative do
-        Logger.warning("Insufficient stock for #{ingredient_code} at #{location_code}: have #{stock.quantity_on_hand}, need #{quantity}")
+        Logger.warning(
+          "Insufficient stock for #{ingredient_code} at #{location_code}: have #{stock.quantity_on_hand}, need #{quantity}"
+        )
       end
 
       # Use current average cost, with fallback to historical purchase average, then ingredient catalog cost
@@ -244,11 +277,13 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         cond do
           stock.avg_cost_per_unit_cents && stock.avg_cost_per_unit_cents > 0 ->
             stock.avg_cost_per_unit_cents
+
           true ->
             # Fall back to historical average from purchase movements
             calculate_cumulative_avg_cost(ingredient.id, location.id) ||
               ingredient.cost_per_unit_cents || 0
         end
+
       total_cost_cents = quantity * unit_cost_cents
 
       new_qty = stock.quantity_on_hand - quantity
@@ -314,15 +349,18 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     existing_movements =
       from(m in InventoryMovement,
         join: i in assoc(m, :ingredient),
-        where: m.source_type == "order" and m.source_id == ^order.id and m.movement_type == "usage",
+        where:
+          m.source_type == "order" and m.source_id == ^order.id and m.movement_type == "usage",
         preload: [ingredient: i]
       )
       |> Repo.all()
 
     if existing_movements != [] do
-      Enum.reduce(existing_movements, %{ingredients: 0, packing: 0, kitchen: 0, total: 0}, fn m, acc ->
+      Enum.reduce(existing_movements, %{ingredients: 0, packing: 0, kitchen: 0, total: 0}, fn m,
+                                                                                              acc ->
         inv_type = inventory_type(m.ingredient.code)
         cost = m.total_cost_cents || 0
+
         acc
         |> Map.update!(inv_type, &(&1 + cost))
         |> Map.update!(:total, &(&1 + cost))
@@ -330,62 +368,88 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     else
       order = Repo.preload(order, [:variant, :order_ingredients])
 
-    location_code =
-      case order.prep_location do
-        %Location{code: code} when is_binary(code) -> code
-        _ -> @production_location_code #default fallback
+      location_code =
+        case order.prep_location do
+          %Location{code: code} when is_binary(code) -> code
+          # default fallback
+          _ -> @production_location_code
+        end
+
+      # Order quantity (how many units of the product)
+      order_qty = order.quantity || 1
+
+      initial_costs = %{ingredients: 0, packing: 0, kitchen: 0, total: 0}
+
+      # Check if order has custom ingredient quantities
+      if order.order_ingredients != [] do
+        # Use custom quantities from order_ingredients, multiplied by order quantity
+        Enum.reduce(order.order_ingredients, initial_costs, fn order_ingredient, acc ->
+          code = order_ingredient.ingredient_code
+          qty = Decimal.to_float(order_ingredient.quantity)
+          qty_int = round(qty * order_qty)
+          custom_location = order_ingredient.location_code || location_code
+
+          cost_cents =
+            case record_usage(
+                   code,
+                   custom_location,
+                   qty_int,
+                   LedgrWeb.Helpers.DomainHelpers.today_mx(),
+                   "order",
+                   order.id
+                 ) do
+              {:ok, {:ok, result}} ->
+                result.movement.total_cost_cents
+
+              {:ok, movement} ->
+                movement.total_cost_cents
+
+              {:error, reason} ->
+                raise "Failed to record usage for ingredient #{code} in order #{order.id}: #{inspect(reason)}"
+            end
+
+          inv_type = inventory_type(code)
+
+          acc
+          |> Map.update!(inv_type, &(&1 + cost_cents))
+          |> Map.update!(:total, &(&1 + cost_cents))
+        end)
+      else
+        # Use recipe quantities (default behavior), multiplied by order quantity.
+        recipe_date = order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
+        recipe_lines = Recepies.recipe_for_variant(order.variant, recipe_date)
+
+        Enum.reduce(recipe_lines, initial_costs, fn %{ingredient_code: code, quantity: qty},
+                                                    acc ->
+          # Convert float quantity to integer (round to nearest), multiplied by order quantity
+          qty_int = round(qty * order_qty)
+
+          cost_cents =
+            case record_usage(
+                   code,
+                   location_code,
+                   qty_int,
+                   LedgrWeb.Helpers.DomainHelpers.today_mx(),
+                   "order",
+                   order.id
+                 ) do
+              {:ok, {:ok, result}} ->
+                result.movement.total_cost_cents
+
+              {:ok, movement} ->
+                movement.total_cost_cents
+
+              {:error, reason} ->
+                raise "Failed to record usage for ingredient #{code} in order #{order.id}: #{inspect(reason)}"
+            end
+
+          inv_type = inventory_type(code)
+
+          acc
+          |> Map.update!(inv_type, &(&1 + cost_cents))
+          |> Map.update!(:total, &(&1 + cost_cents))
+        end)
       end
-
-    # Order quantity (how many units of the product)
-    order_qty = order.quantity || 1
-
-    initial_costs = %{ingredients: 0, packing: 0, kitchen: 0, total: 0}
-
-    # Check if order has custom ingredient quantities
-    if order.order_ingredients != [] do
-      # Use custom quantities from order_ingredients, multiplied by order quantity
-      Enum.reduce(order.order_ingredients, initial_costs, fn order_ingredient, acc ->
-        code = order_ingredient.ingredient_code
-        qty = Decimal.to_float(order_ingredient.quantity)
-        qty_int = round(qty * order_qty)
-        custom_location = order_ingredient.location_code || location_code
-
-        cost_cents =
-          case record_usage(code, custom_location, qty_int, LedgrWeb.Helpers.DomainHelpers.today_mx(), "order", order.id) do
-            {:ok, {:ok, result}} -> result.movement.total_cost_cents
-            {:ok, movement} -> movement.total_cost_cents
-            {:error, reason} ->
-              raise "Failed to record usage for ingredient #{code} in order #{order.id}: #{inspect(reason)}"
-          end
-
-        inv_type = inventory_type(code)
-        acc
-        |> Map.update!(inv_type, &(&1 + cost_cents))
-        |> Map.update!(:total, &(&1 + cost_cents))
-      end)
-    else
-      # Use recipe quantities (default behavior), multiplied by order quantity.
-      recipe_date = order.delivery_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
-      recipe_lines = Recepies.recipe_for_variant(order.variant, recipe_date)
-
-      Enum.reduce(recipe_lines, initial_costs, fn %{ingredient_code: code, quantity: qty}, acc ->
-        # Convert float quantity to integer (round to nearest), multiplied by order quantity
-        qty_int = round(qty * order_qty)
-
-        cost_cents =
-          case record_usage(code, location_code, qty_int, LedgrWeb.Helpers.DomainHelpers.today_mx(), "order", order.id) do
-            {:ok, {:ok, result}} -> result.movement.total_cost_cents
-            {:ok, movement} -> movement.total_cost_cents
-            {:error, reason} ->
-              raise "Failed to record usage for ingredient #{code} in order #{order.id}: #{inspect(reason)}"
-          end
-
-        inv_type = inventory_type(code)
-        acc
-        |> Map.update!(inv_type, &(&1 + cost_cents))
-        |> Map.update!(:total, &(&1 + cost_cents))
-      end)
-    end
     end
   end
 
@@ -396,7 +460,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   def reverse_order_consumption(order_id) do
     movements =
       from(m in InventoryMovement,
-        where: m.source_type == "order" and m.source_id == ^order_id and m.movement_type == "usage"
+        where:
+          m.source_type == "order" and m.source_id == ^order_id and m.movement_type == "usage"
       )
       |> Repo.all()
 
@@ -491,7 +556,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         Enum.reduce(entries, 0, fn %{quantity: q}, acc -> acc + (q || 0) end)
 
       ingredient = get_ingredient_by_code!(code)
-      location   = Repo.get!(Location, location_id)
+      location = Repo.get!(Location, location_id)
 
       # On-hand only at THIS location
       on_hand =
@@ -533,14 +598,22 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   Transfer quantity between locations; cost is moved, not recomputed.
   Uses the avg cost from the origin location and updates both stocks.
   """
-  def transfer(ingredient_code, from_location_code, to_location_code, quantity, movement_date, source_type \\ nil, source_id \\ nil) do
+  def transfer(
+        ingredient_code,
+        from_location_code,
+        to_location_code,
+        quantity,
+        movement_date,
+        source_type \\ nil,
+        source_id \\ nil
+      ) do
     Repo.transaction(fn ->
       ingredient = get_ingredient_by_code!(ingredient_code)
-      from_loc   = get_location_by_code!(from_location_code)
-      to_loc     = get_location_by_code!(to_location_code)
+      from_loc = get_location_by_code!(from_location_code)
+      to_loc = get_location_by_code!(to_location_code)
 
       from_stock = get_or_create_stock!(ingredient.id, from_loc.id)
-      to_stock   = get_or_create_stock!(ingredient.id, to_loc.id)
+      to_stock = get_or_create_stock!(ingredient.id, to_loc.id)
 
       if from_stock.quantity_on_hand < quantity, do: Repo.rollback({:error, :insufficient_stock})
 
@@ -550,17 +623,25 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
 
       # out of from_loc
       new_from_qty = from_stock.quantity_on_hand - quantity
+
       from_stock =
         from_stock
         |> InventoryItem.changeset(%{quantity_on_hand: new_from_qty})
         |> Repo.update!()
 
       # into to_loc (as if we "purchased" at that unit cost)
-      old_to_qty  = to_stock.quantity_on_hand
+      old_to_qty = to_stock.quantity_on_hand
       old_to_cost = to_stock.avg_cost_per_unit_cents
-      new_to_qty  = old_to_qty + quantity
+      new_to_qty = old_to_qty + quantity
 
-      new_to_avg_cost = calculate_weighted_avg_cost(old_to_qty, old_to_cost, quantity, unit_cost_cents, new_to_qty)
+      new_to_avg_cost =
+        calculate_weighted_avg_cost(
+          old_to_qty,
+          old_to_cost,
+          quantity,
+          unit_cost_cents,
+          new_to_qty
+        )
 
       to_stock =
         to_stock
@@ -592,7 +673,6 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     end)
   end
 
-
   # ---------- Dashboard helpers ----------
 
   @doc """
@@ -601,7 +681,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   """
   def inventory_type(ingredient_code) when is_binary(ingredient_code) do
     case Repo.get_by(Ingredient, code: ingredient_code) do
-      nil -> :ingredients  # Default if ingredient not found
+      # Default if ingredient not found
+      nil -> :ingredients
       ingredient -> String.to_atom(ingredient.inventory_type || "ingredients")
     end
   end
@@ -616,7 +697,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   def inventory_type(%{code: code}) when is_binary(code), do: inventory_type(code)
   def inventory_type(%{ingredient: %{code: code}}) when is_binary(code), do: inventory_type(code)
   def inventory_type(%{ingredient: %Ingredient{} = ingredient}), do: inventory_type(ingredient)
-  def inventory_type(_), do: :ingredients  # Default fallback
+  # Default fallback
+  def inventory_type(_), do: :ingredients
 
   @doc """
   Returns all stock items, preloaded with ingredient + location.
@@ -687,29 +769,33 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       |> Repo.one()
 
     # Convert Decimal to integer if needed
-    purchase_cents = case purchase_total do
-      %Decimal{} = dec -> Decimal.to_integer(dec)
-      int when is_integer(int) -> int
-      _ -> 0
-    end
+    purchase_cents =
+      case purchase_total do
+        %Decimal{} = dec -> Decimal.to_integer(dec)
+        int when is_integer(int) -> int
+        _ -> 0
+      end
 
-    consumption_cents = case consumption_total do
-      %Decimal{} = dec -> Decimal.to_integer(dec)
-      int when is_integer(int) -> int
-      _ -> 0
-    end
+    consumption_cents =
+      case consumption_total do
+        %Decimal{} = dec -> Decimal.to_integer(dec)
+        int when is_integer(int) -> int
+        _ -> 0
+      end
 
-    transfer_out_cents = case transfer_out_total do
-      %Decimal{} = dec -> Decimal.to_integer(dec)
-      int when is_integer(int) -> int
-      _ -> 0
-    end
+    transfer_out_cents =
+      case transfer_out_total do
+        %Decimal{} = dec -> Decimal.to_integer(dec)
+        int when is_integer(int) -> int
+        _ -> 0
+      end
 
-    transfer_in_cents = case transfer_in_total do
-      %Decimal{} = dec -> Decimal.to_integer(dec)
-      int when is_integer(int) -> int
-      _ -> 0
-    end
+    transfer_in_cents =
+      case transfer_in_total do
+        %Decimal{} = dec -> Decimal.to_integer(dec)
+        int when is_integer(int) -> int
+        _ -> 0
+      end
 
     purchase_cents + transfer_in_cents - consumption_cents - transfer_out_cents
   end
@@ -798,9 +884,9 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     Enum.reduce(all_keys, %{}, fn key, acc ->
       value =
         Map.get(purchases, key, 0) +
-        Map.get(transfers_in, key, 0) -
-        Map.get(consumption, key, 0) -
-        Map.get(transfers_out, key, 0)
+          Map.get(transfers_in, key, 0) -
+          Map.get(consumption, key, 0) -
+          Map.get(transfers_out, key, 0)
 
       Map.put(acc, key, value)
     end)
@@ -833,17 +919,19 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       |> Repo.one()
 
     # Convert Decimal to integer if needed
-    purchase_cents = case purchase_total do
-      %Decimal{} = dec -> Decimal.to_integer(dec)
-      int when is_integer(int) -> int
-      _ -> 0
-    end
+    purchase_cents =
+      case purchase_total do
+        %Decimal{} = dec -> Decimal.to_integer(dec)
+        int when is_integer(int) -> int
+        _ -> 0
+      end
 
-    consumption_cents = case consumption_total do
-      %Decimal{} = dec -> Decimal.to_integer(dec)
-      int when is_integer(int) -> int
-      _ -> 0
-    end
+    consumption_cents =
+      case consumption_total do
+        %Decimal{} = dec -> Decimal.to_integer(dec)
+        int when is_integer(int) -> int
+        _ -> 0
+      end
 
     purchase_cents - consumption_cents
   end
@@ -895,11 +983,12 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     query =
       if search && String.trim(search) != "" do
         search_term = "%#{String.trim(search)}%"
+
         from([m, i] in query,
           where:
             ilike(i.name, ^search_term) or
-            ilike(i.code, ^search_term) or
-            ilike(m.note, ^search_term)
+              ilike(i.code, ^search_term) or
+              ilike(m.note, ^search_term)
         )
       else
         query
@@ -1080,7 +1169,6 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
           0
         end
 
-
       # 1) Record the inventory side (movement + stock update)
       # Pass the actual total_cost_cents so it's stored correctly in the movement
       case record_purchase(
@@ -1162,11 +1250,17 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
                 :ok
 
               {:error, item_changeset = %Ecto.Changeset{}} ->
-                Logger.error("❌ create_purchase/1 returned changeset error: #{inspect(item_changeset.errors)}")
+                Logger.error(
+                  "❌ create_purchase/1 returned changeset error: #{inspect(item_changeset.errors)}"
+                )
+
                 Repo.rollback(item_changeset)
 
               {:error, other} ->
-                Logger.error("❌ create_purchase/1 returned non-changeset error: #{inspect(other)}")
+                Logger.error(
+                  "❌ create_purchase/1 returned non-changeset error: #{inspect(other)}"
+                )
+
                 Repo.rollback(other)
             end
           end)
@@ -1181,15 +1275,18 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
           {:ok, :ok}
 
         {:error, %Ecto.Changeset{} = item_changeset} ->
-          Logger.error("❌ Transaction rolled back with item changeset: #{inspect(item_changeset.errors)}")
+          Logger.error(
+            "❌ Transaction rolled back with item changeset: #{inspect(item_changeset.errors)}"
+          )
+
           {:error, item_changeset}
 
         {:error, reason} ->
           Logger.error("❌ Transaction rolled back with generic reason: #{inspect(reason)}")
 
-        {:error,
-          changeset
-          |> Ecto.Changeset.add_error(:base, "Inventory purchase failed: #{inspect(reason)}")}
+          {:error,
+           changeset
+           |> Ecto.Changeset.add_error(:base, "Inventory purchase failed: #{inspect(reason)}")}
       end
     else
       Logger.error("❌ PurchaseListForm INVALID: #{inspect(changeset.errors)}")
@@ -1204,7 +1301,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     query =
       from i in Ingredient,
         left_join: m in InventoryMovement,
-          on: m.ingredient_id == i.id and m.movement_type == "purchase",
+        on: m.ingredient_id == i.id and m.movement_type == "purchase",
         group_by: [i.id, i.code, i.unit],
         select: %{
           code: i.code,
@@ -1226,9 +1323,15 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       # Convert Decimal to integer for JSON encoding (ROUND() returns Decimal/NUMERIC type)
       avg_cost_cents =
         case row.avg_cost_cents do
-          nil -> nil
-          %Decimal{} = dec -> Decimal.to_integer(dec)
-          other when is_integer(other) -> other
+          nil ->
+            nil
+
+          %Decimal{} = dec ->
+            Decimal.to_integer(dec)
+
+          other when is_integer(other) ->
+            other
+
           other ->
             # Fallback: try to convert to integer
             case Integer.parse(to_string(other)) do
@@ -1276,7 +1379,6 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     end)
   end
 
-
   # --- Movement form helpers ---
 
   def change_movement_form(attrs \\ %{}) do
@@ -1316,9 +1418,12 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
                  "manual",
                  nil
                ) do
-            {:ok, result} -> {:ok, result}
+            {:ok, result} ->
+              {:ok, result}
+
             {:error, reason} ->
-              {:error, Ecto.Changeset.add_error(changeset, :base, "Usage failed: #{inspect(reason)}")}
+              {:error,
+               Ecto.Changeset.add_error(changeset, :base, "Usage failed: #{inspect(reason)}")}
           end
 
         "transfer" ->
@@ -1331,9 +1436,12 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
                  "manual",
                  nil
                ) do
-            {:ok, result} -> {:ok, result}
+            {:ok, result} ->
+              {:ok, result}
+
             {:error, reason} ->
-              {:error, Ecto.Changeset.add_error(changeset, :base, "Transfer failed: #{inspect(reason)}")}
+              {:error,
+               Ecto.Changeset.add_error(changeset, :base, "Transfer failed: #{inspect(reason)}")}
           end
 
         "write_off" ->
@@ -1345,9 +1453,12 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
                  "manual",
                  nil
                ) do
-            {:ok, result} -> {:ok, result}
+            {:ok, result} ->
+              {:ok, result}
+
             {:error, reason} ->
-              {:error, Ecto.Changeset.add_error(changeset, :base, "Write-off failed: #{inspect(reason)}")}
+              {:error,
+               Ecto.Changeset.add_error(changeset, :base, "Write-off failed: #{inspect(reason)}")}
           end
       end
     else
@@ -1386,7 +1497,10 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
                 :ok
 
               {:error, item_changeset = %Ecto.Changeset{}} ->
-                Logger.error("❌ create_movement/1 returned changeset error: #{inspect(item_changeset.errors)}")
+                Logger.error(
+                  "❌ create_movement/1 returned changeset error: #{inspect(item_changeset.errors)}"
+                )
+
                 # Rollback with the inner error so the transaction stops
                 Repo.rollback(item_changeset)
             end
@@ -1405,7 +1519,9 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         # If the transaction fails with an inner item error, extract the error message
         # and add it to the parent changeset so it displays in the form.
         {:error, %Ecto.Changeset{} = inner_item_changeset} ->
-          Logger.error("❌ Transaction rolled back with item changeset: #{inspect(inner_item_changeset.errors)}")
+          Logger.error(
+            "❌ Transaction rolled back with item changeset: #{inspect(inner_item_changeset.errors)}"
+          )
 
           # Extract base errors from the inner changeset
           base_errors = Keyword.get_values(inner_item_changeset.errors, :base)
@@ -1421,7 +1537,13 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
 
         {:error, reason} ->
           Logger.error("❌ Transaction rolled back with generic reason: #{inspect(reason)}")
-          {:error, Ecto.Changeset.add_error(changeset, :base, "Inventory movement failed: #{inspect(reason)}")}
+
+          {:error,
+           Ecto.Changeset.add_error(
+             changeset,
+             :base,
+             "Inventory movement failed: #{inspect(reason)}"
+           )}
       end
     else
       Logger.error("❌ MovementListForm INVALID: #{inspect(changeset.errors)}")
@@ -1436,15 +1558,15 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
   Later we can hook this to an accounting expense.
   """
   def record_write_off(
-      ingredient_code,
-      from_location_code,
-      quantity,
-      write_off_date,
-      source_type \\ "manual",
-      source_id \\ nil
-    ) do
+        ingredient_code,
+        from_location_code,
+        quantity,
+        write_off_date,
+        source_type \\ "manual",
+        source_id \\ nil
+      ) do
     ingredient = get_ingredient_by_code!(ingredient_code)
-    location   = get_location_by_code!(from_location_code)
+    location = get_location_by_code!(from_location_code)
 
     Repo.transaction(fn ->
       stock = get_or_create_stock!(ingredient.id, location.id)
@@ -1460,6 +1582,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         else
           ingredient.cost_per_unit_cents || 0
         end
+
       total_cost_cents = unit_cost_cents * quantity
 
       # Insert movement
@@ -1502,7 +1625,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         reference: "Write-off #{ingredient_code} @ #{from_location_code}",
         packing: packing?,
         kitchen: kitchen?,
-        description: "Write-off of #{quantity} #{ingredient_code} from #{from_location_code} (waste/shrinkage)"
+        description:
+          "Write-off of #{quantity} #{ingredient_code} from #{from_location_code} (waste/shrinkage)"
       )
 
       movement
@@ -1566,7 +1690,9 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
 
         journal_entry =
           from(je in JournalEntry,
-            where: je.reference == ^reference_pattern and je.entry_type == "inventory_purchase" and je.date == ^movement.movement_date
+            where:
+              je.reference == ^reference_pattern and je.entry_type == "inventory_purchase" and
+                je.date == ^movement.movement_date
           )
           |> order_by([je], desc: je.inserted_at)
           |> limit(1)
@@ -1604,7 +1730,10 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
 
         # Check if we have enough quantity to return
         if stock.quantity_on_hand < movement.quantity do
-          Repo.rollback({:insufficient_quantity, "Insufficient quantity to return. Current: #{stock.quantity_on_hand}, Requested: #{movement.quantity}"})
+          Repo.rollback(
+            {:insufficient_quantity,
+             "Insufficient quantity to return. Current: #{stock.quantity_on_hand}, Requested: #{movement.quantity}"}
+          )
         end
 
         return_date = return_date || LedgrWeb.Helpers.DomainHelpers.today_mx()
@@ -1623,7 +1752,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
             unit_cost_cents: movement.unit_cost_cents,
             total_cost_cents: movement.total_cost_cents,
             source_type: "manual",
-            source_id: movement.id,  # Link to original purchase
+            # Link to original purchase
+            source_id: movement.id,
             note: return_note,
             movement_date: return_date
           })
@@ -1646,7 +1776,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
             # Recalculate cumulative average from all purchase movements
             # This will include the original purchase, which is acceptable for now
             # as the return movement is separate and doesn't affect purchase calculations
-            calculate_cumulative_avg_cost(ingredient.id, location.id) || stock.avg_cost_per_unit_cents
+            calculate_cumulative_avg_cost(ingredient.id, location.id) ||
+              stock.avg_cost_per_unit_cents
           end
 
         stock
@@ -1660,6 +1791,7 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         inv_type = inventory_type(ingredient.code)
         packing? = inv_type == :packing
         kitchen? = inv_type == :kitchen
+
         inventory_type_name =
           case inv_type do
             :packing -> "Packing"
@@ -1713,7 +1845,9 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
 
         journal_entry =
           from(je in JournalEntry,
-            where: je.reference == ^reference_pattern and je.entry_type == "inventory_purchase" and je.date == ^movement.movement_date
+            where:
+              je.reference == ^reference_pattern and je.entry_type == "inventory_purchase" and
+                je.date == ^movement.movement_date
           )
           |> order_by([je], desc: je.inserted_at)
           |> limit(1)
@@ -1791,7 +1925,14 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         new_from_qty = old_from_qty + transfer_qty
 
         # Recalculate average cost for from_location
-        new_from_avg_cost = calculate_weighted_avg_cost(old_from_qty, old_from_cost, transfer_qty, unit_cost_cents, new_from_qty)
+        new_from_avg_cost =
+          calculate_weighted_avg_cost(
+            old_from_qty,
+            old_from_cost,
+            transfer_qty,
+            unit_cost_cents,
+            new_from_qty
+          )
 
         from_stock
         |> InventoryItem.changeset(%{
@@ -1842,7 +1983,14 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
         old_from_cost = from_stock.avg_cost_per_unit_cents
         new_from_qty = old_from_qty + transfer_qty
 
-        new_from_avg_cost = calculate_weighted_avg_cost(old_from_qty, old_from_cost, transfer_qty, unit_cost_cents, new_from_qty)
+        new_from_avg_cost =
+          calculate_weighted_avg_cost(
+            old_from_qty,
+            old_from_cost,
+            transfer_qty,
+            unit_cost_cents,
+            new_from_qty
+          )
 
         from_stock
         |> InventoryItem.changeset(%{
@@ -1880,25 +2028,33 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
       |> Repo.one()
 
     # Convert Decimal values from SQL SUM to integers
-    total_cost = case result do
-      %{total_cost: cost} when is_integer(cost) -> cost
-      %{total_cost: %Decimal{} = cost} -> Decimal.to_integer(cost)
-      _ -> 0
-    end
+    total_cost =
+      case result do
+        %{total_cost: cost} when is_integer(cost) -> cost
+        %{total_cost: %Decimal{} = cost} -> Decimal.to_integer(cost)
+        _ -> 0
+      end
 
-    total_quantity = case result do
-      %{total_quantity: qty} when is_integer(qty) -> qty
-      %{total_quantity: %Decimal{} = qty} -> Decimal.to_integer(qty)
-      _ -> 0
-    end
+    total_quantity =
+      case result do
+        %{total_quantity: qty} when is_integer(qty) -> qty
+        %{total_quantity: %Decimal{} = qty} -> Decimal.to_integer(qty)
+        _ -> 0
+      end
 
     case {total_cost, total_quantity} do
-      {0, 0} -> nil
-      {_, 0} -> nil
+      {0, 0} ->
+        nil
+
+      {_, 0} ->
+        nil
+
       {cost, qty} when qty > 0 ->
         exact_avg = cost / qty
         round(exact_avg)
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
 
@@ -1924,11 +2080,12 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
     updated_count =
       Enum.reduce(zero_cost_movements, 0, fn movement, acc ->
         # First try: Calculate what the cost should have been at the movement date
-        avg_cost_as_of_date = calculate_cumulative_avg_cost_as_of_date(
-          movement.ingredient_id,
-          movement.from_location_id,
-          movement.movement_date
-        )
+        avg_cost_as_of_date =
+          calculate_cumulative_avg_cost_as_of_date(
+            movement.ingredient_id,
+            movement.from_location_id,
+            movement.movement_date
+          )
 
         # Fallback chain: If no purchases up to that date, use overall current cost, then ingredient cost
         avg_cost =
@@ -1936,13 +2093,16 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory do
             avg_cost_as_of_date
           else
             # Try overall cumulative average cost
+            # Try current stock's avg_cost_per_unit_cents
             calculate_cumulative_avg_cost(movement.ingredient_id, movement.from_location_id) ||
-              # Try current stock's avg_cost_per_unit_cents
               case get_or_create_stock!(movement.ingredient_id, movement.from_location_id) do
-                stock when stock.avg_cost_per_unit_cents > 0 -> stock.avg_cost_per_unit_cents
+                stock when stock.avg_cost_per_unit_cents > 0 ->
+                  stock.avg_cost_per_unit_cents
+
                 _ ->
                   # Final fallback: use the ingredient's cost_per_unit_cents if set
-                  if movement.ingredient && movement.ingredient.cost_per_unit_cents && movement.ingredient.cost_per_unit_cents > 0 do
+                  if movement.ingredient && movement.ingredient.cost_per_unit_cents &&
+                       movement.ingredient.cost_per_unit_cents > 0 do
                     movement.ingredient.cost_per_unit_cents
                   else
                     nil

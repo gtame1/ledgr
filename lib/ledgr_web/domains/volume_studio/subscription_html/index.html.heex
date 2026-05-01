@@ -1,5 +1,8 @@
 <section class="content">
-  <header class="content-header" style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
+  <header
+    class="content-header"
+    style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;"
+  >
     <div>
       <h1 class="page-title">Subscriptions</h1>
       <p class="card-subtitle">All member memberships and packages.</p>
@@ -24,24 +27,30 @@
             ] do %>
           <% is_active = is_nil(@current_plan_type) and @current_status == value %>
           <.link
-            navigate={dp(@domain_path_prefix, if(value, do: "/subscriptions?status=#{value}", else: "/subscriptions"))}
+            navigate={
+              dp(
+                @domain_path_prefix,
+                if(value, do: "/subscriptions?status=#{value}", else: "/subscriptions")
+              )
+            }
             class={"vs-filter-tab#{if is_active, do: " is-active"}"}
           >
-            <%= label %>
+            {label}
             <%= if count > 0 do %>
-              <span class="count"><%= count %></span>
+              <span class="count">{count}</span>
             <% end %>
           </.link>
         <% end %>
 
-        <span style="width: 1px; height: 22px; background: var(--vs-border-subtle); margin: 0 0.4rem;"></span>
+        <span style="width: 1px; height: 22px; background: var(--vs-border-subtle); margin: 0 0.4rem;">
+        </span>
 
         <%= for {label, pt} <- [{"Memberships", "membership"}, {"Packages", "package"}, {"Promos", "promo"}, {"Extras", "extra"}] do %>
           <.link
             navigate={dp(@domain_path_prefix, "/subscriptions?plan_type=#{pt}")}
             class={"vs-filter-tab#{if @current_plan_type == pt, do: " is-active"}"}
           >
-            <%= label %>
+            {label}
           </.link>
         <% end %>
       </div>
@@ -64,48 +73,58 @@
           <tbody>
             <%= if Enum.empty?(@subscriptions) do %>
               <tr>
-                <td colspan="6" style="color: var(--vs-text-muted); font-style: italic; padding: 2rem 1rem; text-align: center;">
+                <td
+                  colspan="6"
+                  style="color: var(--vs-text-muted); font-style: italic; padding: 2rem 1rem; text-align: center;"
+                >
                   No subscriptions found for this filter.
                 </td>
               </tr>
             <% else %>
               <%= for sub <- @subscriptions do %>
                 <% {paid, total, pct} = payment_progress(sub) %>
-                <% bar_state = cond do
-                  pct >= 100 -> ""
-                  pct > 0 -> "is-partial"
-                  true -> "is-overdue"
-                end %>
+                <% bar_state =
+                  cond do
+                    pct >= 100 -> ""
+                    pct > 0 -> "is-partial"
+                    true -> "is-overdue"
+                  end %>
                 <tr>
                   <td>
                     <div class="vs-member-cell">
-                      <span class="vs-avatar"><%= initials(sub.customer.name) %></span>
+                      <span class="vs-avatar">{initials(sub.customer.name)}</span>
                       <div>
-                        <div class="name"><%= sub.customer.name %></div>
+                        <div class="name">{sub.customer.name}</div>
                         <%= if sub.customer.phone do %>
-                          <div class="meta"><%= sub.customer.phone %></div>
+                          <div class="meta">{sub.customer.phone}</div>
                         <% end %>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <div style="font-weight: 500;"><%= sub.subscription_plan.name %></div>
-                    <span class={"status-badge plan-type-#{sub.subscription_plan.plan_type}"} style="margin-top: 0.2rem;">
-                      <%= String.capitalize(sub.subscription_plan.plan_type) %>
+                    <div style="font-weight: 500;">{sub.subscription_plan.name}</div>
+                    <span
+                      class={"status-badge plan-type-#{sub.subscription_plan.plan_type}"}
+                      style="margin-top: 0.2rem;"
+                    >
+                      {String.capitalize(sub.subscription_plan.plan_type)}
                     </span>
                   </td>
                   <td>
                     <span class={"status-badge #{status_class(sub.status)}"}>
-                      <%= String.capitalize(sub.status) %>
+                      {String.capitalize(sub.status)}
                     </span>
                   </td>
                   <td style="white-space: nowrap; font-size: 0.85rem; color: var(--vs-text-muted);">
-                    <%= sub.starts_on %><%= if sub.ends_on, do: " → #{sub.ends_on}" %>
+                    {sub.starts_on}{if sub.ends_on, do: " → #{sub.ends_on}"}
                   </td>
                   <td>
                     <div class="vs-payment-cell">
                       <div class="amounts">
-                        <%= format_currency(paid) %> <span style="color: var(--vs-text-muted);">/ <%= format_currency(total) %></span>
+                        {format_currency(paid)}
+                        <span style="color: var(--vs-text-muted);">
+                          / {format_currency(total)}
+                        </span>
                       </div>
                       <div class={"vs-payment-bar #{bar_state}"}>
                         <span style={"width: #{pct}%;"}></span>
@@ -113,7 +132,10 @@
                     </div>
                   </td>
                   <td style="text-align: right;">
-                    <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")} class="btn btn-sm">
+                    <.link
+                      navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")}
+                      class="btn btn-sm"
+                    >
                       View
                     </.link>
                   </td>

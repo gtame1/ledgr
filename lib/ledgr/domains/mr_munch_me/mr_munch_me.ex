@@ -68,7 +68,8 @@ defmodule Ledgr.Domains.MrMunchMe do
       card_logo: "/images/mr-munchme-logos/mr-munchme-logo.jpg",
       tab_title: "MrMunchMe App",
       favicon: "/images/mr-munchme-logos/mr-munchme-icon-no-bg.png",
-      og_description: "Chips, snacks picosos y botanas artesanales. ¡Haz tu pedido en línea! · Delivery en CDMX 🍪"
+      og_description:
+        "Chips, snacks picosos y botanas artesanales. ¡Haz tu pedido en línea! · Delivery en CDMX 🍪"
     }
   end
 
@@ -113,22 +114,31 @@ defmodule Ledgr.Domains.MrMunchMe do
     prefix = path_prefix()
 
     [
-      %{group: "Main Menu", items: [
-        %{label: "Dashboard", path: prefix, icon: :dashboard},
-        %{label: "All Orders", path: "#{prefix}/orders", icon: :orders},
-        %{label: "Order Calendar", path: "#{prefix}/orders/calendar", icon: :calendar},
-        %{label: "Inventory", path: "#{prefix}/inventory", icon: :inventory},
-        %{label: "Shopping List", path: "#{prefix}/inventory/requirements", icon: :shopping},
-        %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
-      ]},
-      %{group: "Materials", items: [
-        %{label: "Product List", path: "#{prefix}/products", icon: :products},
-        %{label: "Ingredient List", path: "#{prefix}/ingredients", icon: :ingredients},
-        %{label: "Recepies", path: "#{prefix}/recipes", icon: :recipes}
-      ]},
-      %{group: "Promotions", items: [
-        %{label: "Discount Codes", path: "#{prefix}/discount-codes", icon: :discount}
-      ]}
+      %{
+        group: "Main Menu",
+        items: [
+          %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{label: "All Orders", path: "#{prefix}/orders", icon: :orders},
+          %{label: "Order Calendar", path: "#{prefix}/orders/calendar", icon: :calendar},
+          %{label: "Inventory", path: "#{prefix}/inventory", icon: :inventory},
+          %{label: "Shopping List", path: "#{prefix}/inventory/requirements", icon: :shopping},
+          %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
+        ]
+      },
+      %{
+        group: "Materials",
+        items: [
+          %{label: "Product List", path: "#{prefix}/products", icon: :products},
+          %{label: "Ingredient List", path: "#{prefix}/ingredients", icon: :ingredients},
+          %{label: "Recepies", path: "#{prefix}/recipes", icon: :recipes}
+        ]
+      },
+      %{
+        group: "Promotions",
+        items: [
+          %{label: "Discount Codes", path: "#{prefix}/discount-codes", icon: :discount}
+        ]
+      }
     ]
   end
 

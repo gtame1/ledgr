@@ -4,16 +4,20 @@
   </header>
 
   <div class="content-body">
-
-    <.period_selector action={dp(@domain_path_prefix, "/reports/pnl")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
-
-    <!-- P&L Statement -->
+    <.period_selector
+      action={dp(@domain_path_prefix, "/reports/pnl")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
+    
+<!-- P&L Statement -->
     <section class="card">
       <h2 class="card-title">
         Profit &amp; Loss Statement
       </h2>
       <p class="card-subtitle">
-        Period: <%= @start_date %> to <%= @end_date %>
+        Period: {@start_date} to {@end_date}
       </p>
 
       <div class="table-wrapper" style="margin-top: 1.5rem;">
@@ -37,12 +41,12 @@
               <%= for product <- @summary.revenue_by_product do %>
                 <tr>
                   <td style="padding-left: 2rem;">
-                    <%= product.product_name %>
+                    {product.product_name}
                   </td>
-                  <td class="numeric"><%= format_currency(product.revenue_cents) %></td>
+                  <td class="numeric">{format_currency(product.revenue_cents)}</td>
                   <td class="numeric">
                     <%= if @summary.total_revenue_cents > 0 do %>
-                      <%= Float.round(product.revenue_cents / @summary.total_revenue_cents * 100, 1) %>%
+                      {Float.round(product.revenue_cents / @summary.total_revenue_cents * 100, 1)}%
                     <% else %>
                       —
                     <% end %>
@@ -51,36 +55,44 @@
               <% end %>
             <% end %>
 
-            <%
-              shipping_account = Enum.find(@summary.revenue_accounts, &(&1.code == "4020"))
-              discounts_account = Enum.find(@summary.revenue_accounts, &(&1.code == "4010"))
-            %>
+            <% shipping_account = Enum.find(@summary.revenue_accounts, &(&1.code == "4020"))
+            discounts_account = Enum.find(@summary.revenue_accounts, &(&1.code == "4010")) %>
             <%= if shipping_account && shipping_account.net_cents > 0 do %>
               <tr>
                 <td style="padding-left: 2rem;">Shipping Revenue</td>
-                <td class="numeric"><%= format_currency(shipping_account.net_cents) %></td>
+                <td class="numeric">{format_currency(shipping_account.net_cents)}</td>
                 <td class="numeric">
                   <%= if @summary.total_revenue_cents > 0 do %>
-                    <%= Float.round(shipping_account.net_cents / @summary.total_revenue_cents * 100, 1) %>%
-                  <% else %>—<% end %>
+                    {Float.round(
+                      shipping_account.net_cents / @summary.total_revenue_cents * 100,
+                      1
+                    )}%
+                  <% else %>
+                    —
+                  <% end %>
                 </td>
               </tr>
             <% end %>
             <%= if discounts_account && discounts_account.net_cents > 0 do %>
               <tr style="color: #991b1b;">
                 <td style="padding-left: 2rem;">Sales Discounts</td>
-                <td class="numeric">(<%= format_currency(discounts_account.net_cents) %>)</td>
+                <td class="numeric">({format_currency(discounts_account.net_cents)})</td>
                 <td class="numeric">
                   <%= if @summary.total_revenue_cents > 0 do %>
-                    <%= Float.round(discounts_account.net_cents / @summary.total_revenue_cents * 100, 1) %>%
-                  <% else %>—<% end %>
+                    {Float.round(
+                      discounts_account.net_cents / @summary.total_revenue_cents * 100,
+                      1
+                    )}%
+                  <% else %>
+                    —
+                  <% end %>
                 </td>
               </tr>
             <% end %>
 
             <tr style="font-weight: 600; border-top: 1px solid #e5e7eb;">
               <td>Total Revenue</td>
-              <td class="numeric"><%= format_currency(@summary.total_revenue_cents) %></td>
+              <td class="numeric">{format_currency(@summary.total_revenue_cents)}</td>
               <td class="numeric">100.0%</td>
             </tr>
 
@@ -95,12 +107,12 @@
               <%= for product <- @summary.cogs_by_product do %>
                 <tr>
                   <td style="padding-left: 2rem;">
-                    <%= product.product_name %>
+                    {product.product_name}
                   </td>
-                  <td class="numeric"><%= format_currency(product.cogs_cents) %></td>
+                  <td class="numeric">{format_currency(product.cogs_cents)}</td>
                   <td class="numeric">
                     <%= if @summary.total_revenue_cents > 0 do %>
-                      <%= Float.round(product.cogs_cents / @summary.total_revenue_cents * 100, 1) %>%
+                      {Float.round(product.cogs_cents / @summary.total_revenue_cents * 100, 1)}%
                     <% else %>
                       —
                     <% end %>
@@ -111,10 +123,10 @@
 
             <tr style="font-weight: 600; border-top: 1px solid #e5e7eb;">
               <td>Total COGS</td>
-              <td class="numeric"><%= format_currency(@summary.total_cogs_cents) %></td>
+              <td class="numeric">{format_currency(@summary.total_cogs_cents)}</td>
               <td class="numeric">
                 <%= if @summary.total_revenue_cents > 0 do %>
-                  <%= Float.round(@summary.total_cogs_cents / @summary.total_revenue_cents * 100, 1) %>%
+                  {Float.round(@summary.total_cogs_cents / @summary.total_revenue_cents * 100, 1)}%
                 <% else %>
                   —
                 <% end %>
@@ -124,9 +136,9 @@
             <%!-- GROSS PROFIT --%>
             <tr style="background-color: #f0fdf4; font-weight: 600; border-top: 2px solid #22c55e; color: #166534;">
               <td>Gross Profit</td>
-              <td class="numeric"><%= format_currency(@summary.gross_profit_cents) %></td>
+              <td class="numeric">{format_currency(@summary.gross_profit_cents)}</td>
               <td class="numeric">
-                <%= @summary.gross_margin_percent %>%
+                {@summary.gross_margin_percent}%
               </td>
             </tr>
 
@@ -141,12 +153,12 @@
               <%= for account <- @summary.operating_expense_accounts do %>
                 <tr>
                   <td style="padding-left: 2rem;">
-                    <%= account.code %> – <%= account.name %>
+                    {account.code} – {account.name}
                   </td>
-                  <td class="numeric"><%= format_currency(account.net_cents) %></td>
+                  <td class="numeric">{format_currency(account.net_cents)}</td>
                   <td class="numeric">
                     <%= if @summary.total_revenue_cents > 0 do %>
-                      <%= Float.round(account.net_cents / @summary.total_revenue_cents * 100, 1) %>%
+                      {Float.round(account.net_cents / @summary.total_revenue_cents * 100, 1)}%
                     <% else %>
                       —
                     <% end %>
@@ -163,10 +175,10 @@
 
             <tr style="font-weight: 600; border-top: 1px solid #e5e7eb;">
               <td>Total Operating Expenses</td>
-              <td class="numeric"><%= format_currency(@summary.total_opex_cents) %></td>
+              <td class="numeric">{format_currency(@summary.total_opex_cents)}</td>
               <td class="numeric">
                 <%= if @summary.total_revenue_cents > 0 do %>
-                  <%= Float.round(@summary.total_opex_cents / @summary.total_revenue_cents * 100, 1) %>%
+                  {Float.round(@summary.total_opex_cents / @summary.total_revenue_cents * 100, 1)}%
                 <% else %>
                   —
                 <% end %>
@@ -176,9 +188,9 @@
             <%!-- OPERATING INCOME --%>
             <tr style="background-color: #f0fdf4; font-weight: 600; border-top: 2px solid #22c55e; color: #166534;">
               <td>Operating Income</td>
-              <td class="numeric"><%= format_currency(@summary.operating_income_cents) %></td>
+              <td class="numeric">{format_currency(@summary.operating_income_cents)}</td>
               <td class="numeric">
-                <%= @summary.operating_margin_percent %>%
+                {@summary.operating_margin_percent}%
               </td>
             </tr>
 
@@ -186,71 +198,69 @@
             <tr style="background-color: #dbeafe; font-weight: 700; border-top: 3px solid #2563eb; font-size: 1.1rem; color: #1e40af;">
               <td>Net Income</td>
               <td class="numeric" style="font-size: 1.1rem;">
-                <%= format_currency(@summary.net_income_cents) %>
+                {format_currency(@summary.net_income_cents)}
               </td>
               <td class="numeric" style="font-size: 1.1rem;">
-                <%= @summary.net_margin_percent %>%
+                {@summary.net_margin_percent}%
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Monthly Trend Chart -->
-    <section class="card" :if={@monthly && @monthly != []}>
+    
+<!-- Monthly Trend Chart -->
+    <section :if={@monthly && @monthly != []} class="card">
       <h2 class="card-title">Monthly Trend Chart</h2>
       <p class="card-subtitle">
         Visual breakdown of Revenue, COGS, and Net Income over the last months.
       </p>
 
-      <%
-        # Prepare chart data from @monthly (sorted ascending for chart)
-        sorted_monthly = Enum.sort_by(@monthly, & &1.label, :asc)
-        chart_labels = Enum.map(sorted_monthly, & &1.label)
-        revenue_data = Enum.map(sorted_monthly, & &1.total_revenue_cents)
-        cogs_data = Enum.map(sorted_monthly, & &1.total_cogs_cents)
-        net_income_data = Enum.map(sorted_monthly, & &1.net_income_cents)
+      <% # Prepare chart data from @monthly (sorted ascending for chart)
+      sorted_monthly = Enum.sort_by(@monthly, & &1.label, :asc)
+      chart_labels = Enum.map(sorted_monthly, & &1.label)
+      revenue_data = Enum.map(sorted_monthly, & &1.total_revenue_cents)
+      cogs_data = Enum.map(sorted_monthly, & &1.total_cogs_cents)
+      net_income_data = Enum.map(sorted_monthly, & &1.net_income_cents)
 
-        chart_data = %{
-          format: "currency",
-          labels: chart_labels,
-          datasets: [
-            %{
-              label: "Revenue",
-              data: revenue_data,
-              backgroundColor: "#059669",
-              borderColor: "#059669",
-              borderWidth: 1,
-              borderRadius: 4
-            },
-            %{
-              label: "COGS",
-              data: cogs_data,
-              backgroundColor: "#f97316",
-              borderColor: "#f97316",
-              borderWidth: 1,
-              borderRadius: 4
-            },
-            %{
-              label: "Net Income",
-              data: net_income_data,
-              backgroundColor: "#3b82f6",
-              borderColor: "#3b82f6",
-              borderWidth: 1,
-              borderRadius: 4
-            }
-          ]
-        }
-      %>
+      chart_data = %{
+        format: "currency",
+        labels: chart_labels,
+        datasets: [
+          %{
+            label: "Revenue",
+            data: revenue_data,
+            backgroundColor: "#059669",
+            borderColor: "#059669",
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          %{
+            label: "COGS",
+            data: cogs_data,
+            backgroundColor: "#f97316",
+            borderColor: "#f97316",
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          %{
+            label: "Net Income",
+            data: net_income_data,
+            backgroundColor: "#3b82f6",
+            borderColor: "#3b82f6",
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      } %>
 
       <div id="pnl-chart-wrapper" phx-hook="BarChart" style="height: 320px; margin-top: 1rem;">
         <canvas id="pnl-monthly-chart" data-chart-data={Jason.encode!(chart_data)}></canvas>
       </div>
     </section>
-
-    <!-- Monthly trend table -->
-    <section class="card" :if={@monthly && @monthly != []}>
+    
+<!-- Monthly trend table -->
+    <section :if={@monthly && @monthly != []} class="card">
       <h2 class="card-title">Monthly Trend (detailed)</h2>
       <p class="card-subtitle">
         Each row is one calendar month. Amounts are totals for that month.
@@ -272,19 +282,18 @@
           <tbody>
             <%= for month <- Enum.sort_by(@monthly, & &1.label, :desc) do %>
               <tr>
-                <td><%= month.label %></td>
-                <td><%= format_currency(month.total_revenue_cents) %></td>
-                <td><%= format_currency(month.total_cogs_cents) %></td>
-                <td><%= format_currency(month.gross_profit_cents) %></td>
-                <td><%= format_currency(month.total_opex_cents) %></td>
-                <td><%= format_currency(month.operating_income_cents) %></td>
-                <td><%= format_currency(month.net_income_cents) %></td>
+                <td>{month.label}</td>
+                <td>{format_currency(month.total_revenue_cents)}</td>
+                <td>{format_currency(month.total_cogs_cents)}</td>
+                <td>{format_currency(month.gross_profit_cents)}</td>
+                <td>{format_currency(month.total_opex_cents)}</td>
+                <td>{format_currency(month.operating_income_cents)}</td>
+                <td>{format_currency(month.net_income_cents)}</td>
               </tr>
             <% end %>
           </tbody>
         </table>
       </div>
     </section>
-
   </div>
 </section>

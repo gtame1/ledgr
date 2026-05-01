@@ -5,7 +5,15 @@ defmodule Ledgr.Domains.Viaxe.Bookings do
 
   import Ecto.Query
   alias Ledgr.Repo
-  alias Ledgr.Domains.Viaxe.Bookings.{Booking, BookingAccounting, BookingItem, BookingPassenger, BookingPayment}
+
+  alias Ledgr.Domains.Viaxe.Bookings.{
+    Booking,
+    BookingAccounting,
+    BookingItem,
+    BookingPassenger,
+    BookingPayment
+  }
+
   alias Ledgr.Domains.Viaxe.Customers.Customer
 
   # ── Bookings ───────────────────────────────────────────────
@@ -122,9 +130,9 @@ defmodule Ledgr.Domains.Viaxe.Bookings do
     # or a post-completion settlement. The is_advance flag drives which account
     # is credited: Advance Commission (2200) vs Commission Receivable (1100).
     booking_id = attrs[:booking_id] || attrs["booking_id"]
-    booking    = Repo.get!(Booking, booking_id)
+    booking = Repo.get!(Booking, booking_id)
     is_advance = booking.status != "completed"
-    attrs      = Map.put(attrs, :is_advance, is_advance)
+    attrs = Map.put(attrs, :is_advance, is_advance)
 
     with {:ok, payment} <-
            %BookingPayment{}
@@ -196,8 +204,8 @@ defmodule Ledgr.Domains.Viaxe.Bookings do
           0
       end
 
-    partner_fee = if gross > 0 && partner_fee_rate > 0,
-      do: div(gross * partner_fee_rate, 10_000), else: 0
+    partner_fee =
+      if gross > 0 && partner_fee_rate > 0, do: div(gross * partner_fee_rate, 10_000), else: 0
 
     Booking
     |> where(id: ^booking_id)

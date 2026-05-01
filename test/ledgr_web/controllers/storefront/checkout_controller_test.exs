@@ -57,7 +57,10 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
       assert redirected_to(conn) == "/mr-munch-me/menu"
     end
 
-    test "re-renders form with validation errors when required fields are missing", %{conn: conn, variant: variant} do
+    test "re-renders form with validation errors when required fields are missing", %{
+      conn: conn,
+      variant: variant
+    } do
       conn =
         conn
         |> init_test_session(%{cart: %{to_string(variant.id) => 1}})
@@ -106,7 +109,10 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
       assert html_response(conn, 200) =~ "selecciona"
     end
 
-    test "creates orders and renders confirmation on valid submission", %{conn: conn, variant: variant} do
+    test "creates orders and renders confirmation on valid submission", %{
+      conn: conn,
+      variant: variant
+    } do
       conn =
         conn
         |> init_test_session(%{cart: %{to_string(variant.id) => 1}})
@@ -150,7 +156,10 @@ defmodule LedgrWeb.Storefront.CheckoutControllerTest do
       assert get_session(conn, :cart) == nil
     end
 
-    test "creates order with delivery type and renders whatsapp button", %{conn: conn, variant: variant} do
+    test "creates order with delivery type and renders whatsapp button", %{
+      conn: conn,
+      variant: variant
+    } do
       conn =
         conn
         |> init_test_session(%{cart: %{to_string(variant.id) => 2}})

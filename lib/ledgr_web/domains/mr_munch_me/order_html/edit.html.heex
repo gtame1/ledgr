@@ -8,265 +8,308 @@
     </div>
   </div>
 
-    <section class="card">
-
-      <.form :let={f} for={@changeset} as={:order} action={dp(@domain_path_prefix, "/orders/#{@order.id}")} method="patch" class="form-grid">
-        <%= if @changeset.action do %>
-          <div class="alert alert-error">
-            <p>There were problems updating this order. Please review the fields below.</p>
-          </div>
-        <% end %>
-
-        <%!-- Gift toggle --%>
-        <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 0.5rem; padding: 0.6rem 0.85rem; margin-bottom: 0.25rem;">
-          <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.95rem;">
-            <.input field={f[:is_gift]} type="checkbox" label="" id="is_gift_checkbox" />
-            <span style="font-weight: 600; color: #92400e;">🎁 This is a gift / sample</span>
-          </label>
-          <p style="margin: 0.3rem 0 0 1.75rem; font-size: 0.8rem; color: #92400e; opacity: 0.8;">No payment required — cost tracked as Samples & Gifts expense.</p>
+  <section class="card">
+    <.form
+      :let={f}
+      for={@changeset}
+      as={:order}
+      action={dp(@domain_path_prefix, "/orders/#{@order.id}")}
+      method="patch"
+      class="form-grid"
+    >
+      <%= if @changeset.action do %>
+        <div class="alert alert-error">
+          <p>There were problems updating this order. Please review the fields below.</p>
         </div>
+      <% end %>
 
-        <%!-- Customer Information Section --%>
-        <div class="form-section" id="customer-section">
-          <h3 class="section-title">Customer Information</h3>
-          <p class="section-help">Choose an existing customer or create a new one.</p>
+      <%!-- Gift toggle --%>
+      <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 0.5rem; padding: 0.6rem 0.85rem; margin-bottom: 0.25rem;">
+        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.95rem;">
+          <.input field={f[:is_gift]} type="checkbox" label="" id="is_gift_checkbox" />
+          <span style="font-weight: 600; color: #92400e;">🎁 This is a gift / sample</span>
+        </label>
+        <p style="margin: 0.3rem 0 0 1.75rem; font-size: 0.8rem; color: #92400e; opacity: 0.8;">
+          No payment required — cost tracked as Samples & Gifts expense.
+        </p>
+      </div>
 
-          <%
-            # Detect if we should show "New Customer" form on re-render (e.g. after validation error)
-            has_customer_name = (@changeset.changes[:customer_name] || "") != ""
-            no_customer_id = is_nil(@changeset.changes[:customer_id])
-            show_new = @changeset.action && has_customer_name && no_customer_id
-          %>
+      <%!-- Customer Information Section --%>
+      <div class="form-section" id="customer-section">
+        <h3 class="section-title">Customer Information</h3>
+        <p class="section-help">Choose an existing customer or create a new one.</p>
 
-          <div class="form-block">
-            <div class="field">
-              <label class="label">Customer Type</label>
-              <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                  <input
-                    type="radio"
-                    name="customer_type"
-                    value="existing"
-                    id="customer_type_existing"
-                    {if !show_new, do: [checked: true], else: []}
-                    style="cursor: pointer;"
-                  />
-                  <span>Existing Customer</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                  <input
-                    type="radio"
-                    name="customer_type"
-                    value="new"
-                    id="customer_type_new"
-                    {if show_new, do: [checked: true], else: []}
-                    style="cursor: pointer;"
-                  />
-                  <span>New Customer</span>
-                </label>
-              </div>
-            </div>
-          </div>
+        <% # Detect if we should show "New Customer" form on re-render (e.g. after validation error)
+        has_customer_name = (@changeset.changes[:customer_name] || "") != ""
+        no_customer_id = is_nil(@changeset.changes[:customer_id])
+        show_new = @changeset.action && has_customer_name && no_customer_id %>
 
-          <%!-- Existing Customer Selection --%>
-          <div class="form-block" id="existing-customer-block" style={if show_new, do: "display: none;", else: ""}>
-            <div class="field">
-              <.input
-                field={f[:customer_id]}
-                type="searchable_select"
-                label="Select Customer"
-                prompt="Search for a customer..."
-                options={@customer_options}
-                id="customer_id_select"
-              />
-            </div>
-            <div class="field" id="customer-address-display" style="display: none;">
-              <label class="label">Customer Delivery Address</label>
-              <div id="customer-address-text" style="padding: 0.75rem; background: #f5f5f5; border-radius: 0.375rem; color: #666; font-style: italic; min-height: 3rem;">
-                No address on file
-              </div>
-            </div>
-          </div>
-
-          <%!-- New Customer Fields --%>
-          <div class="form-block" id="new-customer-block" style={if show_new, do: "", else: "display: none;"}>
-            <div class="field">
-              <.input field={f[:customer_name]} type="text" label="Customer Name" id="customer_name_input" />
-            </div>
-
-            <div class="field">
-              <.input field={f[:customer_phone]} type="tel" label="Customer Phone" id="customer_phone_input" />
-              <div id="phone-check-message" style="display: none; margin-top: 0.35rem; padding: 0.5rem 0.75rem; border-radius: 0.375rem; font-size: 0.85rem;"></div>
-            </div>
-
-            <div class="field">
-              <.input field={f[:customer_email]} type="email" label="Customer Email*" id="customer_email_input" />
-              <p class="field-help"><i>*Optional - for order confirmations</i></p>
+        <div class="form-block">
+          <div class="field">
+            <label class="label">Customer Type</label>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input
+                  type="radio"
+                  name="customer_type"
+                  value="existing"
+                  id="customer_type_existing"
+                  {if !show_new, do: [checked: true], else: []}
+                  style="cursor: pointer;"
+                />
+                <span>Existing Customer</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input
+                  type="radio"
+                  name="customer_type"
+                  value="new"
+                  id="customer_type_new"
+                  {if show_new, do: [checked: true], else: []}
+                  style="cursor: pointer;"
+                />
+                <span>New Customer</span>
+              </label>
             </div>
           </div>
         </div>
 
-        <%!-- Delivery Information Section --%>
-        <div class="form-section">
-          <h3 class="section-title">Delivery Information</h3>
-          <p class="section-help">Delivery type, address, date, and time for order fulfillment.</p>
-          
-          <div class="form-block">
-            <div class="field">
-              <.input
-                field={f[:delivery_type]}
-                type="select"
-                label="Delivery Type"
-                prompt="Select delivery type"
-                options={[{"Pickup", "pickup"}, {"Delivery", "delivery"}]}
-              />
-            </div>
-
-            <div class="field">
-              <.input field={f[:delivery_date]} type="date" label="Scheduled Delivery Date" />
-            </div>
-
-            <%= if @order.status == "delivered" do %>
-              <div class="field">
-                <.input field={f[:actual_delivery_date]} type="date" label="Actual Delivery Date" />
-                <p class="field-help"><i>* Date the order was actually delivered (used for accounting)</i></p>
-              </div>
-            <% end %>
-
-            <div class="field">
-              <.input field={f[:delivery_time]} type="time" label="Delivery Time" />
-              <p class="field-help"><i>* Optional - preferred time for delivery/pickup</i></p>
-            </div>
+        <%!-- Existing Customer Selection --%>
+        <div
+          class="form-block"
+          id="existing-customer-block"
+          style={if show_new, do: "display: none;", else: ""}
+        >
+          <div class="field">
+            <.input
+              field={f[:customer_id]}
+              type="searchable_select"
+              label="Select Customer"
+              prompt="Search for a customer..."
+              options={@customer_options}
+              id="customer_id_select"
+            />
           </div>
-
-          <div class="form-block" style="width: 100%;">
-            <div class="field" style="width: 100%;">
-              <.input
-                field={f[:delivery_address]}
-                type="textarea"
-                label="Delivery Address"
-                rows="3"
-              />
-              <p class="field-help"><i>*Required only if delivery type is "Delivery"</i></p>
+          <div class="field" id="customer-address-display" style="display: none;">
+            <label class="label">Customer Delivery Address</label>
+            <div
+              id="customer-address-text"
+              style="padding: 0.75rem; background: #f5f5f5; border-radius: 0.375rem; color: #666; font-style: italic; min-height: 3rem;"
+            >
+              No address on file
             </div>
           </div>
         </div>
 
-        <%!-- Order Details Section --%>
-        <div class="form-section">
-          <h3 class="section-title">Order Details</h3>
-          <p class="section-help">Product selection and preparation information.</p>
-          
-          <div class="form-block">
-            <div class="field">
-              <.input
-                field={f[:variant_id]}
-                type="searchable_select"
-                label="Variant"
-                prompt="Search for a variant..."
-                options={@variant_options}
-                id="variant_id_select"
-              />
-            </div>
+        <%!-- New Customer Fields --%>
+        <div
+          class="form-block"
+          id="new-customer-block"
+          style={if show_new, do: "", else: "display: none;"}
+        >
+          <div class="field">
+            <.input
+              field={f[:customer_name]}
+              type="text"
+              label="Customer Name"
+              id="customer_name_input"
+            />
+          </div>
 
-            <div class="field">
-              <.input
-                field={f[:quantity]}
-                type="number"
-                label="Quantity"
-                min="1"
-              />
-            </div>
-
-            <div class="field">
-              <.input
-                field={f[:prep_location_id]}
-                type="select"
-                label="Preparation Location"
-                prompt="Select preparation location"
-                options={@location_options}
-              />
+          <div class="field">
+            <.input
+              field={f[:customer_phone]}
+              type="tel"
+              label="Customer Phone"
+              id="customer_phone_input"
+            />
+            <div
+              id="phone-check-message"
+              style="display: none; margin-top: 0.35rem; padding: 0.5rem 0.75rem; border-radius: 0.375rem; font-size: 0.85rem;"
+            >
             </div>
           </div>
 
-          <div class="form-block" id="shipping-block">
-            <div class="field">
-              <.input
-                field={f[:customer_paid_shipping]}
-                type="checkbox"
-                label="Customer paid shipping"
-                id="shipping_checkbox"
-              />
-            </div>
-            <div class="field" id="shipping-fee-field" style={if @order.customer_paid_shipping, do: "", else: "display: none;"}>
-              <label class="label" for="shipping_fee_input">Shipping Fee (MXN)</label>
-              <input
-                type="number"
-                name="order[shipping_fee]"
-                id="shipping_fee_input"
-                value={@default_shipping_fee_pesos}
-                step="0.01"
-                min="0"
-                class="input"
-                style="max-width: 12rem;"
-              />
-            </div>
+          <div class="field">
+            <.input
+              field={f[:customer_email]}
+              type="email"
+              label="Customer Email*"
+              id="customer_email_input"
+            />
+            <p class="field-help"><i>*Optional - for order confirmations</i></p>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Delivery Information Section --%>
+      <div class="form-section">
+        <h3 class="section-title">Delivery Information</h3>
+        <p class="section-help">Delivery type, address, date, and time for order fulfillment.</p>
+
+        <div class="form-block">
+          <div class="field">
+            <.input
+              field={f[:delivery_type]}
+              type="select"
+              label="Delivery Type"
+              prompt="Select delivery type"
+              options={[{"Pickup", "pickup"}, {"Delivery", "delivery"}]}
+            />
           </div>
 
-          <div class="form-block" style="width: 100%;">
-            <div class="field" style="width: 100%;">
-              <.input
-                field={f[:special_instructions]}
-                type="textarea"
-                label="Special Instructions"
-                rows="3"
-                placeholder="e.g. allergen notes, packaging requests, message for recipient..."
-              />
-              <p class="field-help"><i>* Optional — any notes for preparation or delivery</i></p>
+          <div class="field">
+            <.input field={f[:delivery_date]} type="date" label="Scheduled Delivery Date" />
+          </div>
+
+          <%= if @order.status == "delivered" do %>
+            <div class="field">
+              <.input field={f[:actual_delivery_date]} type="date" label="Actual Delivery Date" />
+              <p class="field-help">
+                <i>* Date the order was actually delivered (used for accounting)</i>
+              </p>
             </div>
+          <% end %>
+
+          <div class="field">
+            <.input field={f[:delivery_time]} type="time" label="Delivery Time" />
+            <p class="field-help"><i>* Optional - preferred time for delivery/pickup</i></p>
           </div>
         </div>
 
-        <%!-- Discount Section --%>
-        <div class="form-section" id="discount-section">
-          <h3 class="section-title">Discount (Optional)</h3>
-          <p class="section-help">Apply a flat amount or percentage discount to this order.</p>
+        <div class="form-block" style="width: 100%;">
+          <div class="field" style="width: 100%;">
+            <.input
+              field={f[:delivery_address]}
+              type="textarea"
+              label="Delivery Address"
+              rows="3"
+            />
+            <p class="field-help"><i>*Required only if delivery type is "Delivery"</i></p>
+          </div>
+        </div>
+      </div>
 
-          <div class="form-block">
-            <div class="field">
-              <.input
-                field={f[:discount_type]}
-                type="select"
-                label="Discount Type"
-                prompt="No discount"
-                options={[{"Flat Amount (MXN)", "flat"}, {"Percentage (%)", "percentage"}]}
-              />
-            </div>
+      <%!-- Order Details Section --%>
+      <div class="form-section">
+        <h3 class="section-title">Order Details</h3>
+        <p class="section-help">Product selection and preparation information.</p>
 
-            <div class="field">
-              <.input
-                field={f[:discount_value]}
-                type="number"
-                label="Discount Value"
-                step="0.01"
-                min="0"
-                placeholder="e.g. 50 for $50 off or 10 for 10%"
-              />
-            </div>
+        <div class="form-block">
+          <div class="field">
+            <.input
+              field={f[:variant_id]}
+              type="searchable_select"
+              label="Variant"
+              prompt="Search for a variant..."
+              options={@variant_options}
+              id="variant_id_select"
+            />
+          </div>
+
+          <div class="field">
+            <.input
+              field={f[:quantity]}
+              type="number"
+              label="Quantity"
+              min="1"
+            />
+          </div>
+
+          <div class="field">
+            <.input
+              field={f[:prep_location_id]}
+              type="select"
+              label="Preparation Location"
+              prompt="Select preparation location"
+              options={@location_options}
+            />
           </div>
         </div>
 
-        <div class="actions">
-          <button class="btn primary" type="submit">
-            Save Changes
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn">
-            Cancel
-          </.link>
+        <div class="form-block" id="shipping-block">
+          <div class="field">
+            <.input
+              field={f[:customer_paid_shipping]}
+              type="checkbox"
+              label="Customer paid shipping"
+              id="shipping_checkbox"
+            />
+          </div>
+          <div
+            class="field"
+            id="shipping-fee-field"
+            style={if @order.customer_paid_shipping, do: "", else: "display: none;"}
+          >
+            <label class="label" for="shipping_fee_input">Shipping Fee (MXN)</label>
+            <input
+              type="number"
+              name="order[shipping_fee]"
+              id="shipping_fee_input"
+              value={@default_shipping_fee_pesos}
+              step="0.01"
+              min="0"
+              class="input"
+              style="max-width: 12rem;"
+            />
+          </div>
         </div>
-      </.form>
-    </section>
-</div> <%!-- close mm-page --%>
+
+        <div class="form-block" style="width: 100%;">
+          <div class="field" style="width: 100%;">
+            <.input
+              field={f[:special_instructions]}
+              type="textarea"
+              label="Special Instructions"
+              rows="3"
+              placeholder="e.g. allergen notes, packaging requests, message for recipient..."
+            />
+            <p class="field-help"><i>* Optional — any notes for preparation or delivery</i></p>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Discount Section --%>
+      <div class="form-section" id="discount-section">
+        <h3 class="section-title">Discount (Optional)</h3>
+        <p class="section-help">Apply a flat amount or percentage discount to this order.</p>
+
+        <div class="form-block">
+          <div class="field">
+            <.input
+              field={f[:discount_type]}
+              type="select"
+              label="Discount Type"
+              prompt="No discount"
+              options={[{"Flat Amount (MXN)", "flat"}, {"Percentage (%)", "percentage"}]}
+            />
+          </div>
+
+          <div class="field">
+            <.input
+              field={f[:discount_value]}
+              type="number"
+              label="Discount Value"
+              step="0.01"
+              min="0"
+              placeholder="e.g. 50 for $50 off or 10 for 10%"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" type="submit">
+          Save Changes
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/orders/#{@order.id}")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
+  </section>
+</div>
+<%!-- close mm-page --%>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

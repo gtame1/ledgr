@@ -33,7 +33,12 @@ defmodule LedgrWeb.Domains.LedgrHQ.SubscriptionPlanController do
     plan = SubscriptionPlans.get_subscription_plan!(id)
     attrs = %{"price_cents" => MoneyHelper.cents_to_pesos(plan.price_cents)}
     changeset = SubscriptionPlans.change_subscription_plan(plan, attrs)
-    render(conn, :edit, plan: plan, changeset: changeset, action: dp(conn, "/subscription-plans/#{id}"))
+
+    render(conn, :edit,
+      plan: plan,
+      changeset: changeset,
+      action: dp(conn, "/subscription-plans/#{id}")
+    )
   end
 
   def update(conn, %{"id" => id, "subscription_plan" => params}) do
@@ -47,7 +52,11 @@ defmodule LedgrWeb.Domains.LedgrHQ.SubscriptionPlanController do
         |> redirect(to: dp(conn, "/subscription-plans"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :edit, plan: plan, changeset: changeset, action: dp(conn, "/subscription-plans/#{id}"))
+        render(conn, :edit,
+          plan: plan,
+          changeset: changeset,
+          action: dp(conn, "/subscription-plans/#{id}")
+        )
     end
   end
 

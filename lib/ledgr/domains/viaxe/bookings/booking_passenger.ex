@@ -18,6 +18,8 @@ defmodule Ledgr.Domains.Viaxe.Bookings.BookingPassenger do
     |> validate_required([:booking_id, :customer_id])
     |> foreign_key_constraint(:booking_id)
     |> foreign_key_constraint(:customer_id)
-    |> unique_constraint([:booking_id, :customer_id], message: "passenger already added to this booking")
+    |> unique_constraint([:booking_id, :customer_id],
+      message: "passenger already added to this booking"
+    )
   end
 end

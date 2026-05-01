@@ -107,7 +107,11 @@ defmodule LedgrWeb.Domains.Viaxe.BookingControllerTest do
   end
 
   describe "update/2" do
-    test "updates booking and redirects on valid params", %{conn: conn, booking: booking, customer: customer} do
+    test "updates booking and redirects on valid params", %{
+      conn: conn,
+      booking: booking,
+      customer: customer
+    } do
       params = %{
         "booking" => %{
           "customer_id" => customer.id,

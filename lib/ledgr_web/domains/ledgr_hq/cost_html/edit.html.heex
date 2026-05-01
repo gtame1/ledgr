@@ -1,9 +1,9 @@
 <section class="card">
   <div class="card-header">
-    <h2 class="card-title">Edit Cost — <%= @cost.name %></h2>
+    <h2 class="card-title">Edit Cost — {@cost.name}</h2>
   </div>
 
-  <.form for={@changeset} action={@action} method="put" as={:cost} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} method="put" as={:cost}>
     <div class="form-block" style="margin-bottom: 1.75rem;">
       <div class="field">
         <label>Name</label>
@@ -17,8 +17,15 @@
 
       <div class="field">
         <label>Category</label>
-        <.input type="select" field={f[:category]}
-          options={[{"Cloud & Hosting", "cloud_hosting"}, {"Domains & DNS", "domain_dns"}, {"SaaS & Tools", "saas_tools"}]} />
+        <.input
+          type="select"
+          field={f[:category]}
+          options={[
+            {"Cloud & Hosting", "cloud_hosting"},
+            {"Domains & DNS", "domain_dns"},
+            {"SaaS & Tools", "saas_tools"}
+          ]}
+        />
       </div>
 
       <div class="field">
@@ -28,8 +35,11 @@
 
       <div class="field">
         <label>Billing Period</label>
-        <.input type="select" field={f[:billing_period]}
-          options={[{"Monthly", "monthly"}, {"Annual", "annual"}, {"One-time", "one_time"}]} />
+        <.input
+          type="select"
+          field={f[:billing_period]}
+          options={[{"Monthly", "monthly"}, {"Annual", "annual"}, {"One-time", "one_time"}]}
+        />
       </div>
 
       <div class="field">

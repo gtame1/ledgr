@@ -26,8 +26,11 @@ defmodule Ledgr.Core.ExpensesTest do
             normal_balance: "debit",
             is_cash: false
           })
+
         a
-      existing -> existing
+
+      existing ->
+        existing
     end
   end
 
@@ -126,20 +129,27 @@ defmodule Ledgr.Core.ExpensesTest do
 
     test "stores description and date correctly" do
       today = Date.utc_today()
-      {:ok, expense} = Expenses.create_expense(expense_attrs(%{
-        description: "Office supplies",
-        date: today
-      }))
+
+      {:ok, expense} =
+        Expenses.create_expense(
+          expense_attrs(%{
+            description: "Office supplies",
+            date: today
+          })
+        )
 
       assert expense.description == "Office supplies"
       assert expense.date == today
     end
 
     test "stores optional payee and category" do
-      {:ok, expense} = Expenses.create_expense(expense_attrs(%{
-        payee: "Staples",
-        category: "office"
-      }))
+      {:ok, expense} =
+        Expenses.create_expense(
+          expense_attrs(%{
+            payee: "Staples",
+            category: "office"
+          })
+        )
 
       assert expense.payee == "Staples"
       assert expense.category == "office"
@@ -193,6 +203,7 @@ defmodule Ledgr.Core.ExpensesTest do
       {:ok, _} = Expenses.delete_expense(expense)
 
       import Ecto.Query
+
       entry_count =
         from(je in Ledgr.Core.Accounting.JournalEntry, where: je.reference == ^reference)
         |> Repo.aggregate(:count)

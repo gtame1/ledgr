@@ -167,6 +167,15 @@ if amp_webhook_secret = System.get_env("AUMENTA_MI_PENSION_STRIPE_WEBHOOK_SECRET
   config :ledgr, aumenta_mi_pension_stripe_webhook_secret: amp_webhook_secret
 end
 
+# AMP bot service admin endpoints (FastAPI). Used for customer reset.
+if amp_bot_url = System.get_env("AUMENTA_MI_PENSION_BOT_URL") do
+  config :ledgr, aumenta_mi_pension_bot_url: amp_bot_url
+end
+
+if amp_bot_key = System.get_env("AUMENTA_MI_PENSION_BOT_ADMIN_API_KEY") do
+  config :ledgr, aumenta_mi_pension_bot_admin_api_key: amp_bot_key
+end
+
 # Prescrypto digital prescriptions — only override when env var is explicitly set
 # (dev uses dev.secret.exs with the sandbox token; prod sets PRESCRYPTO_TOKEN)
 if token = System.get_env("PRESCRYPTO_TOKEN") do

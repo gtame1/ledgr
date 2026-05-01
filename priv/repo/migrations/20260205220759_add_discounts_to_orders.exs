@@ -3,8 +3,10 @@ defmodule Ledgr.Repo.Migrations.AddDiscountsToOrders do
 
   def change do
     alter table(:orders) do
-      add :discount_type, :string  # "flat" or "percentage", nil means no discount
-      add :discount_value, :decimal  # peso amount or percentage value
+      # "flat" or "percentage", nil means no discount
+      add :discount_type, :string
+      # peso amount or percentage value
+      add :discount_value, :decimal
     end
   end
 end

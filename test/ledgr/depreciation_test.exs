@@ -21,8 +21,11 @@ defmodule Ledgr.Core.DepreciationTest do
               normal_balance: "debit",
               is_cash: false
             })
+
           acc
-        existing -> existing
+
+        existing ->
+          existing
       end
 
     accum_depreciation =
@@ -36,8 +39,11 @@ defmodule Ledgr.Core.DepreciationTest do
               normal_balance: "credit",
               is_cash: false
             })
+
           acc
-        existing -> existing
+
+        existing ->
+          existing
       end
 
     kitchen_equipment =
@@ -51,8 +57,11 @@ defmodule Ledgr.Core.DepreciationTest do
               normal_balance: "debit",
               is_cash: false
             })
+
           acc
-        existing -> existing
+
+        existing ->
+          existing
       end
 
     %{
@@ -131,9 +140,19 @@ defmodule Ledgr.Core.DepreciationTest do
       # Purchase kitchen equipment for 120_000 cents ($1,200)
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-01-01], entry_type: "inventory_purchase", reference: "equip-buy", description: "Oven"},
+          %{
+            date: ~D[2026-01-01],
+            entry_type: "inventory_purchase",
+            reference: "equip-buy",
+            description: "Oven"
+          },
           [
-            %{account_id: kitchen_eq.id, debit_cents: 120_000, credit_cents: 0, description: "equipment"},
+            %{
+              account_id: kitchen_eq.id,
+              debit_cents: 120_000,
+              credit_cents: 0,
+              description: "equipment"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 120_000, description: "paid"}
           ]
         )
@@ -152,9 +171,19 @@ defmodule Ledgr.Core.DepreciationTest do
       # Purchase for 60_000
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2025-01-01], entry_type: "inventory_purchase", reference: "equip-full", description: "Mixer"},
+          %{
+            date: ~D[2025-01-01],
+            entry_type: "inventory_purchase",
+            reference: "equip-full",
+            description: "Mixer"
+          },
           [
-            %{account_id: kitchen_eq.id, debit_cents: 60_000, credit_cents: 0, description: "equip"},
+            %{
+              account_id: kitchen_eq.id,
+              debit_cents: 60_000,
+              credit_cents: 0,
+              description: "equip"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 60_000, description: "paid"}
           ]
         )
@@ -168,10 +197,25 @@ defmodule Ledgr.Core.DepreciationTest do
       # Record full depreciation (60_000 accumulated)
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2025-12-31], entry_type: "depreciation", reference: "full-dep", description: "Full depr"},
+          %{
+            date: ~D[2025-12-31],
+            entry_type: "depreciation",
+            reference: "full-dep",
+            description: "Full depr"
+          },
           [
-            %{account_id: dep_exp.id, debit_cents: 60_000, credit_cents: 0, description: "dep exp"},
-            %{account_id: accum_dep.id, debit_cents: 0, credit_cents: 60_000, description: "accum dep"}
+            %{
+              account_id: dep_exp.id,
+              debit_cents: 60_000,
+              credit_cents: 0,
+              description: "dep exp"
+            },
+            %{
+              account_id: accum_dep.id,
+              debit_cents: 0,
+              credit_cents: 60_000,
+              description: "accum dep"
+            }
           ]
         )
 
@@ -195,9 +239,19 @@ defmodule Ledgr.Core.DepreciationTest do
       # Purchase for 120_000
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2025-06-01], entry_type: "inventory_purchase", reference: "equip-partial", description: "Oven"},
+          %{
+            date: ~D[2025-06-01],
+            entry_type: "inventory_purchase",
+            reference: "equip-partial",
+            description: "Oven"
+          },
           [
-            %{account_id: kitchen_eq.id, debit_cents: 120_000, credit_cents: 0, description: "equip"},
+            %{
+              account_id: kitchen_eq.id,
+              debit_cents: 120_000,
+              credit_cents: 0,
+              description: "equip"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 120_000, description: "paid"}
           ]
         )
@@ -205,10 +259,25 @@ defmodule Ledgr.Core.DepreciationTest do
       # Already depreciated 24_000 (12 months of 2_000)
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2025-12-31], entry_type: "depreciation", reference: "past-dep", description: "Past"},
+          %{
+            date: ~D[2025-12-31],
+            entry_type: "depreciation",
+            reference: "past-dep",
+            description: "Past"
+          },
           [
-            %{account_id: dep_exp.id, debit_cents: 24_000, credit_cents: 0, description: "dep exp"},
-            %{account_id: accum_dep.id, debit_cents: 0, credit_cents: 24_000, description: "accum dep"}
+            %{
+              account_id: dep_exp.id,
+              debit_cents: 24_000,
+              credit_cents: 0,
+              description: "dep exp"
+            },
+            %{
+              account_id: accum_dep.id,
+              debit_cents: 0,
+              credit_cents: 24_000,
+              description: "accum dep"
+            }
           ]
         )
 

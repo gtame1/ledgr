@@ -13,7 +13,7 @@ defmodule Ledgr.Domains.HelloDoctor.Patients do
   def get_patient!(id) do
     Patient
     |> Repo.get!(id)
-    |> Repo.preload([consultations: [:doctor], medical_records: []])
+    |> Repo.preload(consultations: [:doctor], medical_records: [])
   end
 
   def create_patient(attrs) do
@@ -41,14 +41,24 @@ defmodule Ledgr.Domains.HelloDoctor.Patients do
 
   def count_new(start_date, end_date) do
     Patient
-    |> where([p], fragment("?::date", p.created_at) >= ^start_date and fragment("?::date", p.created_at) <= ^end_date)
+    |> where(
+      [p],
+      fragment("?::date", p.created_at) >= ^start_date and
+        fragment("?::date", p.created_at) <= ^end_date
+    )
     |> Repo.aggregate(:count)
   end
 
   defp maybe_search(query, nil), do: query
   defp maybe_search(query, ""), do: query
+
   defp maybe_search(query, search) do
     term = "%#{search}%"
-    where(query, [p], ilike(p.full_name, ^term) or ilike(p.display_name, ^term) or ilike(p.phone, ^term))
+
+    where(
+      query,
+      [p],
+      ilike(p.full_name, ^term) or ilike(p.display_name, ^term) or ilike(p.phone, ^term)
+    )
   end
 end

@@ -65,17 +65,17 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations do
   Keys: :amount_cents, :iva_cents, :total_cents, :outstanding_cents, :paid
   """
   def payment_summary(%Consultation{} = consultation) do
-    amount      = consultation.amount_cents
-    iva         = consultation.iva_cents || 0
-    total       = amount + iva
-    paid        = not is_nil(consultation.paid_at)
+    amount = consultation.amount_cents
+    iva = consultation.iva_cents || 0
+    total = amount + iva
+    paid = not is_nil(consultation.paid_at)
     outstanding = if paid, do: 0, else: total
 
     %{
-      amount_cents:      amount,
-      iva_cents:         iva,
-      total_cents:       total,
-      paid:              paid,
+      amount_cents: amount,
+      iva_cents: iva,
+      total_cents: total,
+      paid: paid,
       outstanding_cents: outstanding
     }
   end
@@ -95,8 +95,8 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations do
   def record_payment(consultation, amount_cents, opts \\ [])
 
   def record_payment(%Consultation{paid_at: nil} = consultation, amount_cents, opts) do
-    payment_date       = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
-    note               = Keyword.get(opts, :note)
+    payment_date = Keyword.get(opts, :payment_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
+    note = Keyword.get(opts, :note)
     paid_to_account_code = Keyword.get(opts, :paid_to_account_code, "1000")
 
     Repo.transaction(fn ->
@@ -106,9 +106,9 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations do
         |> Repo.update!()
 
       VolumeStudioAccounting.record_consultation_payment(updated, %{
-        amount_cents:        amount_cents,
-        payment_date:        payment_date,
-        note:                note,
+        amount_cents: amount_cents,
+        payment_date: payment_date,
+        note: note,
         paid_to_account_code: paid_to_account_code
       })
 

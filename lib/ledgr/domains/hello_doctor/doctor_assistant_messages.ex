@@ -13,7 +13,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorAssistantMessages do
 
     query =
       from d in Doctor,
-        join: m in DoctorAssistantMessage, on: m.doctor_id == d.id,
+        join: m in DoctorAssistantMessage,
+        on: m.doctor_id == d.id,
         group_by: d.id,
         select: %{
           doctor_id: d.id,

@@ -117,7 +117,10 @@ defmodule LedgrWeb.Helpers.MoneyHelperTest do
 
     test "converts multiple fields" do
       params = %{"unit_cost_cents" => "10.00", "total_cost_cents" => "50.00"}
-      result = MoneyHelper.convert_params_pesos_to_cents(params, [:unit_cost_cents, :total_cost_cents])
+
+      result =
+        MoneyHelper.convert_params_pesos_to_cents(params, [:unit_cost_cents, :total_cost_cents])
+
       assert result["unit_cost_cents"] == 1000
       assert result["total_cost_cents"] == 5000
     end
@@ -143,7 +146,9 @@ defmodule LedgrWeb.Helpers.MoneyHelperTest do
         "journal_entry" => %{"amount_cents" => "99.00"}
       }
 
-      result = MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_entry, [:amount_cents])
+      result =
+        MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_entry, [:amount_cents])
+
       assert result["journal_entry"]["amount_cents"] == 9900
     end
 
@@ -155,7 +160,9 @@ defmodule LedgrWeb.Helpers.MoneyHelperTest do
         ]
       }
 
-      result = MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_lines, [:amount_cents])
+      result =
+        MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_lines, [:amount_cents])
+
       [line1, line2] = result["journal_lines"]
       assert line1["amount_cents"] == 1000
       assert line2["amount_cents"] == 2000
@@ -166,19 +173,25 @@ defmodule LedgrWeb.Helpers.MoneyHelperTest do
         journal_lines: [%{"debit_cents" => "5.00"}]
       }
 
-      result = MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_lines, [:debit_cents])
+      result =
+        MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_lines, [:debit_cents])
+
       [line] = result[:journal_lines]
       assert line["debit_cents"] == 500
     end
 
     test "returns params unchanged when nested key is absent" do
       params = %{"name" => "test"}
-      result = MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_lines, [:amount_cents])
+
+      result =
+        MoneyHelper.convert_nested_params_pesos_to_cents(params, :journal_lines, [:amount_cents])
+
       assert result == params
     end
 
     test "returns params unchanged when not a map" do
-      assert MoneyHelper.convert_nested_params_pesos_to_cents("not_a_map", :key, [:field]) == "not_a_map"
+      assert MoneyHelper.convert_nested_params_pesos_to_cents("not_a_map", :key, [:field]) ==
+               "not_a_map"
     end
 
     test "leaves non-map items in list unchanged" do

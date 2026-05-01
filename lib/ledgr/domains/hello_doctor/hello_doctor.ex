@@ -110,11 +110,11 @@ defmodule Ledgr.Domains.HelloDoctor do
   def journal_entry_types do
     [
       {"Consultation Payment", "consultation_payment"},
-      {"Doctor Payout",        "doctor_payout"},
-      {"Refund",               "refund"},
-      {"Commission",           "commission"},
-      {"Operating Expense",    "operating_expense"},
-      {"External Cost",        "external_cost"}
+      {"Doctor Payout", "doctor_payout"},
+      {"Refund", "refund"},
+      {"Commission", "commission"},
+      {"Operating Expense", "operating_expense"},
+      {"External Cost", "external_cost"}
     ]
   end
 
@@ -123,26 +123,39 @@ defmodule Ledgr.Domains.HelloDoctor do
     prefix = path_prefix()
 
     [
-      %{group: "Main", items: [
-        %{label: "Dashboard",      path: prefix,                       icon: :dashboard},
-        %{label: "Conversations",  path: "#{prefix}/conversations",    icon: :receipt},
-        %{label: "Consultations",  path: "#{prefix}/consultations",    icon: :receipt},
-        %{label: "Doctor Chats",   path: "#{prefix}/doctor-chats",     icon: :receipt},
-        %{label: "Doctors",        path: "#{prefix}/doctors",          icon: :customers},
-        %{label: "Patients",       path: "#{prefix}/patients",         icon: :customers}
-      ]},
-      %{group: "Finance", items: [
-        %{label: "Payments",       path: "#{prefix}/payments",              icon: :expenses},
-        %{label: "Expenses",       path: "#{prefix}/expenses",              icon: :expenses},
-        %{label: "Doctor Payouts", path: "#{prefix}/doctor-payouts",        icon: :expenses},
-        %{label: "Balance Sheet",  path: "#{prefix}/reports/balance_sheet", icon: :reports},
-        %{label: "P&L",            path: "#{prefix}/reports/pnl",           icon: :reports}
-      ]},
-      %{group: "Settings", items: [
-        %{label: "Specialties",         path: "#{prefix}/specialties",               icon: :customers},
-        %{label: "Transactions",        path: "#{prefix}/transactions",              icon: :transactions},
-        %{label: "Reconciliation",      path: "#{prefix}/reconciliation/accounting", icon: :reconciliation}
-      ]}
+      %{
+        group: "Main",
+        items: [
+          %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{label: "Conversations", path: "#{prefix}/conversations", icon: :receipt},
+          %{label: "Consultations", path: "#{prefix}/consultations", icon: :receipt},
+          %{label: "Doctor Chats", path: "#{prefix}/doctor-chats", icon: :receipt},
+          %{label: "Doctors", path: "#{prefix}/doctors", icon: :customers},
+          %{label: "Patients", path: "#{prefix}/patients", icon: :customers}
+        ]
+      },
+      %{
+        group: "Finance",
+        items: [
+          %{label: "Payments", path: "#{prefix}/payments", icon: :expenses},
+          %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses},
+          %{label: "Doctor Payouts", path: "#{prefix}/doctor-payouts", icon: :expenses},
+          %{label: "Balance Sheet", path: "#{prefix}/reports/balance_sheet", icon: :reports},
+          %{label: "P&L", path: "#{prefix}/reports/pnl", icon: :reports}
+        ]
+      },
+      %{
+        group: "Settings",
+        items: [
+          %{label: "Specialties", path: "#{prefix}/specialties", icon: :customers},
+          %{label: "Transactions", path: "#{prefix}/transactions", icon: :transactions},
+          %{
+            label: "Reconciliation",
+            path: "#{prefix}/reconciliation/accounting",
+            icon: :reconciliation
+          }
+        ]
+      }
     ]
   end
 

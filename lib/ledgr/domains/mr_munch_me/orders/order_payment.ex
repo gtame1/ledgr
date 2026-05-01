@@ -53,7 +53,8 @@ defmodule Ledgr.Domains.MrMunchMe.Orders.OrderPayment do
     # Determine if this is a split payment
     # It's a split payment if partner_amount_cents is explicitly set and > 0
     # OR if partner_id is set (indicating split payment intent)
-    is_split_payment = (partner_amount_cents && partner_amount_cents > 0) || (partner_id && partner_id != "")
+    is_split_payment =
+      (partner_amount_cents && partner_amount_cents > 0) || (partner_id && partner_id != "")
 
     if is_split_payment do
       # This is a split payment - validate split payment requirements

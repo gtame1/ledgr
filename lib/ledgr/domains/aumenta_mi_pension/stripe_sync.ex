@@ -65,7 +65,8 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
     api_key = Application.get_env(:ledgr, :aumenta_mi_pension_stripe_api_key)
 
     with pi_id when not is_nil(pi_id) <- payment.stripe_payment_intent_id,
-         {:ok, pi} <- Stripe.PaymentIntent.retrieve(pi_id, %{expand: ["latest_charge"]}, api_key: api_key) do
+         {:ok, pi} <-
+           Stripe.PaymentIntent.retrieve(pi_id, %{expand: ["latest_charge"]}, api_key: api_key) do
       charge = pi.latest_charge
 
       stripe_status =
@@ -88,7 +89,11 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
 
       if stripe_status != payment.status || product_name do
         payment |> StripePayment.changeset(updates) |> Repo.update()
-        Logger.info("[AumentaMiPension StripeSync] Payment #{payment.id} updated: status=#{stripe_status}, product=#{product_name || "unchanged"}")
+
+        Logger.info(
+          "[AumentaMiPension StripeSync] Payment #{payment.id} updated: status=#{stripe_status}, product=#{product_name || "unchanged"}"
+        )
+
         {:ok, :updated, stripe_status}
       else
         {:ok, :unchanged}
@@ -156,7 +161,13 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
              |> Repo.insert() do
           {:ok, payment} ->
             if consultation_id do
-              link_to_consultation(consultation_id, amount_pesos, session.id, payment.paid_at, session.payment_intent)
+              link_to_consultation(
+                consultation_id,
+                amount_pesos,
+                session.id,
+                payment.paid_at,
+                session.payment_intent
+              )
             end
 
             create_payment_journal_entry(payment)
@@ -164,7 +175,10 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
             {:ok, payment}
 
           {:error, changeset} ->
-            Logger.warning("[AumentaMiPension StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}")
+            Logger.warning(
+              "[AumentaMiPension StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}"
+            )
+
             {:error, changeset}
         end
 
@@ -173,7 +187,13 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
     end
   end
 
-  defp link_to_consultation(consultation_id, amount_pesos, _session_id, paid_at, payment_intent_id) do
+  defp link_to_consultation(
+         consultation_id,
+         amount_pesos,
+         _session_id,
+         paid_at,
+         payment_intent_id
+       ) do
     case Repo.get(Consultation, consultation_id) do
       nil ->
         :ok
@@ -201,15 +221,24 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
         date: payment.paid_at |> NaiveDateTime.to_date(),
         entry_type: "consultation_payment",
         reference: "Stripe #{payment.stripe_session_id}",
-        description: "Payment from #{payment.customer_name || payment.customer_email || "customer"}",
+        description:
+          "Payment from #{payment.customer_name || payment.customer_email || "customer"}",
         payee: payment.customer_name || payment.customer_email
       }
 
       lines = [
-        %{account_id: stripe_receivable.id, debit_cents: amount_cents, credit_cents: 0,
-          description: "Stripe payment received"},
-        %{account_id: consultation_revenue.id, debit_cents: 0, credit_cents: amount_cents,
-          description: "Consultation revenue"}
+        %{
+          account_id: stripe_receivable.id,
+          debit_cents: amount_cents,
+          credit_cents: 0,
+          description: "Stripe payment received"
+        },
+        %{
+          account_id: consultation_revenue.id,
+          debit_cents: 0,
+          credit_cents: amount_cents,
+          description: "Consultation revenue"
+        }
       ]
 
       lines =
@@ -217,12 +246,21 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
           fee_cents = round(payment.stripe_fee * 100)
           processing = Accounting.get_account_by_code!("6000")
 
-          lines ++ [
-            %{account_id: processing.id, debit_cents: fee_cents, credit_cents: 0,
-              description: "Stripe processing fee"},
-            %{account_id: stripe_receivable.id, debit_cents: 0, credit_cents: fee_cents,
-              description: "Stripe fee deducted from receivable"}
-          ]
+          lines ++
+            [
+              %{
+                account_id: processing.id,
+                debit_cents: fee_cents,
+                credit_cents: 0,
+                description: "Stripe processing fee"
+              },
+              %{
+                account_id: stripe_receivable.id,
+                debit_cents: 0,
+                credit_cents: fee_cents,
+                description: "Stripe fee deducted from receivable"
+              }
+            ]
         else
           lines
         end
@@ -234,7 +272,10 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
       Accounting.create_journal_entry_with_lines(entry_attrs, lines)
     rescue
       e ->
-        Logger.warning("[AumentaMiPension StripeSync] Failed to create journal entry for payment #{payment.id}: #{inspect(e)}")
+        Logger.warning(
+          "[AumentaMiPension StripeSync] Failed to create journal entry for payment #{payment.id}: #{inspect(e)}"
+        )
+
         :ok
     end
   end
@@ -242,7 +283,9 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
   defp fetch_fee_and_status(session, api_key) do
     if session.payment_intent do
       try do
-        case Stripe.PaymentIntent.retrieve(session.payment_intent, %{expand: ["latest_charge"]}, api_key: api_key) do
+        case Stripe.PaymentIntent.retrieve(session.payment_intent, %{expand: ["latest_charge"]},
+               api_key: api_key
+             ) do
           {:ok, pi} ->
             charge = pi.latest_charge
 
@@ -282,7 +325,9 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
 
   defp fetch_line_item_info(session, api_key) do
     try do
-      case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["line_items"]}, api_key: api_key) do
+      case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["line_items"]},
+             api_key: api_key
+           ) do
         {:ok, full_session} ->
           items = get_in(full_session, [:line_items, :data]) || []
 

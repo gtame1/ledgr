@@ -1,7 +1,20 @@
 <section class="content">
   <div class="content-body">
-    <.link navigate={dp(@domain_path_prefix, "/bills")} style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <.link
+      navigate={dp(@domain_path_prefix, "/bills")}
+      style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
       Back to Bills
     </.link>
 
@@ -21,16 +34,32 @@
 
       <div class="ct-form-section-label">Bill Identity</div>
       <div class="field">
-        <.input field={f[:name]} type="text" label="Name" placeholder="e.g. TDC Plata Cutoff, HOA Payment" />
+        <.input
+          field={f[:name]}
+          type="text"
+          label="Name"
+          placeholder="e.g. TDC Plata Cutoff, HOA Payment"
+        />
       </div>
 
       <div class="ct-form-section-label">Frequency &amp; Category</div>
       <div class="ct-form-grid-2">
         <div class="field">
-          <.input field={f[:frequency]} type="select" label="Frequency" options={Ledgr.Domains.CasaTame.Bills.RecurringBill.frequency_options()} />
+          <.input
+            field={f[:frequency]}
+            type="select"
+            label="Frequency"
+            options={Ledgr.Domains.CasaTame.Bills.RecurringBill.frequency_options()}
+          />
         </div>
         <div class="field">
-          <.input field={f[:category]} type="select" label="Category" prompt="Select category" options={Ledgr.Domains.CasaTame.Bills.RecurringBill.category_options()} />
+          <.input
+            field={f[:category]}
+            type="select"
+            label="Category"
+            prompt="Select category"
+            options={Ledgr.Domains.CasaTame.Bills.RecurringBill.category_options()}
+          />
         </div>
       </div>
 
@@ -46,7 +75,14 @@
         </div>
         <div class="ct-form-grid-2" style="margin-top: 0.75rem;">
           <div class="field">
-            <.input field={f[:day_of_month]} type="number" min="1" max="31" label="Billing Day" placeholder="DD" />
+            <.input
+              field={f[:day_of_month]}
+              type="number"
+              min="1"
+              max="31"
+              label="Billing Day"
+              placeholder="DD"
+            />
           </div>
           <div class="field">
             <.input field={f[:next_due_date]} type="date" label="Next Due Date" />

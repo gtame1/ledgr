@@ -36,6 +36,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionPlanController do
     plan = SubscriptionPlans.get_subscription_plan!(id)
     attrs = %{"price_cents" => MoneyHelper.cents_to_pesos(plan.price_cents)}
     changeset = SubscriptionPlans.change_subscription_plan(plan, attrs)
+
     render(conn, :edit,
       plan: plan,
       changeset: changeset,
@@ -84,9 +85,9 @@ defmodule LedgrWeb.Domains.VolumeStudio.SubscriptionPlanHTML do
 
   embed_templates "subscription_plan_html/*"
 
-  def plan_type_class("package"),    do: "status-partial"
-  def plan_type_class("promo"),      do: "status-promo"
+  def plan_type_class("package"), do: "status-partial"
+  def plan_type_class("promo"), do: "status-promo"
   def plan_type_class("membership"), do: "status-paid"
-  def plan_type_class("extra"),      do: "status-extra"
-  def plan_type_class(_),            do: ""
+  def plan_type_class("extra"), do: "status-extra"
+  def plan_type_class(_), do: ""
 end

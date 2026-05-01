@@ -124,11 +124,13 @@ defmodule Ledgr.Core.Customers do
   def customer_select_options do
     list_customers()
     |> Enum.map(fn customer ->
-      label = if customer.email && customer.email != "" do
-        "#{customer.name} (#{customer.phone}) - #{customer.email}"
-      else
-        "#{customer.name} (#{customer.phone})"
-      end
+      label =
+        if customer.email && customer.email != "" do
+          "#{customer.name} (#{customer.phone}) - #{customer.email}"
+        else
+          "#{customer.name} (#{customer.phone})"
+        end
+
       {label, customer.id}
     end)
   end

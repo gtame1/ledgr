@@ -16,7 +16,14 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   def list_expenses(opts \\ []) do
     query =
       from e in Expense,
-        preload: [:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account, refunds: :refund_to_account],
+        preload: [
+          :expense_account,
+          :paid_from_account,
+          :expense_category,
+          :attachments,
+          splits: :account,
+          refunds: :refund_to_account
+        ],
         order_by: [desc: e.date, desc: e.inserted_at]
 
     query
@@ -29,18 +36,21 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
 
   defp maybe_filter_currency(query, nil), do: query
   defp maybe_filter_currency(query, ""), do: query
+
   defp maybe_filter_currency(query, currency) do
     from e in query, where: e.currency == ^currency
   end
 
   defp maybe_filter_category(query, nil), do: query
   defp maybe_filter_category(query, ""), do: query
+
   defp maybe_filter_category(query, category_id) do
     from e in query, where: e.expense_category_id == ^category_id
   end
 
   defp maybe_filter_date_from(query, nil), do: query
   defp maybe_filter_date_from(query, ""), do: query
+
   defp maybe_filter_date_from(query, date_from) do
     date = if is_binary(date_from), do: Date.from_iso8601!(date_from), else: date_from
     from e in query, where: e.date >= ^date
@@ -48,6 +58,7 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
 
   defp maybe_filter_date_to(query, nil), do: query
   defp maybe_filter_date_to(query, ""), do: query
+
   defp maybe_filter_date_to(query, date_to) do
     date = if is_binary(date_to), do: Date.from_iso8601!(date_to), else: date_to
     from e in query, where: e.date <= ^date
@@ -56,7 +67,14 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   def get_expense!(id) do
     Expense
     |> Repo.get!(id)
-    |> Repo.preload([:expense_account, :paid_from_account, :expense_category, :attachments, splits: :account, refunds: :refund_to_account])
+    |> Repo.preload([
+      :expense_account,
+      :paid_from_account,
+      :expense_category,
+      :attachments,
+      splits: :account,
+      refunds: :refund_to_account
+    ])
   end
 
   # ── Attachment helpers ─────────────────────────────────────────
@@ -137,7 +155,8 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
   @doc """
   Updates an expense and replaces its payment splits.
   """
-  def update_expense_with_splits(%Expense{} = expense, attrs, splits) when is_list(splits) and splits != [] do
+  def update_expense_with_splits(%Expense{} = expense, attrs, splits)
+      when is_list(splits) and splits != [] do
     total_cents = Enum.sum(Enum.map(splits, & &1["amount_cents"]))
     first_account_id = hd(splits)["account_id"]
 
@@ -334,7 +353,8 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
     # Pre-aggregate refunds per expense account + currency in the same period
     refunds_sub =
       from r in ExpenseRefund,
-        join: e in Expense, on: r.expense_id == e.id,
+        join: e in Expense,
+        on: r.expense_id == e.id,
         join: a in assoc(e, :expense_account),
         where: r.date >= ^start_date and r.date <= ^end_date,
         group_by: [e.currency, a.id],
@@ -348,7 +368,7 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
       where: e.date >= ^start_date and e.date <= ^end_date,
       join: a in assoc(e, :expense_account),
       left_join: r in subquery(refunds_sub),
-        on: r.expense_account_id == a.id and r.currency == e.currency,
+      on: r.expense_account_id == a.id and r.currency == e.currency,
       group_by: [e.currency, a.id, a.code, a.name],
       select: %{
         currency: e.currency,
@@ -492,11 +512,13 @@ defmodule Ledgr.Domains.CasaTame.Expenses do
 
   # Accepts either an already-integer cents value or a decimal pesos string
   defp parse_cents(value) when is_integer(value), do: value
+
   defp parse_cents(value) when is_binary(value) do
     case Float.parse(value) do
       {float, _} -> round(float * 100)
       :error -> 0
     end
   end
+
   defp parse_cents(_), do: 0
 end

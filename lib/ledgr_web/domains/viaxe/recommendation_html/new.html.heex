@@ -3,7 +3,7 @@
     <h2 class="card-title">New Recommendation</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:recommendation} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} as={:recommendation}>
     <div class="form-grid">
       <div class="form-block">
         <div class="field" style="grid-column: 1 / -1;">
@@ -23,30 +23,38 @@
 
         <div class="field">
           <label>Category *</label>
-          <.input type="select" field={f[:category]} options={[
-            {"Select category...", ""},
-            {"Restaurant", "restaurant"},
-            {"Hotel", "hotel"},
-            {"Bar", "bar"},
-            {"Tour", "tour"},
-            {"Experience", "experience"},
-            {"Shopping", "shopping"},
-            {"Spa", "spa"},
-            {"Beach", "beach"},
-            {"Museum", "museum"},
-            {"Other", "other"}
-          ]} />
+          <.input
+            type="select"
+            field={f[:category]}
+            options={[
+              {"Select category...", ""},
+              {"Restaurant", "restaurant"},
+              {"Hotel", "hotel"},
+              {"Bar", "bar"},
+              {"Tour", "tour"},
+              {"Experience", "experience"},
+              {"Shopping", "shopping"},
+              {"Spa", "spa"},
+              {"Beach", "beach"},
+              {"Museum", "museum"},
+              {"Other", "other"}
+            ]}
+          />
         </div>
 
         <div class="field">
           <label>Price Range</label>
-          <.input type="select" field={f[:price_range]} options={[
-            {"—", ""},
-            {"$ Budget", "$"},
-            {"$$ Mid-range", "$$"},
-            {"$$$ Upscale", "$$$"},
-            {"$$$$ Luxury", "$$$$"}
-          ]} />
+          <.input
+            type="select"
+            field={f[:price_range]}
+            options={[
+              {"—", ""},
+              {"$ Budget", "$"},
+              {"$$ Mid-range", "$$"},
+              {"$$$ Upscale", "$$$"},
+              {"$$$$ Luxury", "$$$$"}
+            ]}
+          />
         </div>
 
         <div class="field">
@@ -71,7 +79,11 @@
 
         <div class="field" style="grid-column: 1 / -1;">
           <label>Notes</label>
-          <.input type="textarea" field={f[:notes]} placeholder="Tips, reservations needed, best time to visit..." />
+          <.input
+            type="textarea"
+            field={f[:notes]}
+            placeholder="Tips, reservations needed, best time to visit..."
+          />
         </div>
       </div>
     </div>

@@ -6,28 +6,52 @@
   <div class="content-body">
     <!-- Navigation link to list view -->
     <div style="margin-bottom: 1rem;">
-      <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics_list?start_date=#{Date.to_iso8601(@start_date)}&end_date=#{Date.to_iso8601(@end_date)}")} class="btn">
+      <.link
+        navigate={
+          dp(
+            @domain_path_prefix,
+            "/reports/unit_economics_list?start_date=#{Date.to_iso8601(@start_date)}&end_date=#{Date.to_iso8601(@end_date)}"
+          )
+        }
+        class="btn"
+      >
         View All Products
       </.link>
     </div>
     <!-- Product selector and period -->
     <section class="period-selector card">
-      <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/reports/unit_economics")} :let={_f}>
+      <.form
+        :let={_f}
+        for={%{}}
+        method="get"
+        action={dp(@domain_path_prefix, "/reports/unit_economics")}
+      >
         <div class="period-selector__dates">
           <div class="period-selector__field">
             <label class="period-selector__label">Product</label>
-            <select name="product_id" id="product-select" onchange="this.form.submit()" class="period-selector__input" style="height: auto; padding: 0.4rem 0.6rem;">
+            <select
+              name="product_id"
+              id="product-select"
+              onchange="this.form.submit()"
+              class="period-selector__input"
+              style="height: auto; padding: 0.4rem 0.6rem;"
+            >
               <option value="">Select a product</option>
               <%= for {label, id} <- @product_options do %>
                 <option value={to_string(id)} selected={id == @selected_product_id}>
-                  <%= label %>
+                  {label}
                 </option>
               <% end %>
             </select>
           </div>
           <div class="period-selector__field">
             <label class="period-selector__label">Start date</label>
-            <input type="date" name="start_date" value={@start_date} class="period-selector__input" />
+            <input
+              type="date"
+              name="start_date"
+              value={@start_date}
+              class="period-selector__input"
+            />
           </div>
           <div class="period-selector__sep">→</div>
           <div class="period-selector__field">
@@ -38,10 +62,50 @@
         </div>
         <%= if @selected_product_id do %>
           <div class="period-selector__presets">
-            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=last_7_days&product_id=#{@selected_product_id}")} class="period-selector__preset">Last 7 days</.link>
-            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=this_month&product_id=#{@selected_product_id}")} class="period-selector__preset">This month</.link>
-            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=last_90_days&product_id=#{@selected_product_id}")} class="period-selector__preset">Last 90 days</.link>
-            <.link navigate={dp(@domain_path_prefix, "/reports/unit_economics?period=all_time&product_id=#{@selected_product_id}")} class="period-selector__preset">All time</.link>
+            <.link
+              navigate={
+                dp(
+                  @domain_path_prefix,
+                  "/reports/unit_economics?period=last_7_days&product_id=#{@selected_product_id}"
+                )
+              }
+              class="period-selector__preset"
+            >
+              Last 7 days
+            </.link>
+            <.link
+              navigate={
+                dp(
+                  @domain_path_prefix,
+                  "/reports/unit_economics?period=this_month&product_id=#{@selected_product_id}"
+                )
+              }
+              class="period-selector__preset"
+            >
+              This month
+            </.link>
+            <.link
+              navigate={
+                dp(
+                  @domain_path_prefix,
+                  "/reports/unit_economics?period=last_90_days&product_id=#{@selected_product_id}"
+                )
+              }
+              class="period-selector__preset"
+            >
+              Last 90 days
+            </.link>
+            <.link
+              navigate={
+                dp(
+                  @domain_path_prefix,
+                  "/reports/unit_economics?period=all_time&product_id=#{@selected_product_id}"
+                )
+              }
+              class="period-selector__preset"
+            >
+              All time
+            </.link>
           </div>
         <% end %>
       </.form>
@@ -51,10 +115,10 @@
       <!-- Unit Economics Table -->
       <section class="card">
         <h2 class="card-title">
-          Unit Economics: <%= @unit_economics.product.name %>
+          Unit Economics: {@unit_economics.product.name}
         </h2>
         <p class="card-subtitle">
-          Period: <%= @unit_economics.period.start_date %> to <%= @unit_economics.period.end_date %>
+          Period: {@unit_economics.period.start_date} to {@unit_economics.period.end_date}
         </p>
 
         <div class="table-wrapper" style="margin-top: 1rem;">
@@ -70,69 +134,87 @@
             <tbody>
               <tr>
                 <td><strong>Units Sold</strong></td>
-                <td class="numeric"><%= @unit_economics.units_sold %></td>
+                <td class="numeric">{@unit_economics.units_sold}</td>
                 <td class="numeric">—</td>
                 <td class="numeric">—</td>
               </tr>
               <%= if @unit_economics.variants != [] do %>
                 <%= for v <- @unit_economics.variants do %>
                   <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
-                    <td style="padding-left: 2rem;">↳ <%= v.variant_name %></td>
-                    <td class="numeric"><%= v.units_sold %></td>
-                    <td class="numeric"><%= format_currency(v.revenue_per_unit_cents) %></td>
-                    <td class="numeric"><%= v.gross_margin_percent %>% GM</td>
+                    <td style="padding-left: 2rem;">↳ {v.variant_name}</td>
+                    <td class="numeric">{v.units_sold}</td>
+                    <td class="numeric">{format_currency(v.revenue_per_unit_cents)}</td>
+                    <td class="numeric">{v.gross_margin_percent}% GM</td>
                   </tr>
                 <% end %>
               <% end %>
               <tr>
                 <td><strong>Gross Sales</strong></td>
-                <td class="numeric"><%= format_currency(@unit_economics.gross_sales_cents) %></td>
-                <td class="numeric"><%= format_currency(@unit_economics.gross_sales_per_unit_cents) %></td>
+                <td class="numeric">{format_currency(@unit_economics.gross_sales_cents)}</td>
+                <td class="numeric">
+                  {format_currency(@unit_economics.gross_sales_per_unit_cents)}
+                </td>
                 <td class="numeric">
                   <%= if @unit_economics.revenue_cents > 0 do %>
-                    <%= Float.round(@unit_economics.gross_sales_cents / @unit_economics.revenue_cents * 100, 2) %>%
-                  <% else %>—<% end %>
+                    {Float.round(
+                      @unit_economics.gross_sales_cents / @unit_economics.revenue_cents * 100,
+                      2
+                    )}%
+                  <% else %>
+                    —
+                  <% end %>
                 </td>
               </tr>
               <%= if @unit_economics.shipping_revenue_cents > 0 do %>
                 <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
                   <td style="padding-left: 2rem;">+ Shipping Revenue</td>
-                  <td class="numeric"><%= format_currency(@unit_economics.shipping_revenue_cents) %></td>
-                  <td class="numeric"><%= format_currency(@unit_economics.shipping_per_unit_cents) %></td>
+                  <td class="numeric">
+                    {format_currency(@unit_economics.shipping_revenue_cents)}
+                  </td>
+                  <td class="numeric">
+                    {format_currency(@unit_economics.shipping_per_unit_cents)}
+                  </td>
                   <td class="numeric">—</td>
                 </tr>
               <% end %>
               <%= if @unit_economics.total_discounts_cents > 0 do %>
                 <tr style="font-size: 0.85rem; color: #b91c1c; background-color: #f9fafb;">
                   <td style="padding-left: 2rem;">− Discounts</td>
-                  <td class="numeric">(<%= format_currency(@unit_economics.total_discounts_cents) %>)</td>
-                  <td class="numeric">(<%= format_currency(@unit_economics.discounts_per_unit_cents) %>)</td>
+                  <td class="numeric">
+                    ({format_currency(@unit_economics.total_discounts_cents)})
+                  </td>
+                  <td class="numeric">
+                    ({format_currency(@unit_economics.discounts_per_unit_cents)})
+                  </td>
                   <td class="numeric">—</td>
                 </tr>
               <% end %>
               <tr style="font-weight: 600; border-top: 1px solid #e5e7eb;">
                 <td><strong>Net Revenue</strong></td>
-                <td class="numeric"><%= format_currency(@unit_economics.revenue_cents) %></td>
-                <td class="numeric"><%= format_currency(@unit_economics.revenue_per_unit_cents) %></td>
+                <td class="numeric">{format_currency(@unit_economics.revenue_cents)}</td>
+                <td class="numeric">{format_currency(@unit_economics.revenue_per_unit_cents)}</td>
                 <td class="numeric">100.00%</td>
               </tr>
               <%= if @unit_economics.variants != [] do %>
                 <%= for v <- @unit_economics.variants do %>
                   <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
-                    <td style="padding-left: 2rem;">↳ <%= v.variant_name %></td>
-                    <td class="numeric"><%= format_currency(v.revenue_cents) %></td>
-                    <td class="numeric"><%= format_currency(v.revenue_per_unit_cents) %></td>
+                    <td style="padding-left: 2rem;">↳ {v.variant_name}</td>
+                    <td class="numeric">{format_currency(v.revenue_cents)}</td>
+                    <td class="numeric">{format_currency(v.revenue_per_unit_cents)}</td>
                     <td class="numeric">—</td>
                   </tr>
                 <% end %>
               <% end %>
               <tr>
                 <td><strong>Cost of Goods Sold (COGS)</strong></td>
-                <td class="numeric"><%= format_currency(@unit_economics.cogs_cents) %></td>
-                <td class="numeric"><%= format_currency(@unit_economics.cogs_per_unit_cents) %></td>
+                <td class="numeric">{format_currency(@unit_economics.cogs_cents)}</td>
+                <td class="numeric">{format_currency(@unit_economics.cogs_per_unit_cents)}</td>
                 <td class="numeric">
                   <%= if @unit_economics.revenue_cents > 0 do %>
-                    <%= Float.round(@unit_economics.cogs_cents / @unit_economics.revenue_cents * 100, 2) %>%
+                    {Float.round(
+                      @unit_economics.cogs_cents / @unit_economics.revenue_cents * 100,
+                      2
+                    )}%
                   <% else %>
                     —
                   <% end %>
@@ -141,9 +223,9 @@
               <%= if @unit_economics.variants != [] do %>
                 <%= for v <- @unit_economics.variants do %>
                   <tr style="font-size: 0.85rem; color: #6b7280; background-color: #f9fafb;">
-                    <td style="padding-left: 2rem;">↳ <%= v.variant_name %></td>
-                    <td class="numeric"><%= format_currency(v.cogs_cents) %></td>
-                    <td class="numeric"><%= format_currency(v.cogs_per_unit_cents) %></td>
+                    <td style="padding-left: 2rem;">↳ {v.variant_name}</td>
+                    <td class="numeric">{format_currency(v.cogs_cents)}</td>
+                    <td class="numeric">{format_currency(v.cogs_per_unit_cents)}</td>
                     <td class="numeric">—</td>
                   </tr>
                 <% end %>
@@ -151,26 +233,33 @@
               <%= if @unit_economics.cogs_by_ingredient != [] do %>
                 <%= for ing <- @unit_economics.cogs_by_ingredient do %>
                   <tr style="font-size: 0.85rem; color: #6b7280; background-color: #fffbf0;">
-                    <td style="padding-left: 2rem;">↳ <%= ing.ingredient_name %></td>
-                    <td class="numeric"><%= format_currency(ing.total_cost_cents) %></td>
-                    <td class="numeric"><%= format_currency(ing.cost_per_unit_cents) %></td>
-                    <td class="numeric"><%= ing.percent_of_cogs %>% of COGS</td>
+                    <td style="padding-left: 2rem;">↳ {ing.ingredient_name}</td>
+                    <td class="numeric">{format_currency(ing.total_cost_cents)}</td>
+                    <td class="numeric">{format_currency(ing.cost_per_unit_cents)}</td>
+                    <td class="numeric">{ing.percent_of_cogs}% of COGS</td>
                   </tr>
                 <% end %>
               <% end %>
               <tr style="background-color: #f0f9ff; font-weight: 600;">
                 <td><strong>Gross Margin</strong></td>
-                <td class="numeric"><%= format_currency(@unit_economics.gross_margin_cents) %></td>
-                <td class="numeric"><%= format_currency(@unit_economics.gross_margin_per_unit_cents) %></td>
-                <td class="numeric"><%= @unit_economics.gross_margin_percent %>%</td>
+                <td class="numeric">{format_currency(@unit_economics.gross_margin_cents)}</td>
+                <td class="numeric">
+                  {format_currency(@unit_economics.gross_margin_per_unit_cents)}
+                </td>
+                <td class="numeric">{@unit_economics.gross_margin_percent}%</td>
               </tr>
               <tr>
                 <td><strong>Total Expenses</strong></td>
-                <td class="numeric"><%= format_currency(@unit_economics.total_expenses_cents) %></td>
-                <td class="numeric"><%= format_currency(@unit_economics.expenses_per_unit_cents) %></td>
+                <td class="numeric">{format_currency(@unit_economics.total_expenses_cents)}</td>
+                <td class="numeric">
+                  {format_currency(@unit_economics.expenses_per_unit_cents)}
+                </td>
                 <td class="numeric">
                   <%= if @unit_economics.revenue_cents > 0 do %>
-                    <%= Float.round(@unit_economics.total_expenses_cents / @unit_economics.revenue_cents * 100, 2) %>%
+                    {Float.round(
+                      @unit_economics.total_expenses_cents / @unit_economics.revenue_cents * 100,
+                      2
+                    )}%
                   <% else %>
                     —
                   <% end %>
@@ -178,9 +267,11 @@
               </tr>
               <tr style="background-color: #f0fdf4; font-weight: 600;">
                 <td><strong>Net Profit</strong></td>
-                <td class="numeric"><%= format_currency(@unit_economics.net_profit_cents) %></td>
-                <td class="numeric"><%= format_currency(@unit_economics.net_profit_per_unit_cents) %></td>
-                <td class="numeric"><%= @unit_economics.net_margin_percent %>%</td>
+                <td class="numeric">{format_currency(@unit_economics.net_profit_cents)}</td>
+                <td class="numeric">
+                  {format_currency(@unit_economics.net_profit_per_unit_cents)}
+                </td>
+                <td class="numeric">{@unit_economics.net_margin_percent}%</td>
               </tr>
             </tbody>
           </table>
@@ -195,4 +286,3 @@
     <% end %>
   </div>
 </section>
-

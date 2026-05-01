@@ -9,46 +9,58 @@
   <div class="content-body">
     <% m = @metrics %>
 
-    <.period_selector action={dp(@domain_path_prefix, "/")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
-
-    <!-- Key Metrics -->
+    <.period_selector
+      action={dp(@domain_path_prefix, "/")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
+    
+<!-- Key Metrics -->
     <section class="card">
       <div class="card-header">
         <div>
           <h2 class="card-title">Studio Overview</h2>
           <p class="card-subtitle">Live counts and period activity.</p>
         </div>
-        <.link navigate={dp(@domain_path_prefix, "/subscriptions")} class="btn sm">All subscriptions</.link>
+        <.link navigate={dp(@domain_path_prefix, "/subscriptions")} class="btn sm">
+          All subscriptions
+        </.link>
       </div>
 
       <div class="dashboard-metrics">
         <div class="metric-card">
           <div class="metric-label">Active Subscriptions</div>
-          <div class="metric-value"><%= m.active_subscriptions_count %></div>
+          <div class="metric-value">{m.active_subscriptions_count}</div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Expiring in 30 Days</div>
-          <div class="metric-value"><%= m.expiring_soon_count %></div>
+          <div class="metric-value">{m.expiring_soon_count}</div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Net Income (Period)</div>
-          <div class="metric-value" style={"color: #{if (m.pnl.net_income_cents || 0) >= 0, do: "var(--vs-green, #16a34a)", else: "var(--vs-red, #dc2626)"};"}>
-            <%= format_currency(m.pnl.net_income_cents || 0) %>
+          <div
+            class="metric-value"
+            style={"color: #{if (m.pnl.net_income_cents || 0) >= 0, do: "var(--vs-green, #16a34a)", else: "var(--vs-red, #dc2626)"};"}
+          >
+            {format_currency(m.pnl.net_income_cents || 0)}
           </div>
         </div>
       </div>
     </section>
-
-    <!-- Financial Summary (P&L) -->
+    
+<!-- Financial Summary (P&L) -->
     <section class="card">
       <div class="card-header">
         <div>
           <h2 class="card-title">Financial Summary</h2>
           <p class="card-subtitle">Based on accounting entries for the selected period.</p>
         </div>
-        <.link navigate={dp(@domain_path_prefix, "/reports/pnl")} class="btn sm">Full P&amp;L</.link>
+        <.link navigate={dp(@domain_path_prefix, "/reports/pnl")} class="btn sm">
+          Full P&amp;L
+        </.link>
       </div>
 
       <% pnl = m.pnl %>
@@ -56,18 +68,21 @@
       <div class="dashboard-metrics">
         <div class="metric-card">
           <div class="metric-label">Total Revenue</div>
-          <div class="metric-value"><%= format_currency(pnl.total_revenue_cents || 0) %></div>
+          <div class="metric-value">{format_currency(pnl.total_revenue_cents || 0)}</div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Total Expenses</div>
-          <div class="metric-value"><%= format_currency(pnl.total_cogs_cents || 0) %></div>
+          <div class="metric-value">{format_currency(pnl.total_cogs_cents || 0)}</div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Net Income</div>
-          <div class="metric-value" style={"color: #{if (pnl.net_income_cents || 0) >= 0, do: "var(--vs-green, #16a34a)", else: "var(--vs-red, #dc2626)"};"}>
-            <%= format_currency(pnl.net_income_cents || 0) %>
+          <div
+            class="metric-value"
+            style={"color: #{if (pnl.net_income_cents || 0) >= 0, do: "var(--vs-green, #16a34a)", else: "var(--vs-red, #dc2626)"};"}
+          >
+            {format_currency(pnl.net_income_cents || 0)}
           </div>
         </div>
       </div>

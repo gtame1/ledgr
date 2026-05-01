@@ -21,17 +21,20 @@ defmodule Ledgr.Domains.Viaxe.TripsTest do
           status: "planning"
         })
       )
+
     trip
   end
 
   defp customer_fixture do
     unique = System.unique_integer([:positive])
+
     {:ok, customer} =
       Customers.create_customer(%{
         first_name: "Test",
         last_name: "Customer #{unique}",
         phone: "+52551#{unique}"
       })
+
     customer
   end
 
@@ -76,7 +79,11 @@ defmodule Ledgr.Domains.Viaxe.TripsTest do
   describe "create_trip/1" do
     test "creates trip with valid attrs" do
       assert {:ok, %Trip{} = trip} =
-               Trips.create_trip(%{title: "Cancún Escape", start_date: ~D[2026-07-01], status: "planning"})
+               Trips.create_trip(%{
+                 title: "Cancún Escape",
+                 start_date: ~D[2026-07-01],
+                 status: "planning"
+               })
 
       assert trip.title == "Cancún Escape"
     end

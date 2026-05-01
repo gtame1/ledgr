@@ -77,7 +77,9 @@ defmodule Mix.Tasks.FixGiftOrderAccounting do
       IO.puts("✅ No gift orders with incorrect accounting entries found.")
       IO.puts("   All delivered gift orders already have correct accounting.")
     else
-      IO.puts("Found #{length(affected_orders)} delivered gift order(s) with sale-style accounting:\n")
+      IO.puts(
+        "Found #{length(affected_orders)} delivered gift order(s) with sale-style accounting:\n"
+      )
 
       for {order, entry, lines, payment_entries} <- affected_orders do
         print_order_details(order, entry, lines, payment_entries)
@@ -88,7 +90,16 @@ defmodule Mix.Tasks.FixGiftOrderAccounting do
 
         results =
           Enum.map(affected_orders, fn {order, _entry, lines, payment_entries} ->
-            apply_correction(order, lines, payment_entries, wip, ar, customer_deposits, samples_gifts, gift_contributions)
+            apply_correction(
+              order,
+              lines,
+              payment_entries,
+              wip,
+              ar,
+              customer_deposits,
+              samples_gifts,
+              gift_contributions
+            )
           end)
 
         successes = Enum.count(results, &match?({:ok, _}, &1))
@@ -228,7 +239,16 @@ defmodule Mix.Tasks.FixGiftOrderAccounting do
     IO.puts("")
   end
 
-  defp apply_correction(order, original_lines, payment_entries, wip, ar, customer_deposits, samples_gifts, gift_contributions) do
+  defp apply_correction(
+         order,
+         original_lines,
+         payment_entries,
+         wip,
+         ar,
+         customer_deposits,
+         samples_gifts,
+         gift_contributions
+       ) do
     # === PART 1: Reverse the delivery entry and add gift expense ===
 
     # Step 1: Reverse all original delivery lines (swap debits and credits)

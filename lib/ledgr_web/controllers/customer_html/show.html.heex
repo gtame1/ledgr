@@ -8,18 +8,21 @@
       <div class="card-header">
         <div class="customer-profile">
           <div class="customer-avatar">
-            <%= String.first(@customer.name) %>
+            {String.first(@customer.name)}
           </div>
           <div>
-            <h2 class="card-title"><%= @customer.name %></h2>
-            <p class="card-subtitle">Customer #<%= @customer.id %></p>
+            <h2 class="card-title">{@customer.name}</h2>
+            <p class="card-subtitle">Customer #{@customer.id}</p>
           </div>
         </div>
         <div class="actions">
           <.link navigate={dp(@domain_path_prefix, "/customers")} class="btn">
             ← Back
           </.link>
-          <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}/edit")} class="btn primary">
+          <.link
+            navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}/edit")}
+            class="btn primary"
+          >
             Edit
           </.link>
           <.link
@@ -36,19 +39,19 @@
       <dl class="detail-grid">
         <div class="detail-row">
           <dt class="detail-label">Phone</dt>
-          <dd class="detail-value"><%= @customer.phone %></dd>
+          <dd class="detail-value">{@customer.phone}</dd>
         </div>
         <div class="detail-row">
           <dt class="detail-label">Email</dt>
-          <dd class="detail-value"><%= @customer.email || "—" %></dd>
+          <dd class="detail-value">{@customer.email || "—"}</dd>
         </div>
         <div class="detail-row">
           <dt class="detail-label">Delivery Address</dt>
-          <dd class="detail-value"><%= @customer.delivery_address || "—" %></dd>
+          <dd class="detail-value">{@customer.delivery_address || "—"}</dd>
         </div>
         <div class="detail-row">
           <dt class="detail-label">Member Since</dt>
-          <dd class="detail-value"><%= fmt_date(@customer.inserted_at, "%B %d, %Y") %></dd>
+          <dd class="detail-value">{fmt_date(@customer.inserted_at, "%B %d, %Y")}</dd>
         </div>
       </dl>
     </section>
@@ -56,13 +59,19 @@
     <section class="card" style="margin-top: 1.5rem;">
       <div class="card-header">
         <h3 class="card-title" style="font-size: 1rem;">Subscriptions</h3>
-        <.link navigate={dp(@domain_path_prefix, "/subscriptions/new?customer_id=#{@customer.id}")} class="btn primary" style="font-size: 0.85rem;">
+        <.link
+          navigate={dp(@domain_path_prefix, "/subscriptions/new?customer_id=#{@customer.id}")}
+          class="btn primary"
+          style="font-size: 0.85rem;"
+        >
           + New Subscription
         </.link>
       </div>
 
       <%= if Enum.empty?(@subscriptions) do %>
-        <p style="color: var(--text-muted); font-size: 0.9rem; padding: 0.5rem 0;">No subscriptions yet.</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; padding: 0.5rem 0;">
+          No subscriptions yet.
+        </p>
       <% else %>
         <div style="overflow-x: auto;">
           <table class="table">
@@ -80,38 +89,45 @@
             <tbody>
               <%= for sub <- @subscriptions do %>
                 <% plan = sub.subscription_plan
-                   effective_price = max(plan.price_cents - (sub.discount_cents || 0), 0)
-                   total_paid      = sub.paid_cents || 0
-                   outstanding     = max(effective_price + (sub.iva_cents || 0) - total_paid, 0)
-                   status_css      = case sub.status do
-                     "active" -> "status-paid"
-                     "paused" -> "status-partial"
-                     _        -> "status-unpaid"
-                   end %>
+                effective_price = max(plan.price_cents - (sub.discount_cents || 0), 0)
+                total_paid = sub.paid_cents || 0
+                outstanding = max(effective_price + (sub.iva_cents || 0) - total_paid, 0)
+
+                status_css =
+                  case sub.status do
+                    "active" -> "status-paid"
+                    "paused" -> "status-partial"
+                    _ -> "status-unpaid"
+                  end %>
                 <tr>
-                  <td><%= plan.name %></td>
+                  <td>{plan.name}</td>
                   <td>
                     <span class={"status-badge #{status_css}"}>
-                      <%= String.capitalize(sub.status) %>
+                      {String.capitalize(sub.status)}
                     </span>
                   </td>
                   <td style="font-size: 0.85rem; white-space: nowrap;">
-                    <%= sub.starts_on %> → <%= sub.ends_on %>
+                    {sub.starts_on} → {sub.ends_on}
                   </td>
                   <td style="text-align: right;">
-                    <%= format_currency(effective_price) %>
+                    {format_currency(effective_price)}
                     <%= if sub.discount_cents > 0 do %>
-                      <br /><small style="color: var(--text-muted); font-size: 0.75rem;">
-                        (−<%= format_currency(sub.discount_cents) %>)
+                      <br />
+                      <small style="color: var(--text-muted); font-size: 0.75rem;">
+                        (−{format_currency(sub.discount_cents)})
                       </small>
                     <% end %>
                   </td>
-                  <td style="text-align: right;"><%= format_currency(total_paid) %></td>
+                  <td style="text-align: right;">{format_currency(total_paid)}</td>
                   <td style={"text-align: right; #{if outstanding > 0, do: "color: var(--red, #dc2626); font-weight: 600;", else: ""}"}>
-                    <%= format_currency(outstanding) %>
+                    {format_currency(outstanding)}
                   </td>
                   <td>
-                    <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")} class="btn" style="font-size: 0.8rem; padding: 0.25rem 0.6rem;">
+                    <.link
+                      navigate={dp(@domain_path_prefix, "/subscriptions/#{sub.id}")}
+                      class="btn"
+                      style="font-size: 0.8rem; padding: 0.25rem 0.6rem;"
+                    >
                       View
                     </.link>
                   </td>

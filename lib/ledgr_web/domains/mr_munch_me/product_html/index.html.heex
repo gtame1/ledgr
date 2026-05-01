@@ -19,26 +19,44 @@
       navigate={dp(@domain_path_prefix, "/products?sort=position&order=asc")}
       class={"mm-tab-pill#{if @sort != "name", do: " mm-tab-pill--active"}"}
       style="flex: 0; padding: 0.4rem 1rem; font-size: 0.8rem;"
-    >By Position</.link>
+    >
+      By Position
+    </.link>
     <.link
-      navigate={dp(@domain_path_prefix, "/products?sort=name&order=#{if @sort == "name" and @order == "asc", do: "desc", else: "asc"}")}
+      navigate={
+        dp(
+          @domain_path_prefix,
+          "/products?sort=name&order=#{if @sort == "name" and @order == "asc", do: "desc", else: "asc"}"
+        )
+      }
       class={"mm-tab-pill#{if @sort == "name", do: " mm-tab-pill--active"}"}
       style="flex: 0; padding: 0.4rem 1rem; font-size: 0.8rem;"
-    >By Name <%= if @sort == "name", do: (if @order == "desc", do: "↓", else: "↑") %></.link>
+    >
+      By Name {if @sort == "name", do: if(@order == "desc", do: "↓", else: "↑")}
+    </.link>
   </div>
 
   <%!-- Product Cards --%>
   <div style="display: flex; flex-direction: column; gap: 0.75rem;">
     <%= for {product, idx} <- Enum.with_index(@products, 1) do %>
-      <.link navigate={dp(@domain_path_prefix, "/products/#{product.id}/edit")} style="text-decoration: none; color: inherit; display: block;">
+      <.link
+        navigate={dp(@domain_path_prefix, "/products/#{product.id}/edit")}
+        style="text-decoration: none; color: inherit; display: block;"
+      >
         <div class="mm-order-card">
           <div style="display: flex; gap: 0.75rem; align-items: center;">
             <%!-- Product thumbnail --%>
             <div style="width: 64px; height: 64px; border-radius: 12px; overflow: hidden; background: #F5E6D8; flex-shrink: 0;">
               <%= if product.image_url && product.image_url != "" do %>
-                <img src={product.image_url} alt={product.name} style="width: 100%; height: 100%; object-fit: cover;" />
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  style="width: 100%; height: 100%; object-fit: cover;"
+                />
               <% else %>
-                <span style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 1.5rem;">🍿</span>
+                <span style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 1.5rem;">
+                  🍿
+                </span>
               <% end %>
             </div>
 
@@ -46,22 +64,31 @@
             <div style="flex: 1; min-width: 0;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
-                  <h3 style="font-weight: 600; font-size: 0.95rem; color: #3A2A1F; margin: 0;"><%= product.name %></h3>
+                  <h3 style="font-weight: 600; font-size: 0.95rem; color: #3A2A1F; margin: 0;">
+                    {product.name}
+                  </h3>
                   <p style="font-size: 0.7rem; color: #9C8578; margin: 0.1rem 0 0;">
-                    <%= Enum.count(product.variants) %> variant<%= if Enum.count(product.variants) != 1, do: "s" %>
-                    · #<%= idx %>
+                    {Enum.count(product.variants)} variant{if Enum.count(product.variants) != 1,
+                      do: "s"} · #{idx}
                   </p>
                 </div>
                 <%= if product.active do %>
-                  <span class="mm-status mm-status--delivered" style="font-size: 0.6rem;">Active</span>
+                  <span class="mm-status mm-status--delivered" style="font-size: 0.6rem;">
+                    Active
+                  </span>
                 <% else %>
-                  <span class="mm-status mm-status--canceled" style="font-size: 0.6rem;">Inactive</span>
+                  <span class="mm-status mm-status--canceled" style="font-size: 0.6rem;">
+                    Inactive
+                  </span>
                 <% end %>
               </div>
 
               <%= if product.description && product.description != "" do %>
                 <p style="font-size: 0.75rem; color: #9C8578; margin: 0.25rem 0 0; line-height: 1.3;">
-                  <%= String.slice(product.description, 0, 80) %><%= if String.length(product.description || "") > 80, do: "…" %>
+                  {String.slice(product.description, 0, 80)}{if String.length(
+                                                                  product.description || ""
+                                                                ) > 80,
+                                                                do: "…"}
                 </p>
               <% end %>
 
@@ -70,7 +97,7 @@
                 <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.35rem;">
                   <%= for v <- Enum.take(Enum.sort_by(product.variants, & &1.price_cents), 3) do %>
                     <span class="mm-badge" style="font-size: 0.6rem; padding: 0.1rem 0.4rem;">
-                      <%= v.name %> · <%= format_currency(v.price_cents) %>
+                      {v.name} · {format_currency(v.price_cents)}
                     </span>
                   <% end %>
                 </div>
@@ -88,7 +115,9 @@
                 style="font-size: 0.7rem; padding: 0.2rem 0.5rem;"
                 onclick="event.stopPropagation();"
               >
-                <span class="material-symbols-outlined" style="font-size: 0.85rem;">arrow_upward</span>
+                <span class="material-symbols-outlined" style="font-size: 0.85rem;">
+                  arrow_upward
+                </span>
               </.link>
               <.link
                 href={dp(@domain_path_prefix, "/products/#{product.id}/move_down")}
@@ -97,7 +126,9 @@
                 style="font-size: 0.7rem; padding: 0.2rem 0.5rem;"
                 onclick="event.stopPropagation();"
               >
-                <span class="material-symbols-outlined" style="font-size: 0.85rem;">arrow_downward</span>
+                <span class="material-symbols-outlined" style="font-size: 0.85rem;">
+                  arrow_downward
+                </span>
               </.link>
             </div>
             <div style="display: flex; gap: 0.35rem;">
@@ -108,7 +139,7 @@
                 style={"font-size: 0.7rem; padding: 0.2rem 0.6rem;#{unless product.active, do: " background: #d4edda; color: #155724; border-color: #c3e6cb;"}"}
                 onclick="event.stopPropagation();"
               >
-                <%= if product.active, do: "Deactivate", else: "Activate" %>
+                {if product.active, do: "Deactivate", else: "Activate"}
               </.link>
             </div>
           </div>
@@ -118,7 +149,12 @@
 
     <%= if @products == [] do %>
       <div class="mm-order-card" style="text-align: center; padding: 2rem 1rem; color: #9C8578;">
-        <span class="material-symbols-outlined" style="font-size: 2.5rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">tapas</span>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 2.5rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;"
+        >
+          tapas
+        </span>
         No products yet. Add your first snack!
       </div>
     <% end %>

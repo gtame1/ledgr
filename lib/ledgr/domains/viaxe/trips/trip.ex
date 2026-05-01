@@ -30,7 +30,8 @@ defmodule Ledgr.Domains.Viaxe.Trips.Trip do
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> validate_inclusion(:status, @valid_statuses,
-        message: "must be one of: #{Enum.join(@valid_statuses, ", ")}")
+      message: "must be one of: #{Enum.join(@valid_statuses, ", ")}"
+    )
     |> validate_date_order()
   end
 

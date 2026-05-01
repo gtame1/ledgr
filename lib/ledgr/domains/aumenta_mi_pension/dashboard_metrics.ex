@@ -263,7 +263,12 @@ defmodule Ledgr.Domains.AumentaMiPension.DashboardMetrics do
   @neon_cap_bytes 512 * 1024 * 1024
 
   def db_size do
-    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), "SELECT pg_database_size(current_database()) AS size_bytes")
+    result =
+      Ecto.Adapters.SQL.query!(
+        Repo.active_repo(),
+        "SELECT pg_database_size(current_database()) AS size_bytes"
+      )
+
     bytes = result.rows |> List.first() |> List.first() || 0
     mb = Float.round(bytes / (1024 * 1024), 1)
     percent = Float.round(bytes / @neon_cap_bytes * 100, 1)

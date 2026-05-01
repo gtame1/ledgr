@@ -70,7 +70,9 @@ defmodule LedgrWeb.Domains.CasaTame.CategoryController do
         conn |> put_flash(:info, "Category deleted.") |> redirect(to: dp(conn, "/categories"))
 
       {:error, _} ->
-        conn |> put_flash(:error, "Cannot delete category (may have associated expenses).") |> redirect(to: dp(conn, "/categories"))
+        conn
+        |> put_flash(:error, "Cannot delete category (may have associated expenses).")
+        |> redirect(to: dp(conn, "/categories"))
     end
   end
 end

@@ -21,8 +21,16 @@ defmodule Ledgr.Domains.VolumeStudio.PartnerInvestments do
       order_by: p.name,
       select: %{
         partner: p,
-        total_in_cents: coalesce(sum(fragment("CASE WHEN ? = 'in'  THEN ? ELSE 0 END", c.direction, c.amount_cents)), 0),
-        total_out_cents: coalesce(sum(fragment("CASE WHEN ? = 'out' THEN ? ELSE 0 END", c.direction, c.amount_cents)), 0),
+        total_in_cents:
+          coalesce(
+            sum(fragment("CASE WHEN ? = 'in'  THEN ? ELSE 0 END", c.direction, c.amount_cents)),
+            0
+          ),
+        total_out_cents:
+          coalesce(
+            sum(fragment("CASE WHEN ? = 'out' THEN ? ELSE 0 END", c.direction, c.amount_cents)),
+            0
+          ),
         contribution_count: count(c.id),
         last_activity_on: max(c.date)
       }
@@ -37,7 +45,12 @@ defmodule Ledgr.Domains.VolumeStudio.PartnerInvestments do
       select:
         coalesce(
           sum(
-            fragment("CASE WHEN ? = 'out' THEN -? ELSE ? END", c.direction, c.amount_cents, c.amount_cents)
+            fragment(
+              "CASE WHEN ? = 'out' THEN -? ELSE ? END",
+              c.direction,
+              c.amount_cents,
+              c.amount_cents
+            )
           ),
           0
         )

@@ -111,7 +111,7 @@ defmodule Ledgr.Domains.MrMunchMe.OrdersFixtures do
       |> Order.changeset(order_attrs)
       |> Repo.insert()
 
-    order |> Repo.preload([variant: :product, prep_location: [], customer: []])
+    order |> Repo.preload(variant: :product, prep_location: [], customer: [])
   end
 
   @doc """

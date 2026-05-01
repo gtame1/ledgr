@@ -88,21 +88,30 @@ defmodule Ledgr.Domains.Viaxe do
     prefix = path_prefix()
 
     [
-      %{group: "Main Menu", items: [
-        %{label: "Dashboard", path: prefix, icon: :dashboard},
-        %{label: "Customers", path: "#{prefix}/customers", icon: :customers},
-        %{label: "Trips", path: "#{prefix}/trips", icon: :trips}
-      ]},
-      %{group: "Travel", items: [
-        %{label: "Bookings", path: "#{prefix}/bookings", icon: :bookings},
-        %{label: "Services", path: "#{prefix}/services", icon: :services},
-        %{label: "Suppliers", path: "#{prefix}/suppliers", icon: :suppliers},
-        %{label: "Recommendations", path: "#{prefix}/recommendations", icon: :recommendations},
-        %{label: "Documents", path: "#{prefix}/documents", icon: :documents}
-      ]},
-      %{group: "Finance", items: [
-        %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
-      ]}
+      %{
+        group: "Main Menu",
+        items: [
+          %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{label: "Customers", path: "#{prefix}/customers", icon: :customers},
+          %{label: "Trips", path: "#{prefix}/trips", icon: :trips}
+        ]
+      },
+      %{
+        group: "Travel",
+        items: [
+          %{label: "Bookings", path: "#{prefix}/bookings", icon: :bookings},
+          %{label: "Services", path: "#{prefix}/services", icon: :services},
+          %{label: "Suppliers", path: "#{prefix}/suppliers", icon: :suppliers},
+          %{label: "Recommendations", path: "#{prefix}/recommendations", icon: :recommendations},
+          %{label: "Documents", path: "#{prefix}/documents", icon: :documents}
+        ]
+      },
+      %{
+        group: "Finance",
+        items: [
+          %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses}
+        ]
+      }
     ]
   end
 

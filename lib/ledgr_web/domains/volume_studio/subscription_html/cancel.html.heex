@@ -1,15 +1,13 @@
 <div class="new-subscription-card">
-
   <%!-- Header --%>
   <section class="card" style="margin-bottom: 1.5rem;">
     <div class="card-header">
       <div>
         <h2 class="card-title">Cancel Subscription</h2>
         <p class="card-subtitle">
-          <%= @subscription.customer.name %> ·
-          <%= @subscription.subscription_plan.name %> ·
+          {@subscription.customer.name} · {@subscription.subscription_plan.name} ·
           <span class={"status-badge #{status_class(@subscription.status)}"}>
-            <%= String.capitalize(@subscription.status) %>
+            {String.capitalize(@subscription.status)}
           </span>
         </p>
       </div>
@@ -24,21 +22,21 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem;">
       <div class="summary-item">
         <span class="summary-label">Total Paid</span>
-        <span class="summary-value"><%= format_currency(@summary.total_paid) %></span>
+        <span class="summary-value">{format_currency(@summary.total_paid)}</span>
       </div>
       <div class="summary-item">
         <span class="summary-label">Unearned (Deferred)</span>
-        <span class="summary-value"><%= format_currency(@summary.deferred) %></span>
+        <span class="summary-value">{format_currency(@summary.deferred)}</span>
       </div>
       <div class="summary-item">
         <span class="summary-label">Already Earned</span>
-        <span class="summary-value"><%= format_currency(@summary.recognized) %></span>
+        <span class="summary-value">{format_currency(@summary.recognized)}</span>
       </div>
       <%= if @subscription.discount_cents > 0 do %>
         <div class="summary-item">
           <span class="summary-label">Discount Applied</span>
           <span class="summary-value" style="color: var(--green, #16a34a);">
-            − <%= format_currency(@subscription.discount_cents) %>
+            − {format_currency(@subscription.discount_cents)}
           </span>
         </div>
       <% end %>
@@ -57,11 +55,12 @@
       <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
 
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
-
         <div class="field">
           <label for="refund_amount">Refund Amount (MXN)</label>
           <div style="position: relative;">
-            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">$</span>
+            <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">
+              $
+            </span>
             <input
               id="refund_amount"
               type="number"
@@ -75,7 +74,7 @@
             />
           </div>
           <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
-            Max: <%= format_currency(@summary.total_paid) %> · Set to $0.00 if no refund.
+            Max: {format_currency(@summary.total_paid)} · Set to $0.00 if no refund.
           </span>
         </div>
 
@@ -84,7 +83,7 @@
           <select id="refund_account" name="refund[account_id]" class="form-input">
             <option value="">— No refund / skip —</option>
             <%= for {label, account_id} <- @accounts do %>
-              <option value={account_id}><%= label %></option>
+              <option value={account_id}>{label}</option>
             <% end %>
           </select>
           <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
@@ -93,7 +92,9 @@
         </div>
 
         <div class="field" style="grid-column: 1 / -1;">
-          <label for="refund_note">Note <small style="font-weight: normal;">(optional)</small></label>
+          <label for="refund_note">
+            Note <small style="font-weight: normal;">(optional)</small>
+          </label>
           <textarea
             id="refund_note"
             name="refund[note]"
@@ -102,18 +103,19 @@
             class="form-input"
           ></textarea>
         </div>
-
       </div>
 
       <div style="display: flex; gap: 0.75rem; align-items: center; padding-top: 0.25rem; border-top: 1px solid var(--border-color, #e5e7eb);">
         <button type="submit" class="btn danger">
           Cancel Subscription
         </button>
-        <.link navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}")} class="btn">
+        <.link
+          navigate={dp(@domain_path_prefix, "/subscriptions/#{@subscription.id}")}
+          class="btn"
+        >
           Keep Subscription
         </.link>
       </div>
     </form>
   </section>
-
 </div>

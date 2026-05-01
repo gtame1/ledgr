@@ -22,7 +22,14 @@ defmodule Ledgr.Domains.MrMunchMe.PendingCheckout do
 
   def changeset(pending_checkout, attrs) do
     pending_checkout
-    |> cast(attrs, [:cart, :checkout_attrs, :customer_id, :stripe_session_id, :processed_at, :expires_at])
+    |> cast(attrs, [
+      :cart,
+      :checkout_attrs,
+      :customer_id,
+      :stripe_session_id,
+      :processed_at,
+      :expires_at
+    ])
     |> validate_required([:cart, :checkout_attrs, :customer_id, :expires_at])
   end
 end

@@ -9,7 +9,6 @@ defmodule Ledgr.Core.Partners do
   alias __MODULE__.{Partner, CapitalContribution}
   alias Ledgr.Core.Accounting
 
-
   # ---------- Form changeset for UI (amount in pesos) ----------
 
   def change_contribution_form(attrs \\ %{}) do
@@ -105,7 +104,8 @@ defmodule Ledgr.Core.Partners do
 
       amount_cents =
         amount_pesos
-        |> Decimal.mult(Decimal.new(100))   # POSITIVE
+        # POSITIVE
+        |> Decimal.mult(Decimal.new(100))
         |> Decimal.round(0)
         |> Decimal.to_integer()
 
@@ -133,7 +133,9 @@ defmodule Ledgr.Core.Partners do
         contribution
       end)
       |> case do
-        {:ok, contribution} -> {:ok, contribution}
+        {:ok, contribution} ->
+          {:ok, contribution}
+
         {:error, reason} ->
           {:error,
            form_changeset

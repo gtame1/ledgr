@@ -1,51 +1,51 @@
-<%
-  # Format without currency suffix (section headers indicate USD/MXN)
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas =
-      whole
-      |> String.reverse()
-      |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
-      |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
+<% # Format without currency suffix (section headers indicate USD/MXN)
+fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
 
-  # Income data from income_entries table (accurate per-currency)
-  usd_income_items = Enum.filter(@income_by_category, fn i -> i.currency == "USD" end)
-  mxn_income_items = Enum.filter(@income_by_category, fn i -> i.currency == "MXN" end)
+  whole_with_commas =
+    whole
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+    |> String.reverse()
 
-  total_usd_income = @income_totals.usd
-  total_mxn_income = @income_totals.mxn
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end
 
-  # Expense data from expenses table (accurate per-currency)
-  usd_expense_detail = Enum.filter(@expense_by_account, fn e -> e.currency == "USD" end)
-  mxn_expense_detail = Enum.filter(@expense_by_account, fn e -> e.currency == "MXN" end)
+# Income data from income_entries table (accurate per-currency)
+usd_income_items = Enum.filter(@income_by_category, fn i -> i.currency == "USD" end)
+mxn_income_items = Enum.filter(@income_by_category, fn i -> i.currency == "MXN" end)
 
-  usd_expenses = @expense_totals.usd
-  mxn_expenses = @expense_totals.mxn
+total_usd_income = @income_totals.usd
+total_mxn_income = @income_totals.mxn
 
-  net_usd = total_usd_income - usd_expenses
-  net_mxn = total_mxn_income - mxn_expenses
+# Expense data from expenses table (accurate per-currency)
+usd_expense_detail = Enum.filter(@expense_by_account, fn e -> e.currency == "USD" end)
+mxn_expense_detail = Enum.filter(@expense_by_account, fn e -> e.currency == "MXN" end)
 
-  expense_groups = [
-    {"Auto & Transportation",  "6000", "6009"},
-    {"Housekeeper & Drivers",  "6010", "6019"},
-    {"Utilities",              "6020", "6029"},
-    {"Home & Furniture",       "6030", "6039"},
-    {"Education",              "6040", "6049"},
-    {"Entertainment",          "6050", "6059"},
-    {"Food & Dining",          "6060", "6069"},
-    {"Health & Personal Care", "6070", "6079"},
-    {"Kids",                   "6080", "6084"},
-    {"Shopping",               "6085", "6089"},
-    {"Travel",                 "6090", "6094"},
-    {"Pets",                   "6095", "6097"},
-    {"Financial & Other",      "6098", "6105"}
-  ]
-%>
+usd_expenses = @expense_totals.usd
+mxn_expenses = @expense_totals.mxn
+
+net_usd = total_usd_income - usd_expenses
+net_mxn = total_mxn_income - mxn_expenses
+
+expense_groups = [
+  {"Auto & Transportation", "6000", "6009"},
+  {"Housekeeper & Drivers", "6010", "6019"},
+  {"Utilities", "6020", "6029"},
+  {"Home & Furniture", "6030", "6039"},
+  {"Education", "6040", "6049"},
+  {"Entertainment", "6050", "6059"},
+  {"Food & Dining", "6060", "6069"},
+  {"Health & Personal Care", "6070", "6079"},
+  {"Kids", "6080", "6084"},
+  {"Shopping", "6085", "6089"},
+  {"Travel", "6090", "6094"},
+  {"Pets", "6095", "6097"},
+  {"Financial & Other", "6098", "6105"}
+] %>
 
 <section class="content">
   <header class="content-header">
@@ -54,146 +54,183 @@
   </header>
 
   <div class="content-body">
-    <.period_selector action={dp(@domain_path_prefix, "/reports/pnl")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
+    <.period_selector
+      action={dp(@domain_path_prefix, "/reports/pnl")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
 
     <div class="ct-pnl-currencies">
-    <!-- USD Section -->
-    <details open class="card">
-      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
-        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-          <span class="ct-badge ct-badge--usd">USD</span>
-          Period Summary
-        </span>
-        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_usd) %></span>
-      </summary>
+      <!-- USD Section -->
+      <details open class="card">
+        <summary
+          class="ct-hero-detail"
+          style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;"
+        >
+          <span
+            class="card-title"
+            style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"
+          >
+            <span class="ct-badge ct-badge--usd">USD</span> Period Summary
+          </span>
+          <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;">
+            {fmt.(net_usd)}
+          </span>
+        </summary>
 
-      <div style="padding: 0 1rem 1.25rem;">
-        <!-- Income -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--income">Income</div>
-          <%= for item <- usd_income_items do %>
-            <div class="ct-report-row ct-report-row--indent">
-              <span class="ct-report-row-label"><%= item.category_name || "Other" %></span>
-              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.total_cents) %></span>
-            </div>
-          <% end %>
-          <%= if usd_income_items == [] do %>
-            <div class="ct-report-row ct-report-row--empty">No USD income this period</div>
-          <% end %>
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total USD Income</span>
-            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_usd_income) %></span>
-          </div>
-        </div>
-
-        <div class="ct-report-spacer"></div>
-
-        <!-- Expenses -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--expense">Expenses</div>
-          <%= for {group_label, from_code, to_code} <- expense_groups do %>
-            <% group_items = Enum.filter(usd_expense_detail, fn e -> e.account_code >= from_code and e.account_code <= to_code end) %>
-            <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
-            <%= if group_items != [] do %>
-              <div class="ct-report-row ct-report-row--group">
-                <span class="ct-report-row-label"><%= group_label %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(group_total) %></span>
+        <div style="padding: 0 1rem 1.25rem;">
+          <!-- Income -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--income">Income</div>
+            <%= for item <- usd_income_items do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label">{item.category_name || "Other"}</span>
+                <span class="ct-report-row-amount ct-amount-positive">
+                  {fmt.(item.total_cents)}
+                </span>
               </div>
-              <%= for item <- group_items do %>
-                <div class="ct-report-row ct-report-row--indent">
-                  <span class="ct-report-row-label"><%= item.account_name %></span>
-                  <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.total_cents) %></span>
+            <% end %>
+            <%= if usd_income_items == [] do %>
+              <div class="ct-report-row ct-report-row--empty">No USD income this period</div>
+            <% end %>
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total USD Income</span>
+              <span class="ct-report-row-amount ct-amount-positive">
+                {fmt.(total_usd_income)}
+              </span>
+            </div>
+          </div>
+
+          <div class="ct-report-spacer"></div>
+          
+<!-- Expenses -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--expense">Expenses</div>
+            <%= for {group_label, from_code, to_code} <- expense_groups do %>
+              <% group_items =
+                Enum.filter(usd_expense_detail, fn e ->
+                  e.account_code >= from_code and e.account_code <= to_code
+                end) %>
+              <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
+              <%= if group_items != [] do %>
+                <div class="ct-report-row ct-report-row--group">
+                  <span class="ct-report-row-label">{group_label}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">{fmt.(group_total)}</span>
                 </div>
+                <%= for item <- group_items do %>
+                  <div class="ct-report-row ct-report-row--indent">
+                    <span class="ct-report-row-label">{item.account_name}</span>
+                    <span class="ct-report-row-amount ct-amount-negative">
+                      {fmt.(item.total_cents)}
+                    </span>
+                  </div>
+                <% end %>
               <% end %>
             <% end %>
-          <% end %>
-          <%= if usd_expenses == 0 do %>
-            <div class="ct-report-row ct-report-row--empty">No USD expenses this period</div>
-          <% end %>
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total USD Expenses</span>
-            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(usd_expenses) %></span>
-          </div>
-        </div>
-
-        <div class="ct-report-spacer"></div>
-
-        <!-- Net -->
-        <div class="ct-report-row ct-report-row--net">
-          <span class="ct-report-row-label">USD Net</span>
-          <span class="ct-report-row-amount"><%= fmt.(net_usd) %></span>
-        </div>
-      </div>
-    </details>
-
-    <!-- MXN Section -->
-    <details open class="card">
-      <summary class="ct-hero-detail" style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;">
-        <span class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-          <span class="ct-badge ct-badge--mxn">MXN</span>
-          Period Summary
-        </span>
-        <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;"><%= fmt.(net_mxn) %></span>
-      </summary>
-
-      <div style="padding: 0 1rem 1.25rem;">
-        <!-- Income -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--income">Income</div>
-          <%= for item <- mxn_income_items do %>
-            <div class="ct-report-row ct-report-row--indent">
-              <span class="ct-report-row-label"><%= item.category_name || "Other" %></span>
-              <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(item.total_cents) %></span>
+            <%= if usd_expenses == 0 do %>
+              <div class="ct-report-row ct-report-row--empty">No USD expenses this period</div>
+            <% end %>
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total USD Expenses</span>
+              <span class="ct-report-row-amount ct-amount-negative">{fmt.(usd_expenses)}</span>
             </div>
-          <% end %>
-          <%= if mxn_income_items == [] do %>
-            <div class="ct-report-row ct-report-row--empty">No MXN income this period</div>
-          <% end %>
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total MXN Income</span>
-            <span class="ct-report-row-amount ct-amount-positive"><%= fmt.(total_mxn_income) %></span>
+          </div>
+
+          <div class="ct-report-spacer"></div>
+          
+<!-- Net -->
+          <div class="ct-report-row ct-report-row--net">
+            <span class="ct-report-row-label">USD Net</span>
+            <span class="ct-report-row-amount">{fmt.(net_usd)}</span>
           </div>
         </div>
+      </details>
+      
+<!-- MXN Section -->
+      <details open class="card">
+        <summary
+          class="ct-hero-detail"
+          style="padding: 1rem 1.25rem; cursor: pointer; list-style: none;"
+        >
+          <span
+            class="card-title"
+            style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"
+          >
+            <span class="ct-badge ct-badge--mxn">MXN</span> Period Summary
+          </span>
+          <span class="ct-report-row-amount" style="font-size: 1.1rem; font-weight: 800;">
+            {fmt.(net_mxn)}
+          </span>
+        </summary>
 
-        <div class="ct-report-spacer"></div>
-
-        <!-- Expenses -->
-        <div class="ct-report-section">
-          <div class="ct-report-section-header ct-report-section-header--expense">Expenses</div>
-          <%= for {group_label, from_code, to_code} <- expense_groups do %>
-            <% group_items = Enum.filter(mxn_expense_detail, fn e -> e.account_code >= from_code and e.account_code <= to_code end) %>
-            <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
-            <%= if group_items != [] do %>
-              <div class="ct-report-row ct-report-row--group">
-                <span class="ct-report-row-label"><%= group_label %></span>
-                <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(group_total) %></span>
+        <div style="padding: 0 1rem 1.25rem;">
+          <!-- Income -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--income">Income</div>
+            <%= for item <- mxn_income_items do %>
+              <div class="ct-report-row ct-report-row--indent">
+                <span class="ct-report-row-label">{item.category_name || "Other"}</span>
+                <span class="ct-report-row-amount ct-amount-positive">
+                  {fmt.(item.total_cents)}
+                </span>
               </div>
-              <%= for item <- group_items do %>
-                <div class="ct-report-row ct-report-row--indent">
-                  <span class="ct-report-row-label"><%= item.account_name %></span>
-                  <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(item.total_cents) %></span>
+            <% end %>
+            <%= if mxn_income_items == [] do %>
+              <div class="ct-report-row ct-report-row--empty">No MXN income this period</div>
+            <% end %>
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total MXN Income</span>
+              <span class="ct-report-row-amount ct-amount-positive">
+                {fmt.(total_mxn_income)}
+              </span>
+            </div>
+          </div>
+
+          <div class="ct-report-spacer"></div>
+          
+<!-- Expenses -->
+          <div class="ct-report-section">
+            <div class="ct-report-section-header ct-report-section-header--expense">Expenses</div>
+            <%= for {group_label, from_code, to_code} <- expense_groups do %>
+              <% group_items =
+                Enum.filter(mxn_expense_detail, fn e ->
+                  e.account_code >= from_code and e.account_code <= to_code
+                end) %>
+              <% group_total = Enum.reduce(group_items, 0, fn e, acc -> e.total_cents + acc end) %>
+              <%= if group_items != [] do %>
+                <div class="ct-report-row ct-report-row--group">
+                  <span class="ct-report-row-label">{group_label}</span>
+                  <span class="ct-report-row-amount ct-amount-negative">{fmt.(group_total)}</span>
                 </div>
+                <%= for item <- group_items do %>
+                  <div class="ct-report-row ct-report-row--indent">
+                    <span class="ct-report-row-label">{item.account_name}</span>
+                    <span class="ct-report-row-amount ct-amount-negative">
+                      {fmt.(item.total_cents)}
+                    </span>
+                  </div>
+                <% end %>
               <% end %>
             <% end %>
-          <% end %>
-          <%= if mxn_expenses == 0 do %>
-            <div class="ct-report-row ct-report-row--empty">No MXN expenses this period</div>
-          <% end %>
-          <div class="ct-report-row ct-report-row--total">
-            <span class="ct-report-row-label">Total MXN Expenses</span>
-            <span class="ct-report-row-amount ct-amount-negative"><%= fmt.(mxn_expenses) %></span>
+            <%= if mxn_expenses == 0 do %>
+              <div class="ct-report-row ct-report-row--empty">No MXN expenses this period</div>
+            <% end %>
+            <div class="ct-report-row ct-report-row--total">
+              <span class="ct-report-row-label">Total MXN Expenses</span>
+              <span class="ct-report-row-amount ct-amount-negative">{fmt.(mxn_expenses)}</span>
+            </div>
+          </div>
+
+          <div class="ct-report-spacer"></div>
+          
+<!-- Net -->
+          <div class="ct-report-row ct-report-row--net">
+            <span class="ct-report-row-label">MXN Net</span>
+            <span class="ct-report-row-amount">{fmt.(net_mxn)}</span>
           </div>
         </div>
-
-        <div class="ct-report-spacer"></div>
-
-        <!-- Net -->
-        <div class="ct-report-row ct-report-row--net">
-          <span class="ct-report-row-label">MXN Net</span>
-          <span class="ct-report-row-amount"><%= fmt.(net_mxn) %></span>
-        </div>
-      </div>
-    </details>
+      </details>
     </div>
   </div>
 </section>

@@ -16,7 +16,10 @@
           <.link navigate={dp(@domain_path_prefix, "/transfers")} class="btn">
             ← Back to Transfers
           </.link>
-          <.link navigate={dp(@domain_path_prefix, "/transfers/#{@transfer.id}/edit")} class="btn primary">
+          <.link
+            navigate={dp(@domain_path_prefix, "/transfers/#{@transfer.id}/edit")}
+            class="btn primary"
+          >
             Edit
           </.link>
           <.link
@@ -32,15 +35,18 @@
       </div>
 
       <ul class="nice-list" style="margin-top: 1rem;">
-        <li><strong>Date:</strong> <%= @transfer.date %></li>
-        <li><strong>From Account:</strong> <%= "#{@transfer.from_account.code} – #{@transfer.from_account.name}" %></li>
-        <li><strong>To Account:</strong> <%= "#{@transfer.to_account.code} – #{@transfer.to_account.name}" %></li>
-        <li><strong>Amount:</strong> <%= format_currency(@transfer.amount_cents) %></li>
+        <li><strong>Date:</strong> {@transfer.date}</li>
+        <li>
+          <strong>From Account:</strong> {"#{@transfer.from_account.code} – #{@transfer.from_account.name}"}
+        </li>
+        <li>
+          <strong>To Account:</strong> {"#{@transfer.to_account.code} – #{@transfer.to_account.name}"}
+        </li>
+        <li><strong>Amount:</strong> {format_currency(@transfer.amount_cents)}</li>
         <%= if @transfer.note do %>
-          <li><strong>Note:</strong> <%= @transfer.note %></li>
+          <li><strong>Note:</strong> {@transfer.note}</li>
         <% end %>
       </ul>
     </section>
   </div>
 </section>
-

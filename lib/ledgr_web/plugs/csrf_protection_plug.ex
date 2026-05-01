@@ -18,7 +18,9 @@ defmodule LedgrWeb.Plugs.CSRFProtectionPlug do
     Plug.CSRFProtection.call(conn, Plug.CSRFProtection.init([]))
   rescue
     Plug.CSRFProtection.InvalidCSRFTokenError ->
-      Logger.warning("[CSRFProtectionPlug] Stale CSRF token on #{conn.method} #{conn.request_path} — redirecting to login")
+      Logger.warning(
+        "[CSRFProtectionPlug] Stale CSRF token on #{conn.method} #{conn.request_path} — redirecting to login"
+      )
 
       # Derive login path from request path: /app/<slug>/anything -> /app/<slug>/login
       login_path =

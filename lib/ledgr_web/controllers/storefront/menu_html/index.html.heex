@@ -2,7 +2,10 @@
   <%= if Enum.empty?(@products) do %>
     <div class="menu-empty">
       <%= if @current_q != "" do %>
-        <p>No encontramos productos para "<%= @current_q %>". <a href="/mr-munch-me/menu">Ver todos los productos</a></p>
+        <p>
+          No encontramos productos para "{@current_q}".
+          <a href="/mr-munch-me/menu">Ver todos los productos</a>
+        </p>
       <% else %>
         <p>Estamos actualizando nuestro menú. ¡Vuelve pronto!</p>
       <% end %>
@@ -20,27 +23,38 @@
         <div class="product-card">
           <a href={"/mr-munch-me/menu/#{product.id}"} class="product-card-image">
             <%= if product.image_url do %>
-              <img src={product.image_url} alt={product.name} loading="lazy" onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png';this.className='placeholder-logo'" />
+              <img
+                src={product.image_url}
+                alt={product.name}
+                loading="lazy"
+                onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png';this.className='placeholder-logo'"
+              />
             <% else %>
               <div class="product-card-placeholder">
-                <img src="/images/mr-munchme-logos/mr-munchme-icon.png" alt="MrMunchMe" class="placeholder-logo" />
+                <img
+                  src="/images/mr-munchme-logos/mr-munchme-icon.png"
+                  alt="MrMunchMe"
+                  class="placeholder-logo"
+                />
               </div>
             <% end %>
           </a>
           <div class="product-card-body">
             <a href={"/mr-munch-me/menu/#{product.id}"} class="product-card-name-link">
-              <h3 class="product-card-name"><%= product.name %></h3>
+              <h3 class="product-card-name">{product.name}</h3>
             </a>
             <%= if product.description do %>
-              <p class="product-card-description"><%= product.description |> strip_markdown() |> truncate(100) %></p>
+              <p class="product-card-description">
+                {product.description |> strip_markdown() |> truncate(100)}
+              </p>
             <% end %>
             <div class="product-card-footer">
               <div class="product-card-price">
                 <%= if min_price do %>
                   <%= if length(active_variants) > 1 do %>
-                    <span class="product-price-desde">Desde</span> <%= format_price(min_price) %>
+                    <span class="product-price-desde">Desde</span> {format_price(min_price)}
                   <% else %>
-                    <%= format_price(min_price) %>
+                    {format_price(min_price)}
                   <% end %>
                 <% end %>
               </div>

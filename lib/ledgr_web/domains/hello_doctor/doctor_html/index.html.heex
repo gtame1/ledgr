@@ -1,23 +1,46 @@
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Doctors</h1>
-    <.link navigate={dp(@domain_path_prefix, "/doctors/new")} class="hd-btn-primary">+ Add Doctor</.link>
+    <.link navigate={dp(@domain_path_prefix, "/doctors/new")} class="hd-btn-primary">
+      + Add Doctor
+    </.link>
   </div>
 
   <%!-- Filters --%>
   <div class="hd-card p-4 mb-6">
-    <form method="get" action={dp(@domain_path_prefix, "/doctors")} class="flex flex-wrap gap-3 items-end">
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/doctors")}
+      class="flex flex-wrap gap-3 items-end"
+    >
       <div class="flex-1 min-w-[140px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Status</label>
-        <select name="status" class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Status
+        </label>
+        <select
+          name="status"
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        >
           <option value="">All</option>
           <option value="available" selected={@current_status == "available"}>Available</option>
-          <option value="unavailable" selected={@current_status == "unavailable"}>Unavailable</option>
+          <option value="unavailable" selected={@current_status == "unavailable"}>
+            Unavailable
+          </option>
         </select>
       </div>
       <div class="flex-1 min-w-[200px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Search</label>
-        <input type="text" name="search" value={@current_search} placeholder="Doctor name..." class="w-full rounded-md border px-3 py-2 text-sm" style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);" />
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Search
+        </label>
+        <input
+          type="text"
+          name="search"
+          value={@current_search}
+          placeholder="Doctor name..."
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        />
       </div>
       <button type="submit" class="hd-btn-secondary">Filter</button>
     </form>
@@ -29,14 +52,19 @@
   <% else %>
     <div class="hd-doctor-grid">
       <%= for doctor <- @doctors do %>
-        <.link navigate={dp(@domain_path_prefix, "/doctors/#{doctor.id}")} class="hd-doctor-card block hover:shadow-md transition-shadow">
+        <.link
+          navigate={dp(@domain_path_prefix, "/doctors/#{doctor.id}")}
+          class="hd-doctor-card block hover:shadow-md transition-shadow"
+        >
           <div class="flex items-start gap-3 p-5">
             <div class="hd-doctor-avatar flex-shrink-0">
-              <%= String.first(doctor.name) %>
+              {String.first(doctor.name)}
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <h3 class="text-sm font-semibold truncate" style="color: var(--text-main);"><%= doctor.name %></h3>
+                <h3 class="text-sm font-semibold truncate" style="color: var(--text-main);">
+                  {doctor.name}
+                </h3>
                 <%= if doctor.is_available do %>
                   <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
                 <% else %>
@@ -44,42 +72,66 @@
                 <% end %>
               </div>
               <div class="flex flex-wrap items-center gap-1 mt-1">
-                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style="background: rgba(2, 186, 151, 0.1); color: var(--accent);">
-                  <%= doctor.specialty %>
+                <span
+                  class="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+                  style="background: rgba(2, 186, 151, 0.1); color: var(--accent);"
+                >
+                  {doctor.specialty}
                 </span>
                 <%= if doctor.is_available do %>
                   <span class="hd-badge hd-badge--active">Available</span>
                 <% else %>
-                  <span class="hd-badge" style="background: #e5e7eb; color: #6b7280;">Unavailable</span>
+                  <span class="hd-badge" style="background: #e5e7eb; color: #6b7280;">
+                    Unavailable
+                  </span>
                 <% end %>
                 <%= if doctor.terms_accepted do %>
-                  <span class="hd-badge" style="background: rgba(2, 186, 151, 0.1); color: var(--accent);" title="Terms accepted">✓ Terms</span>
+                  <span
+                    class="hd-badge"
+                    style="background: rgba(2, 186, 151, 0.1); color: var(--accent);"
+                    title="Terms accepted"
+                  >
+                    ✓ Terms
+                  </span>
                 <% else %>
-                  <span class="hd-badge" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;" title="Terms not accepted">⚠ Terms</span>
+                  <span
+                    class="hd-badge"
+                    style="background: rgba(220, 38, 38, 0.1); color: #dc2626;"
+                    title="Terms not accepted"
+                  >
+                    ⚠ Terms
+                  </span>
                 <% end %>
               </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-4 gap-2 px-5 pb-4 pt-3 border-t" style="border-color: var(--border-subtle);">
+          <div
+            class="grid grid-cols-4 gap-2 px-5 pb-4 pt-3 border-t"
+            style="border-color: var(--border-subtle);"
+          >
             <div class="text-center">
               <div class="text-xs font-medium" style="color: var(--text-muted);">Cedula</div>
-              <div class="text-xs font-mono mt-1" style="color: var(--text-main);"><%= doctor.cedula_profesional || "---" %></div>
+              <div class="text-xs font-mono mt-1" style="color: var(--text-main);">
+                {doctor.cedula_profesional || "---"}
+              </div>
             </div>
             <div class="text-center">
               <div class="text-xs font-medium" style="color: var(--text-muted);">Ext. Code</div>
-              <div class="text-xs font-mono mt-1" style="color: var(--text-main);"><%= doctor.extension_code || "---" %></div>
+              <div class="text-xs font-mono mt-1" style="color: var(--text-main);">
+                {doctor.extension_code || "---"}
+              </div>
             </div>
             <div class="text-center">
               <div class="text-xs font-medium" style="color: var(--text-muted);">Experience</div>
               <div class="text-xs mt-1" style="color: var(--text-main);">
-                <%= if doctor.years_experience, do: "#{doctor.years_experience} yrs", else: "---" %>
+                {if doctor.years_experience, do: "#{doctor.years_experience} yrs", else: "---"}
               </div>
             </div>
             <div class="text-center">
               <div class="text-xs font-medium" style="color: var(--text-muted);">Video</div>
               <div class="text-xs mt-1" style="color: var(--text-main);">
-                <%= if doctor.accepts_video_calls, do: "✅", else: "❌" %>
+                {if doctor.accepts_video_calls, do: "✅", else: "❌"}
               </div>
             </div>
           </div>

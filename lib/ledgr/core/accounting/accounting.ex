@@ -3,7 +3,8 @@ defmodule Ledgr.Core.Accounting do
   Accounting context: chart of accounts and double-entry journal.
   """
   import Ecto.Query, warn: false
-  import Ecto.Changeset   # ⬅️ add this
+  # ⬅️ add this
+  import Ecto.Changeset
 
   alias Ledgr.Repo
   alias Ledgr.Core.Accounting.{Account, JournalEntry, JournalLine, MoneyTransfer}
@@ -42,16 +43,23 @@ defmodule Ledgr.Core.Accounting do
     # 1) Decide which inventory account we’re debiting
     {inv_account, inventory_type} =
       cond do
-        Keyword.get(opts, :packing, false) -> {get_account_by_code!(@packing_inventory_code), "Packing"}
-        Keyword.get(opts, :kitchen, false) -> {get_account_by_code!(@kitchen_inventory_code), "Kitchen"}
-        true -> {get_account_by_code!(@ingredients_inventory_code), "Ingredients"}
+        Keyword.get(opts, :packing, false) ->
+          {get_account_by_code!(@packing_inventory_code), "Packing"}
+
+        Keyword.get(opts, :kitchen, false) ->
+          {get_account_by_code!(@kitchen_inventory_code), "Kitchen"}
+
+        true ->
+          {get_account_by_code!(@ingredients_inventory_code), "Ingredients"}
       end
 
     # 2) Decide which account we’re CREDITING (paid from)
     paid_from_account =
       cond do
         # already have an account struct
-        acc = Keyword.get(opts, :paid_from_account) -> acc
+        acc = Keyword.get(opts, :paid_from_account) ->
+          acc
+
         id = Keyword.get(opts, :paid_from_account_id) ->
           id =
             case id do
@@ -68,17 +76,21 @@ defmodule Ledgr.Core.Accounting do
           Repo.get!(Ledgr.Core.Accounting.Account, id)
 
         # passed an account code like "1010"
-        code = Keyword.get(opts, :paid_from_account_code) -> get_account_by_code!(code)
+        code = Keyword.get(opts, :paid_from_account_code) ->
+          get_account_by_code!(code)
 
         # fallback → cash
-        true -> get_account_by_code!(@cash_code)
+        true ->
+          get_account_by_code!(@cash_code)
       end
 
     date = Keyword.get(opts, :purchase_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
 
     description =
-      Keyword.get(opts, :description,
+      Keyword.get(
+        opts,
+        :description,
         "#{inventory_type} inventory purchase (paid from #{paid_from_account.code})"
       )
 
@@ -118,16 +130,23 @@ defmodule Ledgr.Core.Accounting do
     # 1) Decide which inventory account we're crediting (reversing the purchase)
     {inv_account, inventory_type} =
       cond do
-        Keyword.get(opts, :packing, false) -> {get_account_by_code!(@packing_inventory_code), "Packing"}
-        Keyword.get(opts, :kitchen, false) -> {get_account_by_code!(@kitchen_inventory_code), "Kitchen"}
-        true -> {get_account_by_code!(@ingredients_inventory_code), "Ingredients"}
+        Keyword.get(opts, :packing, false) ->
+          {get_account_by_code!(@packing_inventory_code), "Packing"}
+
+        Keyword.get(opts, :kitchen, false) ->
+          {get_account_by_code!(@kitchen_inventory_code), "Kitchen"}
+
+        true ->
+          {get_account_by_code!(@ingredients_inventory_code), "Ingredients"}
       end
 
     # 2) Decide which account we're DEBITING (refund to)
     paid_from_account =
       cond do
         # already have an account struct
-        acc = Keyword.get(opts, :paid_from_account) -> acc
+        acc = Keyword.get(opts, :paid_from_account) ->
+          acc
+
         id = Keyword.get(opts, :paid_from_account_id) ->
           id =
             case id do
@@ -144,23 +163,28 @@ defmodule Ledgr.Core.Accounting do
           Repo.get!(Ledgr.Core.Accounting.Account, id)
 
         # passed an account code like "1010"
-        code = Keyword.get(opts, :paid_from_account_code) -> get_account_by_code!(code)
+        code = Keyword.get(opts, :paid_from_account_code) ->
+          get_account_by_code!(code)
 
         # fallback → cash
-        true -> get_account_by_code!(@cash_code)
+        true ->
+          get_account_by_code!(@cash_code)
       end
 
     date = Keyword.get(opts, :return_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
 
     description =
-      Keyword.get(opts, :description,
+      Keyword.get(
+        opts,
+        :description,
         "#{inventory_type} inventory return (refund to #{paid_from_account.code})"
       )
 
     entry_attrs = %{
       date: date,
-      entry_type: "inventory_purchase",  # Use same type for consistency, or we could add "inventory_return"
+      # Use same type for consistency, or we could add "inventory_return"
+      entry_type: "inventory_purchase",
       reference: reference,
       description: description
     }
@@ -202,7 +226,9 @@ defmodule Ledgr.Core.Accounting do
     # Decide which account we're CREDITING (paid from)
     paid_from_account =
       cond do
-        acc = Keyword.get(opts, :paid_from_account) -> acc
+        acc = Keyword.get(opts, :paid_from_account) ->
+          acc
+
         id = Keyword.get(opts, :paid_from_account_id) ->
           id =
             case id do
@@ -218,8 +244,11 @@ defmodule Ledgr.Core.Accounting do
 
           Repo.get!(Account, id)
 
-        code = Keyword.get(opts, :paid_from_account_code) -> get_account_by_code!(code)
-        true -> get_account_by_code!(@cash_code)
+        code = Keyword.get(opts, :paid_from_account_code) ->
+          get_account_by_code!(code)
+
+        true ->
+          get_account_by_code!(@cash_code)
       end
 
     date = Keyword.get(opts, :purchase_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
@@ -311,8 +340,8 @@ defmodule Ledgr.Core.Accounting do
   """
   def record_investment(amount_cents, opts) do
     cash_account_id = Keyword.fetch!(opts, :cash_account_id)
-    date            = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
-    partner_name    = Keyword.get(opts, :partner_name, "Partner")
+    date = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
+    partner_name = Keyword.get(opts, :partner_name, "Partner")
 
     cash_account = Repo.get!(Account, cash_account_id)
     equity_account = get_account_by_code!(@owners_equity_code)
@@ -344,10 +373,10 @@ defmodule Ledgr.Core.Accounting do
 
   def record_withdrawal(amount_cents, opts) do
     cash_account_id = Keyword.fetch!(opts, :cash_account_id)
-    date            = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
-    partner_name    = Keyword.get(opts, :partner_name, "Partner")
+    date = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
+    partner_name = Keyword.get(opts, :partner_name, "Partner")
 
-    cash_account   = Repo.get!(Account, cash_account_id)
+    cash_account = Repo.get!(Account, cash_account_id)
     # Withdrawals debit Owner's Drawings (contra-equity account)
     # At year-end, Owner's Drawings is closed to Retained Earnings
     owners_drawings = get_account_by_code!(@owners_drawings_code)
@@ -377,7 +406,6 @@ defmodule Ledgr.Core.Accounting do
     create_journal_entry_with_lines(entry_attrs, lines)
   end
 
-
   # ---------- Accounts ----------
 
   def list_accounts do
@@ -401,6 +429,7 @@ defmodule Ledgr.Core.Accounting do
     case result do
       %{earliest: earliest, latest: latest} when not is_nil(earliest) and not is_nil(latest) ->
         {earliest, latest}
+
       _ ->
         {nil, nil}
     end
@@ -426,7 +455,9 @@ defmodule Ledgr.Core.Accounting do
     current_net_income_cents = pnl.net_income_cents
 
     # Total equity = Owner's Equity + Retained Earnings - Owner's Drawings + Current Net Income
-    total_equity_cents = owners_equity_cents + retained_earnings_cents - owners_drawings_cents + current_net_income_cents
+    total_equity_cents =
+      owners_equity_cents + retained_earnings_cents - owners_drawings_cents +
+        current_net_income_cents
 
     %{
       owners_equity_cents: owners_equity_cents,
@@ -442,14 +473,16 @@ defmodule Ledgr.Core.Accounting do
     account = get_account_by_code(code)
 
     if account do
-      result = from(jl in JournalLine,
-        join: je in assoc(jl, :journal_entry),
-        where: jl.account_id == ^account.id,
-        select: %{
-          debits: coalesce(sum(jl.debit_cents), 0),
-          credits: coalesce(sum(jl.credit_cents), 0)
-        }
-      ) |> Repo.one()
+      result =
+        from(jl in JournalLine,
+          join: je in assoc(jl, :journal_entry),
+          where: jl.account_id == ^account.id,
+          select: %{
+            debits: coalesce(sum(jl.debit_cents), 0),
+            credits: coalesce(sum(jl.credit_cents), 0)
+          }
+        )
+        |> Repo.one()
 
       case account.normal_balance do
         "credit" -> (result.credits || 0) - (result.debits || 0)
@@ -490,8 +523,8 @@ defmodule Ledgr.Core.Accounting do
       balance_cents =
         case account.normal_balance do
           "credit" -> (result.credits || 0) - (result.debits || 0)
-          "debit"  -> (result.debits || 0) - (result.credits || 0)
-          _        -> 0
+          "debit" -> (result.debits || 0) - (result.credits || 0)
+          _ -> 0
         end
 
       %{account: account, balance_cents: balance_cents}
@@ -522,7 +555,9 @@ defmodule Ledgr.Core.Accounting do
   def cash_or_payable_account_options do
     Repo.all(
       from a in Account,
-        where: (a.type == "asset" and (a.is_cash == true or like(a.code, "11%"))) or a.type == "liability",
+        where:
+          (a.type == "asset" and (a.is_cash == true or like(a.code, "11%"))) or
+            a.type == "liability",
         order_by: [asc: a.code]
     )
     |> Enum.map(fn a ->
@@ -535,7 +570,9 @@ defmodule Ledgr.Core.Accounting do
   def cash_or_payable_account_options_with_currency do
     Repo.all(
       from a in Account,
-        where: (a.type == "asset" and (a.is_cash == true or like(a.code, "11%"))) or a.type == "liability",
+        where:
+          (a.type == "asset" and (a.is_cash == true or like(a.code, "11%"))) or
+            a.type == "liability",
         order_by: [asc: a.code]
     )
     |> Enum.map(fn a ->
@@ -674,8 +711,6 @@ defmodule Ledgr.Core.Accounting do
     |> Repo.update()
   end
 
-
-
   # -------- record_expense --------
 
   @doc """
@@ -747,9 +782,14 @@ defmodule Ledgr.Core.Accounting do
     # 1) Decide which inventory account we're crediting
     {inv_account, inventory_type} =
       cond do
-        Keyword.get(opts, :packing, false) -> {get_account_by_code!(@packing_inventory_code), "Packing"}
-        Keyword.get(opts, :kitchen, false) -> {get_account_by_code!(@kitchen_inventory_code), "Kitchen"}
-        true -> {get_account_by_code!(@ingredients_inventory_code), "Ingredients"}
+        Keyword.get(opts, :packing, false) ->
+          {get_account_by_code!(@packing_inventory_code), "Packing"}
+
+        Keyword.get(opts, :kitchen, false) ->
+          {get_account_by_code!(@kitchen_inventory_code), "Kitchen"}
+
+        true ->
+          {get_account_by_code!(@ingredients_inventory_code), "Ingredients"}
       end
 
     waste_expense_account = get_account_by_code!(@inventory_waste_code)
@@ -758,9 +798,7 @@ defmodule Ledgr.Core.Accounting do
     reference = Keyword.get(opts, :reference)
 
     description =
-      Keyword.get(opts, :description,
-        "#{inventory_type} inventory write-off (waste/shrinkage)"
-      )
+      Keyword.get(opts, :description, "#{inventory_type} inventory write-off (waste/shrinkage)")
 
     entry_attrs = %{
       date: date,
@@ -798,24 +836,25 @@ defmodule Ledgr.Core.Accounting do
     {inv_account, cogs_account, inventory_type} =
       cond do
         Keyword.get(opts, :packing, false) ->
-          {get_account_by_code!(@packing_inventory_code), get_account_by_code!(@packaging_cogs_code), "Packing"}
+          {get_account_by_code!(@packing_inventory_code),
+           get_account_by_code!(@packaging_cogs_code), "Packing"}
 
         Keyword.get(opts, :kitchen, false) ->
           # Kitchen equipment is typically not COGS, but expense
           # For now, we'll use Other Expenses for kitchen usage
-          {get_account_by_code!(@kitchen_inventory_code), get_account_by_code!(@other_expenses_code), "Kitchen"}
+          {get_account_by_code!(@kitchen_inventory_code),
+           get_account_by_code!(@other_expenses_code), "Kitchen"}
 
         true ->
-          {get_account_by_code!(@ingredients_inventory_code), get_account_by_code!(@ingredients_cogs_code), "Ingredients"}
+          {get_account_by_code!(@ingredients_inventory_code),
+           get_account_by_code!(@ingredients_cogs_code), "Ingredients"}
       end
 
     date = Keyword.get(opts, :usage_date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference)
 
     description =
-      Keyword.get(opts, :description,
-        "Manual #{inventory_type} inventory usage"
-      )
+      Keyword.get(opts, :description, "Manual #{inventory_type} inventory usage")
 
     entry_attrs = %{
       date: date,
@@ -913,10 +952,10 @@ defmodule Ledgr.Core.Accounting do
 
         # 2) Create the accounting journal entry
         case record_internal_transfer(amount_cents, from_id, to_id,
-              date: date,
-              note: note,
-              reference: "Transfer ##{transfer.id}"
-            ) do
+               date: date,
+               note: note,
+               reference: "Transfer ##{transfer.id}"
+             ) do
           {:ok, _entry} ->
             transfer
 
@@ -931,8 +970,8 @@ defmodule Ledgr.Core.Accounting do
 
         {:error, reason} ->
           {:error,
-          form_changeset
-          |> Ecto.Changeset.add_error(:base, "Failed to save transfer: #{inspect(reason)}")}
+           form_changeset
+           |> Ecto.Changeset.add_error(:base, "Failed to save transfer: #{inspect(reason)}")}
       end
     else
       {:error, form_changeset}
@@ -954,19 +993,19 @@ defmodule Ledgr.Core.Accounting do
 
   def change_transfer_form(attrs \\ %{}) do
     {%{
-      from_account_id: nil,
-      to_account_id: nil,
-      date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
-      amount_pesos: nil,
-      note: nil
-    },
-    %{
-      from_account_id: :integer,
-      to_account_id: :integer,
-      date: :date,
-      amount_pesos: :decimal,
-      note: :string
-    }}
+       from_account_id: nil,
+       to_account_id: nil,
+       date: LedgrWeb.Helpers.DomainHelpers.today_mx(),
+       amount_pesos: nil,
+       note: nil
+     },
+     %{
+       from_account_id: :integer,
+       to_account_id: :integer,
+       date: :date,
+       amount_pesos: :decimal,
+       note: :string
+     }}
     |> Ecto.Changeset.cast(attrs, [:from_account_id, :to_account_id, :date, :amount_pesos, :note])
     |> Ecto.Changeset.validate_required([
       :from_account_id,
@@ -980,7 +1019,7 @@ defmodule Ledgr.Core.Accounting do
 
   defp validate_different_accounts(changeset) do
     from_id = Ecto.Changeset.get_field(changeset, :from_account_id)
-    to_id   = Ecto.Changeset.get_field(changeset, :to_account_id)
+    to_id = Ecto.Changeset.get_field(changeset, :to_account_id)
 
     if from_id && to_id && from_id == to_id do
       Ecto.Changeset.add_error(changeset, :to_account_id, "must be different from source account")
@@ -992,10 +1031,10 @@ defmodule Ledgr.Core.Accounting do
   def record_internal_transfer(amount_cents, from_account_id, to_account_id, opts \\ []) do
     date = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     note = Keyword.get(opts, :note, nil)
-    ref  = Keyword.get(opts, :reference, nil)
+    ref = Keyword.get(opts, :reference, nil)
 
     from_acct = Repo.get!(Account, from_account_id)
-    to_acct   = Repo.get!(Account, to_account_id)
+    to_acct = Repo.get!(Account, to_account_id)
 
     if from_acct.id == to_acct.id do
       raise ArgumentError, "cannot transfer within the same account"
@@ -1007,13 +1046,13 @@ defmodule Ledgr.Core.Accounting do
     unless from_acct.type in allowed_types and to_acct.type in allowed_types do
       raise ArgumentError,
             "record_internal_transfer supports only asset/liability accounts. " <>
-            "Use a dedicated accounting function for revenue/expenses/equity."
+              "Use a dedicated accounting function for revenue/expenses/equity."
     end
 
     description =
       note ||
         "Transfer from #{from_acct.code} #{from_acct.name} " <>
-        "to #{to_acct.code} #{to_acct.name}"
+          "to #{to_acct.code} #{to_acct.name}"
 
     entry_attrs = %{
       date: date,
@@ -1070,7 +1109,8 @@ defmodule Ledgr.Core.Accounting do
           # Update the journal entry
           entry_attrs = %{
             date: date,
-            description: note || "Transfer from #{describe_account(from_id)} to #{describe_account(to_id)}"
+            description:
+              note || "Transfer from #{describe_account(from_id)} to #{describe_account(to_id)}"
           }
 
           from_acct = Repo.get!(Account, from_id)
@@ -1113,8 +1153,13 @@ defmodule Ledgr.Core.Accounting do
         end
       end)
       |> case do
-        {:ok, transfer} -> {:ok, transfer}
-        {:error, reason} -> {:error, form_changeset |> Ecto.Changeset.add_error(:base, "Failed to update transfer: #{inspect(reason)}")}
+        {:ok, transfer} ->
+          {:ok, transfer}
+
+        {:error, reason} ->
+          {:error,
+           form_changeset
+           |> Ecto.Changeset.add_error(:base, "Failed to update transfer: #{inspect(reason)}")}
       end
     else
       {:error, form_changeset}
@@ -1161,6 +1206,7 @@ defmodule Ledgr.Core.Accounting do
     cents = abs(cents)
 
     pesos = div(cents, 100)
+
     centavos =
       cents
       |> rem(100)
@@ -1176,7 +1222,6 @@ defmodule Ledgr.Core.Accounting do
       acc -> "#{acc.code} – #{acc.name}"
     end
   end
-
 
   # ---------- Financial Statements ----------
 
@@ -1195,7 +1240,6 @@ defmodule Ledgr.Core.Accounting do
     - net_income_cents
   """
   def profit_and_loss(start_date, end_date) do
-
     # 1) Aggregate debits & credits per account in the period
     query =
       from je in JournalEntry,
@@ -1217,7 +1261,8 @@ defmodule Ledgr.Core.Accounting do
     rows =
       query
       |> Repo.all()
-      |> Enum.map(fn {account_id, code, name, type, normal_balance, is_cogs, debit_cents, credit_cents} ->
+      |> Enum.map(fn {account_id, code, name, type, normal_balance, is_cogs, debit_cents,
+                      credit_cents} ->
         %{
           account_id: account_id,
           code: code,
@@ -1260,8 +1305,11 @@ defmodule Ledgr.Core.Accounting do
       Enum.reduce(revenue_accounts, 0, fn acc, sum ->
         if acc.normal_balance == "debit", do: sum - acc.net_cents, else: sum + acc.net_cents
       end)
+
     total_cogs_cents = Enum.reduce(cogs_accounts, 0, fn acc, sum -> sum + acc.net_cents end)
-    total_opex_cents = Enum.reduce(operating_expense_accounts, 0, fn acc, sum -> sum + acc.net_cents end)
+
+    total_opex_cents =
+      Enum.reduce(operating_expense_accounts, 0, fn acc, sum -> sum + acc.net_cents end)
 
     gross_profit_cents = total_revenue_cents - total_cogs_cents
     operating_income_cents = gross_profit_cents - total_opex_cents
@@ -1324,7 +1372,7 @@ defmodule Ledgr.Core.Accounting do
       |> Enum.map(fn offset ->
         {y, m} = shift_year_month(year, month, -offset)
         start_date = %Date{year: y, month: m, day: 1}
-        end_date   = end_of_month(start_date)
+        end_date = end_of_month(start_date)
         {start_date, end_date}
       end)
       |> Enum.reverse()
@@ -1360,21 +1408,25 @@ defmodule Ledgr.Core.Accounting do
   defp pad2(int) when is_integer(int), do: Integer.to_string(int)
 
   def balance_sheet(as_of_date) do
-
     # 1) Aggregate balances by account (assets, liabilities, equity)
     # Use a subquery to get only journal lines whose entry is on or before as_of_date,
     # then LEFT JOIN to accounts so zero-balance accounts still appear.
     dated_lines =
       from jl in JournalLine,
-        join: je in JournalEntry, on: jl.journal_entry_id == je.id,
+        join: je in JournalEntry,
+        on: jl.journal_entry_id == je.id,
         where: je.date <= ^as_of_date,
-        select: %{account_id: jl.account_id, debit_cents: jl.debit_cents, credit_cents: jl.credit_cents}
+        select: %{
+          account_id: jl.account_id,
+          debit_cents: jl.debit_cents,
+          credit_cents: jl.credit_cents
+        }
 
     rows =
       from a in Account,
         where: a.type in ["asset", "liability", "equity"],
         left_join: dl in subquery(dated_lines),
-          on: dl.account_id == a.id,
+        on: dl.account_id == a.id,
         group_by: [a.id, a.code, a.name, a.type, a.normal_balance],
         select: %{
           account: a,
@@ -1404,15 +1456,18 @@ defmodule Ledgr.Core.Accounting do
 
           case account.type do
             "asset" ->
-              %{acc |
-                assets: acc.assets ++ [%{account: account, amount_cents: amount_cents}],
-                total_assets_cents: acc.total_assets_cents + amount_cents
+              %{
+                acc
+                | assets: acc.assets ++ [%{account: account, amount_cents: amount_cents}],
+                  total_assets_cents: acc.total_assets_cents + amount_cents
               }
 
             "liability" ->
-              %{acc |
-                liabilities: acc.liabilities ++ [%{account: account, amount_cents: amount_cents}],
-                total_liabilities_cents: acc.total_liabilities_cents + amount_cents
+              %{
+                acc
+                | liabilities:
+                    acc.liabilities ++ [%{account: account, amount_cents: amount_cents}],
+                  total_liabilities_cents: acc.total_liabilities_cents + amount_cents
               }
 
             "equity" ->
@@ -1420,14 +1475,17 @@ defmodule Ledgr.Core.Accounting do
               # their positive balance should REDUCE total equity
               equity_contribution =
                 if account.normal_balance == "debit" do
-                  -amount_cents  # Contra-equity reduces total equity
+                  # Contra-equity reduces total equity
+                  -amount_cents
                 else
-                  amount_cents   # Normal equity increases total equity
+                  # Normal equity increases total equity
+                  amount_cents
                 end
 
-              %{acc |
-                equity: acc.equity ++ [%{account: account, amount_cents: amount_cents}],
-                total_equity_cents: acc.total_equity_cents + equity_contribution
+              %{
+                acc
+                | equity: acc.equity ++ [%{account: account, amount_cents: amount_cents}],
+                  total_equity_cents: acc.total_equity_cents + equity_contribution
               }
           end
         end
@@ -1480,10 +1538,12 @@ defmodule Ledgr.Core.Accounting do
   """
   def close_year_end(close_date) do
     # Check if already closed for this date
-    existing = from(je in JournalEntry,
-      where: je.entry_type == "year_end_close" and je.date == ^close_date,
-      select: je.id
-    ) |> Repo.one()
+    existing =
+      from(je in JournalEntry,
+        where: je.entry_type == "year_end_close" and je.date == ^close_date,
+        select: je.id
+      )
+      |> Repo.one()
 
     if existing do
       {:error, "Year-end close already exists for #{close_date}"}
@@ -1512,63 +1572,87 @@ defmodule Ledgr.Core.Accounting do
           date: close_date,
           entry_type: "year_end_close",
           reference: "Year-End Close #{close_date.year}",
-          description: "Close #{close_date.year} net income and owner's drawings to retained earnings"
+          description:
+            "Close #{close_date.year} net income and owner's drawings to retained earnings"
         }
 
         lines = []
 
         # Close each revenue account (debit to zero out credit balances)
-        lines = Enum.reduce(temp_account_balances, lines, fn
-          %{type: "revenue", account_id: acc_id, net_cents: net, name: name}, acc when net != 0 ->
-            # Revenue has credit-normal balance; debit to close it
-            acc ++ [%{
-              account_id: acc_id,
-              debit_cents: max(net, 0),
-              credit_cents: max(-net, 0),
-              description: "Close #{name} to retained earnings"
-            }]
-          %{type: "expense", account_id: acc_id, net_cents: net, name: name}, acc when net != 0 ->
-            # Expense has debit-normal balance; credit to close it
-            acc ++ [%{
-              account_id: acc_id,
-              debit_cents: max(-net, 0),
-              credit_cents: max(net, 0),
-              description: "Close #{name} to retained earnings"
-            }]
-          _, acc -> acc
-        end)
+        lines =
+          Enum.reduce(temp_account_balances, lines, fn
+            %{type: "revenue", account_id: acc_id, net_cents: net, name: name}, acc
+            when net != 0 ->
+              # Revenue has credit-normal balance; debit to close it
+              acc ++
+                [
+                  %{
+                    account_id: acc_id,
+                    debit_cents: max(net, 0),
+                    credit_cents: max(-net, 0),
+                    description: "Close #{name} to retained earnings"
+                  }
+                ]
+
+            %{type: "expense", account_id: acc_id, net_cents: net, name: name}, acc
+            when net != 0 ->
+              # Expense has debit-normal balance; credit to close it
+              acc ++
+                [
+                  %{
+                    account_id: acc_id,
+                    debit_cents: max(-net, 0),
+                    credit_cents: max(net, 0),
+                    description: "Close #{name} to retained earnings"
+                  }
+                ]
+
+            _, acc ->
+              acc
+          end)
 
         # Close Owner's Drawings (credit to zero out debit balance)
-        lines = if owners_drawings_balance > 0 do
-          lines ++ [%{
-            account_id: owners_drawings_account.id,
-            debit_cents: 0,
-            credit_cents: owners_drawings_balance,
-            description: "Close owner's drawings to retained earnings"
-          }]
-        else
-          lines
-        end
+        lines =
+          if owners_drawings_balance > 0 do
+            lines ++
+              [
+                %{
+                  account_id: owners_drawings_account.id,
+                  debit_cents: 0,
+                  credit_cents: owners_drawings_balance,
+                  description: "Close owner's drawings to retained earnings"
+                }
+              ]
+          else
+            lines
+          end
 
         # Retained Earnings gets the balancing amount
         # Net amount = Net Income - Owner's Drawings
         amount_to_close = pnl.net_income_cents - owners_drawings_balance
 
-        lines = if amount_to_close >= 0 do
-          lines ++ [%{
-            account_id: retained_earnings.id,
-            debit_cents: 0,
-            credit_cents: amount_to_close,
-            description: "Net income closed to retained earnings"
-          }]
-        else
-          lines ++ [%{
-            account_id: retained_earnings.id,
-            debit_cents: abs(amount_to_close),
-            credit_cents: 0,
-            description: "Net loss closed to retained earnings"
-          }]
-        end
+        lines =
+          if amount_to_close >= 0 do
+            lines ++
+              [
+                %{
+                  account_id: retained_earnings.id,
+                  debit_cents: 0,
+                  credit_cents: amount_to_close,
+                  description: "Net income closed to retained earnings"
+                }
+              ]
+          else
+            lines ++
+              [
+                %{
+                  account_id: retained_earnings.id,
+                  debit_cents: abs(amount_to_close),
+                  credit_cents: 0,
+                  description: "Net loss closed to retained earnings"
+                }
+              ]
+          end
 
         create_journal_entry_with_lines(entry_attrs, lines)
       end
@@ -1597,11 +1681,13 @@ defmodule Ledgr.Core.Accounting do
     )
     |> Repo.all()
     |> Enum.map(fn row ->
-      net = case row.type do
-        "revenue" -> row.credit_cents - row.debit_cents
-        "expense" -> row.debit_cents - row.credit_cents
-        _ -> 0
-      end
+      net =
+        case row.type do
+          "revenue" -> row.credit_cents - row.debit_cents
+          "expense" -> row.debit_cents - row.credit_cents
+          _ -> 0
+        end
+
       Map.put(row, :net_cents, net)
     end)
   end
@@ -1611,12 +1697,15 @@ defmodule Ledgr.Core.Accounting do
     owners_drawings = get_account_by_code(@owners_drawings_code)
 
     if owners_drawings do
-      result = from(je in JournalEntry,
-        join: jl in assoc(je, :journal_lines),
-        where: jl.account_id == ^owners_drawings.id and
-               je.date >= ^start_date and je.date <= ^end_date,
-        select: coalesce(sum(jl.debit_cents), 0) - coalesce(sum(jl.credit_cents), 0)
-      ) |> Repo.one()
+      result =
+        from(je in JournalEntry,
+          join: jl in assoc(je, :journal_lines),
+          where:
+            jl.account_id == ^owners_drawings.id and
+              je.date >= ^start_date and je.date <= ^end_date,
+          select: coalesce(sum(jl.debit_cents), 0) - coalesce(sum(jl.credit_cents), 0)
+        )
+        |> Repo.one()
 
       result || 0
     else
@@ -1632,20 +1721,25 @@ defmodule Ledgr.Core.Accounting do
     cash_account =
       case contrib.cash_account do
         %Account{} = acc -> acc
-        _ -> get_account_by_code!(@cash_code) # fallback, just in case
+        # fallback, just in case
+        _ -> get_account_by_code!(@cash_code)
       end
 
     equity_account = get_account_by_code!(@owners_equity_code)
-    amount        = contrib.amount_cents
+    amount = contrib.amount_cents
 
     case contrib.direction do
-      "in"  -> record_owner_investment(contrib, cash_account, equity_account, amount)
+      "in" ->
+        record_owner_investment(contrib, cash_account, equity_account, amount)
+
       "out" ->
         # Withdrawals must debit Owner's Drawings (contra-equity), not Owner's Equity directly.
         # Owner's Drawings is closed to Retained Earnings at year-end.
         drawings_account = get_account_by_code!(@owners_drawings_code)
         record_owner_withdrawal(contrib, cash_account, drawings_account, amount)
-      _     -> {:error, :unknown_direction}
+
+      _ ->
+        {:error, :unknown_direction}
     end
   end
 
@@ -1656,7 +1750,7 @@ defmodule Ledgr.Core.Accounting do
       reference: "Capital contribution ##{contrib.id}",
       description:
         contrib.note ||
-          "Owner investment by #{contrib.partner && contrib.partner.name || "Partner"}"
+          "Owner investment by #{(contrib.partner && contrib.partner.name) || "Partner"}"
     }
 
     lines = [
@@ -1684,7 +1778,7 @@ defmodule Ledgr.Core.Accounting do
       reference: "Capital withdrawal ##{contrib.id}",
       description:
         contrib.note ||
-          "Owner withdrawal by #{contrib.partner && contrib.partner.name || "Partner"}"
+          "Owner withdrawal by #{(contrib.partner && contrib.partner.name) || "Partner"}"
     }
 
     lines = [
@@ -1727,7 +1821,9 @@ defmodule Ledgr.Core.Accounting do
 
     date = Keyword.get(opts, :date, LedgrWeb.Helpers.DomainHelpers.today_mx())
     reference = Keyword.get(opts, :reference, "Monthly depreciation")
-    description = Keyword.get(opts, :description, "Monthly straight-line depreciation - Kitchen Equipment")
+
+    description =
+      Keyword.get(opts, :description, "Monthly straight-line depreciation - Kitchen Equipment")
 
     entry_attrs = %{
       date: date,

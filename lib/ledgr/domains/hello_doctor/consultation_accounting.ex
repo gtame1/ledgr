@@ -46,7 +46,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
     stripe_session_id = opts[:stripe_session_id]
 
     # Fetch actual Stripe fee if we have a session ID
-    fee_cents = fetch_stripe_fee_cents(stripe_session_id) || estimate_stripe_fee_cents(amount_cents)
+    fee_cents =
+      fetch_stripe_fee_cents(stripe_session_id) || estimate_stripe_fee_cents(amount_cents)
 
     patient_name =
       if consultation.patient do
@@ -120,11 +121,17 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
 
     case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
       {:ok, entry} ->
-        Logger.info("[HelloDoctor] Created journal entry ##{entry.id} for consultation #{consultation.id}: $#{amount_pesos} MXN")
+        Logger.info(
+          "[HelloDoctor] Created journal entry ##{entry.id} for consultation #{consultation.id}: $#{amount_pesos} MXN"
+        )
+
         {:ok, entry}
 
       {:error, changeset} ->
-        Logger.error("[HelloDoctor] Failed to create journal entry for consultation #{consultation.id}: #{inspect(changeset)}")
+        Logger.error(
+          "[HelloDoctor] Failed to create journal entry for consultation #{consultation.id}: #{inspect(changeset)}"
+        )
+
         {:error, changeset}
     end
   end
@@ -148,7 +155,9 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
             payment_intent_id = session.payment_intent
 
             if payment_intent_id do
-              case Stripe.PaymentIntent.retrieve(payment_intent_id, %{expand: ["latest_charge"]}, api_key: api_key) do
+              case Stripe.PaymentIntent.retrieve(payment_intent_id, %{expand: ["latest_charge"]},
+                     api_key: api_key
+                   ) do
                 {:ok, pi} ->
                   charge = pi.latest_charge
 
@@ -166,17 +175,22 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
                     nil
                   end
 
-                _ -> nil
+                _ ->
+                  nil
               end
             else
               nil
             end
 
-          _ -> nil
+          _ ->
+            nil
         end
       rescue
         e ->
-          Logger.warning("[HelloDoctor] Failed to fetch Stripe fee for session #{session_id}: #{inspect(e)}")
+          Logger.warning(
+            "[HelloDoctor] Failed to fetch Stripe fee for session #{session_id}: #{inspect(e)}"
+          )
+
           nil
       end
     end

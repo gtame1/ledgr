@@ -30,21 +30,31 @@
         <% else %>
           <%= for supplier <- @suppliers do %>
             <tr>
-              <td><%= supplier.name %></td>
+              <td>{supplier.name}</td>
               <td>
                 <%= if supplier.category do %>
-                  <span class="status-badge"><%= String.capitalize(String.replace(supplier.category, "_", " ")) %></span>
+                  <span class="status-badge">
+                    {String.capitalize(String.replace(supplier.category, "_", " "))}
+                  </span>
                 <% end %>
               </td>
-              <td><%= supplier.contact_name %></td>
-              <td><%= supplier.email %></td>
-              <td><%= supplier.phone %></td>
+              <td>{supplier.contact_name}</td>
+              <td>{supplier.email}</td>
+              <td>{supplier.phone}</td>
               <td>
                 <div style="display: flex; gap: 0.5rem;">
-                  <.link navigate={dp(@domain_path_prefix, "/suppliers/#{supplier.id}/edit")} class="btn btn-sm">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/suppliers/#{supplier.id}/edit")}
+                    class="btn btn-sm"
+                  >
                     Edit
                   </.link>
-                  <.link href={dp(@domain_path_prefix, "/suppliers/#{supplier.id}")} method="delete" data-confirm="Are you sure?" class="btn btn-sm danger">
+                  <.link
+                    href={dp(@domain_path_prefix, "/suppliers/#{supplier.id}")}
+                    method="delete"
+                    data-confirm="Are you sure?"
+                    class="btn btn-sm danger"
+                  >
                     Delete
                   </.link>
                 </div>

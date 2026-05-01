@@ -4,7 +4,8 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.MovementForm do
 
   @primary_key false
   embedded_schema do
-    field :movement_type, :string        # "usage" | "transfer" | "write_off"
+    # "usage" | "transfer" | "write_off"
+    field :movement_type, :string
     field :ingredient_code, :string
     field :from_location_code, :string
     field :to_location_code, :string
@@ -69,5 +70,4 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.MovementForm do
         changeset
     end
   end
-
 end

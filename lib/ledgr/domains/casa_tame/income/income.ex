@@ -29,14 +29,18 @@ defmodule Ledgr.Domains.CasaTame.Income do
   defp maybe_filter(query, _field, nil), do: query
   defp maybe_filter(query, _field, ""), do: query
   defp maybe_filter(query, :currency, val), do: from(e in query, where: e.currency == ^val)
-  defp maybe_filter(query, :income_category_id, val), do: from(e in query, where: e.income_category_id == ^val)
+
+  defp maybe_filter(query, :income_category_id, val),
+    do: from(e in query, where: e.income_category_id == ^val)
 
   defp maybe_filter_date(query, _dir, nil), do: query
   defp maybe_filter_date(query, _dir, ""), do: query
+
   defp maybe_filter_date(query, :date_from, d) do
     date = if is_binary(d), do: Date.from_iso8601!(d), else: d
     from e in query, where: e.date >= ^date
   end
+
   defp maybe_filter_date(query, :date_to, d) do
     date = if is_binary(d), do: Date.from_iso8601!(d), else: d
     from e in query, where: e.date <= ^date
@@ -185,15 +189,15 @@ defmodule Ledgr.Domains.CasaTame.Income do
   # Maps income category names to revenue account codes.
   # Currency-aware: Wages maps to USD or MXN wages based on the entry's currency.
   @category_to_revenue %{
-    "Wages & Salary"            => %{"USD" => "4000", "MXN" => "4010"},
-    "Freelance & Consulting"    => %{"USD" => "4020", "MXN" => "4020"},
-    "Freelance"                 => %{"USD" => "4020", "MXN" => "4020"},
-    "Investment Returns"        => %{"USD" => "4030", "MXN" => "4030"},
-    "Investments & Dividends"   => %{"USD" => "4030", "MXN" => "4030"},
-    "Rental Income"             => %{"USD" => "4040", "MXN" => "4040"},
-    "Side Income"               => %{"USD" => "4020", "MXN" => "4020"},
-    "Gifts & Misc"              => %{"USD" => "4050", "MXN" => "4050"},
-    "Refunds & Reimbursements"  => %{"USD" => "4050", "MXN" => "4050"}
+    "Wages & Salary" => %{"USD" => "4000", "MXN" => "4010"},
+    "Freelance & Consulting" => %{"USD" => "4020", "MXN" => "4020"},
+    "Freelance" => %{"USD" => "4020", "MXN" => "4020"},
+    "Investment Returns" => %{"USD" => "4030", "MXN" => "4030"},
+    "Investments & Dividends" => %{"USD" => "4030", "MXN" => "4030"},
+    "Rental Income" => %{"USD" => "4040", "MXN" => "4040"},
+    "Side Income" => %{"USD" => "4020", "MXN" => "4020"},
+    "Gifts & Misc" => %{"USD" => "4050", "MXN" => "4050"},
+    "Refunds & Reimbursements" => %{"USD" => "4050", "MXN" => "4050"}
   }
 
   defp resolve_revenue_account(%IncomeEntry{} = entry) do
@@ -218,11 +222,19 @@ defmodule Ledgr.Domains.CasaTame.Income do
         case Accounting.get_account_by_code(@default_revenue_code) do
           nil ->
             require Logger
-            Logger.error("[Income] No revenue account found for code=#{code} or default=#{@default_revenue_code}. Please seed revenue accounts.")
+
+            Logger.error(
+              "[Income] No revenue account found for code=#{code} or default=#{@default_revenue_code}. Please seed revenue accounts."
+            )
+
             raise "Missing revenue account: #{code}"
-          account -> account
+
+          account ->
+            account
         end
-      account -> account
+
+      account ->
+        account
     end
   end
 end

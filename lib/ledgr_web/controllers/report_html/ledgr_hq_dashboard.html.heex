@@ -6,15 +6,18 @@
 
   <div class="content-body">
     <% m = @metrics %>
-
-    <!-- P&L Summary -->
+    
+<!-- P&L Summary -->
     <section class="card">
       <div class="card-header">
         <div>
           <h2 class="card-title">Monthly P&L</h2>
           <p class="card-subtitle">Revenue, costs, and margin at a glance.</p>
         </div>
-        <.link navigate={dp(@domain_path_prefix, "/client-subscriptions?status=active")} class="btn sm">
+        <.link
+          navigate={dp(@domain_path_prefix, "/client-subscriptions?status=active")}
+          class="btn sm"
+        >
           All subscriptions
         </.link>
       </div>
@@ -24,50 +27,62 @@
           <tbody>
             <tr>
               <td style="font-weight: 600;">Revenue (MRR)</td>
-              <td style="text-align: right; font-weight: 600;"><%= format_currency(m.mrr_cents) %></td>
+              <td style="text-align: right; font-weight: 600;">{format_currency(m.mrr_cents)}</td>
             </tr>
             <tr style="color: var(--text-muted); font-size: 0.88rem;">
               <td style="padding-left: 1.5rem;">Annualized (ARR)</td>
-              <td style="text-align: right;"><%= format_currency(m.arr_cents) %></td>
+              <td style="text-align: right;">{format_currency(m.arr_cents)}</td>
             </tr>
 
-            <tr><td colspan="2" style="padding: 0; border-bottom: 1px solid var(--border);"></td></tr>
+            <tr>
+              <td colspan="2" style="padding: 0; border-bottom: 1px solid var(--border);"></td>
+            </tr>
 
             <tr>
               <td style="font-weight: 600;">Operating Expenses</td>
-              <td style="text-align: right; font-weight: 600; color: #b91c1c;"><%= format_currency(m.total_opex_cents) %></td>
+              <td style="text-align: right; font-weight: 600; color: #b91c1c;">
+                {format_currency(m.total_opex_cents)}
+              </td>
             </tr>
             <tr style="color: var(--text-muted); font-size: 0.88rem;">
               <td style="padding-left: 1.5rem;">
-                <.link navigate={dp(@domain_path_prefix, "/costs")} style="color: inherit; text-decoration: none;">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/costs")}
+                  style="color: inherit; text-decoration: none;"
+                >
                   Infra Costs (recurring)
                 </.link>
               </td>
-              <td style="text-align: right;"><%= format_currency(m.monthly_costs_cents) %></td>
+              <td style="text-align: right;">{format_currency(m.monthly_costs_cents)}</td>
             </tr>
             <tr style="color: var(--text-muted); font-size: 0.88rem;">
               <td style="padding-left: 1.5rem;">
-                <.link navigate={dp(@domain_path_prefix, "/expenses")} style="color: inherit; text-decoration: none;">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/expenses")}
+                  style="color: inherit; text-decoration: none;"
+                >
                   Expenses (MTD)
                 </.link>
               </td>
-              <td style="text-align: right;"><%= format_currency(m.total_expenses_cents) %></td>
+              <td style="text-align: right;">{format_currency(m.total_expenses_cents)}</td>
             </tr>
 
-            <tr><td colspan="2" style="padding: 0; border-bottom: 2px solid var(--text-main);"></td></tr>
+            <tr>
+              <td colspan="2" style="padding: 0; border-bottom: 2px solid var(--text-main);"></td>
+            </tr>
 
             <tr>
               <td style="font-weight: 700; font-size: 1.05rem;">Net Margin / mo</td>
               <td style={"text-align: right; font-weight: 700; font-size: 1.05rem; color: #{if m.net_margin_cents >= 0, do: "#15803d", else: "#b91c1c"};"}>
-                <%= format_currency(m.net_margin_cents) %>
+                {format_currency(m.net_margin_cents)}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Client Stats -->
+    
+<!-- Client Stats -->
     <section class="card">
       <div class="card-header">
         <div>
@@ -82,24 +97,28 @@
           <tbody>
             <tr>
               <td>Active Clients</td>
-              <td style="text-align: right; font-weight: 600;"><%= m.active_clients_count %></td>
+              <td style="text-align: right; font-weight: 600;">{m.active_clients_count}</td>
             </tr>
             <tr>
               <td>Total Clients</td>
-              <td style="text-align: right; font-weight: 600;"><%= m.total_clients_count %></td>
+              <td style="text-align: right; font-weight: 600;">{m.total_clients_count}</td>
             </tr>
             <tr>
               <td>Churned This Month</td>
               <td style={"text-align: right; font-weight: 600; color: #{if m.churned_this_month > 0, do: "#b91c1c", else: "inherit"};"}>
-                <%= m.churned_this_month %>
+                {m.churned_this_month}
               </td>
             </tr>
             <tr>
               <td>Cost per Client</td>
-              <td style="text-align: right; font-weight: 600;"><%= format_currency(m.cost_per_client_cents) %></td>
+              <td style="text-align: right; font-weight: 600;">
+                {format_currency(m.cost_per_client_cents)}
+              </td>
             </tr>
             <%= if m.recent_clients != [] do %>
-              <tr><td colspan="2" style="padding: 0; border-bottom: 1px solid var(--border);"></td></tr>
+              <tr>
+                <td colspan="2" style="padding: 0; border-bottom: 1px solid var(--border);"></td>
+              </tr>
               <tr>
                 <td colspan="2">
                   <p class="card-subtitle" style="margin-bottom: 0.5rem;">Recent clients</p>
@@ -109,7 +128,7 @@
                         navigate={dp(@domain_path_prefix, "/clients/#{client.id}")}
                         style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 0.82rem; font-weight: 500; text-decoration: none;"
                       >
-                        <%= client.name %>
+                        {client.name}
                         <span style={"display:inline-block;width:6px;height:6px;border-radius:50%;background:#{status_dot_color(client.status)}"}>
                         </span>
                       </.link>
@@ -122,18 +141,26 @@
         </table>
       </div>
     </section>
-
-    <!-- Quick Links -->
+    
+<!-- Quick Links -->
     <section class="card">
       <div class="card-header">
         <h2 class="card-title">Quick Actions</h2>
       </div>
       <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-        <.link navigate={dp(@domain_path_prefix, "/clients/new")} class="btn primary">+ New Client</.link>
-        <.link navigate={dp(@domain_path_prefix, "/client-subscriptions/new")} class="btn">+ New Subscription</.link>
+        <.link navigate={dp(@domain_path_prefix, "/clients/new")} class="btn primary">
+          + New Client
+        </.link>
+        <.link navigate={dp(@domain_path_prefix, "/client-subscriptions/new")} class="btn">
+          + New Subscription
+        </.link>
         <.link navigate={dp(@domain_path_prefix, "/costs/new")} class="btn">+ Add Cost</.link>
-        <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="btn">+ New Expense</.link>
-        <.link navigate={dp(@domain_path_prefix, "/subscription-plans/new")} class="btn">+ New Plan</.link>
+        <.link navigate={dp(@domain_path_prefix, "/expenses/new")} class="btn">
+          + New Expense
+        </.link>
+        <.link navigate={dp(@domain_path_prefix, "/subscription-plans/new")} class="btn">
+          + New Plan
+        </.link>
       </div>
     </section>
   </div>

@@ -9,116 +9,116 @@
   </div>
 
   <section class="card">
-      <h2 class="card-title">Edit Purchase</h2>
-      <p class="card-subtitle">
-        Update purchase details. This will reverse the old purchase and create a new one with updated values.
-      </p>
+    <h2 class="card-title">Edit Purchase</h2>
+    <p class="card-subtitle">
+      Update purchase details. This will reverse the old purchase and create a new one with updated values.
+    </p>
 
-      <.form
-        for={@changeset}
-        as={:purchase}
-        action={dp(@domain_path_prefix, "/inventory/purchases/#{@movement.id}")}
-        method="put"
-        class="form-grid"
-        :let={f}
-      >
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={f[:ingredient_code]}
-              id="purchase_ingredient_code"
-              type="select"
-              label="Ingredient"
-              prompt="Choose an ingredient"
-              options={@ingredient_options}
-            />
-            <p class="field-help" id="ingredient-info">
-              Unit: –, current avg cost: –
-            </p>
-          </div>
-
-          <div class="field">
-            <.input
-              field={f[:location_code]}
-              type="select"
-              label="Location"
-              prompt="Choose a location"
-              options={@location_options}
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={f[:paid_from_account_id]}
-              type="select"
-              label="Paid from Account"
-              prompt="Select payment account"
-              options={@paid_from_account_options}
-            />
-          </div>
+    <.form
+      :let={f}
+      for={@changeset}
+      as={:purchase}
+      action={dp(@domain_path_prefix, "/inventory/purchases/#{@movement.id}")}
+      method="put"
+      class="form-grid"
+    >
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={f[:ingredient_code]}
+            id="purchase_ingredient_code"
+            type="select"
+            label="Ingredient"
+            prompt="Choose an ingredient"
+            options={@ingredient_options}
+          />
+          <p class="field-help" id="ingredient-info">
+            Unit: –, current avg cost: –
+          </p>
         </div>
 
-        <div class="form-block">
-          <div class="field">
-            <!-- Custom label so we can change the unit via JS -->
-            <label for="purchase_quantity">
-              Quantity (<span id="quantity-unit-label">units</span>)
-            </label>
-            <.input
-              field={f[:quantity]}
-              id="purchase_quantity"
-              type="number"
-              label=""
-              min="1"
-            />
-            <p class="field-help">
-              Use the same unit as configured for the ingredient (e.g. g, ml, units).
-            </p>
-          </div>
-
-          <div class="field">
-            <.input
-              field={f[:total_cost_pesos]}
-              id="purchase_total_cost_pesos"
-              type="number"
-              label="Total cost (MXN)"
-              step="0.01"
-              min="0"
-            />
-            <p class="field-help" id="unit-price-display">
-              Unit price: –
-            </p>
-          </div>
-
-          <div class="field">
-            <.input
-              field={f[:purchase_date]}
-              type="date"
-              label="Purchase Date"
-            />
-          </div>
+        <div class="field">
+          <.input
+            field={f[:location_code]}
+            type="select"
+            label="Location"
+            prompt="Choose a location"
+            options={@location_options}
+          />
         </div>
 
-        <div class="form-block">
-          <div class="field" style="width: 100%;">
-            <.input
-              field={f[:notes]}
-              type="text"
-              label="Notes (optional)"
-              placeholder="e.g. Bought at Costco, receipt #1234"
-            />
-          </div>
+        <div class="field">
+          <.input
+            field={f[:paid_from_account_id]}
+            type="select"
+            label="Paid from Account"
+            prompt="Select payment account"
+            options={@paid_from_account_options}
+          />
+        </div>
+      </div>
+
+      <div class="form-block">
+        <div class="field">
+          <!-- Custom label so we can change the unit via JS -->
+          <label for="purchase_quantity">
+            Quantity (<span id="quantity-unit-label">units</span>)
+          </label>
+          <.input
+            field={f[:quantity]}
+            id="purchase_quantity"
+            type="number"
+            label=""
+            min="1"
+          />
+          <p class="field-help">
+            Use the same unit as configured for the ingredient (e.g. g, ml, units).
+          </p>
         </div>
 
-        <div class="actions">
-          <button type="submit" class="btn primary">
-            Update Purchase
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
-            Cancel
-          </.link>
+        <div class="field">
+          <.input
+            field={f[:total_cost_pesos]}
+            id="purchase_total_cost_pesos"
+            type="number"
+            label="Total cost (MXN)"
+            step="0.01"
+            min="0"
+          />
+          <p class="field-help" id="unit-price-display">
+            Unit price: –
+          </p>
         </div>
-      </.form>
+
+        <div class="field">
+          <.input
+            field={f[:purchase_date]}
+            type="date"
+            label="Purchase Date"
+          />
+        </div>
+      </div>
+
+      <div class="form-block">
+        <div class="field" style="width: 100%;">
+          <.input
+            field={f[:notes]}
+            type="text"
+            label="Notes (optional)"
+            placeholder="e.g. Bought at Costco, receipt #1234"
+          />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn primary">
+          Update Purchase
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
   </section>
 </div>
 
@@ -198,4 +198,3 @@
     updateIngredientInfo();
   });
 </script>
-

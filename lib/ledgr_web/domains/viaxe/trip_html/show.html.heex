@@ -1,25 +1,29 @@
 <section class="card">
   <div class="card-header">
     <div>
-      <h2 class="card-title"><%= @trip.title %></h2>
+      <h2 class="card-title">{@trip.title}</h2>
       <p class="card-subtitle">
         <span class={"status-badge #{status_class(@trip.status)}"}>
-          <%= String.capitalize(@trip.status) %>
+          {String.capitalize(@trip.status)}
         </span>
         <%= if @trip.start_date do %>
-          &nbsp; <%= @trip.start_date %> → <%= @trip.end_date || "open" %>
+          &nbsp; {@trip.start_date} → {@trip.end_date || "open"}
         <% end %>
       </p>
     </div>
     <div style="display: flex; gap: 0.5rem;">
-      <.link navigate={dp(@domain_path_prefix, "/trips/#{@trip.id}/calendar")} class="btn">📅 Calendar</.link>
-      <.link navigate={dp(@domain_path_prefix, "/trips/#{@trip.id}/edit")} class="btn">Edit</.link>
+      <.link navigate={dp(@domain_path_prefix, "/trips/#{@trip.id}/calendar")} class="btn">
+        📅 Calendar
+      </.link>
+      <.link navigate={dp(@domain_path_prefix, "/trips/#{@trip.id}/edit")} class="btn">
+        Edit
+      </.link>
       <.link navigate={dp(@domain_path_prefix, "/trips")} class="btn">← Back</.link>
     </div>
   </div>
 
   <%= if @trip.description do %>
-    <p style="color: var(--text-muted); margin-bottom: 1rem;"><%= @trip.description %></p>
+    <p style="color: var(--text-muted); margin-bottom: 1rem;">{@trip.description}</p>
   <% end %>
 </section>
 
@@ -34,8 +38,11 @@
     <div class="tag-list">
       <%= for passenger <- @trip.passengers do %>
         <div class="tag-item">
-          <.link navigate={dp(@domain_path_prefix, "/customers/#{passenger.id}")} class="link-text">
-            <%= Ledgr.Domains.Viaxe.Customers.Customer.full_name(passenger) %>
+          <.link
+            navigate={dp(@domain_path_prefix, "/customers/#{passenger.id}")}
+            class="link-text"
+          >
+            {Ledgr.Domains.Viaxe.Customers.Customer.full_name(passenger)}
           </.link>
         </div>
       <% end %>
@@ -71,23 +78,30 @@
         <tbody>
           <%= for booking <- @trip.bookings do %>
             <tr>
-              <td><%= booking.id %></td>
+              <td>{booking.id}</td>
               <td>
                 <%= if booking.customer do %>
-                  <%= Ledgr.Domains.Viaxe.Customers.Customer.full_name(booking.customer) %>
-                <% else %>—<% end %>
+                  {Ledgr.Domains.Viaxe.Customers.Customer.full_name(booking.customer)}
+                <% else %>
+                  —
+                <% end %>
               </td>
-              <td><%= booking.booking_type || "—" %></td>
-              <td><%= booking.destination || "—" %></td>
-              <td><%= booking.travel_date || "—" %></td>
-              <td><%= format_currency(booking.total_price_cents) %></td>
+              <td>{booking.booking_type || "—"}</td>
+              <td>{booking.destination || "—"}</td>
+              <td>{booking.travel_date || "—"}</td>
+              <td>{format_currency(booking.total_price_cents)}</td>
               <td>
                 <span class="status-badge">
-                  <%= String.capitalize(String.replace(booking.status, "_", " ")) %>
+                  {String.capitalize(String.replace(booking.status, "_", " "))}
                 </span>
               </td>
               <td>
-                <.link navigate={dp(@domain_path_prefix, "/bookings/#{booking.id}")} class="btn btn-sm">View</.link>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/bookings/#{booking.id}")}
+                  class="btn btn-sm"
+                >
+                  View
+                </.link>
               </td>
             </tr>
           <% end %>
@@ -98,8 +112,12 @@
 </section>
 
 <div class="actions" style="margin-top: 1.5rem;">
-  <.form for={%{}} action={dp(@domain_path_prefix, "/trips/#{@trip.id}")} method="delete"
-    onsubmit="return confirm('Delete this trip? Bookings will not be deleted but will become standalone.')">
+  <.form
+    for={%{}}
+    action={dp(@domain_path_prefix, "/trips/#{@trip.id}")}
+    method="delete"
+    onsubmit="return confirm('Delete this trip? Bookings will not be deleted but will become standalone.')"
+  >
     <button type="submit" class="btn danger">Delete Trip</button>
   </.form>
 </div>

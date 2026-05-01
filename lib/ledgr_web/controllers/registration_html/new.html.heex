@@ -4,10 +4,15 @@
 
   <div class="login-card-header">
     <%= if theme[:auth_logo] || theme[:card_logo] do %>
-      <img src={theme[:auth_logo] || theme[:card_logo]} alt={domain.name()} class="login-logo" onerror="this.style.display='none'" />
+      <img
+        src={theme[:auth_logo] || theme[:card_logo]}
+        alt={domain.name()}
+        class="login-logo"
+        onerror="this.style.display='none'"
+      />
     <% else %>
-      <span class="login-app-logo"><%= if domain, do: domain.logo(), else: "" %></span>
-      <h1 class="login-app-name"><%= if domain, do: domain.name(), else: "Ledgr" %></h1>
+      <span class="login-app-logo">{if domain, do: domain.logo(), else: ""}</span>
+      <h1 class="login-app-name">{if domain, do: domain.name(), else: "Ledgr"}</h1>
     <% end %>
   </div>
 
@@ -18,7 +23,7 @@
       <p>Please fix the errors below:</p>
       <ul>
         <%= for {field, {msg, _opts}} <- @changeset.errors do %>
-          <li><strong><%= Phoenix.Naming.humanize(field) %>:</strong> <%= msg %></li>
+          <li><strong>{Phoenix.Naming.humanize(field)}:</strong> {msg}</li>
         <% end %>
       </ul>
     </div>
@@ -29,15 +34,29 @@
 
     <div class="login-field">
       <label for="user_email">Email</label>
-      <input type="email" name="user[email]" id="user_email" required autofocus
-        value={Phoenix.HTML.Form.normalize_value("email", Ecto.Changeset.get_field(@changeset, :email))}
-        placeholder="you@example.com" />
+      <input
+        type="email"
+        name="user[email]"
+        id="user_email"
+        required
+        autofocus
+        value={
+          Phoenix.HTML.Form.normalize_value("email", Ecto.Changeset.get_field(@changeset, :email))
+        }
+        placeholder="you@example.com"
+      />
     </div>
 
     <div class="login-field">
       <label for="user_password">Password</label>
-      <input type="password" name="user[password]" id="user_password" required
-        placeholder="At least 8 characters" minlength="8" />
+      <input
+        type="password"
+        name="user[password]"
+        id="user_password"
+        required
+        placeholder="At least 8 characters"
+        minlength="8"
+      />
     </div>
 
     <button type="submit" class="login-btn">Create Account</button>

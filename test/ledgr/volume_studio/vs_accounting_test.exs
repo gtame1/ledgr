@@ -43,7 +43,12 @@ defmodule Ledgr.Domains.VolumeStudio.AccountingTest do
 
     test "uses custom paid_to_account_code" do
       sub = subscription_fixture()
-      {:ok, entry} = VolumeStudioAccounting.record_subscription_payment(sub, 10_000, paid_to_account_code: "1010")
+
+      {:ok, entry} =
+        VolumeStudioAccounting.record_subscription_payment(sub, 10_000,
+          paid_to_account_code: "1010"
+        )
+
       assert entry.entry_type == "subscription_payment"
     end
   end

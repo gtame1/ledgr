@@ -27,16 +27,16 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
   @ap_technology_code "2300"
 
   @service_account_codes %{
-    "openai"         => "6041",
-    "whereby"        => "6042",
+    "openai" => "6041",
+    "whereby" => "6042",
     "aws_app_runner" => "6043"
   }
 
   @service_labels %{
-    "openai"         => "OpenAI",
-    "whereby"        => "Whereby",
+    "openai" => "OpenAI",
+    "whereby" => "Whereby",
     "aws_app_runner" => "AWS App Runner",
-    "evolution_api"  => "Evolution API"
+    "evolution_api" => "Evolution API"
   }
 
   @doc """
@@ -61,28 +61,29 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
       model_suffix = if cost.model, do: " (#{cost.model})", else: ""
 
       expense_account = Accounting.get_account_by_code!(expense_code)
-      ap_account      = Accounting.get_account_by_code!(@ap_technology_code)
+      ap_account = Accounting.get_account_by_code!(@ap_technology_code)
 
       entry_attrs = %{
-        date:        cost.date,
-        entry_type:  "external_cost",
-        reference:   "ExtCost #{cost.id}",
+        date: cost.date,
+        entry_type: "external_cost",
+        reference: "ExtCost #{cost.id}",
         description: "#{service_label}#{model_suffix} — #{cost.date} @ #{fx_rate} MXN/USD",
-        payee:       service_label
+        payee: service_label
       }
 
       lines = [
         %{
-          account_id:   expense_account.id,
-          debit_cents:  amount_mxn_cents,
+          account_id: expense_account.id,
+          debit_cents: amount_mxn_cents,
           credit_cents: 0,
-          description:  "#{service_label}#{model_suffix}: #{Float.round(cost.amount_usd, 4)} USD × #{fx_rate}"
+          description:
+            "#{service_label}#{model_suffix}: #{Float.round(cost.amount_usd, 4)} USD × #{fx_rate}"
         },
         %{
-          account_id:   ap_account.id,
-          debit_cents:  0,
+          account_id: ap_account.id,
+          debit_cents: 0,
           credit_cents: amount_mxn_cents,
-          description:  "Payable to #{service_label} — #{cost.date}"
+          description: "Payable to #{service_label} — #{cost.date}"
         }
       ]
 
@@ -93,18 +94,24 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
           updated =
             cost
             |> ExternalCost.changeset(%{
-              posted_at:        now,
+              posted_at: now,
               journal_entry_id: entry.id,
-              fx_rate:          fx_rate,
+              fx_rate: fx_rate,
               amount_mxn_cents: amount_mxn_cents
             })
             |> Repo.update!()
 
-          Logger.info("[ExternalCostAccounting] Posted cost #{cost.id} (#{service_label}) → JE ##{entry.id}: #{amount_mxn_cents} centavos MXN")
+          Logger.info(
+            "[ExternalCostAccounting] Posted cost #{cost.id} (#{service_label}) → JE ##{entry.id}: #{amount_mxn_cents} centavos MXN"
+          )
+
           {:ok, updated}
 
         {:error, changeset} ->
-          Logger.error("[ExternalCostAccounting] Failed to post cost #{cost.id}: #{inspect(changeset)}")
+          Logger.error(
+            "[ExternalCostAccounting] Failed to post cost #{cost.id}: #{inspect(changeset)}"
+          )
+
           {:error, changeset}
       end
     end
@@ -124,16 +131,16 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
       |> then(fn q ->
         if end_date, do: where(q, [c], c.date <= ^end_date), else: q
       end)
-      |> order_by([c], [asc: :date, asc: :service])
+      |> order_by([c], asc: :date, asc: :service)
 
     costs = Repo.all(query)
 
     Enum.reduce(costs, %{posted: 0, skipped: 0, errors: 0}, fn cost, acc ->
       case post_to_gl(cost) do
         {:ok, :already_posted, _} -> %{acc | skipped: acc.skipped + 1}
-        {:ok, _}                  -> %{acc | posted: acc.posted + 1}
-        {:error, :zero_amount}    -> %{acc | skipped: acc.skipped + 1}
-        {:error, _}               -> %{acc | errors: acc.errors + 1}
+        {:ok, _} -> %{acc | posted: acc.posted + 1}
+        {:error, :zero_amount} -> %{acc | skipped: acc.skipped + 1}
+        {:error, _} -> %{acc | errors: acc.errors + 1}
       end
     end)
   end
@@ -142,7 +149,7 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
   def unposted_costs do
     ExternalCost
     |> where([c], is_nil(c.posted_at))
-    |> order_by([c], [desc: :date, asc: :service])
+    |> order_by([c], desc: :date, asc: :service)
     |> Repo.all()
   end
 
@@ -151,7 +158,7 @@ defmodule Ledgr.Domains.HelloDoctor.ExternalCostAccounting do
     ExternalCost
     |> where([c], not is_nil(c.posted_at))
     |> where([c], c.date >= ^start_date and c.date <= ^end_date)
-    |> order_by([c], [desc: :date, asc: :service])
+    |> order_by([c], desc: :date, asc: :service)
     |> Repo.all()
   end
 end

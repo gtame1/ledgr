@@ -43,7 +43,9 @@ defmodule Ledgr.Domains.Viaxe.Customers.Customer do
     email = get_field(changeset, :email)
 
     if email && email != "" do
-      validate_format(changeset, :email, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email address")
+      validate_format(changeset, :email, ~r/^[^\s]+@[^\s]+$/,
+        message: "must be a valid email address"
+      )
     else
       changeset
     end

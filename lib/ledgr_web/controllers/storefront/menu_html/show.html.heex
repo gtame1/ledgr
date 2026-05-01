@@ -15,13 +15,21 @@
           <div class="product-detail-slides" id="product-slides">
             <%= for {url, idx} <- Enum.with_index(all_images) do %>
               <div class="product-detail-slide" data-index={idx}>
-                <img src={url} alt={"#{@product.name}#{if idx > 0, do: " - imagen #{idx + 1}", else: ""}"} onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png';this.className='placeholder-logo'" />
+                <img
+                  src={url}
+                  alt={"#{@product.name}#{if idx > 0, do: " - imagen #{idx + 1}", else: ""}"}
+                  onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png';this.className='placeholder-logo'"
+                />
               </div>
             <% end %>
           </div>
         <% else %>
           <div class="product-detail-placeholder">
-            <img src="/images/mr-munchme-logos/mr-munchme-icon.png" alt="MrMunchMe" class="placeholder-logo" />
+            <img
+              src="/images/mr-munchme-logos/mr-munchme-icon.png"
+              alt="MrMunchMe"
+              class="placeholder-logo"
+            />
           </div>
         <% end %>
       </div>
@@ -34,7 +42,11 @@
               onclick={"goToSlide(#{idx})"}
               type="button"
             >
-              <img src={url} alt={"#{@product.name} - imagen #{idx + 1}"} onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'" />
+              <img
+                src={url}
+                alt={"#{@product.name} - imagen #{idx + 1}"}
+                onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'"
+              />
             </button>
           <% end %>
         </div>
@@ -43,10 +55,10 @@
 
     <%!-- Right: Product info --%>
     <div class="product-detail-info">
-      <h1 class="product-detail-name"><%= @product.name %></h1>
+      <h1 class="product-detail-name">{@product.name}</h1>
 
       <div class="product-detail-price" id="selected-variant-price">
-        <%= if first_variant, do: format_price(first_variant.price_cents) %>
+        {if first_variant, do: format_price(first_variant.price_cents)}
       </div>
 
       <form method="post" action="/mr-munch-me/cart/add" class="product-detail-cart-form">
@@ -64,8 +76,8 @@
                   checked={idx == 0}
                   data-price-formatted={format_price(variant.price_cents)}
                 />
-                <span class="variant-name"><%= variant.name %></span>
-                <span class="variant-price"><%= format_price(variant.price_cents) %></span>
+                <span class="variant-name">{variant.name}</span>
+                <span class="variant-price">{format_price(variant.price_cents)}</span>
               </label>
             <% end %>
           </div>
@@ -78,9 +90,19 @@
         <div class="product-detail-add-row">
           <div class="product-detail-quantity">
             <label for="quantity">Cantidad:</label>
-            <input type="number" name="quantity" id="quantity" value="1" min="1" max="50" class="qty-input" />
+            <input
+              type="number"
+              name="quantity"
+              id="quantity"
+              value="1"
+              min="1"
+              max="50"
+              class="qty-input"
+            />
           </div>
-          <button type="submit" class="btn btn-primary btn-add-to-cart-lg">Agregar al carrito</button>
+          <button type="submit" class="btn btn-primary btn-add-to-cart-lg">
+            Agregar al carrito
+          </button>
         </div>
       </form>
       <a href="/mr-munch-me/checkout" class="btn-go-to-checkout">Ir al carrito →</a>
@@ -89,11 +111,17 @@
         <hr class="product-detail-divider" />
         <h2 class="product-detail-section-title">Descripción</h2>
         <div class="product-detail-description" id="product-description">
-          <%= render_markdown(@product.description) %>
+          {render_markdown(@product.description)}
         </div>
-        <button type="button" class="product-detail-see-more" id="desc-toggle" onclick="toggleDescription()">Ver más</button>
+        <button
+          type="button"
+          class="product-detail-see-more"
+          id="desc-toggle"
+          onclick="toggleDescription()"
+        >
+          Ver más
+        </button>
       <% end %>
-
     </div>
   </div>
 </div>

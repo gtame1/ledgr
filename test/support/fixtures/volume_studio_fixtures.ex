@@ -16,20 +16,98 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
   """
   def vs_accounts_fixture do
     accounts = [
-      %{code: "1000", name: "Cash",                         type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1010", name: "Bank Transfer",                type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1020", name: "Card Terminal",                type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1100", name: "Accounts Receivable",          type: "asset",     normal_balance: "debit",  is_cash: false},
-      %{code: "2100", name: "IVA Payable",                  type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "2200", name: "Deferred Subscription Revenue",type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "2300", name: "Owed Change Payable",          type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "3000", name: "Owner's Equity",               type: "equity",    normal_balance: "credit", is_cash: false},
-      %{code: "3050", name: "Retained Earnings",            type: "equity",    normal_balance: "credit", is_cash: false},
-      %{code: "3100", name: "Owner's Drawings",             type: "equity",    normal_balance: "debit",  is_cash: false},
-      %{code: "4000", name: "Subscription Revenue",         type: "revenue",   normal_balance: "credit", is_cash: false},
-      %{code: "4020", name: "Consultation Revenue",         type: "revenue",   normal_balance: "credit", is_cash: false},
-      %{code: "4030", name: "Space Rental Revenue",         type: "revenue",   normal_balance: "credit", is_cash: false},
-      %{code: "4040", name: "Partner Fee Revenue",          type: "revenue",   normal_balance: "credit", is_cash: false}
+      %{code: "1000", name: "Cash", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1010",
+        name: "Bank Transfer",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      },
+      %{
+        code: "1020",
+        name: "Card Terminal",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      },
+      %{
+        code: "1100",
+        name: "Accounts Receivable",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "2100",
+        name: "IVA Payable",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "2200",
+        name: "Deferred Subscription Revenue",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "2300",
+        name: "Owed Change Payable",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3000",
+        name: "Owner's Equity",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3050",
+        name: "Retained Earnings",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3100",
+        name: "Owner's Drawings",
+        type: "equity",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Subscription Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4020",
+        name: "Consultation Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4030",
+        name: "Space Rental Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4040",
+        name: "Partner Fee Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      }
     ]
 
     Enum.map(accounts, fn attrs ->
@@ -38,6 +116,7 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
           nil ->
             {:ok, a} = Accounting.create_account(attrs)
             a
+
           existing ->
             existing
         end
@@ -123,7 +202,8 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
         Enum.into(attrs, %{
           customer_id: customer_id,
           instructor_name: "Nutritionist #{System.unique_integer([:positive])}",
-          scheduled_at: DateTime.utc_now() |> DateTime.add(86400, :second) |> DateTime.truncate(:second),
+          scheduled_at:
+            DateTime.utc_now() |> DateTime.add(86400, :second) |> DateTime.truncate(:second),
           amount_cents: 80000,
           status: "scheduled"
         })
@@ -162,7 +242,7 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
         |> Enum.into(%{
           space_id: space.id,
           renter_name: "Test Renter",
-          amount_cents: 100000,
+          amount_cents: 100_000,
           starts_at: now,
           ends_at: DateTime.add(now, 3600, :second),
           status: "confirmed"
@@ -176,6 +256,7 @@ defmodule Ledgr.Domains.VolumeStudio.Fixtures do
   # Creates a minimal customer and returns their ID
   defp begin_customer do
     unique = System.unique_integer([:positive])
+
     {:ok, customer} =
       Ledgr.Core.Customers.create_customer(%{
         name: "VS Customer #{unique}",

@@ -32,17 +32,17 @@
         <% else %>
           <%= for space <- @spaces do %>
             <tr>
-              <td><strong><%= space.name %></strong></td>
+              <td><strong>{space.name}</strong></td>
               <td>
                 <%= if space.capacity do %>
-                  <%= space.capacity %> people
+                  {space.capacity} people
                 <% else %>
                   —
                 <% end %>
               </td>
               <td>
                 <%= if space.hourly_rate_cents do %>
-                  <%= format_currency(space.hourly_rate_cents) %>/hr
+                  {format_currency(space.hourly_rate_cents)}/hr
                 <% else %>
                   —
                 <% end %>
@@ -56,10 +56,18 @@
               </td>
               <td>
                 <div style="display: flex; gap: 0.5rem;">
-                  <.link navigate={dp(@domain_path_prefix, "/spaces/#{space.id}/edit")} class="btn btn-sm">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/spaces/#{space.id}/edit")}
+                    class="btn btn-sm"
+                  >
                     Edit
                   </.link>
-                  <.link href={dp(@domain_path_prefix, "/spaces/#{space.id}")} method="delete" data-confirm="Delete this space?" class="btn btn-sm danger">
+                  <.link
+                    href={dp(@domain_path_prefix, "/spaces/#{space.id}")}
+                    method="delete"
+                    data-confirm="Delete this space?"
+                    class="btn btn-sm danger"
+                  >
                     Delete
                   </.link>
                 </div>

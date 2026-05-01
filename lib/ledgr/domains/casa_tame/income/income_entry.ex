@@ -39,18 +39,25 @@ defmodule Ledgr.Domains.CasaTame.Income.IncomeEntry do
 
     if currency && account_id do
       case Ledgr.Repo.get(Account, account_id) do
-        nil -> changeset
+        nil ->
+          changeset
+
         account ->
-          valid? = case currency do
-            "USD" -> account.code >= "1000" and account.code <= "1019"
-            "MXN" -> account.code >= "1100" and account.code <= "1119"
-            _ -> true
-          end
+          valid? =
+            case currency do
+              "USD" -> account.code >= "1000" and account.code <= "1019"
+              "MXN" -> account.code >= "1100" and account.code <= "1119"
+              _ -> true
+            end
 
           if valid? do
             changeset
           else
-            Ecto.Changeset.add_error(changeset, :deposit_account_id, "must be a #{currency} account")
+            Ecto.Changeset.add_error(
+              changeset,
+              :deposit_account_id,
+              "must be a #{currency} account"
+            )
           end
       end
     else

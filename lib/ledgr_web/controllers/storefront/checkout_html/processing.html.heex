@@ -1,10 +1,16 @@
 <div class="confirmation-page">
-  <div class="confirmation-icon" style="animation: spin 1.5s linear infinite; display:inline-block;">&#8635;</div>
+  <div
+    class="confirmation-icon"
+    style="animation: spin 1.5s linear infinite; display:inline-block;"
+  >
+    &#8635;
+  </div>
   <h1 class="confirmation-title">Procesando tu pedido...</h1>
-  <p class="confirmation-subtitle">Estamos confirmando tu pago. Esta página se actualizará en unos segundos.</p>
+  <p class="confirmation-subtitle">
+    Estamos confirmando tu pago. Esta página se actualizará en unos segundos.
+  </p>
   <p style="margin-top: 1rem; color: #888; font-size: 0.9rem;">
-    Si la página no se actualiza automáticamente,
-    <a href={"/mr-munch-me/checkout/success?session_id=#{@stripe_session_id}"}>haz clic aquí</a>.
+    Si la página no se actualiza automáticamente, <a href={"/mr-munch-me/checkout/success?session_id=#{@stripe_session_id}"}>haz clic aquí</a>.
   </p>
 </div>
 

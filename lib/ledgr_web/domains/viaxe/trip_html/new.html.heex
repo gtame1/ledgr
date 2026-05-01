@@ -3,7 +3,7 @@
     <h2 class="card-title">New Trip</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:trip} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} as={:trip}>
     <div class="form-section">
       <div class="form-section-title">Trip Details</div>
       <div class="form-grid">
@@ -22,13 +22,17 @@
           </div>
           <div class="field">
             <label>Status</label>
-            <.input type="select" field={f[:status]} options={[
-              {"Planning", "planning"},
-              {"Confirmed", "confirmed"},
-              {"Active", "active"},
-              {"Completed", "completed"},
-              {"Cancelled", "cancelled"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:status]}
+              options={[
+                {"Planning", "planning"},
+                {"Confirmed", "confirmed"},
+                {"Active", "active"},
+                {"Completed", "completed"},
+                {"Cancelled", "cancelled"}
+              ]}
+            />
           </div>
           <div class="field" style="grid-column: 1 / -1;">
             <label>Description</label>
@@ -54,17 +58,31 @@
           autocomplete="off"
           oninput="filterPassengers(this.value)"
         />
-        <div id="passenger-list" style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 240px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.5rem;">
+        <div
+          id="passenger-list"
+          style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 240px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.5rem;"
+        >
           <%= if Enum.empty?(@customers) do %>
             <p style="color: var(--text-muted); font-size: 0.875rem; padding: 0.25rem 0.5rem;">
               No customers yet.
-              <.link navigate={dp(@domain_path_prefix, "/customers/new")} class="link-text">Add a customer</.link>
+              <.link navigate={dp(@domain_path_prefix, "/customers/new")} class="link-text">
+                Add a customer
+              </.link>
             </p>
           <% else %>
             <%= for {name, id} <- @customers do %>
-              <label class="passenger-option" data-name={String.downcase(name)} style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.5rem; border-radius: var(--radius-sm); cursor: pointer;">
-                <input type="checkbox" name="trip[passenger_ids][]" value={id} style="width: 1rem; height: 1rem; cursor: pointer;" />
-                <span style="font-size: 0.9rem;"><%= name %></span>
+              <label
+                class="passenger-option"
+                data-name={String.downcase(name)}
+                style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.5rem; border-radius: var(--radius-sm); cursor: pointer;"
+              >
+                <input
+                  type="checkbox"
+                  name="trip[passenger_ids][]"
+                  value={id}
+                  style="width: 1rem; height: 1rem; cursor: pointer;"
+                />
+                <span style="font-size: 0.9rem;">{name}</span>
               </label>
             <% end %>
           <% end %>

@@ -1,7 +1,20 @@
 <section class="content">
   <div class="content-body">
-    <.link navigate={dp(@domain_path_prefix, "/")} style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <.link
+      navigate={dp(@domain_path_prefix, "/")}
+      style="text-decoration: none; color: var(--ct-on-surface-variant); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.25rem;"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
       Back to Dashboard
     </.link>
 
@@ -12,7 +25,7 @@
       </div>
     </header>
 
-    <form method="post" action={dp(@domain_path_prefix, "/fx-transfers")} >
+    <form method="post" action={dp(@domain_path_prefix, "/fx-transfers")}>
       <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
 
       <div class="ct-form-section-label">Source</div>
@@ -23,19 +36,27 @@
             <option value="">Select source</option>
             <optgroup label="MXN Accounts">
               <%= for {label, id} <- @mxn_account_options do %>
-                <option value={id}><%= label %></option>
+                <option value={id}>{label}</option>
               <% end %>
             </optgroup>
             <optgroup label="USD Accounts">
               <%= for {label, id} <- @usd_account_options do %>
-                <option value={id}><%= label %></option>
+                <option value={id}>{label}</option>
               <% end %>
             </optgroup>
           </select>
         </div>
         <div class="field" style="margin-top: 0.75rem;">
           <label>From Amount</label>
-          <input type="number" name="fx_transfer[from_amount]" min="0" step="0.01" class="input" required id="fx-from-amount" />
+          <input
+            type="number"
+            name="fx_transfer[from_amount]"
+            min="0"
+            step="0.01"
+            class="input"
+            required
+            id="fx-from-amount"
+          />
         </div>
       </div>
 
@@ -47,25 +68,35 @@
             <option value="">Select destination</option>
             <optgroup label="USD Accounts">
               <%= for {label, id} <- @usd_account_options do %>
-                <option value={id}><%= label %></option>
+                <option value={id}>{label}</option>
               <% end %>
             </optgroup>
             <optgroup label="MXN Accounts">
               <%= for {label, id} <- @mxn_account_options do %>
-                <option value={id}><%= label %></option>
+                <option value={id}>{label}</option>
               <% end %>
             </optgroup>
           </select>
         </div>
         <div class="field" style="margin-top: 0.75rem;">
           <label>To Amount</label>
-          <input type="number" name="fx_transfer[to_amount]" min="0" step="0.01" class="input" required id="fx-to-amount" />
+          <input
+            type="number"
+            name="fx_transfer[to_amount]"
+            min="0"
+            step="0.01"
+            class="input"
+            required
+            id="fx-to-amount"
+          />
         </div>
       </div>
-
-      <!-- Exchange rate display -->
+      
+<!-- Exchange rate display -->
       <div style="background: var(--ct-surface-container); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--ct-outline-variant); margin-top: 0.5rem;">
-        <span style="color: var(--ct-on-surface-variant); font-size: 0.9rem;">Exchange Rate: </span>
+        <span style="color: var(--ct-on-surface-variant); font-size: 0.9rem;">
+          Exchange Rate:
+        </span>
         <strong id="fx-rate-display" style="font-size: 1.1rem;">-</strong>
       </div>
 
@@ -77,7 +108,12 @@
         </div>
         <div class="field">
           <label>Note (optional)</label>
-          <input type="text" name="fx_transfer[note]" class="input" placeholder="e.g. Sent via Wise" />
+          <input
+            type="text"
+            name="fx_transfer[note]"
+            class="input"
+            placeholder="e.g. Sent via Wise"
+          />
         </div>
       </div>
 

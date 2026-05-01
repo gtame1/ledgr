@@ -31,13 +31,15 @@
         <% else %>
           <%= for service <- @services do %>
             <tr>
-              <td><%= service.name %></td>
-              <td><span class="status-badge"><%= String.capitalize(service.category) %></span></td>
-              <td><%= format_currency(service.default_cost_cents || 0) %></td>
-              <td><%= format_currency(service.default_price_cents || 0) %></td>
+              <td>{service.name}</td>
+              <td><span class="status-badge">{String.capitalize(service.category)}</span></td>
+              <td>{format_currency(service.default_cost_cents || 0)}</td>
+              <td>{format_currency(service.default_price_cents || 0)}</td>
               <td>
                 <%= if service.default_cost_cents && service.default_price_cents && service.default_cost_cents > 0 do %>
-                  <%= format_currency((service.default_price_cents || 0) - (service.default_cost_cents || 0)) %>
+                  {format_currency(
+                    (service.default_price_cents || 0) - (service.default_cost_cents || 0)
+                  )}
                 <% else %>
                   —
                 <% end %>
@@ -51,10 +53,18 @@
               </td>
               <td>
                 <div style="display: flex; gap: 0.5rem;">
-                  <.link navigate={dp(@domain_path_prefix, "/services/#{service.id}/edit")} class="btn btn-sm">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/services/#{service.id}/edit")}
+                    class="btn btn-sm"
+                  >
                     Edit
                   </.link>
-                  <.link href={dp(@domain_path_prefix, "/services/#{service.id}")} method="delete" data-confirm="Are you sure?" class="btn btn-sm danger">
+                  <.link
+                    href={dp(@domain_path_prefix, "/services/#{service.id}")}
+                    method="delete"
+                    data-confirm="Are you sure?"
+                    class="btn btn-sm danger"
+                  >
                     Delete
                   </.link>
                 </div>

@@ -16,13 +16,14 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
 
   def show(conn, %{"id" => id}) do
     consultation = Consultations.get_consultation!(id)
-    payments     = Consultations.list_payments_for_consultation(consultation)
+    payments = Consultations.list_payments_for_consultation(consultation)
     render(conn, :show, consultation: consultation, payments: payments)
   end
 
   def new(conn, _params) do
     changeset = Consultations.change_consultation(%Consultation{scheduled_at: DateTime.utc_now()})
     customers = customer_options()
+
     render(conn, :new,
       changeset: changeset,
       customers: customers,
@@ -42,6 +43,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         customers = customer_options()
+
         render(conn, :new,
           changeset: changeset,
           customers: customers,
@@ -52,12 +54,15 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
 
   def edit(conn, %{"id" => id}) do
     consultation = Consultations.get_consultation!(id)
+
     attrs = %{
       "amount_cents" => MoneyHelper.cents_to_pesos(consultation.amount_cents),
-      "iva_cents"    => MoneyHelper.cents_to_pesos(consultation.iva_cents || 0)
+      "iva_cents" => MoneyHelper.cents_to_pesos(consultation.iva_cents || 0)
     }
+
     changeset = Consultations.change_consultation(consultation, attrs)
     customers = customer_options()
+
     render(conn, :edit,
       consultation: consultation,
       changeset: changeset,
@@ -79,6 +84,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         customers = customer_options()
+
         render(conn, :edit,
           consultation: consultation,
           changeset: changeset,
@@ -106,36 +112,39 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
 
   def new_payment(conn, %{"id" => id}) do
     consultation = Consultations.get_consultation!(id)
-    summary      = Consultations.payment_summary(consultation)
+    summary = Consultations.payment_summary(consultation)
 
     summary_rows = [
-      %{label: "Amount",      value_cents: summary.amount_cents,      style: :normal},
-      %{label: "IVA (16%)",   value_cents: summary.iva_cents,         style: :normal},
-      %{label: "Total",       value_cents: summary.total_cents,        style: :total_row},
-      %{label: "Outstanding", value_cents: summary.outstanding_cents,
-        style: if(summary.outstanding_cents > 0, do: :danger, else: :success)}
+      %{label: "Amount", value_cents: summary.amount_cents, style: :normal},
+      %{label: "IVA (16%)", value_cents: summary.iva_cents, style: :normal},
+      %{label: "Total", value_cents: summary.total_cents, style: :total_row},
+      %{
+        label: "Outstanding",
+        value_cents: summary.outstanding_cents,
+        style: if(summary.outstanding_cents > 0, do: :danger, else: :success)
+      }
     ]
 
     render(conn, :new_payment,
-      consultation:         consultation,
-      summary_rows:         summary_rows,
-      outstanding_cents:    summary.outstanding_cents,
+      consultation: consultation,
+      summary_rows: summary_rows,
+      outstanding_cents: summary.outstanding_cents,
       default_amount_cents: summary.outstanding_cents,
-      change_accounts:      Accounting.cash_or_bank_account_options(),
-      paid_to_accounts:     Ledgr.Domains.VolumeStudio.paid_to_account_options(),
-      action:               dp(conn, "/consultations/#{id}/payment"),
-      back_path:            dp(conn, "/consultations/#{id}")
+      change_accounts: Accounting.cash_or_bank_account_options(),
+      paid_to_accounts: Ledgr.Domains.VolumeStudio.paid_to_account_options(),
+      action: dp(conn, "/consultations/#{id}/payment"),
+      back_path: dp(conn, "/consultations/#{id}")
     )
   end
 
   def record_payment(conn, %{"id" => id, "payment" => payment_params}) do
-    consultation       = Consultations.get_consultation!(id)
-    summary            = Consultations.payment_summary(consultation)
+    consultation = Consultations.get_consultation!(id)
+    summary = Consultations.payment_summary(consultation)
     outstanding_before = summary.outstanding_cents
-    amount_str         = Map.get(payment_params, "amount", "")
-    method             = Map.get(payment_params, "method")
-    note               = Map.get(payment_params, "note")
-    date_str           = Map.get(payment_params, "payment_date", "")
+    amount_str = Map.get(payment_params, "amount", "")
+    method = Map.get(payment_params, "method")
+    note = Map.get(payment_params, "note")
+    date_str = Map.get(payment_params, "payment_date", "")
     owed_change_choice = Map.get(payment_params, "owed_change_choice", "keep")
     paid_to_account_code = Map.get(payment_params, "paid_to_account_code", "1000")
 
@@ -143,7 +152,6 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
          amount_cents = round(amount_float * 100),
          true <- amount_cents > 0,
          {:ok, payment_date} <- Date.from_iso8601(date_str) do
-
       case Consultations.record_payment(consultation, amount_cents,
              payment_date: payment_date,
              method: method,
@@ -156,12 +164,13 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
           cond do
             owed_change_choice == "record" and overpayment > 0 ->
               fresh = Consultations.get_consultation!(id)
+
               VolumeStudioAccounting.record_consultation_owed_change_ap(fresh, overpayment,
                 payment_date: payment_date
               )
 
             owed_change_choice == "staff_gave_change" ->
-              change_given_str    = Map.get(payment_params, "change_given", "0")
+              change_given_str = Map.get(payment_params, "change_given", "0")
               change_from_account = Map.get(payment_params, "change_from_account", "")
 
               case Float.parse(change_given_str) do
@@ -170,6 +179,7 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
 
                   if change_given_cents > 0 and change_from_account != "" do
                     fresh = Consultations.get_consultation!(id)
+
                     VolumeStudioAccounting.record_consultation_change_given(
                       fresh,
                       change_given_cents,
@@ -178,10 +188,12 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationController do
                     )
                   end
 
-                :error -> :ok
+                :error ->
+                  :ok
               end
 
-            true -> :ok
+            true ->
+              :ok
           end
 
           conn
@@ -221,8 +233,8 @@ defmodule LedgrWeb.Domains.VolumeStudio.ConsultationHTML do
   def status_class("scheduled"), do: "status-partial"
   def status_class("completed"), do: "status-paid"
   def status_class("cancelled"), do: "status-unpaid"
-  def status_class("no_show"),   do: "status-unpaid"
-  def status_class(_),           do: ""
+  def status_class("no_show"), do: "status-unpaid"
+  def status_class(_), do: ""
 
   def format_datetime(nil), do: "—"
   def format_datetime(%DateTime{} = dt), do: fmt_datetime(dt, "%b %-d, %Y · %-I:%M %p")

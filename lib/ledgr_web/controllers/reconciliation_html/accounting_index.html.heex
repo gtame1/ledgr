@@ -1,195 +1,214 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="content">
-    <header class="content-header">
-      <h1 class="page-title">Account Reconciliation</h1>
-    </header>
+  <header class="content-header">
+    <h1 class="page-title">Account Reconciliation</h1>
+  </header>
 
-    <div class="content-body">
-      <section class="card">
-        <h2 class="card-title">Reconcile Account Balances</h2>
-        <p class="card-subtitle">
-          Enter actual account balances and create adjustment journal entries to match the system.
-        </p>
+  <div class="content-body">
+    <section class="card">
+      <h2 class="card-title">Reconcile Account Balances</h2>
+      <p class="card-subtitle">
+        Enter actual account balances and create adjustment journal entries to match the system.
+      </p>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
-          <!-- Date filter -->
-          <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/reconciliation/accounting")} class="form-grid" style="margin: 0;" :let={_f}>
-            <div class="form-block" style="margin: 0;">
-              <div class="field" style="margin: 0;">
-                <label>As of date</label>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                  <input type="date" name="as_of" value={@as_of} />
-                  <button class="btn" type="submit">Update</button>
-                </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+        <!-- Date filter -->
+        <.form
+          :let={_f}
+          for={%{}}
+          method="get"
+          action={dp(@domain_path_prefix, "/reconciliation/accounting")}
+          class="form-grid"
+          style="margin: 0;"
+        >
+          <div class="form-block" style="margin: 0;">
+            <div class="field" style="margin: 0;">
+              <label>As of date</label>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="date" name="as_of" value={@as_of} />
+                <button class="btn" type="submit">Update</button>
               </div>
             </div>
-          </.form>
-
-          <!-- Last reconciled date -->
-          <div style="font-size: 0.85rem; color: #6b7280;">
-            <%= if @last_reconciled_date do %>
-              Last reconciled: <strong style="color: #1e40af;"><%= @last_reconciled_date %></strong>
-            <% else %>
-              Last reconciled: <strong style="color: #9ca3af;">Never</strong>
-            <% end %>
           </div>
-        </div>
-
-        <!-- Individual Adjust forms table -->
-        <div class="table-wrapper" style="margin-top: 1rem;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Account Code</th>
-                <th>Account Name</th>
-                <th>System Balance</th>
-                <th>Actual Balance</th>
-                <th>Difference</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% {assets, liabilities} = Enum.split_with(@accounts, fn %{account: a} -> a.type == "asset" end) %>
-
-              <tr>
-                <td colspan="6" style="background: #f0f7ff; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #1e40af; padding: 0.6rem 0.75rem; border-bottom: 2px solid #bfdbfe;">
-                  Assets
-                </td>
-              </tr>
-              <%= for %{account: account, balance_cents: balance_cents, balance_pesos: balance_pesos} <- assets do %>
-                <% formatted_balance = :erlang.float_to_binary(balance_pesos, [{:decimals, 2}]) %>
-                <tr>
-                  <td><strong><%= account.code %></strong></td>
-                  <td><%= account.name %></td>
-                  <td class="numeric"><%= fmt.(balance_cents) %></td>
-                  <td>
-                    <.form
-                      for={%{}}
-                      method="post"
-                      action={dp(@domain_path_prefix, "/reconciliation/accounting/adjust")}
-                      class="inline-form"
-                      id={"adjust-form-#{account.id}"}
-                    >
-                      <input type="hidden" name="account_id" value={account.id} />
-                      <input type="hidden" name="adjustment_date" value={@as_of} />
-                      <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <input
-                          type="number"
-                          name="actual_balance"
-                          step="0.01"
-                          value={formatted_balance}
-                          style="width: 120px;"
-                          class="numeric"
-                          data-account-id={account.id}
-                        />
-                        <input
-                          type="text"
-                          name="description"
-                          placeholder="Description (optional)"
-                          style="flex: 1; min-width: 200px;"
-                        />
-                        <button class="btn btn-sm" type="submit">Adjust</button>
-                      </div>
-                    </.form>
-                  </td>
-                  <td class="numeric" id={"diff-#{account.id}"}>
-                    <span style="color: #8b6f5b;">—</span>
-                  </td>
-                  <td>
-                    <span style="color: #8b6f5b; font-size: 0.85rem;">Enter actual balance and click Adjust</span>
-                  </td>
-                </tr>
-              <% end %>
-
-              <tr>
-                <td colspan="6" style="background: #fef3f2; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #991b1b; padding: 0.6rem 0.75rem; border-bottom: 2px solid #fecaca;">
-                  Liabilities
-                </td>
-              </tr>
-              <%= for %{account: account, balance_cents: balance_cents, balance_pesos: balance_pesos} <- liabilities do %>
-                <% formatted_balance = :erlang.float_to_binary(balance_pesos, [{:decimals, 2}]) %>
-                <tr>
-                  <td><strong><%= account.code %></strong></td>
-                  <td><%= account.name %></td>
-                  <td class="numeric"><%= fmt.(balance_cents) %></td>
-                  <td>
-                    <.form
-                      for={%{}}
-                      method="post"
-                      action={dp(@domain_path_prefix, "/reconciliation/accounting/adjust")}
-                      class="inline-form"
-                      id={"adjust-form-#{account.id}"}
-                    >
-                      <input type="hidden" name="account_id" value={account.id} />
-                      <input type="hidden" name="adjustment_date" value={@as_of} />
-                      <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <input
-                          type="number"
-                          name="actual_balance"
-                          step="0.01"
-                          value={formatted_balance}
-                          style="width: 120px;"
-                          class="numeric"
-                          data-account-id={account.id}
-                        />
-                        <input
-                          type="text"
-                          name="description"
-                          placeholder="Description (optional)"
-                          style="flex: 1; min-width: 200px;"
-                        />
-                        <button class="btn btn-sm" type="submit">Adjust</button>
-                      </div>
-                    </.form>
-                  </td>
-                  <td class="numeric" id={"diff-#{account.id}"}>
-                    <span style="color: #8b6f5b;">—</span>
-                  </td>
-                  <td>
-                    <span style="color: #8b6f5b; font-size: 0.85rem;">Enter actual balance and click Adjust</span>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Reconcile All button -->
-        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end;">
-          <button
-            type="button"
-            class="btn"
-            id="reconcile-all-btn"
-            style="background: #1e40af; color: white; padding: 0.6rem 1.5rem; font-weight: 600;"
-          >
-            Reconcile All
-          </button>
-        </div>
-
-        <!-- Hidden form for Reconcile All (populated by JS) -->
-        <.form
-          for={%{}}
-          method="post"
-          action={dp(@domain_path_prefix, "/reconciliation/accounting/reconcile_all")}
-          id="reconcile-all-form"
-          style="display: none;"
-        >
-          <input type="hidden" name="as_of" value={@as_of} />
-          <!-- Account balance inputs will be injected by JS -->
         </.form>
-      </section>
-    </div>
-  </section>
+        
+<!-- Last reconciled date -->
+        <div style="font-size: 0.85rem; color: #6b7280;">
+          <%= if @last_reconciled_date do %>
+            Last reconciled: <strong style="color: #1e40af;">{@last_reconciled_date}</strong>
+          <% else %>
+            Last reconciled: <strong style="color: #9ca3af;">Never</strong>
+          <% end %>
+        </div>
+      </div>
+      
+<!-- Individual Adjust forms table -->
+      <div class="table-wrapper" style="margin-top: 1rem;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Account Code</th>
+              <th>Account Name</th>
+              <th>System Balance</th>
+              <th>Actual Balance</th>
+              <th>Difference</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% {assets, liabilities} =
+              Enum.split_with(@accounts, fn %{account: a} -> a.type == "asset" end) %>
+
+            <tr>
+              <td
+                colspan="6"
+                style="background: #f0f7ff; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #1e40af; padding: 0.6rem 0.75rem; border-bottom: 2px solid #bfdbfe;"
+              >
+                Assets
+              </td>
+            </tr>
+            <%= for %{account: account, balance_cents: balance_cents, balance_pesos: balance_pesos} <- assets do %>
+              <% formatted_balance = :erlang.float_to_binary(balance_pesos, [{:decimals, 2}]) %>
+              <tr>
+                <td><strong>{account.code}</strong></td>
+                <td>{account.name}</td>
+                <td class="numeric">{fmt.(balance_cents)}</td>
+                <td>
+                  <.form
+                    for={%{}}
+                    method="post"
+                    action={dp(@domain_path_prefix, "/reconciliation/accounting/adjust")}
+                    class="inline-form"
+                    id={"adjust-form-#{account.id}"}
+                  >
+                    <input type="hidden" name="account_id" value={account.id} />
+                    <input type="hidden" name="adjustment_date" value={@as_of} />
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                      <input
+                        type="number"
+                        name="actual_balance"
+                        step="0.01"
+                        value={formatted_balance}
+                        style="width: 120px;"
+                        class="numeric"
+                        data-account-id={account.id}
+                      />
+                      <input
+                        type="text"
+                        name="description"
+                        placeholder="Description (optional)"
+                        style="flex: 1; min-width: 200px;"
+                      />
+                      <button class="btn btn-sm" type="submit">Adjust</button>
+                    </div>
+                  </.form>
+                </td>
+                <td class="numeric" id={"diff-#{account.id}"}>
+                  <span style="color: #8b6f5b;">—</span>
+                </td>
+                <td>
+                  <span style="color: #8b6f5b; font-size: 0.85rem;">
+                    Enter actual balance and click Adjust
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+
+            <tr>
+              <td
+                colspan="6"
+                style="background: #fef3f2; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #991b1b; padding: 0.6rem 0.75rem; border-bottom: 2px solid #fecaca;"
+              >
+                Liabilities
+              </td>
+            </tr>
+            <%= for %{account: account, balance_cents: balance_cents, balance_pesos: balance_pesos} <- liabilities do %>
+              <% formatted_balance = :erlang.float_to_binary(balance_pesos, [{:decimals, 2}]) %>
+              <tr>
+                <td><strong>{account.code}</strong></td>
+                <td>{account.name}</td>
+                <td class="numeric">{fmt.(balance_cents)}</td>
+                <td>
+                  <.form
+                    for={%{}}
+                    method="post"
+                    action={dp(@domain_path_prefix, "/reconciliation/accounting/adjust")}
+                    class="inline-form"
+                    id={"adjust-form-#{account.id}"}
+                  >
+                    <input type="hidden" name="account_id" value={account.id} />
+                    <input type="hidden" name="adjustment_date" value={@as_of} />
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                      <input
+                        type="number"
+                        name="actual_balance"
+                        step="0.01"
+                        value={formatted_balance}
+                        style="width: 120px;"
+                        class="numeric"
+                        data-account-id={account.id}
+                      />
+                      <input
+                        type="text"
+                        name="description"
+                        placeholder="Description (optional)"
+                        style="flex: 1; min-width: 200px;"
+                      />
+                      <button class="btn btn-sm" type="submit">Adjust</button>
+                    </div>
+                  </.form>
+                </td>
+                <td class="numeric" id={"diff-#{account.id}"}>
+                  <span style="color: #8b6f5b;">—</span>
+                </td>
+                <td>
+                  <span style="color: #8b6f5b; font-size: 0.85rem;">
+                    Enter actual balance and click Adjust
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+<!-- Reconcile All button -->
+      <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end;">
+        <button
+          type="button"
+          class="btn"
+          id="reconcile-all-btn"
+          style="background: #1e40af; color: white; padding: 0.6rem 1.5rem; font-weight: 600;"
+        >
+          Reconcile All
+        </button>
+      </div>
+      
+<!-- Hidden form for Reconcile All (populated by JS) -->
+      <.form
+        for={%{}}
+        method="post"
+        action={dp(@domain_path_prefix, "/reconciliation/accounting/reconcile_all")}
+        id="reconcile-all-form"
+        style="display: none;"
+      >
+        <input type="hidden" name="as_of" value={@as_of} />
+        <!-- Account balance inputs will be injected by JS -->
+      </.form>
+    </section>
+  </div>
+</section>
 
 <script>
   // Calculate and display difference as user types

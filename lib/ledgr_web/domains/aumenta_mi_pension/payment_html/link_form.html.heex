@@ -21,12 +21,16 @@ end %>
     <div class="flex items-center justify-between">
       <div>
         <div class="text-sm" style="color: var(--text-muted);">Pago</div>
-        <div class="text-lg font-bold" style="color: var(--text-main);"><%= fmt.(pay.amount) %> MXN</div>
+        <div class="text-lg font-bold" style="color: var(--text-main);">
+          {fmt.(pay.amount)} MXN
+        </div>
         <div class="text-sm" style="color: var(--text-muted);">
-          <%= pay.customer_name || "Desconocido" %> &middot; <%= fmt_datetime(pay.paid_at) || "---" %>
+          {pay.customer_name || "Desconocido"} &middot; {fmt_datetime(pay.paid_at) || "---"}
         </div>
       </div>
-      <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+      <span class={"hd-badge hd-badge--#{pay.status}"}>
+        {pay.status |> to_string() |> String.capitalize()}
+      </span>
     </div>
   </div>
 
@@ -39,7 +43,9 @@ end %>
   <% else %>
     <div class="hd-card overflow-hidden">
       <div class="p-4" style="border-bottom: 1px solid var(--border-subtle);">
-        <div class="text-sm font-medium" style="color: var(--text-muted);">Selecciona una consulta para vincular:</div>
+        <div class="text-sm font-medium" style="color: var(--text-muted);">
+          Selecciona una consulta para vincular:
+        </div>
       </div>
       <div class="divide-y" style="border-color: var(--border-subtle);">
         <%= for c <- @consultations do %>
@@ -47,23 +53,40 @@ end %>
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium" style="color: var(--text-main);">
-                  <%= if c.customer, do: (c.customer.full_name || c.customer.display_name || "Desconocido"), else: "Desconocido" %>
+                  {if c.customer,
+                    do: c.customer.full_name || c.customer.display_name || "Desconocido",
+                    else: "Desconocido"}
                 </span>
-                <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
-                <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+                <span class={"hd-badge hd-badge--#{c.status}"}>
+                  {c.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+                </span>
+                <span class={"hd-badge hd-badge--#{c.payment_status}"}>
+                  {c.payment_status |> to_string() |> String.capitalize()}
+                </span>
               </div>
               <div class="text-xs mt-1" style="color: var(--text-muted);">
-                <%= if c.agent, do: c.agent.name, else: "Sin agente asignado" %>
-                &middot; <%= fmt_datetime(c.assigned_at) || "---" %>
+                {if c.agent, do: c.agent.name, else: "Sin agente asignado"} &middot; {fmt_datetime(
+                  c.assigned_at
+                ) || "---"}
                 <%= if c.payment_amount do %>
-                  &middot; <%= fmt.(c.payment_amount) %>
+                  &middot; {fmt.(c.payment_amount)}
                 <% end %>
               </div>
             </div>
             <form method="post" action={dp(@domain_path_prefix, "/payments/#{pay.id}/link")}>
-              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+              <input
+                type="hidden"
+                name="_csrf_token"
+                value={Plug.CSRFProtection.get_csrf_token()}
+              />
               <input type="hidden" name="consultation_id" value={c.id} />
-              <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.35rem 0.75rem;">Vincular</button>
+              <button
+                type="submit"
+                class="hd-btn-primary text-sm"
+                style="padding: 0.35rem 0.75rem;"
+              >
+                Vincular
+              </button>
             </form>
           </div>
         <% end %>

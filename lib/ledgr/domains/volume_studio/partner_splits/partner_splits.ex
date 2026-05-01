@@ -164,18 +164,16 @@ defmodule Ledgr.Domains.VolumeStudio.PartnerSplits do
     initial_unattributed = %{revenue_cents: 0, expense_cents: 0}
 
     {by_partner, unattributed} =
-      Enum.reduce(revenue_rows, {initial_partner_totals, initial_unattributed},
-        fn {split_id, amount}, acc ->
-          apportion(acc, split_id, amount, splits_with_lines, :revenue_cents)
-        end
-      )
+      Enum.reduce(revenue_rows, {initial_partner_totals, initial_unattributed}, fn {split_id,
+                                                                                    amount},
+                                                                                   acc ->
+        apportion(acc, split_id, amount, splits_with_lines, :revenue_cents)
+      end)
 
     {by_partner, unattributed} =
-      Enum.reduce(expense_rows, {by_partner, unattributed},
-        fn {split_id, amount}, acc ->
-          apportion(acc, split_id, amount, splits_with_lines, :expense_cents)
-        end
-      )
+      Enum.reduce(expense_rows, {by_partner, unattributed}, fn {split_id, amount}, acc ->
+        apportion(acc, split_id, amount, splits_with_lines, :expense_cents)
+      end)
 
     partner_results =
       Enum.map(partners, fn p ->
@@ -221,6 +219,7 @@ defmodule Ledgr.Domains.VolumeStudio.PartnerSplits do
         updated =
           Enum.reduce(lines, by_partner, fn line, acc ->
             share = div(amount * line.share_bps, 10_000)
+
             Map.update(acc, line.partner_id, %{revenue_cents: 0, expense_cents: 0}, fn p ->
               Map.update!(p, key, &(&1 + share))
             end)
@@ -266,7 +265,8 @@ defmodule Ledgr.Domains.VolumeStudio.PartnerSplits do
 
   defp collect_expense_rows(start_date, end_date) do
     from(e in Expense,
-      left_join: eps in ExpensePartnerSplit, on: eps.expense_id == e.id,
+      left_join: eps in ExpensePartnerSplit,
+      on: eps.expense_id == e.id,
       where: e.date >= ^start_date,
       where: e.date <= ^end_date,
       select: {eps.partner_split_id, e.amount_cents}

@@ -19,19 +19,67 @@ defmodule Ledgr.Domains.CasaTame.ExpensesTest do
 
   defp casa_tame_accounts_fixture do
     accounts = [
-      %{code: "1000", name: "Cash USD",          type: "asset",   normal_balance: "debit",  is_cash: true},
-      %{code: "1100", name: "Cash MXN",          type: "asset",   normal_balance: "debit",  is_cash: true},
-      %{code: "1010", name: "Checking USD",      type: "asset",   normal_balance: "debit",  is_cash: true},
-      %{code: "2000", name: "Credit Card USD",   type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "2100", name: "Credit Card MXN",   type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "3000", name: "Owner's Equity",    type: "equity",  normal_balance: "credit", is_cash: false},
-      %{code: "3050", name: "Retained Earnings", type: "equity",  normal_balance: "credit", is_cash: false},
-      %{code: "4000", name: "Wages USD",         type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4010", name: "Wages MXN",         type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4050", name: "Other Income",      type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "6000", name: "Housing",           type: "expense", normal_balance: "debit",  is_cash: false},
-      %{code: "6010", name: "Food",              type: "expense", normal_balance: "debit",  is_cash: false},
-      %{code: "6020", name: "Transport",         type: "expense", normal_balance: "debit",  is_cash: false}
+      %{code: "1000", name: "Cash USD", type: "asset", normal_balance: "debit", is_cash: true},
+      %{code: "1100", name: "Cash MXN", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1010",
+        name: "Checking USD",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      },
+      %{
+        code: "2000",
+        name: "Credit Card USD",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "2100",
+        name: "Credit Card MXN",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3000",
+        name: "Owner's Equity",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3050",
+        name: "Retained Earnings",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Wages USD",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4010",
+        name: "Wages MXN",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4050",
+        name: "Other Income",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{code: "6000", name: "Housing", type: "expense", normal_balance: "debit", is_cash: false},
+      %{code: "6010", name: "Food", type: "expense", normal_balance: "debit", is_cash: false},
+      %{code: "6020", name: "Transport", type: "expense", normal_balance: "debit", is_cash: false}
     ]
 
     Enum.each(accounts, fn attrs ->
@@ -167,18 +215,26 @@ defmodule Ledgr.Domains.CasaTame.ExpensesTest do
     test "creates an associated journal entry" do
       {:ok, expense} = Expenses.create_expense_with_journal(expense_attrs())
       reference = "Expense ##{expense.id}"
-      entry = Repo.one(from je in Ledgr.Core.Accounting.JournalEntry, where: je.reference == ^reference)
+
+      entry =
+        Repo.one(from je in Ledgr.Core.Accounting.JournalEntry, where: je.reference == ^reference)
+
       assert entry != nil
       assert entry.entry_type == "personal_expense"
     end
 
     test "creates journal entry with correct debit/credit lines" do
-      {:ok, expense} = Expenses.create_expense_with_journal(expense_attrs(%{amount_cents: 80_000}))
+      {:ok, expense} =
+        Expenses.create_expense_with_journal(expense_attrs(%{amount_cents: 80_000}))
+
       reference = "Expense ##{expense.id}"
-      entry = Repo.one(from je in Ledgr.Core.Accounting.JournalEntry,
-        where: je.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      entry =
+        Repo.one(
+          from je in Ledgr.Core.Accounting.JournalEntry,
+            where: je.reference == ^reference,
+            preload: :journal_lines
+        )
 
       debit_line = Enum.find(entry.journal_lines, &(&1.debit_cents == 80_000))
       credit_line = Enum.find(entry.journal_lines, &(&1.credit_cents == 80_000))
@@ -196,7 +252,8 @@ defmodule Ledgr.Domains.CasaTame.ExpensesTest do
     end
 
     test "returns error for negative amount" do
-      assert {:error, _} = Expenses.create_expense_with_journal(expense_attrs(%{amount_cents: -100}))
+      assert {:error, _} =
+               Expenses.create_expense_with_journal(expense_attrs(%{amount_cents: -100}))
     end
 
     test "returns error for invalid currency" do
@@ -204,9 +261,14 @@ defmodule Ledgr.Domains.CasaTame.ExpensesTest do
     end
 
     test "accepts USD currency" do
-      assert {:ok, expense} = Expenses.create_expense_with_journal(
-        expense_attrs(%{currency: "USD", paid_from_account_id: usd_checking_account().id})
-      )
+      assert {:ok, expense} =
+               Expenses.create_expense_with_journal(
+                 expense_attrs(%{
+                   currency: "USD",
+                   paid_from_account_id: usd_checking_account().id
+                 })
+               )
+
       assert expense.currency == "USD"
     end
   end
@@ -216,27 +278,40 @@ defmodule Ledgr.Domains.CasaTame.ExpensesTest do
   describe "update_expense_with_journal/2" do
     test "updates expense fields" do
       expense = expense_fixture()
-      assert {:ok, updated} = Expenses.update_expense_with_journal(expense, %{description: "Updated desc"})
+
+      assert {:ok, updated} =
+               Expenses.update_expense_with_journal(expense, %{description: "Updated desc"})
+
       assert updated.description == "Updated desc"
     end
 
     test "updates amount and refreshes journal entry lines" do
       expense = expense_fixture(%{amount_cents: 10_000})
-      assert {:ok, updated} = Expenses.update_expense_with_journal(expense, %{amount_cents: 25_000})
+
+      assert {:ok, updated} =
+               Expenses.update_expense_with_journal(expense, %{amount_cents: 25_000})
+
       assert updated.amount_cents == 25_000
 
       reference = "Expense ##{expense.id}"
-      entry = Repo.one(from je in Ledgr.Core.Accounting.JournalEntry,
-        where: je.reference == ^reference,
-        preload: :journal_lines
-      )
+
+      entry =
+        Repo.one(
+          from je in Ledgr.Core.Accounting.JournalEntry,
+            where: je.reference == ^reference,
+            preload: :journal_lines
+        )
+
       assert Enum.any?(entry.journal_lines, &(&1.debit_cents == 25_000))
     end
 
     test "updates expense account" do
       expense = expense_fixture()
       food = food_account()
-      assert {:ok, updated} = Expenses.update_expense_with_journal(expense, %{expense_account_id: food.id})
+
+      assert {:ok, updated} =
+               Expenses.update_expense_with_journal(expense, %{expense_account_id: food.id})
+
       assert updated.expense_account_id == food.id
     end
 
@@ -266,10 +341,12 @@ defmodule Ledgr.Domains.CasaTame.ExpensesTest do
       reference = "Expense ##{expense.id}"
       {:ok, _} = Expenses.delete_expense(expense)
 
-      count = Repo.aggregate(
-        from(je in Ledgr.Core.Accounting.JournalEntry, where: je.reference == ^reference),
-        :count
-      )
+      count =
+        Repo.aggregate(
+          from(je in Ledgr.Core.Accounting.JournalEntry, where: je.reference == ^reference),
+          :count
+        )
+
       assert count == 0
     end
 

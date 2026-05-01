@@ -8,464 +8,551 @@
     </div>
   </div>
 
-<%!-- Cropper.js CDN --%>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+  <%!-- Cropper.js CDN --%>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
+  />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js">
+  </script>
 
-<%!-- Crop Modal (thumbnail only) --%>
-<div id="crop-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; padding:1rem;">
-  <div style="background:#fff; border-radius:0.75rem; padding:1.25rem; max-width:640px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.875rem;">
-      <h3 style="margin:0; font-size:1rem; font-weight:600; color:#111827;">Crop Image</h3>
-      <div style="display:flex; align-items:center; gap:0.625rem;">
-        <button id="crop-zoom-fit" class="btn btn-sm" type="button" style="font-size:0.75rem; padding:0.25rem 0.625rem;">Zoom to fit</button>
-        <span style="font-size:0.75rem; color:#6b7280;">4:3 ratio</span>
+  <%!-- Crop Modal (thumbnail only) --%>
+  <div
+    id="crop-modal"
+    style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; padding:1rem;"
+  >
+    <div style="background:#fff; border-radius:0.75rem; padding:1.25rem; max-width:640px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.875rem;">
+        <h3 style="margin:0; font-size:1rem; font-weight:600; color:#111827;">Crop Image</h3>
+        <div style="display:flex; align-items:center; gap:0.625rem;">
+          <button
+            id="crop-zoom-fit"
+            class="btn btn-sm"
+            type="button"
+            style="font-size:0.75rem; padding:0.25rem 0.625rem;"
+          >
+            Zoom to fit
+          </button>
+          <span style="font-size:0.75rem; color:#6b7280;">4:3 ratio</span>
+        </div>
+      </div>
+      <div
+        id="crop-cropper-container"
+        style="max-height:420px; overflow:hidden; border-radius:0.5rem; background:#f3f4f6;"
+      >
+        <img id="crop-image" style="display:block; max-width:100%;" />
+      </div>
+      <div style="display:flex; gap:0.625rem; justify-content:flex-end; margin-top:1rem;">
+        <button id="crop-cancel" class="btn btn-sm" type="button">Cancel</button>
+        <button id="crop-confirm" class="btn btn-sm primary" type="button">Use this crop</button>
       </div>
     </div>
-    <div id="crop-cropper-container" style="max-height:420px; overflow:hidden; border-radius:0.5rem; background:#f3f4f6;">
-      <img id="crop-image" style="display:block; max-width:100%;" />
-    </div>
-    <div style="display:flex; gap:0.625rem; justify-content:flex-end; margin-top:1rem;">
-      <button id="crop-cancel" class="btn btn-sm" type="button">Cancel</button>
-      <button id="crop-confirm" class="btn btn-sm primary" type="button">Use this crop</button>
-    </div>
   </div>
-</div>
 
-<div class="product-edit-layout">
-  <%!-- Left Column: Main form --%>
-  <div class="product-edit-main">
-    <section class="card">
-      <h2 class="card-title">Edit Product</h2>
-      <p class="card-subtitle">
-        Update product details.
-      </p>
+  <div class="product-edit-layout">
+    <%!-- Left Column: Main form --%>
+    <div class="product-edit-main">
+      <section class="card">
+        <h2 class="card-title">Edit Product</h2>
+        <p class="card-subtitle">
+          Update product details.
+        </p>
 
-      <style>
-        .product-active-toggle { display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; }
-        .product-active-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
-        .product-active-track {
-          position: relative; display: inline-block;
-          width: 44px; height: 24px;
-          background: #d1d5db; border-radius: 12px;
-          transition: background-color 0.2s;
-          flex-shrink: 0;
-        }
-        .product-active-track::after {
-          content: ""; position: absolute;
-          top: 2px; left: 2px; width: 20px; height: 20px;
-          background: white; border-radius: 50%;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-          transition: transform 0.2s;
-        }
-        .product-active-toggle input[type="checkbox"]:checked + .product-active-track { background-color: #10b981; }
-        .product-active-toggle input[type="checkbox"]:checked + .product-active-track::after { transform: translateX(20px); }
-        .product-active-label { font-size: 0.875rem; color: #374151; font-weight: 500; }
-      </style>
+        <style>
+          .product-active-toggle { display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; }
+          .product-active-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+          .product-active-track {
+            position: relative; display: inline-block;
+            width: 44px; height: 24px;
+            background: #d1d5db; border-radius: 12px;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+          }
+          .product-active-track::after {
+            content: ""; position: absolute;
+            top: 2px; left: 2px; width: 20px; height: 20px;
+            background: white; border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+          }
+          .product-active-toggle input[type="checkbox"]:checked + .product-active-track { background-color: #10b981; }
+          .product-active-toggle input[type="checkbox"]:checked + .product-active-track::after { transform: translateX(20px); }
+          .product-active-label { font-size: 0.875rem; color: #374151; font-weight: 500; }
+        </style>
 
-      <.form :let={f} for={@changeset} as={:product} action={dp(@domain_path_prefix, "/products/#{@product.id}")} method="patch" multipart={true} class="form-grid">
-        <%= if @changeset.action do %>
-          <div class="alert alert-error">
-            <p>There were problems updating this product. Please review the fields below.</p>
-            <ul>
-              <%= for {field, {message, _}} <- @changeset.errors do %>
-                <li><%= humanize(field) %>: <%= message %></li>
-              <% end %>
-            </ul>
+        <.form
+          :let={f}
+          for={@changeset}
+          as={:product}
+          action={dp(@domain_path_prefix, "/products/#{@product.id}")}
+          method="patch"
+          multipart={true}
+          class="form-grid"
+        >
+          <%= if @changeset.action do %>
+            <div class="alert alert-error">
+              <p>There were problems updating this product. Please review the fields below.</p>
+              <ul>
+                <%= for {field, {message, _}} <- @changeset.errors do %>
+                  <li>{humanize(field)}: {message}</li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="actions">
+            <button class="btn primary" type="submit">
+              Save Changes
+            </button>
+            <.link navigate={dp(@domain_path_prefix, "/products")} class="btn">
+              Cancel
+            </.link>
           </div>
-        <% end %>
 
-        <div class="actions">
-          <button class="btn primary" type="submit">
-            Save Changes
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/products")} class="btn">
-            Cancel
+          <div class="form-block">
+            <div class="field">
+              <.input field={f[:name]} type="text" label="Product Name" />
+            </div>
+
+            <div class="field">
+              <span class="input-label">Status</span>
+              <div style="margin-top: 0.375rem;">
+                <input type="hidden" name="product[active]" value="false" />
+                <label class="product-active-toggle">
+                  <input
+                    type="checkbox"
+                    id="product_active"
+                    name="product[active]"
+                    value="true"
+                    checked={f[:active].value == true}
+                  />
+                  <span class="product-active-track"></span>
+                  <span class="product-active-label">Active</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="input-label" for="product_description">Description</label>
+            <textarea
+              id="product_description"
+              name="product[description]"
+              placeholder="Describe this product for customers..."
+              class="input"
+              style="width: 100%; resize: vertical; min-height: 80px;"
+              rows="4"
+            ><%= f[:description].value %></textarea>
+            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; margin-bottom: 0;">
+              Supports <strong>markdown</strong>
+              — e.g. <code>**bold**</code>, <code>*italic*</code>, <code>- bullet list</code>
+            </p>
+          </div>
+
+          <%!-- Hidden fields for thumbnail upload/URL (controlled from sidebar) --%>
+          <div id="thumbnail-upload-field" style="display: none;">
+            <input
+              type="file"
+              name="product[thumbnail]"
+              accept="image/*"
+              id="thumbnail-file-input"
+            />
+          </div>
+          <input
+            type="hidden"
+            name="product[image_url]"
+            value={Phoenix.HTML.Form.input_value(f, :image_url)}
+          />
+        </.form>
+      </section>
+
+      <%!-- Variants Card --%>
+      <section class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div>
+            <h2 class="card-title" style="margin-bottom: 0.25rem;">Variants</h2>
+            <p class="card-subtitle" style="margin-bottom: 0;">
+              Sizes, prices, and SKUs for this product.
+            </p>
+          </div>
+          <.link
+            navigate={dp(@domain_path_prefix, "/products/#{@product.id}/variants/new")}
+            class="btn btn-sm primary"
+          >
+            + Add Variant
           </.link>
         </div>
 
-        <div class="form-block">
-          <div class="field">
-            <.input field={f[:name]} type="text" label="Product Name" />
-          </div>
-
-          <div class="field">
-            <span class="input-label">Status</span>
-            <div style="margin-top: 0.375rem;">
-              <input type="hidden" name="product[active]" value="false" />
-              <label class="product-active-toggle">
-                <input
-                  type="checkbox"
-                  id="product_active"
-                  name="product[active]"
-                  value="true"
-                  checked={f[:active].value == true}
-                />
-                <span class="product-active-track"></span>
-                <span class="product-active-label">Active</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label class="input-label" for="product_description">Description</label>
-          <textarea
-            id="product_description"
-            name="product[description]"
-            placeholder="Describe this product for customers..."
-            class="input"
-            style="width: 100%; resize: vertical; min-height: 80px;"
-            rows="4"
-          ><%= f[:description].value %></textarea>
-          <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; margin-bottom: 0;">
-            Supports <strong>markdown</strong> — e.g. <code>**bold**</code>, <code>*italic*</code>, <code>- bullet list</code>
-          </p>
-        </div>
-
-        <%!-- Hidden fields for thumbnail upload/URL (controlled from sidebar) --%>
-        <div id="thumbnail-upload-field" style="display: none;">
-          <input type="file" name="product[thumbnail]" accept="image/*" id="thumbnail-file-input" />
-        </div>
-        <input type="hidden" name="product[image_url]" value={Phoenix.HTML.Form.input_value(f, :image_url)} />
-      </.form>
-    </section>
-
-  <%!-- Variants Card --%>
-  <section class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <div>
-        <h2 class="card-title" style="margin-bottom: 0.25rem;">Variants</h2>
-        <p class="card-subtitle" style="margin-bottom: 0;">Sizes, prices, and SKUs for this product.</p>
-      </div>
-      <.link navigate={dp(@domain_path_prefix, "/products/#{@product.id}/variants/new")} class="btn btn-sm primary">
-        + Add Variant
-      </.link>
-    </div>
-
-    <%= if Enum.any?(@product.variants) do %>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>SKU</th>
-            <th>Price</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <%= for variant <- @product.variants do %>
-            <tr>
-              <td><%= variant.name %></td>
-              <td style="color: #6b7280; font-size: 0.875rem;"><%= variant.sku || "—" %></td>
-              <td>$<%= :erlang.float_to_binary(variant.price_cents / 100, decimals: 2) %></td>
-              <td>
-                <%= if variant.active do %>
-                  <span class="badge badge-success">Active</span>
-                <% else %>
-                  <span class="badge badge-secondary">Inactive</span>
-                <% end %>
-              </td>
-              <td style="white-space: nowrap;">
-                <.link navigate={dp(@domain_path_prefix, "/products/#{@product.id}/variants/#{variant.id}/edit")} class="btn btn-sm">
-                  Edit
-                </.link>
-                <.link
-                  href={dp(@domain_path_prefix, "/products/#{@product.id}/variants/#{variant.id}")}
-                  method="delete"
-                  data-confirm={"Delete variant "#{variant.name}"? This cannot be undone."}
-                  class="btn btn-sm btn-danger"
-                >
-                  Delete
-                </.link>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    <% else %>
-      <div class="alert alert-info" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 1rem;">
-        <p style="margin: 0; color: #1e40af;">
-          No variants yet. Add at least one variant so this product can be ordered.
-        </p>
-      </div>
-    <% end %>
-  </section>
-    <%!-- Danger Zone --%>
-    <details style="margin-top: 1.5rem;">
-      <summary style="font-size: 0.8125rem; font-weight: 500; color: #dc2626; cursor: pointer; user-select: none;">Delete this product…</summary>
-      <div style="margin-top: 0.75rem; padding: 1rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem;">
-        <p style="margin: 0 0 0.75rem; font-size: 0.875rem; color: #991b1b;">
-          ⚠️ <strong>This will delete "<%= @product.name %>"</strong>
-          <%= case Enum.count(@product.variants) do %>
-            <% 0 -> %> with no variants.
-            <% 1 -> %> and its 1 variant.
-            <% n -> %> and all <%= n %> of its variants.
-          <% end %>
-          Historical orders will not be affected.
-        </p>
-        <.link
-          href={dp(@domain_path_prefix, "/products/#{@product.id}")}
-          method="delete"
-          data-confirm={"Delete \"#{@product.name}\" and all its variants? This cannot be undone."}
-          class="btn btn-sm btn-danger"
-        >
-          Yes, delete this product
-        </.link>
-      </div>
-    </details>
-  </div>
-
-  <%!-- Right Sidebar: Thumbnail + Media --%>
-  <div class="product-edit-sidebar">
-    <%!-- Thumbnail Card --%>
-    <section class="card product-sidebar-card">
-      <h3 class="sidebar-card-title">Thumbnail</h3>
-
-      <div class="sidebar-thumbnail-area">
-        <%= if @product.image_url do %>
-          <div class="sidebar-thumbnail-preview">
-            <img src={@product.image_url} alt={"#{@product.name} thumbnail"} onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'" />
-          </div>
+        <%= if Enum.any?(@product.variants) do %>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>SKU</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for variant <- @product.variants do %>
+                <tr>
+                  <td>{variant.name}</td>
+                  <td style="color: #6b7280; font-size: 0.875rem;">{variant.sku || "—"}</td>
+                  <td>${:erlang.float_to_binary(variant.price_cents / 100, decimals: 2)}</td>
+                  <td>
+                    <%= if variant.active do %>
+                      <span class="badge badge-success">Active</span>
+                    <% else %>
+                      <span class="badge badge-secondary">Inactive</span>
+                    <% end %>
+                  </td>
+                  <td style="white-space: nowrap;">
+                    <.link
+                      navigate={
+                        dp(
+                          @domain_path_prefix,
+                          "/products/#{@product.id}/variants/#{variant.id}/edit"
+                        )
+                      }
+                      class="btn btn-sm"
+                    >
+                      Edit
+                    </.link>
+                    <.link
+                      href={
+                        dp(@domain_path_prefix, "/products/#{@product.id}/variants/#{variant.id}")
+                      }
+                      method="delete"
+                      data-confirm={
+                        # {variant.name}"? This cannot be undone."
+                        "Delete variant "
+                      }
+                      class="btn btn-sm btn-danger"
+                    >
+                      Delete
+                    </.link>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
         <% else %>
-          <div class="sidebar-thumbnail-empty">
-            <span class="sidebar-thumbnail-icon">🖼️</span>
-            <span class="sidebar-thumbnail-hint">No thumbnail set</span>
+          <div
+            class="alert alert-info"
+            style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 1rem;"
+          >
+            <p style="margin: 0; color: #1e40af;">
+              No variants yet. Add at least one variant so this product can be ordered.
+            </p>
           </div>
         <% end %>
-      </div>
+      </section>
+      <%!-- Danger Zone --%>
+      <details style="margin-top: 1.5rem;">
+        <summary style="font-size: 0.8125rem; font-weight: 500; color: #dc2626; cursor: pointer; user-select: none;">
+          Delete this product…
+        </summary>
+        <div style="margin-top: 0.75rem; padding: 1rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem;">
+          <p style="margin: 0 0 0.75rem; font-size: 0.875rem; color: #991b1b;">
+            ⚠️ <strong>This will delete "{@product.name}"</strong>
+            <%= case Enum.count(@product.variants) do %>
+              <% 0 -> %>
+                with no variants.
+              <% 1 -> %>
+                and its 1 variant.
+              <% n -> %>
+                and all {n} of its variants.
+            <% end %>
+            Historical orders will not be affected.
+          </p>
+          <.link
+            href={dp(@domain_path_prefix, "/products/#{@product.id}")}
+            method="delete"
+            data-confirm={"Delete \"#{@product.name}\" and all its variants? This cannot be undone."}
+            class="btn btn-sm btn-danger"
+          >
+            Yes, delete this product
+          </.link>
+        </div>
+      </details>
+    </div>
 
-      <div class="sidebar-thumbnail-actions">
-        <label class="btn btn-sm sidebar-btn" for="sidebar-thumbnail-input">
-          <%= if @product.image_url, do: "Change", else: "Upload" %>
-        </label>
-        <input
-          type="file"
-          id="sidebar-thumbnail-input"
-          accept="image/*"
-          style="display: none;"
-          onchange="handleThumbnailSelect(this)"
-        />
-      </div>
+    <%!-- Right Sidebar: Thumbnail + Media --%>
+    <div class="product-edit-sidebar">
+      <%!-- Thumbnail Card --%>
+      <section class="card product-sidebar-card">
+        <h3 class="sidebar-card-title">Thumbnail</h3>
 
-      <script>
-        const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
-        const CROP_ASPECT = 4 / 3;
-
-        let _cropper = null;
-        let _cropSourceInput = null;
-        let _originalSrc = null;
-
-        function initCropper(viewMode) {
-          const img = document.getElementById('crop-image');
-          if (_cropper) { _cropper.destroy(); _cropper = null; }
-          _cropper = new Cropper(img, {
-            aspectRatio: CROP_ASPECT,
-            viewMode: viewMode,
-            dragMode: 'move',
-            autoCropArea: 1,
-            responsive: true,
-            checkOrientation: false,
-            background: viewMode === 0, // show checkered only when crop can go outside image
-          });
-          return _cropper;
-        }
-
-        function openCropModal(file, sourceInput) {
-          _cropSourceInput = sourceInput;
-          _originalSrc = null;
-
-          const img = document.getElementById('crop-image');
-          if (_cropper) { _cropper.destroy(); _cropper = null; }
-
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            _originalSrc = e.target.result;
-            img.src = _originalSrc;
-            document.getElementById('crop-modal').style.display = 'flex';
-            img.onload = function() { initCropper(1); };
-          };
-          reader.readAsDataURL(file);
-        }
-
-        function closeCropModal() {
-          document.getElementById('crop-modal').style.display = 'none';
-          if (_cropper) { _cropper.destroy(); _cropper = null; }
-          if (_cropSourceInput) { _cropSourceInput.value = ''; }
-          _cropSourceInput = null;
-          _originalSrc = null;
-        }
-
-        function submitCroppedBlob(blob) {
-          const name = (_cropSourceInput.files[0] && _cropSourceInput.files[0].name) || 'image.jpg';
-          const file = new File([blob], name, { type: 'image/jpeg' });
-          const dt = new DataTransfer();
-          dt.items.add(file);
-
-          const area = document.querySelector('.sidebar-thumbnail-area');
-          area.innerHTML = '<div class="sidebar-thumbnail-preview"><img src="' + URL.createObjectURL(blob) + '" alt="New thumbnail preview" /></div>';
-
-          document.getElementById('thumbnail-file-input').files = dt.files;
-          document.getElementById('crop-modal').style.display = 'none';
-          if (_cropper) { _cropper.destroy(); _cropper = null; }
-          document.querySelector('.product-edit-main form').submit();
-        }
-
-        document.getElementById('crop-cancel').addEventListener('click', closeCropModal);
-
-        // "Zoom to fit": expand the crop box to contain the full image within 4:3,
-        // allowing it to extend outside the image bounds (filled with blurred bg on output).
-        document.getElementById('crop-zoom-fit').addEventListener('click', function() {
-          if (!_cropper) return;
-          const imgData = _cropper.getImageData();
-          const nw = imgData.naturalWidth, nh = imgData.naturalHeight;
-
-          // Recreate with viewMode: 0 so crop box can extend outside image bounds
-          const c = initCropper(0);
-          c.options.ready = null; // clear any prior ready
-          c.element.addEventListener('ready', function handler() {
-            c.element.removeEventListener('ready', handler);
-            let cropX, cropY, cropW, cropH;
-            if (nw / nh < CROP_ASPECT) {
-              // Portrait / near-square: fit height, expand width
-              cropH = nh;
-              cropW = Math.round(nh * CROP_ASPECT);
-              cropX = -Math.round((cropW - nw) / 2);
-              cropY = 0;
-            } else {
-              // Landscape wider than 4:3: fit width, expand height
-              cropW = nw;
-              cropH = Math.round(nw / CROP_ASPECT);
-              cropX = 0;
-              cropY = -Math.round((cropH - nh) / 2);
-            }
-            c.setData({ x: cropX, y: cropY, width: cropW, height: cropH, rotate: 0, scaleX: 1, scaleY: 1 });
-          }, { once: true });
-        });
-
-        document.getElementById('crop-confirm').addEventListener('click', function() {
-          if (!_cropper) return;
-
-          // Get the cropped canvas (may contain transparent areas if crop extends outside image)
-          const croppedCanvas = _cropper.getCroppedCanvas({ width: 1200, height: 900 });
-
-          // Composite over blurred background:
-          // - Normal crop: image fills canvas entirely, background is invisible
-          // - After "Zoom to fit": transparent areas show blurred background through
-          const finalCanvas = document.createElement('canvas');
-          finalCanvas.width = 1200;
-          finalCanvas.height = 900;
-          const ctx = finalCanvas.getContext('2d');
-          const tmp = new Image();
-          tmp.onload = function() {
-            const iw = tmp.naturalWidth, ih = tmp.naturalHeight;
-            // 1. Blurred cover background
-            const coverScale = Math.max(1200 / iw, 900 / ih) * 1.12;
-            const bgW = iw * coverScale, bgH = ih * coverScale;
-            ctx.filter = 'blur(24px)';
-            ctx.drawImage(tmp, (1200 - bgW) / 2, (900 - bgH) / 2, bgW, bgH);
-            // 2. Dark overlay
-            ctx.filter = 'none';
-            ctx.fillStyle = 'rgba(0,0,0,0.28)';
-            ctx.fillRect(0, 0, 1200, 900);
-            // 3. Composite crop (transparent areas reveal the blurred background)
-            ctx.drawImage(croppedCanvas, 0, 0);
-            finalCanvas.toBlob(function(blob) { submitCroppedBlob(blob); }, 'image/jpeg', 0.92);
-          };
-          tmp.src = _originalSrc;
-        });
-
-        function handleThumbnailSelect(input) {
-          if (!input.files || input.files.length === 0) return;
-          const file = input.files[0];
-          if (file.size > MAX_IMAGE_BYTES) {
-            alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
-            input.value = "";
-            return;
-          }
-          openCropModal(file, input);
-        }
-
-        function handleGallerySelect(input) {
-          if (!input.files || input.files.length === 0) return;
-          const file = input.files[0];
-          if (file.size > MAX_IMAGE_BYTES) {
-            alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
-            input.value = "";
-            return;
-          }
-          input.closest('form').submit();
-        }
-      </script>
-    </section>
-
-    <%!-- Media / Gallery Card --%>
-    <section class="card product-sidebar-card">
-      <h3 class="sidebar-card-title">Media</h3>
-
-      <%= if Enum.any?(@product.images) do %>
-        <div class="sidebar-media-grid">
-          <%= for image <- @product.images do %>
-            <div class="sidebar-media-item">
-              <img src={image.image_url} alt={"Gallery image #{image.position + 1}"} onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'" />
-              <.link
-                href={dp(@domain_path_prefix, "/products/#{@product.id}/images/#{image.id}")}
-                method="delete"
-                data-confirm="Remove this gallery image?"
-                class="sidebar-media-delete"
-              >
-                &times;
-              </.link>
+        <div class="sidebar-thumbnail-area">
+          <%= if @product.image_url do %>
+            <div class="sidebar-thumbnail-preview">
+              <img
+                src={@product.image_url}
+                alt={"#{@product.name} thumbnail"}
+                onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'"
+              />
+            </div>
+          <% else %>
+            <div class="sidebar-thumbnail-empty">
+              <span class="sidebar-thumbnail-icon">🖼️</span>
+              <span class="sidebar-thumbnail-hint">No thumbnail set</span>
             </div>
           <% end %>
         </div>
-      <% else %>
-        <div class="sidebar-media-empty">
-          <span class="sidebar-media-icon">📷</span>
-          <span class="sidebar-media-hint">No gallery images yet</span>
-        </div>
-      <% end %>
 
-      <form action={dp(@domain_path_prefix, "/products/#{@product.id}/images")} method="post" enctype="multipart/form-data" class="sidebar-media-upload">
-        <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
-        <label class="btn btn-sm sidebar-btn" for="sidebar-gallery-input">
-          Add Image
-        </label>
-        <input
-          type="file"
-          id="sidebar-gallery-input"
-          name="gallery_image"
-          accept="image/*"
-          style="display: none;"
-          onchange="handleGallerySelect(this)"
-        />
-      </form>
-    </section>
+        <div class="sidebar-thumbnail-actions">
+          <label class="btn btn-sm sidebar-btn" for="sidebar-thumbnail-input">
+            {if @product.image_url, do: "Change", else: "Upload"}
+          </label>
+          <input
+            type="file"
+            id="sidebar-thumbnail-input"
+            accept="image/*"
+            style="display: none;"
+            onchange="handleThumbnailSelect(this)"
+          />
+        </div>
 
-    <%!-- Preview Card (live preview of product) --%>
-    <section class="card product-sidebar-card">
-      <h3 class="sidebar-card-title">Preview</h3>
-      <div class="sidebar-preview-product">
-        <div class="sidebar-preview-img">
-          <%= if @product.image_url do %>
-            <img src={@product.image_url} alt={@product.name} onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'" />
-          <% else %>
-            <div class="sidebar-preview-placeholder">🍪</div>
-          <% end %>
+        <script>
+          const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+          const CROP_ASPECT = 4 / 3;
+
+          let _cropper = null;
+          let _cropSourceInput = null;
+          let _originalSrc = null;
+
+          function initCropper(viewMode) {
+            const img = document.getElementById('crop-image');
+            if (_cropper) { _cropper.destroy(); _cropper = null; }
+            _cropper = new Cropper(img, {
+              aspectRatio: CROP_ASPECT,
+              viewMode: viewMode,
+              dragMode: 'move',
+              autoCropArea: 1,
+              responsive: true,
+              checkOrientation: false,
+              background: viewMode === 0, // show checkered only when crop can go outside image
+            });
+            return _cropper;
+          }
+
+          function openCropModal(file, sourceInput) {
+            _cropSourceInput = sourceInput;
+            _originalSrc = null;
+
+            const img = document.getElementById('crop-image');
+            if (_cropper) { _cropper.destroy(); _cropper = null; }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              _originalSrc = e.target.result;
+              img.src = _originalSrc;
+              document.getElementById('crop-modal').style.display = 'flex';
+              img.onload = function() { initCropper(1); };
+            };
+            reader.readAsDataURL(file);
+          }
+
+          function closeCropModal() {
+            document.getElementById('crop-modal').style.display = 'none';
+            if (_cropper) { _cropper.destroy(); _cropper = null; }
+            if (_cropSourceInput) { _cropSourceInput.value = ''; }
+            _cropSourceInput = null;
+            _originalSrc = null;
+          }
+
+          function submitCroppedBlob(blob) {
+            const name = (_cropSourceInput.files[0] && _cropSourceInput.files[0].name) || 'image.jpg';
+            const file = new File([blob], name, { type: 'image/jpeg' });
+            const dt = new DataTransfer();
+            dt.items.add(file);
+
+            const area = document.querySelector('.sidebar-thumbnail-area');
+            area.innerHTML = '<div class="sidebar-thumbnail-preview"><img src="' + URL.createObjectURL(blob) + '" alt="New thumbnail preview" /></div>';
+
+            document.getElementById('thumbnail-file-input').files = dt.files;
+            document.getElementById('crop-modal').style.display = 'none';
+            if (_cropper) { _cropper.destroy(); _cropper = null; }
+            document.querySelector('.product-edit-main form').submit();
+          }
+
+          document.getElementById('crop-cancel').addEventListener('click', closeCropModal);
+
+          // "Zoom to fit": expand the crop box to contain the full image within 4:3,
+          // allowing it to extend outside the image bounds (filled with blurred bg on output).
+          document.getElementById('crop-zoom-fit').addEventListener('click', function() {
+            if (!_cropper) return;
+            const imgData = _cropper.getImageData();
+            const nw = imgData.naturalWidth, nh = imgData.naturalHeight;
+
+            // Recreate with viewMode: 0 so crop box can extend outside image bounds
+            const c = initCropper(0);
+            c.options.ready = null; // clear any prior ready
+            c.element.addEventListener('ready', function handler() {
+              c.element.removeEventListener('ready', handler);
+              let cropX, cropY, cropW, cropH;
+              if (nw / nh < CROP_ASPECT) {
+                // Portrait / near-square: fit height, expand width
+                cropH = nh;
+                cropW = Math.round(nh * CROP_ASPECT);
+                cropX = -Math.round((cropW - nw) / 2);
+                cropY = 0;
+              } else {
+                // Landscape wider than 4:3: fit width, expand height
+                cropW = nw;
+                cropH = Math.round(nw / CROP_ASPECT);
+                cropX = 0;
+                cropY = -Math.round((cropH - nh) / 2);
+              }
+              c.setData({ x: cropX, y: cropY, width: cropW, height: cropH, rotate: 0, scaleX: 1, scaleY: 1 });
+            }, { once: true });
+          });
+
+          document.getElementById('crop-confirm').addEventListener('click', function() {
+            if (!_cropper) return;
+
+            // Get the cropped canvas (may contain transparent areas if crop extends outside image)
+            const croppedCanvas = _cropper.getCroppedCanvas({ width: 1200, height: 900 });
+
+            // Composite over blurred background:
+            // - Normal crop: image fills canvas entirely, background is invisible
+            // - After "Zoom to fit": transparent areas show blurred background through
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = 1200;
+            finalCanvas.height = 900;
+            const ctx = finalCanvas.getContext('2d');
+            const tmp = new Image();
+            tmp.onload = function() {
+              const iw = tmp.naturalWidth, ih = tmp.naturalHeight;
+              // 1. Blurred cover background
+              const coverScale = Math.max(1200 / iw, 900 / ih) * 1.12;
+              const bgW = iw * coverScale, bgH = ih * coverScale;
+              ctx.filter = 'blur(24px)';
+              ctx.drawImage(tmp, (1200 - bgW) / 2, (900 - bgH) / 2, bgW, bgH);
+              // 2. Dark overlay
+              ctx.filter = 'none';
+              ctx.fillStyle = 'rgba(0,0,0,0.28)';
+              ctx.fillRect(0, 0, 1200, 900);
+              // 3. Composite crop (transparent areas reveal the blurred background)
+              ctx.drawImage(croppedCanvas, 0, 0);
+              finalCanvas.toBlob(function(blob) { submitCroppedBlob(blob); }, 'image/jpeg', 0.92);
+            };
+            tmp.src = _originalSrc;
+          });
+
+          function handleThumbnailSelect(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            if (file.size > MAX_IMAGE_BYTES) {
+              alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
+              input.value = "";
+              return;
+            }
+            openCropModal(file, input);
+          }
+
+          function handleGallerySelect(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            if (file.size > MAX_IMAGE_BYTES) {
+              alert("Image is too large (" + (file.size / 1024 / 1024).toFixed(1) + " MB). Please choose an image under 8 MB.");
+              input.value = "";
+              return;
+            }
+            input.closest('form').submit();
+          }
+        </script>
+      </section>
+
+      <%!-- Media / Gallery Card --%>
+      <section class="card product-sidebar-card">
+        <h3 class="sidebar-card-title">Media</h3>
+
+        <%= if Enum.any?(@product.images) do %>
+          <div class="sidebar-media-grid">
+            <%= for image <- @product.images do %>
+              <div class="sidebar-media-item">
+                <img
+                  src={image.image_url}
+                  alt={"Gallery image #{image.position + 1}"}
+                  onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'"
+                />
+                <.link
+                  href={dp(@domain_path_prefix, "/products/#{@product.id}/images/#{image.id}")}
+                  method="delete"
+                  data-confirm="Remove this gallery image?"
+                  class="sidebar-media-delete"
+                >
+                  &times;
+                </.link>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="sidebar-media-empty">
+            <span class="sidebar-media-icon">📷</span>
+            <span class="sidebar-media-hint">No gallery images yet</span>
+          </div>
+        <% end %>
+
+        <form
+          action={dp(@domain_path_prefix, "/products/#{@product.id}/images")}
+          method="post"
+          enctype="multipart/form-data"
+          class="sidebar-media-upload"
+        >
+          <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+          <label class="btn btn-sm sidebar-btn" for="sidebar-gallery-input">
+            Add Image
+          </label>
+          <input
+            type="file"
+            id="sidebar-gallery-input"
+            name="gallery_image"
+            accept="image/*"
+            style="display: none;"
+            onchange="handleGallerySelect(this)"
+          />
+        </form>
+      </section>
+
+      <%!-- Preview Card (live preview of product) --%>
+      <section class="card product-sidebar-card">
+        <h3 class="sidebar-card-title">Preview</h3>
+        <div class="sidebar-preview-product">
+          <div class="sidebar-preview-img">
+            <%= if @product.image_url do %>
+              <img
+                src={@product.image_url}
+                alt={@product.name}
+                onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'"
+              />
+            <% else %>
+              <div class="sidebar-preview-placeholder">🍪</div>
+            <% end %>
+          </div>
+          <div class="sidebar-preview-info">
+            <div class="sidebar-preview-name">{@product.name}</div>
+            <div class="sidebar-preview-price">{Enum.count(@product.variants)} variant(s)</div>
+            <%= if @product.description do %>
+              <div class="sidebar-preview-desc">
+                {String.slice(@product.description || "", 0, 80)}{if String.length(
+                                                                       @product.description || ""
+                                                                     ) > 80,
+                                                                     do: "..."}
+              </div>
+            <% end %>
+          </div>
         </div>
-        <div class="sidebar-preview-info">
-          <div class="sidebar-preview-name"><%= @product.name %></div>
-          <div class="sidebar-preview-price"><%= Enum.count(@product.variants) %> variant(s)</div>
-          <%= if @product.description do %>
-            <div class="sidebar-preview-desc"><%= String.slice(@product.description || "", 0, 80) %><%= if String.length(@product.description || "") > 80, do: "..." %></div>
-          <% end %>
-        </div>
-      </div>
-      <a href={"/mr-munch-me/menu/#{@product.id}"} target="_blank" class="sidebar-preview-storefront-link">
-        View in store →
-      </a>
-    </section>
+        <a
+          href={"/mr-munch-me/menu/#{@product.id}"}
+          target="_blank"
+          class="sidebar-preview-storefront-link"
+        >
+          View in store →
+        </a>
+      </section>
+    </div>
   </div>
-</div>
 </div>

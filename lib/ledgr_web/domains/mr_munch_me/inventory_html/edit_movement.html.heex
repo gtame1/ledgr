@@ -9,112 +9,111 @@
   </div>
 
   <section class="card">
-      <h2 class="card-title">Edit Transfer</h2>
-      <p class="card-subtitle">
-        Update transfer details. This will reverse the old transfer and create a new one with updated values.
-      </p>
+    <h2 class="card-title">Edit Transfer</h2>
+    <p class="card-subtitle">
+      Update transfer details. This will reverse the old transfer and create a new one with updated values.
+    </p>
 
-      <%= if @changeset.action do %>
-        <div class="alert alert-error">
-          <p>There were problems with the transfer:</p>
-          <ul>
-            <%= for {field, {msg, _opts}} <- @changeset.errors do %>
-              <li><strong><%= field %>:</strong> <%= msg %></li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
+    <%= if @changeset.action do %>
+      <div class="alert alert-error">
+        <p>There were problems with the transfer:</p>
+        <ul>
+          <%= for {field, {msg, _opts}} <- @changeset.errors do %>
+            <li><strong>{field}:</strong> {msg}</li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
 
-      <.form
-        for={@changeset}
-        as={:movement}
-        action={dp(@domain_path_prefix, "/inventory/movements/#{@movement.id}")}
-        method="put"
-        class="form-grid"
-        :let={f}
-      >
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={f[:movement_type]}
-              type="select"
-              label="Movement type"
-              prompt="Choose movement type"
-              options={[
-                {"Transfer between locations", "transfer"}
-              ]}
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={f[:ingredient_code]}
-              type="select"
-              label="Ingredient"
-              prompt="Choose an ingredient"
-              options={@ingredient_options}
-            />
-          </div>
+    <.form
+      :let={f}
+      for={@changeset}
+      as={:movement}
+      action={dp(@domain_path_prefix, "/inventory/movements/#{@movement.id}")}
+      method="put"
+      class="form-grid"
+    >
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={f[:movement_type]}
+            type="select"
+            label="Movement type"
+            prompt="Choose movement type"
+            options={[
+              {"Transfer between locations", "transfer"}
+            ]}
+          />
         </div>
 
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={f[:from_location_code]}
-              type="select"
-              label="From location"
-              prompt="Choose origin"
-              options={@location_options}
-            />
-          </div>
+        <div class="field">
+          <.input
+            field={f[:ingredient_code]}
+            type="select"
+            label="Ingredient"
+            prompt="Choose an ingredient"
+            options={@ingredient_options}
+          />
+        </div>
+      </div>
 
-          <div class="field">
-            <.input
-              field={f[:to_location_code]}
-              type="select"
-              label="To location"
-              prompt="Choose destination"
-              options={@location_options}
-            />
-          </div>
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={f[:from_location_code]}
+            type="select"
+            label="From location"
+            prompt="Choose origin"
+            options={@location_options}
+          />
         </div>
 
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={f[:quantity]}
-              type="number"
-              label="Quantity"
-              min="1"
-            />
-          </div>
+        <div class="field">
+          <.input
+            field={f[:to_location_code]}
+            type="select"
+            label="To location"
+            prompt="Choose destination"
+            options={@location_options}
+          />
+        </div>
+      </div>
 
-          <div class="field">
-            <.input
-              field={f[:movement_date]}
-              type="date"
-              label="Movement Date"
-            />
-          </div>
-
-          <div class="field">
-            <.input
-              field={f[:note]}
-              type="text"
-              label="Note (optional)"
-            />
-          </div>
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={f[:quantity]}
+            type="number"
+            label="Quantity"
+            min="1"
+          />
         </div>
 
-        <div class="actions">
-          <button type="submit" class="btn primary">
-            Update Transfer
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
-            Cancel
-          </.link>
+        <div class="field">
+          <.input
+            field={f[:movement_date]}
+            type="date"
+            label="Movement Date"
+          />
         </div>
-      </.form>
+
+        <div class="field">
+          <.input
+            field={f[:note]}
+            type="text"
+            label="Note (optional)"
+          />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn primary">
+          Update Transfer
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/inventory")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
   </section>
 </div>
-

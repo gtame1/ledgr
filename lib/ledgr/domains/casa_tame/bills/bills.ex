@@ -66,19 +66,22 @@ defmodule Ledgr.Domains.CasaTame.Bills do
   def mark_paid(%RecurringBill{} = bill) do
     today = Ledgr.Domains.CasaTame.today()
     next_date = advance_due_date(bill)
-    bill |> Ecto.Changeset.change(%{next_due_date: next_date, last_paid_date: today}) |> Repo.update()
+
+    bill
+    |> Ecto.Changeset.change(%{next_due_date: next_date, last_paid_date: today})
+    |> Repo.update()
   end
 
   def advance_due_date(%RecurringBill{} = bill) do
     base = bill.next_due_date
 
     case bill.frequency do
-      "weekly"    -> Date.add(base, 7)
-      "biweekly"  -> Date.add(base, 14)
-      "monthly"   -> safe_add_months(base, 1, bill.day_of_month)
+      "weekly" -> Date.add(base, 7)
+      "biweekly" -> Date.add(base, 14)
+      "monthly" -> safe_add_months(base, 1, bill.day_of_month)
       "quarterly" -> safe_add_months(base, 3, bill.day_of_month)
-      "annual"    -> safe_add_months(base, 12, bill.day_of_month)
-      "one_time"  -> base
+      "annual" -> safe_add_months(base, 12, bill.day_of_month)
+      "one_time" -> base
     end
   end
 
@@ -97,14 +100,16 @@ defmodule Ledgr.Domains.CasaTame.Bills do
 
   # Returns the list of dates a bill falls on within a date range
   defp bill_dates_in_range(%RecurringBill{frequency: "one_time"} = bill, first_day, last_day) do
-    if Date.compare(bill.next_due_date, first_day) != :lt and Date.compare(bill.next_due_date, last_day) != :gt do
+    if Date.compare(bill.next_due_date, first_day) != :lt and
+         Date.compare(bill.next_due_date, last_day) != :gt do
       [bill.next_due_date]
     else
       []
     end
   end
 
-  defp bill_dates_in_range(%RecurringBill{frequency: freq} = bill, first_day, last_day) when freq in ["weekly", "biweekly"] do
+  defp bill_dates_in_range(%RecurringBill{frequency: freq} = bill, first_day, last_day)
+       when freq in ["weekly", "biweekly"] do
     interval = if freq == "weekly", do: 7, else: 14
 
     Stream.unfold(bill.next_due_date, fn date ->

@@ -6,7 +6,6 @@ defmodule Ledgr.Domains.MrMunchMe.Orders.Order do
   alias Ledgr.Domains.MrMunchMe.Inventory.Location
   alias Ledgr.Core.Customers.Customer
 
-
   @statuses ~w(new_order in_prep ready delivered canceled)
   @delivery_types ~w(pickup delivery)
   @discount_types ~w(flat percentage)
@@ -37,7 +36,9 @@ defmodule Ledgr.Domains.MrMunchMe.Orders.Order do
     belongs_to :prep_location, Location
     belongs_to :customer, Customer
 
-    has_many :order_ingredients, Ledgr.Domains.MrMunchMe.Orders.OrderIngredient, on_replace: :delete
+    has_many :order_ingredients, Ledgr.Domains.MrMunchMe.Orders.OrderIngredient,
+      on_replace: :delete
+
     has_many :order_payments, Ledgr.Domains.MrMunchMe.Orders.OrderPayment
 
     timestamps()
@@ -89,10 +90,12 @@ defmodule Ledgr.Domains.MrMunchMe.Orders.Order do
     discount_value = get_field(changeset, :discount_value)
 
     cond do
-      discount_type in @discount_types and (is_nil(discount_value) or Decimal.compare(discount_value, Decimal.new(0)) != :gt) ->
+      discount_type in @discount_types and
+          (is_nil(discount_value) or Decimal.compare(discount_value, Decimal.new(0)) != :gt) ->
         add_error(changeset, :discount_value, "must be greater than 0 when discount type is set")
 
-      discount_type == "percentage" and discount_value && Decimal.compare(discount_value, Decimal.new(100)) == :gt ->
+      (discount_type == "percentage" and discount_value) &&
+          Decimal.compare(discount_value, Decimal.new(100)) == :gt ->
         add_error(changeset, :discount_value, "percentage cannot exceed 100")
 
       is_nil(discount_type) or discount_type == "" ->

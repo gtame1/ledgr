@@ -23,7 +23,15 @@ defmodule Ledgr.Domains.VolumeStudio.Consultations.Consultation do
   end
 
   @required_fields [:customer_id, :amount_cents, :scheduled_at]
-  @optional_fields [:instructor_name, :duration_minutes, :status, :notes, :iva_cents, :paid_at, :partner_split_id]
+  @optional_fields [
+    :instructor_name,
+    :duration_minutes,
+    :status,
+    :notes,
+    :iva_cents,
+    :paid_at,
+    :partner_split_id
+  ]
 
   @valid_statuses ~w(scheduled completed cancelled no_show)
 

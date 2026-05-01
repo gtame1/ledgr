@@ -25,6 +25,7 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
             estimated_cost = Recepies.estimated_recipe_cost(version)
             Map.put(version, :estimated_cost, estimated_cost)
           end)
+
         {variant_id, versions_with_costs}
       end)
       |> Map.new()
@@ -54,14 +55,22 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
 
   def new(conn, _params) do
     # Initialize with at least one empty recipe line, defaulting to today
-    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+    today_mx =
+      NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+
     attrs = %{"effective_date" => Date.to_iso8601(today_mx), "recipe_lines" => [%{}]}
     changeset = Recepies.change_recipe(%Recipe{}, attrs)
     form = Phoenix.Component.to_form(changeset)
 
     ingredient_options_raw = Ledgr.Domains.MrMunchMe.Inventory.ingredient_options_with_units()
-    ingredient_options = Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
-    ingredient_options_json = Jason.encode!(Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end))
+
+    ingredient_options =
+      Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
+
+    ingredient_options_json =
+      Jason.encode!(
+        Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end)
+      )
 
     render(conn, :new,
       changeset: changeset,
@@ -85,8 +94,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
         form = Phoenix.Component.to_form(changeset)
 
         ingredient_options_raw = Ledgr.Domains.MrMunchMe.Inventory.ingredient_options_with_units()
-        ingredient_options = Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
-        ingredient_options_json = Jason.encode!(Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end))
+
+        ingredient_options =
+          Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
+
+        ingredient_options_json =
+          Jason.encode!(
+            Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end)
+          )
 
         render(conn, :new,
           changeset: changeset,
@@ -110,7 +125,8 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
 
     # Pre-fill with existing recipe data but create a new recipe
     # Default effective_date to today (or day after original if original is today/future)
-    today_mx = NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
+    today_mx =
+      NaiveDateTime.utc_now() |> NaiveDateTime.add(-6 * 3600, :second) |> NaiveDateTime.to_date()
 
     new_effective_date =
       if Date.compare(original_recipe.effective_date, today_mx) != :lt do
@@ -147,8 +163,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
     form = Phoenix.Component.to_form(changeset)
 
     ingredient_options_raw = Ledgr.Domains.MrMunchMe.Inventory.ingredient_options_with_units()
-    ingredient_options = Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
-    ingredient_options_json = Jason.encode!(Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end))
+
+    ingredient_options =
+      Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
+
+    ingredient_options_json =
+      Jason.encode!(
+        Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end)
+      )
 
     render(conn, :edit,
       original_recipe: original_recipe,
@@ -167,12 +189,16 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
     case Recepies.create_recipe(recipe_params) do
       {:ok, _new_recipe} ->
         conn
-        |> put_flash(:info, "New recipe version created successfully. The original recipe remains unchanged for historical accuracy.")
+        |> put_flash(
+          :info,
+          "New recipe version created successfully. The original recipe remains unchanged for historical accuracy."
+        )
         |> redirect(to: dp(conn, "/recipes"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
         # Debug: Log errors for troubleshooting
         IO.inspect(changeset.errors, label: "Recipe errors")
+
         if changeset.changes[:recipe_lines] do
           Enum.each(changeset.changes.recipe_lines, fn line_changeset ->
             IO.inspect(line_changeset.errors, label: "Recipe line errors")
@@ -183,8 +209,14 @@ defmodule LedgrWeb.Domains.MrMunchMe.RecipeController do
         form = Phoenix.Component.to_form(changeset)
 
         ingredient_options_raw = Ledgr.Domains.MrMunchMe.Inventory.ingredient_options_with_units()
-        ingredient_options = Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
-        ingredient_options_json = Jason.encode!(Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end))
+
+        ingredient_options =
+          Enum.map(ingredient_options_raw, fn {name, code, _unit} -> {name, code} end)
+
+        ingredient_options_json =
+          Jason.encode!(
+            Enum.map(ingredient_options_raw, fn {name, code, unit} -> [name, code, unit] end)
+          )
 
         conn
         |> put_flash(:error, "Please fix the errors below and try again.")

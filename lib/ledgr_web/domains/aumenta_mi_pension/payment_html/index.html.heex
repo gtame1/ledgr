@@ -16,22 +16,22 @@ end %>
   <div class="hd-kpi-grid mb-6">
     <div class="hd-kpi">
       <div class="hd-kpi-label">Ingresos Totales</div>
-      <div class="hd-kpi-value" style="color: var(--accent);"><%= fmt.(@stats.total_revenue) %></div>
+      <div class="hd-kpi-value" style="color: var(--accent);">{fmt.(@stats.total_revenue)}</div>
       <div class="hd-kpi-sub">MXN</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Comisión Plataforma (15%)</div>
-      <div class="hd-kpi-value" style="color: var(--primary);"><%= fmt.(@stats.commission) %></div>
+      <div class="hd-kpi-value" style="color: var(--primary);">{fmt.(@stats.commission)}</div>
       <div class="hd-kpi-sub">comisión</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Fees de Stripe</div>
-      <div class="hd-kpi-value" style="color: #dc2626;"><%= fmt.(@stats.total_fees) %></div>
+      <div class="hd-kpi-value" style="color: #dc2626;">{fmt.(@stats.total_fees)}</div>
       <div class="hd-kpi-sub">procesamiento</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Transacciones</div>
-      <div class="hd-kpi-value"><%= @stats.total_count %></div>
+      <div class="hd-kpi-value">{@stats.total_count}</div>
       <div class="hd-kpi-sub">pagos recibidos</div>
     </div>
   </div>
@@ -42,16 +42,66 @@ end %>
       <table class="hd-table w-full">
         <thead>
           <tr>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fecha</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Cliente</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Producto</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Monto</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Fee</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Comisión (15%)</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Pago Agente</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Estatus</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Consulta</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Acciones</th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Fecha
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Cliente
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Producto
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Monto
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Fee
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Comisión (15%)
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Pago Agente
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Estatus
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Consulta
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Acciones
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -67,23 +117,43 @@ end %>
               <% agent_payout = (pay.amount || 0) * 0.85 %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= fmt_date(pay.paid_at) || "---" %>
+                  {fmt_date(pay.paid_at) || "---"}
                 </td>
                 <td class="p-3">
-                  <div class="text-sm font-medium" style="color: var(--text-main);"><%= pay.customer_name || "---" %></div>
-                  <div class="text-xs" style="color: var(--text-muted);"><%= pay.customer_email || "" %></div>
+                  <div class="text-sm font-medium" style="color: var(--text-main);">
+                    {pay.customer_name || "---"}
+                  </div>
+                  <div class="text-xs" style="color: var(--text-muted);">
+                    {pay.customer_email || ""}
+                  </div>
                 </td>
-                <td class="p-3 text-sm" style="color: var(--text-main);"><%= pay.product_name || "—" %></td>
-                <td class="p-3 text-sm text-right font-semibold" style="color: var(--text-main);"><%= fmt.(pay.amount) %></td>
-                <td class="p-3 text-sm text-right" style="color: #dc2626;"><%= fmt.(pay.stripe_fee) %></td>
-                <td class="p-3 text-sm text-right" style="color: var(--accent);"><%= fmt.(commission) %></td>
-                <td class="p-3 text-sm text-right" style="color: var(--text-main);"><%= fmt.(agent_payout) %></td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {pay.product_name || "—"}
+                </td>
+                <td class="p-3 text-sm text-right font-semibold" style="color: var(--text-main);">
+                  {fmt.(pay.amount)}
+                </td>
+                <td class="p-3 text-sm text-right" style="color: #dc2626;">
+                  {fmt.(pay.stripe_fee)}
+                </td>
+                <td class="p-3 text-sm text-right" style="color: var(--accent);">
+                  {fmt.(commission)}
+                </td>
+                <td class="p-3 text-sm text-right" style="color: var(--text-main);">
+                  {fmt.(agent_payout)}
+                </td>
                 <td class="p-3">
-                  <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+                  <span class={"hd-badge hd-badge--#{pay.status}"}>
+                    {pay.status |> to_string() |> String.capitalize()}
+                  </span>
                 </td>
                 <td class="p-3">
                   <%= if pay.consultation_id do %>
-                    <.link navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")} class="text-sm" style="color: var(--accent);">
+                    <.link
+                      navigate={dp(@domain_path_prefix, "/consultations/#{pay.consultation_id}")}
+                      class="text-sm"
+                      style="color: var(--accent);"
+                    >
                       Ver
                     </.link>
                   <% else %>
@@ -91,7 +161,11 @@ end %>
                   <% end %>
                 </td>
                 <td class="p-3 text-right">
-                  <.link navigate={dp(@domain_path_prefix, "/payments/#{pay.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/payments/#{pay.id}")}
+                    class="text-sm font-medium"
+                    style="color: var(--accent);"
+                  >
                     Detalles
                   </.link>
                 </td>

@@ -38,7 +38,10 @@ defmodule LedgrWeb.ExpenseController do
         changeset =
           changeset
           |> Map.put(:action, :insert)
-          |> Ecto.Changeset.put_change(:amount_cents, MoneyHelper.cents_to_pesos(Ecto.Changeset.get_field(changeset, :amount_cents)))
+          |> Ecto.Changeset.put_change(
+            :amount_cents,
+            MoneyHelper.cents_to_pesos(Ecto.Changeset.get_field(changeset, :amount_cents))
+          )
 
         render(conn, :new,
           changeset: changeset,
@@ -91,7 +94,10 @@ defmodule LedgrWeb.ExpenseController do
         changeset =
           changeset
           |> Map.put(:action, :update)
-          |> Ecto.Changeset.put_change(:amount_cents, MoneyHelper.cents_to_pesos(Ecto.Changeset.get_field(changeset, :amount_cents)))
+          |> Ecto.Changeset.put_change(
+            :amount_cents,
+            MoneyHelper.cents_to_pesos(Ecto.Changeset.get_field(changeset, :amount_cents))
+          )
 
         render(conn, :edit,
           expense: expense,
@@ -119,7 +125,6 @@ defmodule LedgrWeb.ExpenseController do
     end
   end
 end
-
 
 defmodule LedgrWeb.ExpenseHTML do
   use LedgrWeb, :html

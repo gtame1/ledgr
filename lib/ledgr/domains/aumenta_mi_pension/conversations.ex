@@ -35,8 +35,10 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations do
 
   defp maybe_search(query, nil), do: query
   defp maybe_search(query, ""), do: query
+
   defp maybe_search(query, search) do
     term = "%#{search}%"
+
     from(c in query,
       join: cu in assoc(c, :customer),
       where: ilike(cu.full_name, ^term) or ilike(cu.display_name, ^term) or ilike(cu.phone, ^term)

@@ -17,60 +17,105 @@ end %>
   <%!-- Header --%>
   <div class="flex items-center gap-3 mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Caso de Pensión</h1>
-    <%= cond do
-      pc.qualifies == true -> Phoenix.HTML.raw(~s(<span class="hd-badge hd-badge--active">Califica</span>))
-      pc.qualifies == false -> Phoenix.HTML.raw(~s(<span class="hd-badge" style="background:#fee2e2;color:#991b1b;">No Califica</span>))
-      true -> Phoenix.HTML.raw(~s(<span class="hd-badge" style="background:#e5e7eb;color:#6b7280;">Pendiente</span>))
-    end %>
+    {cond do
+      pc.qualifies == true ->
+        Phoenix.HTML.raw(~s(<span class="hd-badge hd-badge--active">Califica</span>))
+
+      pc.qualifies == false ->
+        Phoenix.HTML.raw(
+          ~s(<span class="hd-badge" style="background:#fee2e2;color:#991b1b;">No Califica</span>)
+        )
+
+      true ->
+        Phoenix.HTML.raw(
+          ~s(<span class="hd-badge" style="background:#e5e7eb;color:#6b7280;">Pendiente</span>)
+        )
+    end}
     <%= if pc.recommended_modalidad do %>
-      <span class="hd-badge hd-badge--assigned"><%= pc.recommended_modalidad %></span>
+      <span class="hd-badge hd-badge--assigned">{pc.recommended_modalidad}</span>
     <% end %>
   </div>
 
   <div class="hd-two-col">
     <%!-- Left Column --%>
     <div class="space-y-6">
-
       <%!-- AI Summary --%>
       <%= if pc.ai_summary do %>
         <div class="hd-card p-5" style="border-left: 4px solid var(--accent);">
-          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--accent);">Resumen IA</h2>
-          <div class="text-sm leading-relaxed whitespace-pre-line" style="color: var(--text-main);"><%= pc.ai_summary %></div>
+          <h2 class="text-sm font-semibold uppercase mb-2" style="color: var(--accent);">
+            Resumen IA
+          </h2>
+          <div
+            class="text-sm leading-relaxed whitespace-pre-line"
+            style="color: var(--text-main);"
+          >
+            {pc.ai_summary}
+          </div>
         </div>
       <% end %>
 
       <%!-- Qualification --%>
       <div class="hd-card p-5">
-        <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Calificación</h2>
+        <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Calificación
+        </h2>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Meta</div>
-            <div class="text-sm font-medium" style="color: var(--text-main);"><%= pc.goal || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Meta
+            </div>
+            <div class="text-sm font-medium" style="color: var(--text-main);">
+              {pc.goal || "---"}
+            </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Edad</div>
-            <div class="text-sm font-medium" style="color: var(--text-main);"><%= pc.age || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Edad
+            </div>
+            <div class="text-sm font-medium" style="color: var(--text-main);">
+              {pc.age || "---"}
+            </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Semanas Cotizadas</div>
-            <div class="text-sm font-medium" style="color: var(--text-main);"><%= pc.weeks_contributed || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Semanas Cotizadas
+            </div>
+            <div class="text-sm font-medium" style="color: var(--text-main);">
+              {pc.weeks_contributed || "---"}
+            </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Último Salario</div>
-            <div class="text-sm font-medium" style="color: var(--text-main);"><%= fmt_money.(pc.last_registered_salary) %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Último Salario
+            </div>
+            <div class="text-sm font-medium" style="color: var(--text-main);">
+              {fmt_money.(pc.last_registered_salary)}
+            </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Estatus Laboral</div>
-            <div class="text-sm font-medium" style="color: var(--text-main);"><%= pc.current_employment_status || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Estatus Laboral
+            </div>
+            <div class="text-sm font-medium" style="color: var(--text-main);">
+              {pc.current_employment_status || "---"}
+            </div>
           </div>
           <div>
-            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Años al Retiro</div>
-            <div class="text-sm font-medium" style="color: var(--text-main);"><%= pc.years_to_retirement || "---" %></div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              Años al Retiro
+            </div>
+            <div class="text-sm font-medium" style="color: var(--text-main);">
+              {pc.years_to_retirement || "---"}
+            </div>
           </div>
           <%= if pc.qualification_reason do %>
             <div class="col-span-2">
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Razón de Calificación</div>
-              <div class="text-sm" style="color: var(--text-main);"><%= pc.qualification_reason %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Razón de Calificación
+              </div>
+              <div class="text-sm" style="color: var(--text-main);">
+                {pc.qualification_reason}
+              </div>
             </div>
           <% end %>
         </div>
@@ -79,33 +124,59 @@ end %>
       <%!-- Modalidad 40 Projection --%>
       <%= if pc.m40_projected_pension || pc.m40_target_sbc || pc.m40_monthly_contribution do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Proyección Modalidad 40</h2>
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Proyección Modalidad 40
+          </h2>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Pensión Actual Proyectada</div>
-              <div class="text-lg font-bold" style="color: var(--text-main);"><%= fmt_money.(pc.current_projected_pension) %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Pensión Actual Proyectada
+              </div>
+              <div class="text-lg font-bold" style="color: var(--text-main);">
+                {fmt_money.(pc.current_projected_pension)}
+              </div>
               <div class="text-xs" style="color: var(--text-muted);">mensual</div>
             </div>
             <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Pensión con M40</div>
-              <div class="text-lg font-bold" style="color: var(--accent);"><%= fmt_money.(pc.m40_projected_pension) %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Pensión con M40
+              </div>
+              <div class="text-lg font-bold" style="color: var(--accent);">
+                {fmt_money.(pc.m40_projected_pension)}
+              </div>
               <div class="text-xs" style="color: var(--text-muted);">mensual</div>
             </div>
             <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">SBC Objetivo</div>
-              <div class="text-sm font-medium" style="color: var(--text-main);"><%= fmt_money.(pc.m40_target_sbc) %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                SBC Objetivo
+              </div>
+              <div class="text-sm font-medium" style="color: var(--text-main);">
+                {fmt_money.(pc.m40_target_sbc)}
+              </div>
             </div>
             <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Aportación Mensual</div>
-              <div class="text-sm font-medium" style="color: var(--text-main);"><%= fmt_money.(pc.m40_monthly_contribution) %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Aportación Mensual
+              </div>
+              <div class="text-sm font-medium" style="color: var(--text-main);">
+                {fmt_money.(pc.m40_monthly_contribution)}
+              </div>
             </div>
             <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Duración</div>
-              <div class="text-sm font-medium" style="color: var(--text-main);"><%= if pc.m40_duration_months, do: "#{pc.m40_duration_months} meses", else: "---" %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Duración
+              </div>
+              <div class="text-sm font-medium" style="color: var(--text-main);">
+                {if pc.m40_duration_months, do: "#{pc.m40_duration_months} meses", else: "---"}
+              </div>
             </div>
             <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Δ Pensión/mes</div>
-              <div class="text-sm font-bold" style="color: var(--accent);"><%= fmt_money.(pc.simulation_delta_monthly) %></div>
+              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+                Δ Pensión/mes
+              </div>
+              <div class="text-sm font-bold" style="color: var(--accent);">
+                {fmt_money.(pc.simulation_delta_monthly)}
+              </div>
             </div>
           </div>
           <%= if pc.simulation_pdf_url do %>
@@ -115,7 +186,7 @@ end %>
               </a>
               <%= if pc.simulation_sent_at do %>
                 <span class="text-xs ml-3" style="color: var(--text-muted);">
-                  Enviada: <%= fmt_datetime(pc.simulation_sent_at) %>
+                  Enviada: {fmt_datetime(pc.simulation_sent_at)}
                 </span>
               <% end %>
             </div>
@@ -126,9 +197,14 @@ end %>
       <%!-- Call Transcript --%>
       <%= if pc.call_transcript do %>
         <div class="hd-card p-5">
-          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Transcripción de Llamada</h2>
-          <div class="text-sm whitespace-pre-line leading-relaxed p-4 rounded-lg max-h-[400px] overflow-y-auto" style="background: var(--bg); color: var(--text-main); border: 1px solid var(--border-subtle);">
-            <%= pc.call_transcript %>
+          <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Transcripción de Llamada
+          </h2>
+          <div
+            class="text-sm whitespace-pre-line leading-relaxed p-4 rounded-lg max-h-[400px] overflow-y-auto"
+            style="background: var(--bg); color: var(--text-main); border: 1px solid var(--border-subtle);"
+          >
+            {pc.call_transcript}
           </div>
         </div>
       <% end %>
@@ -138,36 +214,61 @@ end %>
       <%= if media_items != [] do %>
         <div class="hd-card p-5">
           <div class="flex items-baseline justify-between mb-3">
-            <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">Documentos analizados</h2>
-            <span class="text-xs" style="color: var(--text-muted);"><%= length(media_items) %> adjunto<%= if length(media_items) == 1, do: "", else: "s" %></span>
+            <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+              Documentos analizados
+            </h2>
+            <span class="text-xs" style="color: var(--text-muted);">
+              {length(media_items)} adjunto{if length(media_items) == 1, do: "", else: "s"}
+            </span>
           </div>
           <div class="space-y-3">
             <%= for {item, idx} <- Enum.with_index(media_items, 1) do %>
-              <div class="rounded-lg p-4" style="background: var(--bg); border: 1px solid var(--border-subtle);">
+              <div
+                class="rounded-lg p-4"
+                style="background: var(--bg); border: 1px solid var(--border-subtle);"
+              >
                 <div class="flex items-center gap-2 mb-2">
-                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: var(--primary-soft); color: var(--primary);">
-                    #<%= idx %> · <%= media_type_label(item["type"]) %>
+                  <span
+                    class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                    style="background: var(--primary-soft); color: var(--primary);"
+                  >
+                    #{idx} · {media_type_label(item["type"])}
                   </span>
                 </div>
 
                 <%= if item["description"] && item["description"] != "" do %>
                   <div class="text-xs italic mb-2" style="color: var(--text-muted);">
-                    <%= item["description"] %>
+                    {item["description"]}
                   </div>
                 <% end %>
 
                 <%= if item["findings"] && item["findings"] != "" do %>
                   <div class="mb-2">
-                    <div class="text-[11px] font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Hallazgos</div>
-                    <div class="text-sm whitespace-pre-line" style="color: var(--text-main);"><%= item["findings"] %></div>
+                    <div
+                      class="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                      style="color: var(--text-muted);"
+                    >
+                      Hallazgos
+                    </div>
+                    <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                      {item["findings"]}
+                    </div>
                   </div>
                 <% end %>
 
                 <%= if item["text"] && item["text"] != "" do %>
                   <div>
-                    <div class="text-[11px] font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Texto extraído</div>
-                    <div class="text-xs whitespace-pre-line font-mono p-2 rounded max-h-48 overflow-y-auto" style="background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle);">
-                      <%= item["text"] %>
+                    <div
+                      class="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                      style="color: var(--text-muted);"
+                    >
+                      Texto extraído
+                    </div>
+                    <div
+                      class="text-xs whitespace-pre-line font-mono p-2 rounded max-h-48 overflow-y-auto"
+                      style="background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle);"
+                    >
+                      {item["text"]}
                     </div>
                   </div>
                 <% end %>
@@ -180,28 +281,38 @@ end %>
 
     <%!-- Right Column --%>
     <div class="space-y-6">
-
       <%!-- Customer --%>
       <%= if pc.customer do %>
         <div class="hd-card p-5">
-          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Cliente</h3>
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Cliente
+          </h3>
           <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: var(--primary);">
-              <%= String.first(pc.customer.full_name || pc.customer.display_name || "?") %>
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+              style="background: var(--primary);"
+            >
+              {String.first(pc.customer.full_name || pc.customer.display_name || "?")}
             </div>
             <div>
-              <.link navigate={dp(@domain_path_prefix, "/customers/#{pc.customer.id}")} class="text-sm font-medium" style="color: var(--accent);">
-                <%= pc.customer.full_name || pc.customer.display_name || "Desconocido" %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/customers/#{pc.customer.id}")}
+                class="text-sm font-medium"
+                style="color: var(--accent);"
+              >
+                {pc.customer.full_name || pc.customer.display_name || "Desconocido"}
               </.link>
-              <div class="text-xs" style="color: var(--text-muted);"><%= pc.customer.phone || "" %></div>
+              <div class="text-xs" style="color: var(--text-muted);">
+                {pc.customer.phone || ""}
+              </div>
             </div>
           </div>
           <div class="space-y-1 text-xs" style="color: var(--text-muted);">
             <%= if pc.customer.curp do %>
-              <div>CURP: <span class="font-mono"><%= pc.customer.curp %></span></div>
+              <div>CURP: <span class="font-mono">{pc.customer.curp}</span></div>
             <% end %>
             <%= if pc.customer.nss do %>
-              <div>NSS: <span class="font-mono"><%= pc.customer.nss %></span></div>
+              <div>NSS: <span class="font-mono">{pc.customer.nss}</span></div>
             <% end %>
           </div>
         </div>
@@ -210,19 +321,31 @@ end %>
       <%!-- Linked Conversation --%>
       <%= if conv do %>
         <div class="hd-card p-5">
-          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Conversación Vinculada</h3>
+          <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+            Conversación Vinculada
+          </h3>
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
               <span style="color: var(--text-muted);">Etapa</span>
-              <span style="color: var(--text-main);"><%= conv.funnel_stage |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
+              <span style="color: var(--text-main);">
+                {conv.funnel_stage
+                |> to_string()
+                |> String.replace("_", " ")
+                |> String.capitalize()}
+              </span>
             </div>
             <div class="flex justify-between">
               <span style="color: var(--text-muted);">Estatus</span>
-              <span style="color: var(--text-main);"><%= conv.status |> to_string() |> String.capitalize() %></span>
+              <span style="color: var(--text-main);">
+                {conv.status |> to_string() |> String.capitalize()}
+              </span>
             </div>
           </div>
           <div class="mt-3">
-            <.link navigate={dp(@domain_path_prefix, "/conversations/#{conv.id}")} class="hd-btn-secondary w-full justify-center">
+            <.link
+              navigate={dp(@domain_path_prefix, "/conversations/#{conv.id}")}
+              class="hd-btn-secondary w-full justify-center"
+            >
               Ver Conversación
             </.link>
           </div>
@@ -231,15 +354,17 @@ end %>
 
       <%!-- Timestamps --%>
       <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">Fechas</h3>
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Fechas
+        </h3>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Creado</span>
-            <span style="color: var(--text-main);"><%= fmt_datetime(pc.created_at) || "---" %></span>
+            <span style="color: var(--text-main);">{fmt_datetime(pc.created_at) || "---"}</span>
           </div>
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Actualizado</span>
-            <span style="color: var(--text-main);"><%= fmt_datetime(pc.updated_at) || "---" %></span>
+            <span style="color: var(--text-main);">{fmt_datetime(pc.updated_at) || "---"}</span>
           </div>
         </div>
       </div>

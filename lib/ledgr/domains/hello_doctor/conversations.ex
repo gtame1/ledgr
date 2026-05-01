@@ -37,8 +37,10 @@ defmodule Ledgr.Domains.HelloDoctor.Conversations do
 
   defp maybe_search(query, nil), do: query
   defp maybe_search(query, ""), do: query
+
   defp maybe_search(query, search) do
     term = "%#{search}%"
+
     from(c in query,
       join: p in assoc(c, :patient),
       where: ilike(p.full_name, ^term) or ilike(p.display_name, ^term) or ilike(p.phone, ^term)

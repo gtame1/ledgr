@@ -60,9 +60,12 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
 
   @doc "Creates a subscription. No journal entry on creation — payment is recorded separately."
   def create_subscription(attrs \\ %{}) do
-    plan_id  = Map.get(attrs, "subscription_plan_id") || Map.get(attrs, :subscription_plan_id)
-    discount = coerce_int(Map.get(attrs, "discount_cents") || Map.get(attrs, :discount_cents) || 0)
-    iva      = compute_iva_cents(plan_id, discount)
+    plan_id = Map.get(attrs, "subscription_plan_id") || Map.get(attrs, :subscription_plan_id)
+
+    discount =
+      coerce_int(Map.get(attrs, "discount_cents") || Map.get(attrs, :discount_cents) || 0)
+
+    iva = compute_iva_cents(plan_id, discount)
 
     %Subscription{}
     |> Subscription.changeset(Map.merge(coerce_string_keys(attrs), %{"iva_cents" => iva}))
@@ -71,14 +74,25 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
 
   @doc "Updates a subscription. Recomputes iva_cents if plan or discount changes."
   def update_subscription(%Subscription{} = sub, attrs) do
-    plan_changing     = Map.has_key?(attrs, "subscription_plan_id") or Map.has_key?(attrs, :subscription_plan_id)
-    discount_changing = Map.has_key?(attrs, "discount_cents") or Map.has_key?(attrs, :discount_cents)
+    plan_changing =
+      Map.has_key?(attrs, "subscription_plan_id") or Map.has_key?(attrs, :subscription_plan_id)
+
+    discount_changing =
+      Map.has_key?(attrs, "discount_cents") or Map.has_key?(attrs, :discount_cents)
 
     attrs_with_iva =
       if plan_changing or discount_changing do
-        plan_id  = Map.get(attrs, "subscription_plan_id") || Map.get(attrs, :subscription_plan_id) || sub.subscription_plan_id
-        discount = coerce_int(Map.get(attrs, "discount_cents") || Map.get(attrs, :discount_cents) || sub.discount_cents || 0)
-        iva      = compute_iva_cents(plan_id, discount)
+        plan_id =
+          Map.get(attrs, "subscription_plan_id") || Map.get(attrs, :subscription_plan_id) ||
+            sub.subscription_plan_id
+
+        discount =
+          coerce_int(
+            Map.get(attrs, "discount_cents") || Map.get(attrs, :discount_cents) ||
+              sub.discount_cents || 0
+          )
+
+        iva = compute_iva_cents(plan_id, discount)
         Map.merge(coerce_string_keys(attrs), %{"iva_cents" => iva})
       else
         attrs
@@ -105,7 +119,11 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   """
   def record_payment(sub, amount_cents, opts \\ [])
 
-  def record_payment(%Subscription{subscription_plan: %Ecto.Association.NotLoaded{}} = sub, amount_cents, opts) do
+  def record_payment(
+        %Subscription{subscription_plan: %Ecto.Association.NotLoaded{}} = sub,
+        amount_cents,
+        opts
+      ) do
     sub
     |> Repo.preload(:subscription_plan)
     |> record_payment(amount_cents, opts)
@@ -120,7 +138,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
         sub
         |> Subscription.changeset(%{
           deferred_revenue_cents: sub.deferred_revenue_cents + base_portion,
-          paid_cents:             (sub.paid_cents || 0) + amount_cents
+          paid_cents: (sub.paid_cents || 0) + amount_cents
         })
         |> Repo.update!()
 
@@ -174,14 +192,14 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   the remainder is deducted from `recognized_revenue_cents`.
   """
   def apply_refund(%Subscription{} = sub, refund_cents) do
-    deferred_portion   = min(refund_cents, sub.deferred_revenue_cents)
+    deferred_portion = min(refund_cents, sub.deferred_revenue_cents)
     recognized_portion = max(refund_cents - deferred_portion, 0)
 
     sub
     |> Subscription.changeset(%{
-      deferred_revenue_cents:   sub.deferred_revenue_cents   - deferred_portion,
+      deferred_revenue_cents: sub.deferred_revenue_cents - deferred_portion,
       recognized_revenue_cents: sub.recognized_revenue_cents - recognized_portion,
-      paid_cents:               max((sub.paid_cents || 0) - refund_cents, 0)
+      paid_cents: max((sub.paid_cents || 0) - refund_cents, 0)
     })
     |> Repo.update()
   end
@@ -205,7 +223,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
 
         updated
         |> Ecto.Changeset.change(
-          deferred_revenue_cents:   0,
+          deferred_revenue_cents: 0,
           recognized_revenue_cents: updated.recognized_revenue_cents + to_recognize
         )
         |> Repo.update!()
@@ -229,7 +247,10 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
     Repo.transaction(fn ->
       updated =
         sub
-        |> Subscription.changeset(%{status: "cancelled", ends_on: LedgrWeb.Helpers.DomainHelpers.today_mx()})
+        |> Subscription.changeset(%{
+          status: "cancelled",
+          ends_on: LedgrWeb.Helpers.DomainHelpers.today_mx()
+        })
         |> Repo.update!()
 
       if updated.deferred_revenue_cents > 0 do
@@ -237,7 +258,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
 
         updated
         |> Subscription.changeset(%{
-          deferred_revenue_cents:   0,
+          deferred_revenue_cents: 0,
           recognized_revenue_cents: updated.recognized_revenue_cents + amount
         })
         |> Repo.update!()
@@ -273,7 +294,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
 
         updated
         |> Subscription.changeset(%{
-          deferred_revenue_cents:   0,
+          deferred_revenue_cents: 0,
           recognized_revenue_cents: updated.recognized_revenue_cents + amount
         })
         |> Repo.update!()
@@ -297,23 +318,23 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   end
 
   def payment_summary(%Subscription{subscription_plan: plan} = sub) when not is_nil(plan) do
-    base     = plan.price_cents
+    base = plan.price_cents
     discount = sub.discount_cents || 0
-    iva      = sub.iva_cents || 0
+    iva = sub.iva_cents || 0
     base_eff = max(base - discount, 0)
-    total    = base_eff + iva
-    paid     = sub.paid_cents || 0
+    total = base_eff + iva
+    paid = sub.paid_cents || 0
 
     %{
-      base_cents:        base,
-      iva_cents:         iva,
-      discount_cents:    discount,
-      effective_price:   base_eff,
-      total_cents:       total,
-      total_paid:        paid,
-      deferred:          sub.deferred_revenue_cents,
-      recognized:        sub.recognized_revenue_cents,
-      remaining:         Subscription.remaining_deferred(sub),
+      base_cents: base,
+      iva_cents: iva,
+      discount_cents: discount,
+      effective_price: base_eff,
+      total_cents: total,
+      total_paid: paid,
+      deferred: sub.deferred_revenue_cents,
+      recognized: sub.recognized_revenue_cents,
+      remaining: Subscription.remaining_deferred(sub),
       outstanding_cents: max(total - paid, 0)
     }
   end
@@ -370,13 +391,13 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
       sub
       |> Subscription.changeset(%{
         deferred_revenue_cents: max(sub.deferred_revenue_cents - base_portion, 0),
-        paid_cents:             max((sub.paid_cents || 0) - amount_cents, 0)
+        paid_cents: max((sub.paid_cents || 0) - amount_cents, 0)
       })
       |> Repo.update!()
 
       case VolumeStudioAccounting.reverse_subscription_payment(entry_with_lines) do
-        {:ok, _reversal}  -> :ok
-        {:error, reason}  -> Repo.rollback(reason)
+        {:ok, _reversal} -> :ok
+        {:error, reason} -> Repo.rollback(reason)
       end
     end)
   end
@@ -390,8 +411,8 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   """
   def update_payment(%Subscription{} = sub, %JournalEntry{} = entry, attrs) do
     new_amount_cents = Map.fetch!(attrs, :amount_cents)
-    new_date         = Map.get(attrs, :payment_date, entry.date)
-    new_note         = Map.get(attrs, :note)
+    new_date = Map.get(attrs, :payment_date, entry.date)
+    new_note = Map.get(attrs, :note)
 
     old_amount_cents =
       entry.journal_lines
@@ -405,25 +426,39 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
     {new_base, new_iva} = split_base_iva(sub, new_amount_cents)
 
     deferred_diff = new_base - old_base
-    paid_diff     = new_amount_cents - old_amount_cents
+    paid_diff = new_amount_cents - old_amount_cents
 
-    cash_account     = Accounting.get_account_by_code!("1000")
+    cash_account = Accounting.get_account_by_code!("1000")
     deferred_account = Accounting.get_account_by_code!("2200")
 
     base_lines = [
-      %{account_id: cash_account.id,     debit_cents: new_amount_cents, credit_cents: 0,
-        description: new_note || "Cash received — subscription ##{sub.id}"},
-      %{account_id: deferred_account.id, debit_cents: 0, credit_cents: new_base,
-        description: "Deferred subscription revenue — sub ##{sub.id}"}
+      %{
+        account_id: cash_account.id,
+        debit_cents: new_amount_cents,
+        credit_cents: 0,
+        description: new_note || "Cash received — subscription ##{sub.id}"
+      },
+      %{
+        account_id: deferred_account.id,
+        debit_cents: 0,
+        credit_cents: new_base,
+        description: "Deferred subscription revenue — sub ##{sub.id}"
+      }
     ]
 
     lines =
       if new_iva > 0 do
         iva_account = Accounting.get_account_by_code!("2100")
-        base_lines ++ [
-          %{account_id: iva_account.id, debit_cents: 0, credit_cents: new_iva,
-            description: "IVA payable — sub ##{sub.id}"}
-        ]
+
+        base_lines ++
+          [
+            %{
+              account_id: iva_account.id,
+              debit_cents: 0,
+              credit_cents: new_iva,
+              description: "IVA payable — sub ##{sub.id}"
+            }
+          ]
       else
         base_lines
       end
@@ -432,17 +467,17 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
       sub
       |> Subscription.changeset(%{
         deferred_revenue_cents: sub.deferred_revenue_cents + deferred_diff,
-        paid_cents:             (sub.paid_cents || 0) + paid_diff
+        paid_cents: (sub.paid_cents || 0) + paid_diff
       })
       |> Repo.update!()
 
       case Accounting.update_journal_entry_with_lines(
-        entry,
-        %{date: new_date, description: entry.description},
-        lines
-      ) do
+             entry,
+             %{date: new_date, description: entry.description},
+             lines
+           ) do
         {:ok, updated_entry} -> updated_entry
-        {:error, reason}     -> Repo.rollback(reason)
+        {:error, reason} -> Repo.rollback(reason)
       end
     end)
   end
@@ -480,6 +515,7 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   defp maybe_filter_customer(query, id), do: where(query, customer_id: ^id)
 
   defp maybe_filter_plan_type(query, nil), do: query
+
   defp maybe_filter_plan_type(query, type) do
     query
     |> join(:inner, [s], sp in assoc(s, :subscription_plan), as: :plan)
@@ -490,8 +526,8 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
   # using the proportional split of the subscription's stored iva_cents.
   defp split_base_iva(%Subscription{subscription_plan: plan} = sub, amount_cents)
        when not is_nil(plan) do
-    base  = max(plan.price_cents - (sub.discount_cents || 0), 0)
-    iva   = sub.iva_cents || 0
+    base = max(plan.price_cents - (sub.discount_cents || 0), 0)
+    iva = sub.iva_cents || 0
     total = base + iva
 
     if total > 0 do
@@ -513,19 +549,21 @@ defmodule Ledgr.Domains.VolumeStudio.Subscriptions do
 
   defp compute_iva_cents(plan_id, discount) do
     case Repo.get(SubscriptionPlan, plan_id) do
-      nil  -> 0
+      nil -> 0
       plan -> round(max(plan.price_cents - discount, 0) * 0.16)
     end
   end
 
   # Coerces integer / string to integer (returns 0 on failure).
   defp coerce_int(v) when is_integer(v), do: v
+
   defp coerce_int(v) when is_binary(v) do
     case Integer.parse(v) do
       {n, _} -> n
-      :error  -> 0
+      :error -> 0
     end
   end
+
   defp coerce_int(_), do: 0
 
   # Ensures map keys are strings for consistent merging with form params.

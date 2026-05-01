@@ -6,10 +6,13 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionPlans.SubscriptionPlan do
     field :name, :string
     field :description, :string
     field :price_cents, :integer
-    field :plan_type, :string, default: "membership"  # package | membership | promo | extra
+    # package | membership | promo | extra
+    field :plan_type, :string, default: "membership"
     field :duration_months, :integer
-    field :duration_days, :integer  # nil = not used; overrides duration_months for packages/promos
-    field :class_limit, :integer    # nil = unlimited
+    # nil = not used; overrides duration_months for packages/promos
+    field :duration_days, :integer
+    # nil = unlimited
+    field :class_limit, :integer
     field :active, :boolean, default: true
     field :deleted_at, :utc_datetime
 
@@ -17,7 +20,14 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionPlans.SubscriptionPlan do
   end
 
   @required_fields [:name, :price_cents]
-  @optional_fields [:description, :plan_type, :duration_months, :duration_days, :class_limit, :active]
+  @optional_fields [
+    :description,
+    :plan_type,
+    :duration_months,
+    :duration_days,
+    :class_limit,
+    :active
+  ]
 
   def changeset(plan, attrs) do
     plan

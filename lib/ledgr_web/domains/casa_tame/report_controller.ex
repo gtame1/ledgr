@@ -39,9 +39,21 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
       format: "currency_pesos",
       labels: Enum.map(data, fn d -> d.label end),
       datasets: [
-        %{label: "Income (MXN)", data: Enum.map(data, fn d -> d.income_mxn / 100 end), backgroundColor: "#059669"},
-        %{label: "Expenses (MXN)", data: Enum.map(data, fn d -> d.expense_mxn / 100 end), backgroundColor: "#dc2626"},
-        %{label: "Net Savings (MXN)", data: Enum.map(data, fn d -> d.savings_mxn / 100 end), backgroundColor: "#2D6A4F"}
+        %{
+          label: "Income (MXN)",
+          data: Enum.map(data, fn d -> d.income_mxn / 100 end),
+          backgroundColor: "#059669"
+        },
+        %{
+          label: "Expenses (MXN)",
+          data: Enum.map(data, fn d -> d.expense_mxn / 100 end),
+          backgroundColor: "#dc2626"
+        },
+        %{
+          label: "Net Savings (MXN)",
+          data: Enum.map(data, fn d -> d.savings_mxn / 100 end),
+          backgroundColor: "#2D6A4F"
+        }
       ]
     }
 
@@ -57,7 +69,8 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
     end_date = parse_date(params["end_date"]) || month_end
     currency = params["currency"] || "MXN"
 
-    expenses = Expenses.list_expenses(currency: currency, date_from: start_date, date_to: end_date)
+    expenses =
+      Expenses.list_expenses(currency: currency, date_from: start_date, date_to: end_date)
 
     # Group by expense account (which IS the category now)
     by_category =
@@ -66,17 +79,23 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
         if e.expense_account, do: e.expense_account.name, else: "Uncategorized"
       end)
       |> Enum.map(fn {name, items} ->
-        %{name: name, total_cents: Enum.reduce(items, 0, &(&1.amount_cents + &2)), count: length(items)}
+        %{
+          name: name,
+          total_cents: Enum.reduce(items, 0, &(&1.amount_cents + &2)),
+          count: length(items)
+        }
       end)
       |> Enum.sort_by(& &1.total_cents, :desc)
 
     chart_data = %{
       format: "currency_pesos",
       labels: Enum.map(by_category, & &1.name),
-      datasets: [%{
-        data: Enum.map(by_category, fn c -> c.total_cents / 100 end),
-        backgroundColor: category_colors(length(by_category))
-      }]
+      datasets: [
+        %{
+          data: Enum.map(by_category, fn c -> c.total_cents / 100 end),
+          backgroundColor: category_colors(length(by_category))
+        }
+      ]
     }
 
     render(conn, :category_breakdown,
@@ -103,6 +122,7 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
 
   defp parse_date(nil), do: nil
   defp parse_date(""), do: nil
+
   defp parse_date(str) do
     case Date.from_iso8601(str) do
       {:ok, date} -> date
@@ -112,10 +132,23 @@ defmodule LedgrWeb.Domains.CasaTame.ReportController do
 
   defp category_colors(n) do
     colors = [
-      "#2D6A4F", "#40916C", "#52B788", "#74C69D", "#95D5B2",
-      "#B7E4C7", "#D8F3DC", "#1B4332", "#081C15", "#34495E",
-      "#7F8C8D", "#BDC3C7", "#E74C3C", "#F39C12", "#3498DB"
+      "#2D6A4F",
+      "#40916C",
+      "#52B788",
+      "#74C69D",
+      "#95D5B2",
+      "#B7E4C7",
+      "#D8F3DC",
+      "#1B4332",
+      "#081C15",
+      "#34495E",
+      "#7F8C8D",
+      "#BDC3C7",
+      "#E74C3C",
+      "#F39C12",
+      "#3498DB"
     ]
+
     Enum.take(colors, max(n, 1))
   end
 end

@@ -1,9 +1,9 @@
 <section class="card">
   <div class="card-header">
-    <h2 class="card-title">Edit Client — <%= @client.name %></h2>
+    <h2 class="card-title">Edit Client — {@client.name}</h2>
   </div>
 
-  <.form for={@changeset} action={@action} method="put" as={:client} :let={f}>
+  <.form :let={f} for={@changeset} action={@action} method="put" as={:client}>
     <div class="form-block" style="margin-bottom: 1.75rem;">
       <div class="field">
         <label>Name</label>
@@ -12,14 +12,25 @@
 
       <div class="field">
         <label>Linked App</label>
-        <.input type="select" field={f[:domain_slug]}
-          options={[{"None", ""} | Enum.map(@domain_slugs, &{&1, &1})]} />
+        <.input
+          type="select"
+          field={f[:domain_slug]}
+          options={[{"None", ""} | Enum.map(@domain_slugs, &{&1, &1})]}
+        />
       </div>
 
       <div class="field">
         <label>Status</label>
-        <.input type="select" field={f[:status]}
-          options={[{"Active", "active"}, {"Trial", "trial"}, {"Paused", "paused"}, {"Churned", "churned"}]} />
+        <.input
+          type="select"
+          field={f[:status]}
+          options={[
+            {"Active", "active"},
+            {"Trial", "trial"},
+            {"Paused", "paused"},
+            {"Churned", "churned"}
+          ]}
+        />
       </div>
 
       <div class="field">
@@ -28,7 +39,12 @@
       </div>
 
       <div class="field">
-        <label>Ended On <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">— optional</span></label>
+        <label>
+          Ended On
+          <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);">
+            — optional
+          </span>
+        </label>
         <.input type="date" field={f[:ended_on]} />
       </div>
     </div>
@@ -40,7 +56,9 @@
 
     <div class="form-actions">
       <button type="submit" class="btn primary">Update Client</button>
-      <.link navigate={dp(@domain_path_prefix, "/clients/#{@client.id}")} class="btn">Cancel</.link>
+      <.link navigate={dp(@domain_path_prefix, "/clients/#{@client.id}")} class="btn">
+        Cancel
+      </.link>
     </div>
   </.form>
 </section>

@@ -29,7 +29,10 @@ defmodule LedgrWeb.Plugs.RequestLoggerPlug do
     )
 
     register_before_send(conn, fn conn ->
-      Logger.info("[RequestLogger] RESPONSE #{conn.status} for #{conn.method} #{conn.request_path} | halted=#{conn.halted}")
+      Logger.info(
+        "[RequestLogger] RESPONSE #{conn.status} for #{conn.method} #{conn.request_path} | halted=#{conn.halted}"
+      )
+
       conn
     end)
   end

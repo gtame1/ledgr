@@ -7,11 +7,16 @@
   </header>
 
   <div class="content-body">
-    <.period_selector action={dp(@domain_path_prefix, "/")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
+    <.period_selector
+      action={dp(@domain_path_prefix, "/")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
 
     <% m = @metrics %>
-
-    <!-- Operational Summary -->
+    
+<!-- Operational Summary -->
     <section class="card">
       <h2 class="card-title">Operational Summary</h2>
       <p class="card-subtitle">
@@ -21,25 +26,25 @@
       <div class="dashboard-metrics">
         <div class="metric-card">
           <div class="metric-label">Units Sold</div>
-          <div class="metric-value"><%= m.total_units %></div>
+          <div class="metric-value">{m.total_units}</div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Delivered Orders</div>
-          <div class="metric-value"><%= m.delivered_orders %></div>
+          <div class="metric-value">{m.delivered_orders}</div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Revenue (Orders)</div>
           <div class="metric-value">
-            <%= format_currency(m.revenue_cents) %>
+            {format_currency(m.revenue_cents)}
           </div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Avg Order Value</div>
           <div class="metric-value">
-            <%= format_currency(m.avg_order_value_cents) %>
+            {format_currency(m.avg_order_value_cents)}
           </div>
         </div>
       </div>
@@ -47,16 +52,16 @@
       <div style="margin-top: 1rem;">
         <h3 class="card-title" style="font-size: 1rem;">Orders by Status</h3>
         <ul class="nice-list">
-          <li><strong>New:</strong> <%= Map.get(m.orders_by_status, "new_order", 0) %></li>
-          <li><strong>In prep:</strong> <%= Map.get(m.orders_by_status, "in_prep", 0) %></li>
-          <li><strong>Ready:</strong> <%= Map.get(m.orders_by_status, "ready", 0) %></li>
-          <li><strong>Delivered:</strong> <%= Map.get(m.orders_by_status, "delivered", 0) %></li>
-          <li><strong>Canceled:</strong> <%= Map.get(m.orders_by_status, "canceled", 0) %></li>
+          <li><strong>New:</strong> {Map.get(m.orders_by_status, "new_order", 0)}</li>
+          <li><strong>In prep:</strong> {Map.get(m.orders_by_status, "in_prep", 0)}</li>
+          <li><strong>Ready:</strong> {Map.get(m.orders_by_status, "ready", 0)}</li>
+          <li><strong>Delivered:</strong> {Map.get(m.orders_by_status, "delivered", 0)}</li>
+          <li><strong>Canceled:</strong> {Map.get(m.orders_by_status, "canceled", 0)}</li>
         </ul>
       </div>
     </section>
-
-    <!-- Orders per Product -->
+    
+<!-- Orders per Product -->
     <section class="card">
       <h2 class="card-title">Sales per Product</h2>
       <p class="card-subtitle">
@@ -79,13 +84,13 @@
               <%= for product <- m.orders_by_product do %>
                 <tr>
                   <td>
-                    <%= product.product_name %>
+                    {product.product_name}
                   </td>
-                  <td class="numeric"><%= product.unit_count %></td>
-                  <td class="numeric"><%= format_currency(product.revenue_cents || 0) %></td>
-                  <td class="numeric"><%= format_currency(product.cogs_cents || 0) %></td>
+                  <td class="numeric">{product.unit_count}</td>
+                  <td class="numeric">{format_currency(product.revenue_cents || 0)}</td>
+                  <td class="numeric">{format_currency(product.cogs_cents || 0)}</td>
                   <td class="numeric">
-                    <strong><%= format_currency(product.gross_profit_cents || 0) %></strong>
+                    <strong>{format_currency(product.gross_profit_cents || 0)}</strong>
                   </td>
                 </tr>
               <% end %>
@@ -94,16 +99,28 @@
               <tr>
                 <td><strong>Total</strong></td>
                 <td class="numeric">
-                  <strong><%= Enum.reduce(m.orders_by_product, 0, &(&1.order_count + &2)) %></strong>
+                  <strong>{Enum.reduce(m.orders_by_product, 0, &(&1.order_count + &2))}</strong>
                 </td>
                 <td class="numeric">
-                  <strong><%= format_currency(Enum.reduce(m.orders_by_product, 0, &((&1.revenue_cents || 0) + &2))) %></strong>
+                  <strong>
+                    {format_currency(
+                      Enum.reduce(m.orders_by_product, 0, &((&1.revenue_cents || 0) + &2))
+                    )}
+                  </strong>
                 </td>
                 <td class="numeric">
-                  <strong><%= format_currency(Enum.reduce(m.orders_by_product, 0, &((&1.cogs_cents || 0) + &2))) %></strong>
+                  <strong>
+                    {format_currency(
+                      Enum.reduce(m.orders_by_product, 0, &((&1.cogs_cents || 0) + &2))
+                    )}
+                  </strong>
                 </td>
                 <td class="numeric">
-                  <strong><%= format_currency(Enum.reduce(m.orders_by_product, 0, &((&1.gross_profit_cents || 0) + &2))) %></strong>
+                  <strong>
+                    {format_currency(
+                      Enum.reduce(m.orders_by_product, 0, &((&1.gross_profit_cents || 0) + &2))
+                    )}
+                  </strong>
                 </td>
               </tr>
             </tfoot>
@@ -115,8 +132,8 @@
         </p>
       <% end %>
     </section>
-
-    <!-- Inventory Position Summary -->
+    
+<!-- Inventory Position Summary -->
     <section class="card">
       <h2 class="card-title">Current Inventory Position</h2>
       <p class="card-subtitle">
@@ -128,13 +145,13 @@
         <div class="metric-card">
           <div class="metric-label">Total Inventory Value</div>
           <div class="metric-value">
-            <%= format_currency(inv.total_value_cents || 0) %>
+            {format_currency(inv.total_value_cents || 0)}
           </div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Total Items in Stock</div>
-          <div class="metric-value"><%= inv.total_items || 0 %></div>
+          <div class="metric-value">{inv.total_items || 0}</div>
         </div>
       </div>
 
@@ -153,9 +170,9 @@
               <tbody>
                 <%= for {type, data} <- Enum.sort(inv.by_type) do %>
                   <tr>
-                    <td><%= String.capitalize(to_string(type)) %></td>
-                    <td class="numeric"><%= data.count %></td>
-                    <td class="numeric"><%= format_currency(data.total_value_cents) %></td>
+                    <td>{String.capitalize(to_string(type))}</td>
+                    <td class="numeric">{data.count}</td>
+                    <td class="numeric">{format_currency(data.total_value_cents)}</td>
                   </tr>
                 <% end %>
               </tbody>
@@ -168,8 +185,8 @@
         </p>
       <% end %>
     </section>
-
-    <!-- Financial Summary (P&L) -->
+    
+<!-- Financial Summary (P&L) -->
     <section class="card">
       <h2 class="card-title">Financial Summary (P&amp;L)</h2>
       <p class="card-subtitle">
@@ -182,26 +199,24 @@
         <div class="metric-card">
           <div class="metric-label">Total Revenue</div>
           <div class="metric-value">
-            <%= format_currency(pnl.total_revenue_cents || 0) %>
+            {format_currency(pnl.total_revenue_cents || 0)}
           </div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Total Expenses</div>
           <div class="metric-value">
-            <%= format_currency(pnl.total_cogs_cents || 0) %>
+            {format_currency(pnl.total_cogs_cents || 0)}
           </div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Net Income</div>
           <div class="metric-value">
-            <%= format_currency(pnl.net_income_cents || 0) %>
+            {format_currency(pnl.net_income_cents || 0)}
           </div>
         </div>
       </div>
-
-      
     </section>
   </div>
 </section>

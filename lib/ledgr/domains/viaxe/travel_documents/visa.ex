@@ -7,8 +7,10 @@ defmodule Ledgr.Domains.Viaxe.TravelDocuments.Visa do
   schema "customer_visas" do
     belongs_to :customer, Customer
 
-    field :country, :string           # destination country code
-    field :visa_type, :string         # tourist, work, student, transit, multiple_entry
+    # destination country code
+    field :country, :string
+    # tourist, work, student, transit, multiple_entry
+    field :visa_type, :string
     field :visa_number, :string
     field :issue_date, :date
     field :expiry_date, :date

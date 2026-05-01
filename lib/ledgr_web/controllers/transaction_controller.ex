@@ -5,8 +5,6 @@ defmodule LedgrWeb.TransactionController do
   alias Ledgr.Core.Accounting.JournalEntry
   alias LedgrWeb.Helpers.MoneyHelper
 
-
-
   def index(conn, _params) do
     entries = Accounting.list_journal_entries()
 
@@ -40,7 +38,10 @@ defmodule LedgrWeb.TransactionController do
     # Convert pesos to cents for journal lines
     entry_params =
       entry_params
-      |> MoneyHelper.convert_nested_params_pesos_to_cents("journal_lines", [:debit_cents, :credit_cents])
+      |> MoneyHelper.convert_nested_params_pesos_to_cents("journal_lines", [
+        :debit_cents,
+        :credit_cents
+      ])
 
     case Accounting.create_journal_entry(entry_params) do
       {:ok, entry} ->
@@ -73,7 +74,6 @@ defmodule LedgrWeb.TransactionController do
     )
   end
 end
-
 
 defmodule LedgrWeb.TransactionHTML do
   use LedgrWeb, :html

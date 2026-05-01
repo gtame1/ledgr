@@ -1,20 +1,21 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="card">
   <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
     <div>
-      <h2 class="card-title"><%= @account.code %> – <%= @account.name %></h2>
+      <h2 class="card-title">{@account.code} – {@account.name}</h2>
       <p class="card-subtitle">
-        Outstanding balance: <strong class="ct-amount-negative"><%= fmt.(@balance_cents) %></strong>
+        Outstanding balance: <strong class="ct-amount-negative">{fmt.(@balance_cents)}</strong>
       </p>
     </div>
     <.link navigate={dp(@domain_path_prefix, "/debt-accounts")} class="btn">Back</.link>
@@ -31,7 +32,7 @@
       <label>Type</label>
       <select name="movement[movement_type]" class="input">
         <%= for {label, val} <- @movement_types do %>
-          <option value={val}><%= label %></option>
+          <option value={val}>{label}</option>
         <% end %>
       </select>
     </div>
@@ -39,26 +40,48 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
       <div class="field">
         <label>Amount</label>
-        <input type="number" name="movement[amount_cents]" min="0" step="0.01" class="input" required />
+        <input
+          type="number"
+          name="movement[amount_cents]"
+          min="0"
+          step="0.01"
+          class="input"
+          required
+        />
       </div>
       <div class="field">
         <label>Date</label>
-        <input type="date" name="movement[date]" value={Ledgr.Domains.CasaTame.today()} class="input" />
+        <input
+          type="date"
+          name="movement[date]"
+          value={Ledgr.Domains.CasaTame.today()}
+          class="input"
+        />
       </div>
     </div>
 
     <div class="field" style="margin-top: 0.5rem;">
-      <label>Source / Expense Account <span style="color: var(--text-muted); font-weight: 400;">(for payments & charges)</span></label>
+      <label>
+        Source / Expense Account
+        <span style="color: var(--text-muted); font-weight: 400;">(for payments & charges)</span>
+      </label>
       <select name="movement[source_account_id]" class="input">
         <%= for {label, val} <- @source_options do %>
-          <option value={val}><%= label %></option>
+          <option value={val}>{label}</option>
         <% end %>
       </select>
     </div>
 
     <div class="field" style="margin-top: 0.5rem;">
-      <label>Description <span style="color: var(--text-muted); font-weight: 400;">(optional)</span></label>
-      <input type="text" name="movement[description]" class="input" placeholder="e.g. Monthly payment, interest charge" />
+      <label>
+        Description <span style="color: var(--text-muted); font-weight: 400;">(optional)</span>
+      </label>
+      <input
+        type="text"
+        name="movement[description]"
+        class="input"
+        placeholder="e.g. Monthly payment, interest charge"
+      />
     </div>
 
     <div class="actions" style="margin-top: 0.75rem;">
@@ -84,24 +107,35 @@
       <tbody>
         <%= for txn <- @transactions do %>
           <tr>
-            <td><%= txn.line.journal_entry.date %></td>
+            <td>{txn.line.journal_entry.date}</td>
             <td>
-              <span style="font-size: 0.85rem;"><%= txn.line.journal_entry.description %></span>
+              <span style="font-size: 0.85rem;">{txn.line.journal_entry.description}</span>
               <%= if txn.line.description do %>
-                <br/><span style="font-size: 0.8rem; color: var(--text-muted);"><%= txn.line.description %></span>
+                <br />
+                <span style="font-size: 0.8rem; color: var(--text-muted);">
+                  {txn.line.description}
+                </span>
               <% end %>
             </td>
             <td class="numeric">
-              <%= if txn.line.debit_cents > 0 do %><%= fmt.(txn.line.debit_cents) %><% end %>
+              <%= if txn.line.debit_cents > 0 do %>
+                {fmt.(txn.line.debit_cents)}
+              <% end %>
             </td>
             <td class="numeric">
-              <%= if txn.line.credit_cents > 0 do %><%= fmt.(txn.line.credit_cents) %><% end %>
+              <%= if txn.line.credit_cents > 0 do %>
+                {fmt.(txn.line.credit_cents)}
+              <% end %>
             </td>
-            <td class="numeric" style="font-weight: 600;"><%= fmt.(txn.balance) %></td>
+            <td class="numeric" style="font-weight: 600;">{fmt.(txn.balance)}</td>
           </tr>
         <% end %>
         <%= if @transactions == [] do %>
-          <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No transactions yet.</td></tr>
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-muted);">
+              No transactions yet.
+            </td>
+          </tr>
         <% end %>
       </tbody>
     </table>

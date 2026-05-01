@@ -126,12 +126,13 @@ defmodule Ledgr.Domains.VolumeStudioDomainTest do
       today = Date.utc_today()
 
       # Expiring within 30 days
-      _expiring = subscription_fixture(%{
-        plan: plan,
-        status: "active",
-        starts_on: today,
-        ends_on: Date.add(today, 10)
-      })
+      _expiring =
+        subscription_fixture(%{
+          plan: plan,
+          status: "active",
+          starts_on: today,
+          ends_on: Date.add(today, 10)
+        })
 
       result = VolumeStudio.dashboard_metrics(today, today)
       assert result.expiring_soon_count >= 1

@@ -52,9 +52,10 @@ defmodule Ledgr.Core.AccountingTest do
       options = Accounting.account_select_options()
 
       assert is_list(options)
+
       assert Enum.all?(options, fn {label, id} ->
-        String.contains?(label, " - ") && is_integer(id)
-      end)
+               String.contains?(label, " - ") && is_integer(id)
+             end)
     end
 
     test "cash_or_bank_account_options/0 returns only cash/bank accounts" do
@@ -64,7 +65,8 @@ defmodule Ledgr.Core.AccountingTest do
       assert length(options) >= 1
       # All returned accounts should be assets with is_cash true or name containing bank
       Enum.each(options, fn {label, _id} ->
-        assert String.starts_with?(label, "1")  # Asset accounts start with 1
+        # Asset accounts start with 1
+        assert String.starts_with?(label, "1")
       end)
     end
 
@@ -90,7 +92,8 @@ defmodule Ledgr.Core.AccountingTest do
       {earliest, latest} = Accounting.journal_entry_date_range()
 
       # Either both nil or both dates (depends on test isolation)
-      assert (is_nil(earliest) and is_nil(latest)) or (is_struct(earliest, Date) and is_struct(latest, Date))
+      assert (is_nil(earliest) and is_nil(latest)) or
+               (is_struct(earliest, Date) and is_struct(latest, Date))
     end
   end
 
@@ -129,7 +132,9 @@ defmodule Ledgr.Core.AccountingTest do
         %{account_id: ar.id, debit_cents: 0, credit_cents: 10000, description: "Credit AR"}
       ]
 
-      assert {:ok, %JournalEntry{} = entry} = Accounting.create_journal_entry_with_lines(entry_attrs, lines)
+      assert {:ok, %JournalEntry{} = entry} =
+               Accounting.create_journal_entry_with_lines(entry_attrs, lines)
+
       entry = Repo.preload(entry, :journal_lines)
 
       assert length(entry.journal_lines) == 2
@@ -194,7 +199,9 @@ defmodule Ledgr.Core.AccountingTest do
       assert total_debits == 7500
     end
 
-    test "list_journal_lines_by_account/2 filters by account and date range", %{accounts: accounts} do
+    test "list_journal_lines_by_account/2 filters by account and date range", %{
+      accounts: accounts
+    } do
       cash = accounts["1000"]
       ar = accounts["1100"]
 
@@ -202,29 +209,38 @@ defmodule Ledgr.Core.AccountingTest do
       yesterday = Date.add(today, -1)
 
       # Create entry for yesterday
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: yesterday, entry_type: "other", reference: "YESTERDAY", description: "Yesterday"},
-        [
-          %{account_id: cash.id, debit_cents: 1000, credit_cents: 0, description: "D"},
-          %{account_id: ar.id, debit_cents: 0, credit_cents: 1000, description: "C"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{
+            date: yesterday,
+            entry_type: "other",
+            reference: "YESTERDAY",
+            description: "Yesterday"
+          },
+          [
+            %{account_id: cash.id, debit_cents: 1000, credit_cents: 0, description: "D"},
+            %{account_id: ar.id, debit_cents: 0, credit_cents: 1000, description: "C"}
+          ]
+        )
 
       # Create entry for today
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "TODAY", description: "Today"},
-        [
-          %{account_id: cash.id, debit_cents: 2000, credit_cents: 0, description: "D"},
-          %{account_id: ar.id, debit_cents: 0, credit_cents: 2000, description: "C"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "TODAY", description: "Today"},
+          [
+            %{account_id: cash.id, debit_cents: 2000, credit_cents: 0, description: "D"},
+            %{account_id: ar.id, debit_cents: 0, credit_cents: 2000, description: "C"}
+          ]
+        )
 
       # Get all lines for cash account
       all_lines = Accounting.list_journal_lines_by_account(cash.id)
       assert length(all_lines) >= 2
 
       # Filter by today only
-      today_lines = Accounting.list_journal_lines_by_account(cash.id, date_from: today, date_to: today)
+      today_lines =
+        Accounting.list_journal_lines_by_account(cash.id, date_from: today, date_to: today)
+
       today_refs = Enum.map(today_lines, fn l -> l.journal_entry.reference end)
       assert "TODAY" in today_refs
       refute "YESTERDAY" in today_refs
@@ -241,10 +257,11 @@ defmodule Ledgr.Core.AccountingTest do
       cash = accounts["1000"]
       ingredients = accounts["1200"]
 
-      {:ok, entry} = Accounting.record_inventory_purchase(50000, [
-        reference: "PO-001",
-        paid_from_account: cash
-      ])
+      {:ok, entry} =
+        Accounting.record_inventory_purchase(50000,
+          reference: "PO-001",
+          paid_from_account: cash
+        )
 
       entry = Repo.preload(entry, :journal_lines)
 
@@ -253,15 +270,19 @@ defmodule Ledgr.Core.AccountingTest do
       assert entry.entry_type == "inventory_purchase"
 
       # Find the inventory debit line
-      inv_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == ingredients.id && l.debit_cents > 0
-      end)
+      inv_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == ingredients.id && l.debit_cents > 0
+        end)
+
       assert inv_line.debit_cents == 50000
 
       # Find the cash credit line
-      cash_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cash.id && l.credit_cents > 0
-      end)
+      cash_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cash.id && l.credit_cents > 0
+        end)
+
       assert cash_line.credit_cents == 50000
     end
 
@@ -269,32 +290,38 @@ defmodule Ledgr.Core.AccountingTest do
       cash = accounts["1000"]
       packing = accounts["1210"]
 
-      {:ok, entry} = Accounting.record_inventory_purchase(25000, [
-        packing: true,
-        paid_from_account: cash
-      ])
+      {:ok, entry} =
+        Accounting.record_inventory_purchase(25000,
+          packing: true,
+          paid_from_account: cash
+        )
 
       entry = Repo.preload(entry, :journal_lines)
 
       # Find the packing debit line
-      packing_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == packing.id && l.debit_cents > 0
-      end)
+      packing_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == packing.id && l.debit_cents > 0
+        end)
+
       assert packing_line.debit_cents == 25000
     end
 
     test "uses paid_from_account_id option", %{accounts: accounts} do
       cash = accounts["1000"]
 
-      {:ok, entry} = Accounting.record_inventory_purchase(30000, [
-        paid_from_account_id: cash.id
-      ])
+      {:ok, entry} =
+        Accounting.record_inventory_purchase(30000,
+          paid_from_account_id: cash.id
+        )
 
       entry = Repo.preload(entry, :journal_lines)
 
-      cash_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cash.id && l.credit_cents > 0
-      end)
+      cash_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cash.id && l.credit_cents > 0
+        end)
+
       assert cash_line != nil
     end
   end
@@ -309,10 +336,11 @@ defmodule Ledgr.Core.AccountingTest do
       cash = accounts["1000"]
       ingredients = accounts["1200"]
 
-      {:ok, entry} = Accounting.record_inventory_return(15000, [
-        reference: "RET-001",
-        paid_from_account: cash
-      ])
+      {:ok, entry} =
+        Accounting.record_inventory_return(15000,
+          reference: "RET-001",
+          paid_from_account: cash
+        )
 
       entry = Repo.preload(entry, :journal_lines)
 
@@ -320,15 +348,19 @@ defmodule Ledgr.Core.AccountingTest do
       assert length(entry.journal_lines) == 2
 
       # Find the inventory credit line
-      inv_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == ingredients.id && l.credit_cents > 0
-      end)
+      inv_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == ingredients.id && l.credit_cents > 0
+        end)
+
       assert inv_line.credit_cents == 15000
 
       # Find the cash debit line
-      cash_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cash.id && l.debit_cents > 0
-      end)
+      cash_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cash.id && l.debit_cents > 0
+        end)
+
       assert cash_line.debit_cents == 15000
     end
   end
@@ -336,6 +368,7 @@ defmodule Ledgr.Core.AccountingTest do
   describe "record_investment/2 and record_withdrawal/2" do
     setup do
       accounts = standard_accounts_fixture()
+
       # Owner's Equity (3000) and Retained Earnings (3050) are now included in standard_accounts_fixture
       {:ok, accounts: accounts}
     end
@@ -343,11 +376,12 @@ defmodule Ledgr.Core.AccountingTest do
     test "record_investment creates correct journal entry", %{accounts: accounts} do
       cash = accounts["1000"]
 
-      {:ok, entry} = Accounting.record_investment(100000, [
-        cash_account_id: cash.id,
-        partner_name: "Test Partner",
-        date: Date.utc_today()
-      ])
+      {:ok, entry} =
+        Accounting.record_investment(100_000,
+          cash_account_id: cash.id,
+          partner_name: "Test Partner",
+          date: Date.utc_today()
+        )
 
       entry = Repo.preload(entry, :journal_lines)
 
@@ -355,43 +389,53 @@ defmodule Ledgr.Core.AccountingTest do
       assert length(entry.journal_lines) == 2
 
       # Cash debit
-      cash_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cash.id && l.debit_cents > 0
-      end)
-      assert cash_line.debit_cents == 100000
+      cash_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cash.id && l.debit_cents > 0
+        end)
+
+      assert cash_line.debit_cents == 100_000
 
       # Equity credit
       equity = accounts["3000"]
-      equity_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == equity.id && l.credit_cents > 0
-      end)
-      assert equity_line.credit_cents == 100000
+
+      equity_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == equity.id && l.credit_cents > 0
+        end)
+
+      assert equity_line.credit_cents == 100_000
     end
 
     test "record_withdrawal creates correct journal entry", %{accounts: accounts} do
       cash = accounts["1000"]
       owners_drawings = accounts["3100"]
 
-      {:ok, entry} = Accounting.record_withdrawal(50000, [
-        cash_account_id: cash.id,
-        partner_name: "Test Partner",
-        date: Date.utc_today()
-      ])
+      {:ok, entry} =
+        Accounting.record_withdrawal(50000,
+          cash_account_id: cash.id,
+          partner_name: "Test Partner",
+          date: Date.utc_today()
+        )
 
       entry = Repo.preload(entry, :journal_lines)
 
       assert entry.entry_type == "withdrawal"
 
       # Owner's Drawings debit (contra-equity increases)
-      drawings_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == owners_drawings.id && l.debit_cents > 0
-      end)
+      drawings_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == owners_drawings.id && l.debit_cents > 0
+        end)
+
       assert drawings_line.debit_cents == 50000
 
       # Cash credit (pay out)
-      cash_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cash.id && l.credit_cents > 0
-      end)
+      cash_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cash.id && l.credit_cents > 0
+        end)
+
       assert cash_line.credit_cents == 50000
     end
   end
@@ -501,13 +545,14 @@ defmodule Ledgr.Core.AccountingTest do
       cash = accounts["1000"]
 
       # Create a sales entry
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "SALE-1", description: "Test sale"},
-        [
-          %{account_id: cash.id, debit_cents: 10000, credit_cents: 0, description: "Cash in"},
-          %{account_id: sales.id, debit_cents: 0, credit_cents: 10000, description: "Revenue"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "SALE-1", description: "Test sale"},
+          [
+            %{account_id: cash.id, debit_cents: 10000, credit_cents: 0, description: "Cash in"},
+            %{account_id: sales.id, debit_cents: 0, credit_cents: 10000, description: "Revenue"}
+          ]
+        )
 
       result = Accounting.profit_and_loss(today, today)
 
@@ -523,22 +568,29 @@ defmodule Ledgr.Core.AccountingTest do
       inventory = accounts["1200"]
 
       # Create a sales entry
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "SALE-2", description: "Sale"},
-        [
-          %{account_id: cash.id, debit_cents: 15000, credit_cents: 0, description: "Cash in"},
-          %{account_id: sales.id, debit_cents: 0, credit_cents: 15000, description: "Revenue"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "SALE-2", description: "Sale"},
+          [
+            %{account_id: cash.id, debit_cents: 15000, credit_cents: 0, description: "Cash in"},
+            %{account_id: sales.id, debit_cents: 0, credit_cents: 15000, description: "Revenue"}
+          ]
+        )
 
       # Create a COGS entry
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "COGS-1", description: "Cost of goods"},
-        [
-          %{account_id: cogs.id, debit_cents: 5000, credit_cents: 0, description: "COGS"},
-          %{account_id: inventory.id, debit_cents: 0, credit_cents: 5000, description: "Inventory out"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "COGS-1", description: "Cost of goods"},
+          [
+            %{account_id: cogs.id, debit_cents: 5000, credit_cents: 0, description: "COGS"},
+            %{
+              account_id: inventory.id,
+              debit_cents: 0,
+              credit_cents: 5000,
+              description: "Inventory out"
+            }
+          ]
+        )
 
       result = Accounting.profit_and_loss(today, today)
 
@@ -555,22 +607,24 @@ defmodule Ledgr.Core.AccountingTest do
       inventory = accounts["1200"]
 
       # Revenue of $100
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "SALE-3", description: "Sale"},
-        [
-          %{account_id: cash.id, debit_cents: 10000, credit_cents: 0, description: "Cash"},
-          %{account_id: sales.id, debit_cents: 0, credit_cents: 10000, description: "Revenue"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "SALE-3", description: "Sale"},
+          [
+            %{account_id: cash.id, debit_cents: 10000, credit_cents: 0, description: "Cash"},
+            %{account_id: sales.id, debit_cents: 0, credit_cents: 10000, description: "Revenue"}
+          ]
+        )
 
       # COGS of $30 (30% of revenue)
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "COGS-2", description: "COGS"},
-        [
-          %{account_id: cogs.id, debit_cents: 3000, credit_cents: 0, description: "COGS"},
-          %{account_id: inventory.id, debit_cents: 0, credit_cents: 3000, description: "Inv"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "COGS-2", description: "COGS"},
+          [
+            %{account_id: cogs.id, debit_cents: 3000, credit_cents: 0, description: "COGS"},
+            %{account_id: inventory.id, debit_cents: 0, credit_cents: 3000, description: "Inv"}
+          ]
+        )
 
       result = Accounting.profit_and_loss(today, today)
 
@@ -591,13 +645,14 @@ defmodule Ledgr.Core.AccountingTest do
       equity = accounts["3000"]
 
       # Add some cash via equity investment
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "investment", reference: "INV-1", description: "Investment"},
-        [
-          %{account_id: cash.id, debit_cents: 50000, credit_cents: 0, description: "Cash in"},
-          %{account_id: equity.id, debit_cents: 0, credit_cents: 50000, description: "Equity"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "investment", reference: "INV-1", description: "Investment"},
+          [
+            %{account_id: cash.id, debit_cents: 50000, credit_cents: 0, description: "Cash in"},
+            %{account_id: equity.id, debit_cents: 0, credit_cents: 50000, description: "Equity"}
+          ]
+        )
 
       result = Accounting.balance_sheet(today)
 
@@ -614,13 +669,14 @@ defmodule Ledgr.Core.AccountingTest do
       sales = accounts["4000"]
 
       # Create a sale (increases net income)
-      {:ok, _} = Accounting.create_journal_entry_with_lines(
-        %{date: today, entry_type: "other", reference: "SALE-BS", description: "Sale"},
-        [
-          %{account_id: cash.id, debit_cents: 20000, credit_cents: 0, description: "Cash"},
-          %{account_id: sales.id, debit_cents: 0, credit_cents: 20000, description: "Revenue"}
-        ]
-      )
+      {:ok, _} =
+        Accounting.create_journal_entry_with_lines(
+          %{date: today, entry_type: "other", reference: "SALE-BS", description: "Sale"},
+          [
+            %{account_id: cash.id, debit_cents: 20000, credit_cents: 0, description: "Cash"},
+            %{account_id: sales.id, debit_cents: 0, credit_cents: 20000, description: "Revenue"}
+          ]
+        )
 
       result = Accounting.balance_sheet(today)
 
@@ -664,7 +720,10 @@ defmodule Ledgr.Core.AccountingTest do
       {:ok, accounts: accounts, order: order, variant: variant}
     end
 
-    test "record_order_payment creates correct journal entry for regular payment", %{accounts: accounts, order: order} do
+    test "record_order_payment creates correct journal entry for regular payment", %{
+      accounts: accounts,
+      order: order
+    } do
       cash = accounts["1000"]
       ar = accounts["1100"]
 
@@ -685,19 +744,26 @@ defmodule Ledgr.Core.AccountingTest do
       assert entry.entry_type == "order_payment"
 
       # Cash debit
-      cash_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cash.id && l.debit_cents > 0
-      end)
+      cash_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cash.id && l.debit_cents > 0
+        end)
+
       assert cash_line.debit_cents == 5000
 
       # AR credit
-      ar_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == ar.id && l.credit_cents > 0
-      end)
+      ar_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == ar.id && l.credit_cents > 0
+        end)
+
       assert ar_line.credit_cents == 5000
     end
 
-    test "record_order_payment creates correct journal entry for deposit", %{accounts: accounts, order: order} do
+    test "record_order_payment creates correct journal entry for deposit", %{
+      accounts: accounts,
+      order: order
+    } do
       cash = accounts["1000"]
       customer_deposits = accounts["2200"]
 
@@ -716,15 +782,19 @@ defmodule Ledgr.Core.AccountingTest do
       entry = Repo.preload(entry, :journal_lines)
 
       # Cash debit
-      cash_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cash.id && l.debit_cents > 0
-      end)
+      cash_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cash.id && l.debit_cents > 0
+        end)
+
       assert cash_line.debit_cents == 3000
 
       # Customer Deposits credit (not AR)
-      deposits_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == customer_deposits.id && l.credit_cents > 0
-      end)
+      deposits_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == customer_deposits.id && l.credit_cents > 0
+        end)
+
       assert deposits_line.credit_cents == 3000
     end
   end
@@ -744,14 +814,20 @@ defmodule Ledgr.Core.AccountingTest do
                 normal_balance: "debit",
                 is_cash: false
               })
+
             a
-          existing -> existing
+
+          existing ->
+            existing
         end
 
       {:ok, accounts: accounts, waste_account: waste_account}
     end
 
-    test "debits waste expense and credits ingredients inventory", %{accounts: accounts, waste_account: waste_account} do
+    test "debits waste expense and credits ingredients inventory", %{
+      accounts: accounts,
+      waste_account: waste_account
+    } do
       ingredients = accounts["1200"]
 
       {:ok, entry} = Accounting.record_inventory_write_off(8000, reference: "WASTE-001")
@@ -759,31 +835,42 @@ defmodule Ledgr.Core.AccountingTest do
 
       assert length(entry.journal_lines) == 2
 
-      waste_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == waste_account.id && l.debit_cents > 0
-      end)
+      waste_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == waste_account.id && l.debit_cents > 0
+        end)
+
       assert waste_line.debit_cents == 8000
 
-      inv_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == ingredients.id && l.credit_cents > 0
-      end)
+      inv_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == ingredients.id && l.credit_cents > 0
+        end)
+
       assert inv_line.credit_cents == 8000
     end
 
-    test "uses packing inventory account when packing: true", %{accounts: accounts, waste_account: waste_account} do
+    test "uses packing inventory account when packing: true", %{
+      accounts: accounts,
+      waste_account: waste_account
+    } do
       packing = accounts["1210"]
 
       {:ok, entry} = Accounting.record_inventory_write_off(3000, packing: true)
       entry = Repo.preload(entry, :journal_lines)
 
-      waste_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == waste_account.id && l.debit_cents > 0
-      end)
+      waste_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == waste_account.id && l.debit_cents > 0
+        end)
+
       assert waste_line.debit_cents == 3000
 
-      packing_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == packing.id && l.credit_cents > 0
-      end)
+      packing_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == packing.id && l.credit_cents > 0
+        end)
+
       assert packing_line.credit_cents == 3000
     end
   end
@@ -803,14 +890,18 @@ defmodule Ledgr.Core.AccountingTest do
 
       assert length(entry.journal_lines) == 2
 
-      cogs_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == cogs.id && l.debit_cents > 0
-      end)
+      cogs_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == cogs.id && l.debit_cents > 0
+        end)
+
       assert cogs_line.debit_cents == 12000
 
-      inv_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == ingredients.id && l.credit_cents > 0
-      end)
+      inv_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == ingredients.id && l.credit_cents > 0
+        end)
+
       assert inv_line.credit_cents == 12000
     end
 
@@ -821,14 +912,18 @@ defmodule Ledgr.Core.AccountingTest do
       {:ok, entry} = Accounting.record_inventory_usage(5000, packing: true)
       entry = Repo.preload(entry, :journal_lines)
 
-      cogs_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == packing_cogs.id && l.debit_cents > 0
-      end)
+      cogs_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == packing_cogs.id && l.debit_cents > 0
+        end)
+
       assert cogs_line.debit_cents == 5000
 
-      inv_line = Enum.find(entry.journal_lines, fn l ->
-        l.account_id == packing_inv.id && l.credit_cents > 0
-      end)
+      inv_line =
+        Enum.find(entry.journal_lines, fn l ->
+          l.account_id == packing_inv.id && l.credit_cents > 0
+        end)
+
       assert inv_line.credit_cents == 5000
     end
   end

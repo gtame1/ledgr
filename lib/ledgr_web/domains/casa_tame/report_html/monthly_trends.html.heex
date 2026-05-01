@@ -1,13 +1,14 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="content">
   <header class="content-header">
@@ -24,8 +25,8 @@
         </div>
       </div>
     </section>
-
-    <!-- Data Table -->
+    
+<!-- Data Table -->
     <section class="card ct-section">
       <h2 class="card-title">Monthly Detail</h2>
       <div class="table-wrapper">
@@ -44,13 +45,13 @@
           <tbody>
             <%= for row <- Enum.reverse(@data) do %>
               <tr>
-                <td><%= row.label %></td>
-                <td class="numeric ct-amount-positive"><%= fmt.(row.income_mxn) %></td>
-                <td class="numeric ct-amount-negative"><%= fmt.(row.expense_mxn) %></td>
-                <td class="numeric"><%= fmt.(row.savings_mxn) %></td>
-                <td class="numeric ct-amount-positive"><%= fmt.(row.income_usd) %></td>
-                <td class="numeric ct-amount-negative"><%= fmt.(row.expense_usd) %></td>
-                <td class="numeric"><%= fmt.(row.savings_usd) %></td>
+                <td>{row.label}</td>
+                <td class="numeric ct-amount-positive">{fmt.(row.income_mxn)}</td>
+                <td class="numeric ct-amount-negative">{fmt.(row.expense_mxn)}</td>
+                <td class="numeric">{fmt.(row.savings_mxn)}</td>
+                <td class="numeric ct-amount-positive">{fmt.(row.income_usd)}</td>
+                <td class="numeric ct-amount-negative">{fmt.(row.expense_usd)}</td>
+                <td class="numeric">{fmt.(row.savings_usd)}</td>
               </tr>
             <% end %>
           </tbody>

@@ -12,10 +12,15 @@
   <div class="tab-bar" style="margin-bottom: 1rem;">
     <%= for {label, value} <- [{"All", nil}, {"Active", "active"}, {"Trial", "trial"}, {"Cancelled", "cancelled"}] do %>
       <.link
-        navigate={dp(@domain_path_prefix, if(value, do: "/client-subscriptions?status=#{value}", else: "/client-subscriptions"))}
+        navigate={
+          dp(
+            @domain_path_prefix,
+            if(value, do: "/client-subscriptions?status=#{value}", else: "/client-subscriptions")
+          )
+        }
         class={"tab-item#{if @current_status == value, do: " active", else: ""}"}
       >
-        <%= label %>
+        {label}
       </.link>
     <% end %>
   </div>
@@ -34,32 +39,37 @@
       </thead>
       <tbody>
         <%= if Enum.empty?(@subs) do %>
-          <tr><td colspan="6">No subscriptions found.</td></tr>
+          <tr>
+            <td colspan="6">No subscriptions found.</td>
+          </tr>
         <% else %>
           <%= for sub <- @subs do %>
             <tr>
               <td>
                 <.link navigate={dp(@domain_path_prefix, "/clients/#{sub.client_id}")}>
-                  <%= sub.client.name %>
+                  {sub.client.name}
                 </.link>
               </td>
-              <td><%= sub.subscription_plan.name %></td>
+              <td>{sub.subscription_plan.name}</td>
               <td>
                 <%= if sub.price_override_cents do %>
-                  <%= format_currency(sub.price_override_cents) %>
+                  {format_currency(sub.price_override_cents)}
                   <span style="font-size: 0.75rem; color: var(--text-muted);"> (override)</span>
                 <% else %>
-                  <%= format_currency(sub.subscription_plan.price_cents) %>
+                  {format_currency(sub.subscription_plan.price_cents)}
                 <% end %>
               </td>
               <td>
                 <span class={"status-badge #{status_class(sub.status)}"}>
-                  <%= String.capitalize(sub.status) %>
+                  {String.capitalize(sub.status)}
                 </span>
               </td>
-              <td><%= sub.starts_on %></td>
+              <td>{sub.starts_on}</td>
               <td>
-                <.link navigate={dp(@domain_path_prefix, "/client-subscriptions/#{sub.id}")} class="btn btn-sm">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/client-subscriptions/#{sub.id}")}
+                  class="btn btn-sm"
+                >
                   View
                 </.link>
               </td>

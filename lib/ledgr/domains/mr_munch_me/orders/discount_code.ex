@@ -18,7 +18,15 @@ defmodule Ledgr.Domains.MrMunchMe.Orders.DiscountCode do
 
   def changeset(discount_code, attrs) do
     discount_code
-    |> cast(attrs, [:code, :discount_type, :discount_value, :active, :max_uses, :uses_count, :expires_at])
+    |> cast(attrs, [
+      :code,
+      :discount_type,
+      :discount_value,
+      :active,
+      :max_uses,
+      :uses_count,
+      :expires_at
+    ])
     |> validate_required([:code, :discount_type, :discount_value])
     |> validate_inclusion(:discount_type, @discount_types)
     |> validate_number(:discount_value, greater_than: 0)

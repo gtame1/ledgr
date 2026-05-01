@@ -30,9 +30,18 @@ defmodule LedgrWeb.Storefront.MenuControllerTest do
     end
 
     test "filters products by description with search query", %{conn: conn} do
-      product1 = product_fixture(%{name: "Special Cake", description: "made with dark chocolate", active: true})
+      product1 =
+        product_fixture(%{
+          name: "Special Cake",
+          description: "made with dark chocolate",
+          active: true
+        })
+
       _variant1 = variant_fixture(%{product: product1})
-      product2 = product_fixture(%{name: "Fruit Tart", description: "fresh seasonal fruits", active: true})
+
+      product2 =
+        product_fixture(%{name: "Fruit Tart", description: "fresh seasonal fruits", active: true})
+
       _variant2 = variant_fixture(%{product: product2})
 
       conn = get(conn, "/mr-munch-me/menu?q=chocolate")

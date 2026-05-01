@@ -11,40 +11,71 @@
 
   <div class="hd-form">
     <div class="hd-card p-6">
-      <.form for={@changeset} action={dp(@domain_path_prefix, "/agents")} method="post" class="space-y-5">
+      <.form
+        for={@changeset}
+        action={dp(@domain_path_prefix, "/agents")}
+        method="post"
+        class="space-y-5"
+      >
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Nombre Completo <span style="color: #dc2626;">*</span></label>
-          <input type="text" name="agent[name]" value={@changeset.changes[:name] || ""} required
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Nombre Completo <span style="color: #dc2626;">*</span>
+          </label>
+          <input
+            type="text"
+            name="agent[name]"
+            value={@changeset.changes[:name] || ""}
+            required
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="Juan Pérez García" />
+            placeholder="Juan Pérez García"
+          />
           <%= if @changeset.action && @changeset.errors[:name] do %>
-            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:name], 0) %></p>
+            <p class="text-xs mt-1" style="color: #dc2626;">
+              {elem(@changeset.errors[:name], 0)}
+            </p>
           <% end %>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Teléfono <span style="color: #dc2626;">*</span></label>
-          <input type="tel" name="agent[phone]" value={@changeset.changes[:phone] || ""} required
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Teléfono <span style="color: #dc2626;">*</span>
+          </label>
+          <input
+            type="tel"
+            name="agent[phone]"
+            value={@changeset.changes[:phone] || ""}
+            required
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="+525512345678" />
+            placeholder="+525512345678"
+          />
           <%= if @changeset.action && @changeset.errors[:phone] do %>
-            <p class="text-xs mt-1" style="color: #dc2626;"><%= elem(@changeset.errors[:phone], 0) %></p>
+            <p class="text-xs mt-1" style="color: #dc2626;">
+              {elem(@changeset.errors[:phone], 0)}
+            </p>
           <% end %>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">Email</label>
-          <input type="email" name="agent[email]" value={@changeset.changes[:email] || ""}
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Email
+          </label>
+          <input
+            type="email"
+            name="agent[email]"
+            value={@changeset.changes[:email] || ""}
             class="w-full rounded-lg border px-4 py-2.5 text-sm"
             style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="agente@aumentamipension.mx" />
+            placeholder="agente@aumentamipension.mx"
+          />
         </div>
 
         <div class="flex items-center gap-3 pt-3">
           <button type="submit" class="hd-btn-primary">Guardar Agente</button>
-          <.link navigate={dp(@domain_path_prefix, "/agents")} class="hd-btn-secondary">Cancelar</.link>
+          <.link navigate={dp(@domain_path_prefix, "/agents")} class="hd-btn-secondary">
+            Cancelar
+          </.link>
         </div>
       </.form>
     </div>

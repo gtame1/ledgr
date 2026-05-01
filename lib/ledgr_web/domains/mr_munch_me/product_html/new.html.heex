@@ -10,121 +10,143 @@
 
   <section class="card">
     <h2 class="card-title">New Product</h2>
-  <p class="card-subtitle">
-    Create a new product in your catalog.
-  </p>
-
-  <style>
-    .product-active-toggle { display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; }
-    .product-active-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
-    .product-active-track {
-      position: relative; display: inline-block;
-      width: 44px; height: 24px;
-      background: #d1d5db; border-radius: 12px;
-      transition: background-color 0.2s;
-      flex-shrink: 0;
-    }
-    .product-active-track::after {
-      content: ""; position: absolute;
-      top: 2px; left: 2px; width: 20px; height: 20px;
-      background: white; border-radius: 50%;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-      transition: transform 0.2s;
-    }
-    .product-active-toggle input[type="checkbox"]:checked + .product-active-track { background-color: #10b981; }
-    .product-active-toggle input[type="checkbox"]:checked + .product-active-track::after { transform: translateX(20px); }
-    .product-active-label { font-size: 0.875rem; color: #374151; font-weight: 500; }
-  </style>
-
-  <.form :let={f} for={@changeset} as={:product} action={@action} multipart={true} class="form-grid">
-    <%= if @changeset.action do %>
-      <div class="alert alert-error">
-        <p>There were problems with your product. Please review the fields below.</p>
-        <ul>
-          <%= for {field, {message, _}} <- @changeset.errors do %>
-            <li><%= humanize(field) %>: <%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
-
-    <div class="form-block">
-      <div class="field">
-        <.input field={f[:name]} type="text" label="Product Name" />
-      </div>
-
-      <%!-- Thumbnail image section --%>
-      <div class="field">
-        <label class="input-label">Thumbnail Image (optional)</label>
-
-        <div class="image-source-toggle">
-          <label class="toggle-option">
-            <input type="radio" name="image_source" value="upload" checked onclick="document.getElementById('thumbnail-upload').style.display='block'; document.getElementById('thumbnail-url').style.display='none';" />
-            Upload File
-          </label>
-          <label class="toggle-option">
-            <input type="radio" name="image_source" value="url" onclick="document.getElementById('thumbnail-upload').style.display='none'; document.getElementById('thumbnail-url').style.display='block';" />
-            Paste URL
-          </label>
-        </div>
-
-        <div id="thumbnail-upload">
-          <input type="file" name="product[thumbnail]" accept="image/*" class="file-input" />
-        </div>
-
-        <div id="thumbnail-url" style="display: none;">
-          <.input field={f[:image_url]} type="text" label="" placeholder="https://..." />
-        </div>
-      </div>
-
-      <div class="field">
-        <span class="input-label">Status</span>
-        <div style="margin-top: 0.375rem;">
-          <input type="hidden" name="product[active]" value="false" />
-          <label class="product-active-toggle">
-            <input
-              type="checkbox"
-              id="product_active"
-              name="product[active]"
-              value="true"
-              checked={f[:active].value == true}
-            />
-            <span class="product-active-track"></span>
-            <span class="product-active-label">Active</span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="input-label" for="product_description">Description (optional)</label>
-      <textarea
-        id="product_description"
-        name="product[description]"
-        placeholder="Describe this product for customers..."
-        class="input"
-        style="width: 100%; resize: vertical; min-height: 80px;"
-        rows="4"
-      ><%= f[:description].value %></textarea>
-    </div>
-
-    <div class="actions">
-      <button class="btn primary" type="submit">
-        Create Product
-      </button>
-      <.link navigate={dp(@domain_path_prefix, "/products")} class="btn">
-        Cancel
-      </.link>
-    </div>
-  </.form>
-
-  <%!-- Recipe reminder --%>
-  <div class="alert alert-info" style="margin-top: 1.5rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 1rem;">
-    <p style="margin: 0; color: #1e40af; font-weight: 500;">
-      💡 <strong>Remember:</strong> Don't forget to create a recipe for this product after creating it.
-      Products need a recipe for orders to work properly. You can create a recipe from the
-      <a href={dp(@domain_path_prefix, "/recipes")} style="color: #2563eb; text-decoration: underline;">Recipes page</a>.
+    <p class="card-subtitle">
+      Create a new product in your catalog.
     </p>
-  </div>
+
+    <style>
+      .product-active-toggle { display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; }
+      .product-active-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+      .product-active-track {
+        position: relative; display: inline-block;
+        width: 44px; height: 24px;
+        background: #d1d5db; border-radius: 12px;
+        transition: background-color 0.2s;
+        flex-shrink: 0;
+      }
+      .product-active-track::after {
+        content: ""; position: absolute;
+        top: 2px; left: 2px; width: 20px; height: 20px;
+        background: white; border-radius: 50%;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+      }
+      .product-active-toggle input[type="checkbox"]:checked + .product-active-track { background-color: #10b981; }
+      .product-active-toggle input[type="checkbox"]:checked + .product-active-track::after { transform: translateX(20px); }
+      .product-active-label { font-size: 0.875rem; color: #374151; font-weight: 500; }
+    </style>
+
+    <.form
+      :let={f}
+      for={@changeset}
+      as={:product}
+      action={@action}
+      multipart={true}
+      class="form-grid"
+    >
+      <%= if @changeset.action do %>
+        <div class="alert alert-error">
+          <p>There were problems with your product. Please review the fields below.</p>
+          <ul>
+            <%= for {field, {message, _}} <- @changeset.errors do %>
+              <li>{humanize(field)}: {message}</li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="form-block">
+        <div class="field">
+          <.input field={f[:name]} type="text" label="Product Name" />
+        </div>
+
+        <%!-- Thumbnail image section --%>
+        <div class="field">
+          <label class="input-label">Thumbnail Image (optional)</label>
+
+          <div class="image-source-toggle">
+            <label class="toggle-option">
+              <input
+                type="radio"
+                name="image_source"
+                value="upload"
+                checked
+                onclick="document.getElementById('thumbnail-upload').style.display='block'; document.getElementById('thumbnail-url').style.display='none';"
+              /> Upload File
+            </label>
+            <label class="toggle-option">
+              <input
+                type="radio"
+                name="image_source"
+                value="url"
+                onclick="document.getElementById('thumbnail-upload').style.display='none'; document.getElementById('thumbnail-url').style.display='block';"
+              /> Paste URL
+            </label>
+          </div>
+
+          <div id="thumbnail-upload">
+            <input type="file" name="product[thumbnail]" accept="image/*" class="file-input" />
+          </div>
+
+          <div id="thumbnail-url" style="display: none;">
+            <.input field={f[:image_url]} type="text" label="" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="input-label">Status</span>
+          <div style="margin-top: 0.375rem;">
+            <input type="hidden" name="product[active]" value="false" />
+            <label class="product-active-toggle">
+              <input
+                type="checkbox"
+                id="product_active"
+                name="product[active]"
+                value="true"
+                checked={f[:active].value == true}
+              />
+              <span class="product-active-track"></span>
+              <span class="product-active-label">Active</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="input-label" for="product_description">Description (optional)</label>
+        <textarea
+          id="product_description"
+          name="product[description]"
+          placeholder="Describe this product for customers..."
+          class="input"
+          style="width: 100%; resize: vertical; min-height: 80px;"
+          rows="4"
+        ><%= f[:description].value %></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" type="submit">
+          Create Product
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/products")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
+
+    <%!-- Recipe reminder --%>
+    <div
+      class="alert alert-info"
+      style="margin-top: 1.5rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5rem; padding: 1rem;"
+    >
+      <p style="margin: 0; color: #1e40af; font-weight: 500;">
+        💡 <strong>Remember:</strong>
+        Don't forget to create a recipe for this product after creating it.
+        Products need a recipe for orders to work properly. You can create a recipe from the <a
+          href={dp(@domain_path_prefix, "/recipes")}
+          style="color: #2563eb; text-decoration: underline;"
+        >Recipes page</a>.
+      </p>
+    </div>
   </section>
 </div>

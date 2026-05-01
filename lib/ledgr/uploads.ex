@@ -44,7 +44,8 @@ defmodule Ledgr.Uploads do
 
     case File.rm(file_path) do
       :ok -> :ok
-      {:error, :enoent} -> :ok  # Already deleted, that's fine
+      # Already deleted, that's fine
+      {:error, :enoent} -> :ok
       {:error, reason} -> {:error, reason}
     end
   end

@@ -24,6 +24,7 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientSubscriptionController do
     changeset = ClientSubscriptions.change_client_subscription(%ClientSubscription{})
     clients = Clients.list_clients()
     plans = SubscriptionPlans.list_active_subscription_plans()
+
     render(conn, :new,
       changeset: changeset,
       action: dp(conn, "/client-subscriptions"),
@@ -44,6 +45,7 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientSubscriptionController do
       {:error, %Ecto.Changeset{} = changeset} ->
         clients = Clients.list_clients()
         plans = SubscriptionPlans.list_active_subscription_plans()
+
         render(conn, :new,
           changeset: changeset,
           action: dp(conn, "/client-subscriptions"),
@@ -55,10 +57,16 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientSubscriptionController do
 
   def edit(conn, %{"id" => id}) do
     sub = ClientSubscriptions.get_client_subscription!(id)
-    attrs = if sub.price_override_cents, do: %{"price_override_cents" => MoneyHelper.cents_to_pesos(sub.price_override_cents)}, else: %{}
+
+    attrs =
+      if sub.price_override_cents,
+        do: %{"price_override_cents" => MoneyHelper.cents_to_pesos(sub.price_override_cents)},
+        else: %{}
+
     changeset = ClientSubscriptions.change_client_subscription(sub, attrs)
     clients = Clients.list_clients()
     plans = SubscriptionPlans.list_active_subscription_plans()
+
     render(conn, :edit,
       sub: sub,
       changeset: changeset,
@@ -81,6 +89,7 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientSubscriptionController do
       {:error, %Ecto.Changeset{} = changeset} ->
         clients = Clients.list_clients()
         plans = SubscriptionPlans.list_active_subscription_plans()
+
         render(conn, :edit,
           sub: sub,
           changeset: changeset,
@@ -113,8 +122,8 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientSubscriptionHTML do
 
   embed_templates "client_subscription_html/*"
 
-  def status_class("active"),    do: "status-paid"
-  def status_class("trial"),     do: "status-partial"
+  def status_class("active"), do: "status-paid"
+  def status_class("trial"), do: "status-partial"
   def status_class("cancelled"), do: "status-cancelled"
-  def status_class(_),           do: ""
+  def status_class(_), do: ""
 end

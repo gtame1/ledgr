@@ -13,10 +13,15 @@
   <div class="tab-bar" style="margin-bottom: 1rem;">
     <%= for {label, value} <- [{"All", nil}, {"Packages", "package"}, {"Promos", "promo"}, {"Memberships", "membership"}, {"Extras", "extra"}] do %>
       <.link
-        navigate={dp(@domain_path_prefix, if(value, do: "/subscription-plans?type=#{value}", else: "/subscription-plans"))}
+        navigate={
+          dp(
+            @domain_path_prefix,
+            if(value, do: "/subscription-plans?type=#{value}", else: "/subscription-plans")
+          )
+        }
         class={"tab-item#{if @current_plan_type == value, do: " active", else: ""}"}
       >
-        <%= label %>
+        {label}
       </.link>
     <% end %>
   </div>
@@ -42,27 +47,27 @@
         <% else %>
           <%= for plan <- @plans do %>
             <tr>
-              <td><strong><%= plan.name %></strong></td>
+              <td><strong>{plan.name}</strong></td>
               <td>
                 <span class={"status-badge #{plan_type_class(plan.plan_type)}"}>
-                  <%= String.capitalize(plan.plan_type || "membership") %>
+                  {String.capitalize(plan.plan_type || "membership")}
                 </span>
               </td>
-              <td><%= format_currency(plan.price_cents) %></td>
+              <td>{format_currency(plan.price_cents)}</td>
               <td>
                 <%= cond do %>
                   <% plan.duration_days -> %>
-                    <%= plan.duration_days %> <%= if plan.duration_days == 1, do: "day", else: "days" %>
+                    {plan.duration_days} {if plan.duration_days == 1, do: "day", else: "days"}
                   <% plan.duration_months -> %>
-                    <%= plan.duration_months %>
-                    <%= if plan.duration_months == 1, do: "month", else: "months" %>
+                    {plan.duration_months}
+                    {if plan.duration_months == 1, do: "month", else: "months"}
                   <% true -> %>
                     <span style="color: var(--text-muted);">—</span>
                 <% end %>
               </td>
               <td>
                 <%= if plan.class_limit do %>
-                  <%= plan.class_limit %> classes
+                  {plan.class_limit} classes
                 <% else %>
                   <span style="color: var(--text-muted);">Unlimited</span>
                 <% end %>
@@ -76,10 +81,18 @@
               </td>
               <td>
                 <div style="display: flex; gap: 0.5rem;">
-                  <.link navigate={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}/edit")} class="btn btn-sm">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}/edit")}
+                    class="btn btn-sm"
+                  >
                     Edit
                   </.link>
-                  <.link href={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}")} method="delete" data-confirm="Delete this plan?" class="btn btn-sm danger">
+                  <.link
+                    href={dp(@domain_path_prefix, "/subscription-plans/#{plan.id}")}
+                    method="delete"
+                    data-confirm="Delete this plan?"
+                    class="btn btn-sm danger"
+                  >
                     Delete
                   </.link>
                 </div>

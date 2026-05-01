@@ -3,35 +3,46 @@
     <h2 class="card-title">New Booking</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:booking} :let={f}>
-
+  <.form :let={f} for={@changeset} action={@action} as={:booking}>
     <div class="form-section">
       <div class="form-section-title">Booking Details</div>
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
             <label>Customer *</label>
-            <.input type="select" field={f[:customer_id]} options={[{"Select customer...", ""} | @customers]} />
+            <.input
+              type="select"
+              field={f[:customer_id]}
+              options={[{"Select customer...", ""} | @customers]}
+            />
           </div>
 
           <div class="field">
             <label>Trip (optional)</label>
-            <.input type="select" field={f[:trip_id]} options={[{"Standalone booking", ""} | @trips]} />
+            <.input
+              type="select"
+              field={f[:trip_id]}
+              options={[{"Standalone booking", ""} | @trips]}
+            />
           </div>
 
           <div class="field">
             <label>Booking Type</label>
-            <.input type="select" field={f[:booking_type]} options={[
-              {"Select type...", ""},
-              {"✈️ Flight", "flight"},
-              {"🏨 Hotel", "hotel"},
-              {"🗺 Tour", "tour"},
-              {"🚌 Transfer", "transfer"},
-              {"🚗 Car Rental", "car_rental"},
-              {"🚢 Cruise", "cruise"},
-              {"🛡 Insurance", "insurance"},
-              {"📋 Other", "other"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:booking_type]}
+              options={[
+                {"Select type...", ""},
+                {"✈️ Flight", "flight"},
+                {"🏨 Hotel", "hotel"},
+                {"🗺 Tour", "tour"},
+                {"🚌 Transfer", "transfer"},
+                {"🚗 Car Rental", "car_rental"},
+                {"🚢 Cruise", "cruise"},
+                {"🛡 Insurance", "insurance"},
+                {"📋 Other", "other"}
+              ]}
+            />
           </div>
 
           <div class="field">
@@ -63,16 +74,22 @@
         <div class="form-block">
           <div class="field">
             <label>Commission Type</label>
-            <.input type="select" field={f[:commission_type]} options={[
-              {"Select...", ""},
-              {"Fixed amount", "fixed"},
-              {"Percentage of total price", "percentage"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:commission_type]}
+              options={[
+                {"Select...", ""},
+                {"Fixed amount", "fixed"},
+                {"Percentage of total price", "percentage"}
+              ]}
+            />
           </div>
           <div class="field">
             <label>Commission Value</label>
             <.input type="number" field={f[:commission_value]} min="0" />
-            <span class="field-hint">Fixed: enter amount in cents. Percentage: enter basis points (e.g. 1500 = 15.00%)</span>
+            <span class="field-hint">
+              Fixed: enter amount in cents. Percentage: enter basis points (e.g. 1500 = 15.00%)
+            </span>
           </div>
         </div>
       </div>

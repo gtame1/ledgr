@@ -8,24 +8,32 @@
     <.link navigate={dp(@domain_path_prefix, "/recommendations/new")} class="btn primary">
       + Add Recommendation
     </.link>
-
-    <!-- Filters -->
-    <form method="get" action={dp(@domain_path_prefix, "/recommendations")} style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+    
+<!-- Filters -->
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/recommendations")}
+      style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;"
+    >
       <select name="country" class="input" style="width: auto; font-size: 0.875rem;">
         <option value="">All Countries</option>
         <%= for country <- @countries do %>
-          <option value={country} selected={@current_country == country}><%= country %></option>
+          <option value={country} selected={@current_country == country}>{country}</option>
         <% end %>
       </select>
       <select name="category" class="input" style="width: auto; font-size: 0.875rem;">
         <option value="">All Categories</option>
         <%= for cat <- ~w(restaurant hotel bar tour experience shopping spa beach museum other) do %>
-          <option value={cat} selected={@current_category == cat}><%= String.capitalize(cat) %></option>
+          <option value={cat} selected={@current_category == cat}>
+            {String.capitalize(cat)}
+          </option>
         <% end %>
       </select>
       <button type="submit" class="btn btn-sm">Filter</button>
       <%= if @current_country || @current_category do %>
-        <.link navigate={dp(@domain_path_prefix, "/recommendations")} class="btn btn-sm">Clear</.link>
+        <.link navigate={dp(@domain_path_prefix, "/recommendations")} class="btn btn-sm">
+          Clear
+        </.link>
       <% end %>
     </form>
   </div>
@@ -38,32 +46,44 @@
         <div class="card" style="margin: 0; padding: 1rem;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
             <div>
-              <div style="font-weight: 600; font-size: 0.95rem;"><%= rec.name %></div>
+              <div style="font-weight: 600; font-size: 0.95rem;">{rec.name}</div>
               <div style="font-size: 0.8rem; color: var(--text-muted);">
-                <%= rec.city %>, <%= rec.country %>
+                {rec.city}, {rec.country}
               </div>
             </div>
             <div style="text-align: right; font-size: 0.8rem;">
-              <div><%= category_label(rec.category) %></div>
+              <div>{category_label(rec.category)}</div>
               <%= if rec.price_range do %>
-                <div style="color: var(--text-muted);"><%= rec.price_range %></div>
+                <div style="color: var(--text-muted);">{rec.price_range}</div>
               <% end %>
             </div>
           </div>
           <%= if rec.rating do %>
             <div style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-              <%= for _i <- 1..rec.rating do %>⭐<% end %>
+              <%= for _i <- 1..rec.rating do %>
+                ⭐
+              <% end %>
             </div>
           <% end %>
           <%= if rec.description do %>
             <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-              <%= rec.description %>
+              {rec.description}
             </p>
           <% end %>
           <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-            <.link navigate={dp(@domain_path_prefix, "/recommendations/#{rec.id}/edit")} class="btn btn-sm">Edit</.link>
-            <.form for={%{}} action={dp(@domain_path_prefix, "/recommendations/#{rec.id}")} method="delete" style="display: inline;"
-              onsubmit="return confirm('Delete this recommendation?')">
+            <.link
+              navigate={dp(@domain_path_prefix, "/recommendations/#{rec.id}/edit")}
+              class="btn btn-sm"
+            >
+              Edit
+            </.link>
+            <.form
+              for={%{}}
+              action={dp(@domain_path_prefix, "/recommendations/#{rec.id}")}
+              method="delete"
+              style="display: inline;"
+              onsubmit="return confirm('Delete this recommendation?')"
+            >
               <button type="submit" class="btn btn-sm danger">Delete</button>
             </.form>
           </div>

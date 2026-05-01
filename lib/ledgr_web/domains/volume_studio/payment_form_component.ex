@@ -20,14 +20,14 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
   use Phoenix.Component
   import LedgrWeb.CoreComponents, only: [format_currency: 1]
 
-  attr :summary_rows,        :list,    required: true
-  attr :outstanding_cents,   :integer, required: true
-  attr :default_amount_cents,:integer, required: true
-  attr :payer_label,         :string,  default: "Customer"
-  attr :action,              :string,  required: true
-  attr :back_path,           :string,  required: true
-  attr :change_accounts,     :list,    required: true
-  attr :paid_to_accounts,    :list,    default: []
+  attr :summary_rows, :list, required: true
+  attr :outstanding_cents, :integer, required: true
+  attr :default_amount_cents, :integer, required: true
+  attr :payer_label, :string, default: "Customer"
+  attr :action, :string, required: true
+  attr :back_path, :string, required: true
+  attr :change_accounts, :list, required: true
+  attr :paid_to_accounts, :list, default: []
 
   def payment_form(assigns) do
     ~H"""
@@ -37,15 +37,15 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
       <div class="ledger-rows">
         <%= for row <- @summary_rows do %>
           <div class={"ledger-row #{row_class(row.style)}"}>
-            <span class="ledger-label"><%= row.label %></span>
+            <span class="ledger-label">{row.label}</span>
             <span class={"ledger-value #{value_class(row.style)}"}>
               <%= cond do %>
                 <% row[:text] != nil -> %>
-                  <%= row.text %>
+                  {row.text}
                 <% row.style == :discount -> %>
-                  − <%= format_currency(row.value_cents) %>
+                  − {format_currency(row.value_cents)}
                 <% true -> %>
-                  <%= format_currency(row.value_cents) %>
+                  {format_currency(row.value_cents)}
               <% end %>
             </span>
           </div>
@@ -59,14 +59,20 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
 
       <form action={@action} method="post">
         <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-        <input type="hidden" name="payment[owed_change_choice]" id="owed_change_choice_input" value="keep" />
+        <input
+          type="hidden"
+          name="payment[owed_change_choice]"
+          id="owed_change_choice_input"
+          value="keep"
+        />
 
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-
           <div class="field">
             <label for="payment_amount">Amount (MXN) *</label>
             <div style="position: relative;">
-              <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">$</span>
+              <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">
+                $
+              </span>
               <input
                 id="payment_amount"
                 type="number"
@@ -107,9 +113,13 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
           <%= if @paid_to_accounts != [] do %>
             <div class="field">
               <label for="payment_paid_to_account_code">Paid to *</label>
-              <select id="payment_paid_to_account_code" name="payment[paid_to_account_code]" class="form-input">
+              <select
+                id="payment_paid_to_account_code"
+                name="payment[paid_to_account_code]"
+                class="form-input"
+              >
                 <%= for {label, code} <- @paid_to_accounts do %>
-                  <option value={code}><%= label %></option>
+                  <option value={code}>{label}</option>
                 <% end %>
               </select>
             </div>
@@ -125,13 +135,16 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
               class="form-input"
             ></textarea>
           </div>
-
         </div>
 
         <%!-- ── Overpayment section ──────────────────────────────────── --%>
-        <div id="overpayment-section" style="display:none; padding: 1rem; background: #fefce8; border: 1px solid #fde047; border-radius: var(--radius-md, 0.5rem); margin-bottom: 1.25rem;">
+        <div
+          id="overpayment-section"
+          style="display:none; padding: 1rem; background: #fefce8; border: 1px solid #fde047; border-radius: var(--radius-md, 0.5rem); margin-bottom: 1.25rem;"
+        >
           <p style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: #92400e;">
-            <%= @payer_label %> is paying <strong id="overpayment-amount-display">$0.00</strong> more than owed — how should we handle it?
+            {@payer_label} is paying <strong id="overpayment-amount-display">$0.00</strong>
+            more than owed — how should we handle it?
           </p>
           <div style="display: flex; flex-direction: column; gap: 0.4rem;">
             <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;">
@@ -140,21 +153,30 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
             </label>
             <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;">
               <input type="radio" name="owed_change_radio" value="record" />
-              Record as owed change — we owe the <%= String.downcase(@payer_label) %> change (creates AP entry)
+              Record as owed change — we owe the {String.downcase(@payer_label)} change (creates AP entry)
             </label>
             <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;">
               <input type="radio" name="owed_change_radio" value="staff_gave_change" />
-              Staff already gave the <%= String.downcase(@payer_label) %> their change
+              Staff already gave the {String.downcase(@payer_label)} their change
             </label>
           </div>
 
-          <div id="change-given-section" style="display:none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #fde047;">
-            <p style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: #92400e;">Change details</p>
+          <div
+            id="change-given-section"
+            style="display:none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #fde047;"
+          >
+            <p style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: #92400e;">
+              Change details
+            </p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div class="field">
-                <label for="payment_change_given" style="font-size: 0.8rem;">Amount Given Back (MXN)</label>
+                <label for="payment_change_given" style="font-size: 0.8rem;">
+                  Amount Given Back (MXN)
+                </label>
                 <div style="position: relative;">
-                  <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">$</span>
+                  <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 500;">
+                    $
+                  </span>
                   <input
                     id="payment_change_given"
                     type="number"
@@ -168,11 +190,17 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
                 </div>
               </div>
               <div class="field">
-                <label for="payment_change_from_account" style="font-size: 0.8rem;">Change Taken From</label>
-                <select id="payment_change_from_account" name="payment[change_from_account]" class="form-input">
+                <label for="payment_change_from_account" style="font-size: 0.8rem;">
+                  Change Taken From
+                </label>
+                <select
+                  id="payment_change_from_account"
+                  name="payment[change_from_account]"
+                  class="form-input"
+                >
                   <option value="">— Select Account —</option>
                   <%= for {label, account_id} <- @change_accounts do %>
-                    <option value={account_id}><%= label %></option>
+                    <option value={account_id}>{label}</option>
                   <% end %>
                 </select>
               </div>
@@ -262,10 +290,10 @@ defmodule LedgrWeb.Domains.VolumeStudio.PaymentFormComponent do
   end
 
   defp row_class(:total_row), do: "ledger-row--total"
-  defp row_class(:danger),    do: "ledger-row--danger"
-  defp row_class(:success),   do: "ledger-row--success"
-  defp row_class(_),          do: ""
+  defp row_class(:danger), do: "ledger-row--danger"
+  defp row_class(:success), do: "ledger-row--success"
+  defp row_class(_), do: ""
 
   defp value_class(:discount), do: "ledger-value--discount"
-  defp value_class(_),         do: ""
+  defp value_class(_), do: ""
 end

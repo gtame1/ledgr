@@ -4,10 +4,15 @@
 
   <div class="login-card-header">
     <%= if theme[:auth_logo] || theme[:card_logo] do %>
-      <img src={theme[:auth_logo] || theme[:card_logo]} alt={domain.name()} class="login-logo" onerror="this.style.display='none'" />
+      <img
+        src={theme[:auth_logo] || theme[:card_logo]}
+        alt={domain.name()}
+        class="login-logo"
+        onerror="this.style.display='none'"
+      />
     <% else %>
-      <span class="login-app-logo"><%= if domain, do: domain.logo(), else: "" %></span>
-      <h1 class="login-app-name"><%= if domain, do: domain.name(), else: "Ledgr" %></h1>
+      <span class="login-app-logo">{if domain, do: domain.logo(), else: ""}</span>
+      <h1 class="login-app-name">{if domain, do: domain.name(), else: "Ledgr"}</h1>
     <% end %>
   </div>
 
@@ -15,7 +20,7 @@
 
   <%= if @error_message do %>
     <div class="login-error">
-      <%= @error_message %>
+      {@error_message}
     </div>
   <% end %>
 
@@ -24,14 +29,25 @@
 
     <div class="login-field">
       <label for="session_email">Email</label>
-      <input type="email" name="session[email]" id="session_email" required autofocus
-        placeholder="you@example.com" />
+      <input
+        type="email"
+        name="session[email]"
+        id="session_email"
+        required
+        autofocus
+        placeholder="you@example.com"
+      />
     </div>
 
     <div class="login-field">
       <label for="session_password">Password</label>
-      <input type="password" name="session[password]" id="session_password" required
-        placeholder="Enter your password" />
+      <input
+        type="password"
+        name="session[password]"
+        id="session_password"
+        required
+        placeholder="Enter your password"
+      />
     </div>
 
     <button type="submit" class="login-btn">Sign In</button>

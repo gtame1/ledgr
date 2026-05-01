@@ -35,7 +35,11 @@ defmodule Ledgr.Domains.LedgrHQ.ClientSubscriptions.ClientSubscription do
 
   @doc "Returns the effective monthly price: override if set, otherwise the plan price."
   def effective_price_cents(%__MODULE__{price_override_cents: override, subscription_plan: _plan})
-      when not is_nil(override), do: override
-  def effective_price_cents(%__MODULE__{subscription_plan: %SubscriptionPlan{price_cents: p}}), do: p
+      when not is_nil(override),
+      do: override
+
+  def effective_price_cents(%__MODULE__{subscription_plan: %SubscriptionPlan{price_cents: p}}),
+    do: p
+
   def effective_price_cents(_), do: 0
 end

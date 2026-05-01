@@ -1,11 +1,12 @@
 <section class="card">
   <div class="card-header">
     <h2 class="card-title">Edit Customer</h2>
-    <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">← Back</.link>
+    <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">
+      ← Back
+    </.link>
   </div>
 
-  <.form for={@changeset} action={@action} as={:customer} method="put" :let={f}>
-
+  <.form :let={f} for={@changeset} action={@action} as={:customer} method="put">
     <div class="form-section">
       <div class="form-section-title">Personal Info</div>
       <div class="form-grid">
@@ -52,36 +53,56 @@
         <div class="form-block">
           <div class="field">
             <label>Date of Birth</label>
-            <input type="date" name="customer[travel_profile][dob]"
-              value={@travel_profile.dob} class="input" />
+            <input
+              type="date"
+              name="customer[travel_profile][dob]"
+              value={@travel_profile.dob}
+              class="input"
+            />
           </div>
           <div class="field">
             <label>Nationality</label>
-            <input type="text" name="customer[travel_profile][nationality]"
-              value={@travel_profile.nationality} class="input" />
+            <input
+              type="text"
+              name="customer[travel_profile][nationality]"
+              value={@travel_profile.nationality}
+              class="input"
+            />
           </div>
           <div class="field">
             <label>Seat Preference</label>
             <select name="customer[travel_profile][seat_preference]" class="input">
-              <option value="" selected={is_nil(@travel_profile.seat_preference)}>No preference</option>
+              <option value="" selected={is_nil(@travel_profile.seat_preference)}>
+                No preference
+              </option>
               <%= for {label, val} <- [{"Window", "window"}, {"Aisle", "aisle"}, {"Middle", "middle"}] do %>
-                <option value={val} selected={@travel_profile.seat_preference == val}><%= label %></option>
+                <option value={val} selected={@travel_profile.seat_preference == val}>
+                  {label}
+                </option>
               <% end %>
             </select>
           </div>
           <div class="field">
             <label>Meal Preference</label>
             <select name="customer[travel_profile][meal_preference]" class="input">
-              <option value="" selected={is_nil(@travel_profile.meal_preference)}>Standard</option>
+              <option value="" selected={is_nil(@travel_profile.meal_preference)}>
+                Standard
+              </option>
               <%= for {label, val} <- [{"Vegetarian","vegetarian"},{"Vegan","vegan"},{"Halal","halal"},{"Kosher","kosher"},{"Gluten Free","gluten_free"}] do %>
-                <option value={val} selected={@travel_profile.meal_preference == val}><%= label %></option>
+                <option value={val} selected={@travel_profile.meal_preference == val}>
+                  {label}
+                </option>
               <% end %>
             </select>
           </div>
           <div class="field">
             <label>TSA Precheck / Known Traveler Number</label>
-            <input type="text" name="customer[travel_profile][tsa_precheck_number]"
-              value={@travel_profile.tsa_precheck_number} class="input" />
+            <input
+              type="text"
+              name="customer[travel_profile][tsa_precheck_number]"
+              value={@travel_profile.tsa_precheck_number}
+              class="input"
+            />
           </div>
           <div class="field">
             <label>Home Address</label>
@@ -97,13 +118,21 @@
         <div class="form-block">
           <div class="field">
             <label>Emergency Contact Name</label>
-            <input type="text" name="customer[travel_profile][emergency_contact_name]"
-              value={@travel_profile.emergency_contact_name} class="input" />
+            <input
+              type="text"
+              name="customer[travel_profile][emergency_contact_name]"
+              value={@travel_profile.emergency_contact_name}
+              class="input"
+            />
           </div>
           <div class="field">
             <label>Emergency Contact Phone</label>
-            <input type="text" name="customer[travel_profile][emergency_contact_phone]"
-              value={@travel_profile.emergency_contact_phone} class="input" />
+            <input
+              type="text"
+              name="customer[travel_profile][emergency_contact_phone]"
+              value={@travel_profile.emergency_contact_phone}
+              class="input"
+            />
           </div>
           <div class="field" style="grid-column: 1 / -1;">
             <label>Medical / Allergy Notes</label>
@@ -115,7 +144,9 @@
 
     <div class="actions" style="margin-top: 1rem;">
       <button type="submit" class="btn primary">Save Changes</button>
-      <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">Cancel</.link>
+      <.link navigate={dp(@domain_path_prefix, "/customers/#{@customer.id}")} class="btn">
+        Cancel
+      </.link>
     </div>
   </.form>
 </section>
@@ -133,12 +164,31 @@
       <%= for passport <- @customer.passports do %>
         <div class="tag-item">
           <span>
-            <strong><%= passport.country %></strong> — #<%= passport.number %>
-            <%= if passport.is_primary do %><span class="status-badge status-paid" style="font-size: 0.7rem;">Primary</span><% end %>
-            <%= if passport.expiry_date do %><small style="color: var(--text-muted);"> expires <%= passport.expiry_date %></small><% end %>
+            <strong>{passport.country}</strong>
+            — #{passport.number}
+            <%= if passport.is_primary do %>
+              <span class="status-badge status-paid" style="font-size: 0.7rem;">Primary</span>
+            <% end %>
+            <%= if passport.expiry_date do %>
+              <small style="color: var(--text-muted);"> expires   {passport.expiry_date}</small>
+            <% end %>
           </span>
-          <.form for={%{}} as={:delete} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/passports/#{passport.id}")} method="delete" style="display: inline;">
-            <button type="submit" class="btn btn-sm danger" onclick="return confirm('Remove this passport?')">✕</button>
+          <.form
+            for={%{}}
+            as={:delete}
+            action={
+              dp(@domain_path_prefix, "/customers/#{@customer.id}/passports/#{passport.id}")
+            }
+            method="delete"
+            style="display: inline;"
+          >
+            <button
+              type="submit"
+              class="btn btn-sm danger"
+              onclick="return confirm('Remove this passport?')"
+            >
+              ✕
+            </button>
           </.form>
         </div>
       <% end %>
@@ -146,8 +196,16 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Passport</summary>
-    <.form for={@passport_changeset} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/passports")} as={:passport} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Passport
+    </summary>
+    <.form
+      :let={f}
+      for={@passport_changeset}
+      action={dp(@domain_path_prefix, "/customers/#{@customer.id}/passports")}
+      as={:passport}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
@@ -168,8 +226,7 @@
           </div>
           <div class="field">
             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <.input type="checkbox" field={f[:is_primary]} />
-              Primary passport
+              <.input type="checkbox" field={f[:is_primary]} /> Primary passport
             </label>
           </div>
         </div>
@@ -192,12 +249,28 @@
       <%= for visa <- @customer.visas do %>
         <div class="tag-item">
           <span>
-            <strong><%= visa.country %></strong>
-            <%= if visa.visa_type do %> · <%= String.capitalize(String.replace(visa.visa_type, "_", " ")) %><% end %>
-            <%= if visa.expiry_date do %><small style="color: var(--text-muted);"> expires <%= visa.expiry_date %></small><% end %>
+            <strong>{visa.country}</strong>
+            <%= if visa.visa_type do %>
+              · {String.capitalize(String.replace(visa.visa_type, "_", " "))}
+            <% end %>
+            <%= if visa.expiry_date do %>
+              <small style="color: var(--text-muted);"> expires   {visa.expiry_date}</small>
+            <% end %>
           </span>
-          <.form for={%{}} as={:delete} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas/#{visa.id}")} method="delete" style="display: inline;">
-            <button type="submit" class="btn btn-sm danger" onclick="return confirm('Remove this visa?')">✕</button>
+          <.form
+            for={%{}}
+            as={:delete}
+            action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas/#{visa.id}")}
+            method="delete"
+            style="display: inline;"
+          >
+            <button
+              type="submit"
+              class="btn btn-sm danger"
+              onclick="return confirm('Remove this visa?')"
+            >
+              ✕
+            </button>
           </.form>
         </div>
       <% end %>
@@ -205,8 +278,16 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Visa</summary>
-    <.form for={@visa_changeset} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas")} as={:visa} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Visa
+    </summary>
+    <.form
+      :let={f}
+      for={@visa_changeset}
+      action={dp(@domain_path_prefix, "/customers/#{@customer.id}/visas")}
+      as={:visa}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
@@ -215,14 +296,18 @@
           </div>
           <div class="field">
             <label>Visa Type</label>
-            <.input type="select" field={f[:visa_type]} options={[
-              {"Select type...", ""},
-              {"Tourist", "tourist"},
-              {"Work", "work"},
-              {"Student", "student"},
-              {"Transit", "transit"},
-              {"Multiple Entry", "multiple_entry"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:visa_type]}
+              options={[
+                {"Select type...", ""},
+                {"Tourist", "tourist"},
+                {"Work", "work"},
+                {"Student", "student"},
+                {"Transit", "transit"},
+                {"Multiple Entry", "multiple_entry"}
+              ]}
+            />
           </div>
           <div class="field">
             <label>Visa Number</label>
@@ -252,11 +337,28 @@
       <%= for lp <- @customer.loyalty_programs do %>
         <div class="tag-item">
           <span>
-            <strong><%= lp.program_name %></strong> — #<%= lp.member_number %>
-            <%= if lp.tier do %><span class="status-badge" style="font-size: 0.7rem;"><%= lp.tier %></span><% end %>
+            <strong>{lp.program_name}</strong>
+            — #{lp.member_number}
+            <%= if lp.tier do %>
+              <span class="status-badge" style="font-size: 0.7rem;">{lp.tier}</span>
+            <% end %>
           </span>
-          <.form for={%{}} as={:delete} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs/#{lp.id}")} method="delete" style="display: inline;">
-            <button type="submit" class="btn btn-sm danger" onclick="return confirm('Remove this loyalty program?')">✕</button>
+          <.form
+            for={%{}}
+            as={:delete}
+            action={
+              dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs/#{lp.id}")
+            }
+            method="delete"
+            style="display: inline;"
+          >
+            <button
+              type="submit"
+              class="btn btn-sm danger"
+              onclick="return confirm('Remove this loyalty program?')"
+            >
+              ✕
+            </button>
           </.form>
         </div>
       <% end %>
@@ -264,8 +366,16 @@
   <% end %>
 
   <details style="margin-top: 1rem;">
-    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">+ Add Loyalty Program</summary>
-    <.form for={@loyalty_changeset} action={dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs")} as={:loyalty_program} style="margin-top: 0.75rem;" :let={f}>
+    <summary class="btn btn-sm" style="cursor: pointer; list-style: none; display: inline-block;">
+      + Add Loyalty Program
+    </summary>
+    <.form
+      :let={f}
+      for={@loyalty_changeset}
+      action={dp(@domain_path_prefix, "/customers/#{@customer.id}/loyalty_programs")}
+      as={:loyalty_program}
+      style="margin-top: 0.75rem;"
+    >
       <div class="form-grid">
         <div class="form-block">
           <div class="field">
@@ -274,13 +384,17 @@
           </div>
           <div class="field">
             <label>Type</label>
-            <.input type="select" field={f[:program_type]} options={[
-              {"Select type...", ""},
-              {"Airline", "airline"},
-              {"Hotel", "hotel"},
-              {"Car Rental", "car_rental"},
-              {"Other", "other"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:program_type]}
+              options={[
+                {"Select type...", ""},
+                {"Airline", "airline"},
+                {"Hotel", "hotel"},
+                {"Car Rental", "car_rental"},
+                {"Other", "other"}
+              ]}
+            />
           </div>
           <div class="field">
             <label>Member Number *</label>

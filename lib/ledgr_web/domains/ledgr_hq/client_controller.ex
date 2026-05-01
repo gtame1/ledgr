@@ -20,7 +20,12 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientController do
   def new(conn, _params) do
     changeset = Clients.change_client(%Client{})
     domain_slugs = Clients.available_domain_slugs()
-    render(conn, :new, changeset: changeset, action: dp(conn, "/clients"), domain_slugs: domain_slugs)
+
+    render(conn, :new,
+      changeset: changeset,
+      action: dp(conn, "/clients"),
+      domain_slugs: domain_slugs
+    )
   end
 
   def create(conn, %{"client" => params}) do
@@ -32,7 +37,12 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         domain_slugs = Clients.available_domain_slugs()
-        render(conn, :new, changeset: changeset, action: dp(conn, "/clients"), domain_slugs: domain_slugs)
+
+        render(conn, :new,
+          changeset: changeset,
+          action: dp(conn, "/clients"),
+          domain_slugs: domain_slugs
+        )
     end
   end
 
@@ -40,7 +50,13 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientController do
     client = Clients.get_client!(id)
     changeset = Clients.change_client(client)
     domain_slugs = Clients.available_domain_slugs()
-    render(conn, :edit, client: client, changeset: changeset, action: dp(conn, "/clients/#{id}"), domain_slugs: domain_slugs)
+
+    render(conn, :edit,
+      client: client,
+      changeset: changeset,
+      action: dp(conn, "/clients/#{id}"),
+      domain_slugs: domain_slugs
+    )
   end
 
   def update(conn, %{"id" => id, "client" => params}) do
@@ -54,7 +70,13 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         domain_slugs = Clients.available_domain_slugs()
-        render(conn, :edit, client: client, changeset: changeset, action: dp(conn, "/clients/#{id}"), domain_slugs: domain_slugs)
+
+        render(conn, :edit,
+          client: client,
+          changeset: changeset,
+          action: dp(conn, "/clients/#{id}"),
+          domain_slugs: domain_slugs
+        )
     end
   end
 
@@ -69,7 +91,11 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientController do
 
   def update_status(conn, %{"id" => id, "status" => status}) do
     client = Clients.get_client!(id)
-    attrs = if status == "churned", do: %{"status" => status, "ended_on" => today_mx()}, else: %{"status" => status}
+
+    attrs =
+      if status == "churned",
+        do: %{"status" => status, "ended_on" => today_mx()},
+        else: %{"status" => status}
 
     case Clients.update_client(client, attrs) do
       {:ok, _} ->
@@ -90,9 +116,9 @@ defmodule LedgrWeb.Domains.LedgrHQ.ClientHTML do
 
   embed_templates "client_html/*"
 
-  def status_class("active"),  do: "status-paid"
-  def status_class("trial"),   do: "status-partial"
-  def status_class("paused"),  do: "status-unpaid"
+  def status_class("active"), do: "status-paid"
+  def status_class("trial"), do: "status-partial"
+  def status_class("paused"), do: "status-unpaid"
   def status_class("churned"), do: "status-cancelled"
-  def status_class(_),         do: ""
+  def status_class(_), do: ""
 end

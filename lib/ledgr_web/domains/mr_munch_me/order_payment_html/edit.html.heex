@@ -9,152 +9,172 @@
   </div>
 
   <section class="card">
-      <h2 class="card-title">Edit Payment for Order #<%= @payment.order_id %></h2>
-      <p class="card-subtitle">
-        Update payment details. This will automatically update the accounting entries.
-      </p>
+    <h2 class="card-title">Edit Payment for Order #{@payment.order_id}</h2>
+    <p class="card-subtitle">
+      Update payment details. This will automatically update the accounting entries.
+    </p>
 
-      <.form :let={f} for={@changeset} as={:order_payment} action={dp(@domain_path_prefix, "/order_payments/#{@payment.id}")} method="patch" class="form-grid">
-        <%= if @changeset.action do %>
-          <div class="alert alert-error">
-            <p>There were problems with this payment:</p>
-            <ul>
-              <%= for {field, {msg, _opts}} <- @changeset.errors do %>
-                <li><strong><%= String.replace(to_string(field), "_", " ") |> String.capitalize() %>:</strong> <%= msg %></li>
-              <% end %>
-            </ul>
-          </div>
-        <% end %>
+    <.form
+      :let={f}
+      for={@changeset}
+      as={:order_payment}
+      action={dp(@domain_path_prefix, "/order_payments/#{@payment.id}")}
+      method="patch"
+      class="form-grid"
+    >
+      <%= if @changeset.action do %>
+        <div class="alert alert-error">
+          <p>There were problems with this payment:</p>
+          <ul>
+            <%= for {field, {msg, _opts}} <- @changeset.errors do %>
+              <li>
+                <strong>
+                  {String.replace(to_string(field), "_", " ") |> String.capitalize()}:
+                </strong>
+                 {msg}
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="form-block">
+        <div class="field">
+          <.input field={f[:payment_date]} type="date" label="Payment Date" />
+        </div>
+
+        <div class="field">
+          <.input
+            field={f[:amount]}
+            type="number"
+            label="Total Amount Received"
+            step="0.01"
+            placeholder="e.g. 550.50"
+            min="0"
+            id="total_amount_input"
+          />
+        </div>
+
+        <div class="field">
+          <.input
+            field={f[:paid_to_account_id]}
+            type="select"
+            label="Paid to account"
+            prompt="Select account"
+            options={@paid_to_account_options}
+          />
+        </div>
+
+        <div class="field">
+          <label class="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="split_payment_checkbox"
+              checked={@payment.partner_amount_cents && @payment.partner_amount_cents > 0}
+              style="cursor: pointer;"
+            />
+            <span>This is a split payment (partner paid part of it)</span>
+          </label>
+        </div>
+      </div>
+
+      <%!-- Split Payment Section --%>
+      <div
+        class="form-section"
+        id="split-payment-section"
+        style={
+          if @payment.partner_amount_cents && @payment.partner_amount_cents > 0,
+            do: "display: block;",
+            else: "display: none;"
+        }
+      >
+        <h3 class="section-title">Split Payment Details</h3>
+        <p class="section-help">Enter the amounts paid by customer and partner separately.</p>
 
         <div class="form-block">
           <div class="field">
-            <.input field={f[:payment_date]} type="date" label="Payment Date" />
-          </div>
-
-          <div class="field">
-            <.input
-              field={f[:amount]}
+            <label class="label">Customer Amount (in pesos)</label>
+            <input
               type="number"
-              label="Total Amount Received"
+              name="order_payment[customer_amount]"
               step="0.01"
-              placeholder="e.g. 550.50"
+              placeholder="e.g. 420.00"
               min="0"
-              id="total_amount_input"
+              id="customer_amount_input"
+              value={get_in(@changeset.params || %{}, ["customer_amount"]) || ""}
+              class="input w-full"
             />
+            <p class="field-help"><i>Amount paid by the customer</i></p>
+          </div>
+
+          <div class="field">
+            <label class="label">Partner Amount (in pesos)</label>
+            <input
+              type="number"
+              name="order_payment[partner_amount]"
+              step="0.01"
+              placeholder="e.g. 80.00"
+              min="0"
+              id="partner_amount_input"
+              value={get_in(@changeset.params || %{}, ["partner_amount"]) || ""}
+              class="input w-full"
+            />
+            <p class="field-help"><i>Amount paid by a partner</i></p>
           </div>
 
           <div class="field">
             <.input
-              field={f[:paid_to_account_id]}
+              field={f[:partner_id]}
               type="select"
-              label="Paid to account"
-              prompt="Select account"
-              options={@paid_to_account_options}
-            />
-          </div>
-
-          <div class="field">
-            <label class="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="split_payment_checkbox"
-                checked={@payment.partner_amount_cents && @payment.partner_amount_cents > 0}
-                style="cursor: pointer;"
-              />
-              <span>This is a split payment (partner paid part of it)</span>
-            </label>
-          </div>
-        </div>
-
-        <%!-- Split Payment Section --%>
-        <div class="form-section" id="split-payment-section" style={if @payment.partner_amount_cents && @payment.partner_amount_cents > 0, do: "display: block;", else: "display: none;"}>
-          <h3 class="section-title">Split Payment Details</h3>
-          <p class="section-help">Enter the amounts paid by customer and partner separately.</p>
-          
-          <div class="form-block">
-            <div class="field">
-              <label class="label">Customer Amount (in pesos)</label>
-              <input
-                type="number"
-                name="order_payment[customer_amount]"
-                step="0.01"
-                placeholder="e.g. 420.00"
-                min="0"
-                id="customer_amount_input"
-                value={get_in(@changeset.params || %{}, ["customer_amount"]) || ""}
-                class="input w-full"
-              />
-              <p class="field-help"><i>Amount paid by the customer</i></p>
-            </div>
-
-            <div class="field">
-              <label class="label">Partner Amount (in pesos)</label>
-              <input
-                type="number"
-                name="order_payment[partner_amount]"
-                step="0.01"
-                placeholder="e.g. 80.00"
-                min="0"
-                id="partner_amount_input"
-                value={get_in(@changeset.params || %{}, ["partner_amount"]) || ""}
-                class="input w-full"
-              />
-              <p class="field-help"><i>Amount paid by a partner</i></p>
-            </div>
-
-            <div class="field">
-              <.input
-                field={f[:partner_id]}
-                type="select"
-                label="Partner"
-                prompt="Select partner"
-                options={@partner_options}
-                id="partner_select"
-              />
-            </div>
-
-            <div class="field">
-              <.input
-                field={f[:partner_payable_account_id]}
-                type="select"
-                label="Partner Accounts Payable Account"
-                prompt="Select accounts payable account"
-                options={@liability_account_options}
-                id="partner_payable_account_select"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="form-block">
-          <div class="field">
-            <.input
-              field={f[:method]}
-              type="text"
-              label="Payment method (optional)"
-              placeholder="cash, card, bank transfer..."
+              label="Partner"
+              prompt="Select partner"
+              options={@partner_options}
+              id="partner_select"
             />
           </div>
 
           <div class="field">
             <.input
-              field={f[:note]}
-              type="textarea"
-              label="Note (optional)"
-              rows="3"
+              field={f[:partner_payable_account_id]}
+              type="select"
+              label="Partner Accounts Payable Account"
+              prompt="Select accounts payable account"
+              options={@liability_account_options}
+              id="partner_payable_account_select"
             />
           </div>
         </div>
+      </div>
 
-        <div class="actions">
-          <button class="btn primary" type="submit">
-            Update Payment
-          </button>
-          <.link navigate={dp(@domain_path_prefix, "/order_payments/#{@payment.id}")} class="btn">
-            Cancel
-          </.link>
+      <div class="form-block">
+        <div class="field">
+          <.input
+            field={f[:method]}
+            type="text"
+            label="Payment method (optional)"
+            placeholder="cash, card, bank transfer..."
+          />
         </div>
-      </.form>
+
+        <div class="field">
+          <.input
+            field={f[:note]}
+            type="textarea"
+            label="Note (optional)"
+            rows="3"
+          />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" type="submit">
+          Update Payment
+        </button>
+        <.link navigate={dp(@domain_path_prefix, "/order_payments/#{@payment.id}")} class="btn">
+          Cancel
+        </.link>
+      </div>
+    </.form>
   </section>
 </div>
 
@@ -245,4 +265,3 @@
     }
   });
 </script>
-

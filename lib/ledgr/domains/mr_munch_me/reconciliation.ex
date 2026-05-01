@@ -50,6 +50,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
 
         item ->
           avg_cost = item.avg_cost_per_unit_cents || 0
+
           %{
             ingredient: ingredient,
             location: location,
@@ -66,8 +67,16 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
   Adjusts the inventory quantity to match the actual quantity.
   Creates a journal entry to adjust the inventory account balance.
   """
-  def create_inventory_reconciliation(ingredient_id, location_id, actual_quantity, adjustment_date, description \\ nil) do
-    Logger.info("create_inventory_reconciliation called with ingredient_id: #{ingredient_id}, location_id: #{location_id}, actual_quantity: #{actual_quantity}")
+  def create_inventory_reconciliation(
+        ingredient_id,
+        location_id,
+        actual_quantity,
+        adjustment_date,
+        description \\ nil
+      ) do
+    Logger.info(
+      "create_inventory_reconciliation called with ingredient_id: #{ingredient_id}, location_id: #{location_id}, actual_quantity: #{actual_quantity}"
+    )
 
     ingredient = Repo.get!(Ingredient, ingredient_id)
     location = Repo.get!(Location, location_id)
@@ -77,13 +86,16 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
     system_quantity = get_inventory_quantity(ingredient_id, location_id)
     difference = actual_quantity - system_quantity
 
-    Logger.info("System quantity: #{system_quantity}, Actual quantity: #{actual_quantity}, Difference: #{difference}")
+    Logger.info(
+      "System quantity: #{system_quantity}, Actual quantity: #{actual_quantity}, Difference: #{difference}"
+    )
 
     if difference == 0 do
       Logger.info("No adjustment needed - quantities match")
       {:error, "No adjustment needed - quantities match"}
     else
       Logger.info("Starting transaction for inventory reconciliation")
+
       Repo.transaction(fn ->
         # Update the inventory item
         item = Inventory.get_or_create_stock!(ingredient_id, location_id)
@@ -91,12 +103,16 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
 
         # If avg_cost is 0, we can't calculate value difference, so use a default cost
         # This handles cases where inventory was never purchased but exists physically
-        effective_avg_cost = if avg_cost == 0 do
-          Logger.warning("No average cost for #{ingredient.code}, using ingredient default cost or 1 cent")
-          ingredient.cost_per_unit_cents || 1
-        else
-          avg_cost
-        end
+        effective_avg_cost =
+          if avg_cost == 0 do
+            Logger.warning(
+              "No average cost for #{ingredient.code}, using ingredient default cost or 1 cent"
+            )
+
+            ingredient.cost_per_unit_cents || 1
+          else
+            avg_cost
+          end
 
         updated_item =
           item
@@ -105,30 +121,42 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
 
         # Calculate the value difference (ensure it's an integer)
         raw_value = difference * effective_avg_cost
+
         value_difference_cents =
           case raw_value do
             val when is_float(val) -> round(val)
             val when is_integer(val) -> val
           end
 
-        Logger.info("Value difference calculated: difference=#{difference}, effective_avg_cost=#{effective_avg_cost}, raw_value=#{raw_value}, value_difference_cents=#{value_difference_cents}")
+        Logger.info(
+          "Value difference calculated: difference=#{difference}, effective_avg_cost=#{effective_avg_cost}, raw_value=#{raw_value}, value_difference_cents=#{value_difference_cents}"
+        )
 
         if value_difference_cents == 0 do
-          Logger.error("Value difference is 0, cannot create journal entry. difference=#{difference}, effective_avg_cost=#{effective_avg_cost}")
+          Logger.error(
+            "Value difference is 0, cannot create journal entry. difference=#{difference}, effective_avg_cost=#{effective_avg_cost}"
+          )
+
           Repo.rollback("Cannot create adjustment with zero value difference")
         end
 
         # Determine inventory account based on ingredient type
         inv_type = Inventory.inventory_type(ingredient.code)
-        inventory_account_code = case inv_type do
-          :ingredients -> "1200"  # Ingredients Inventory
-          :packing -> "1210"      # Packing Materials Inventory
-          :kitchen -> "1300"      # Kitchen Equipment Inventory
-          _ -> "1200"
-        end
+
+        inventory_account_code =
+          case inv_type do
+            # Ingredients Inventory
+            :ingredients -> "1200"
+            # Packing Materials Inventory
+            :packing -> "1210"
+            # Kitchen Equipment Inventory
+            :kitchen -> "1300"
+            _ -> "1200"
+          end
 
         inventory_account = Accounting.get_account_by_code!(inventory_account_code)
-        offset_account = Accounting.get_account_by_code!("6060")  # Inventory Waste
+        # Inventory Waste
+        offset_account = Accounting.get_account_by_code!("6060")
 
         entry_description =
           if description && String.trim(description) != "" do
@@ -154,41 +182,48 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
           Repo.rollback("Cannot create adjustment with zero value difference")
         end
 
-        lines = if difference > 0 do
-          # Actual is more than system - increase inventory
-          line1 = %{
-            account_id: inventory_account.id,
-            debit_cents: abs_value_diff,
-            credit_cents: 0,
-            description: "Inventory increase: #{difference} #{ingredient.code} @ #{location.code}"
-          }
-          line2 = %{
-            account_id: offset_account.id,
-            debit_cents: 0,
-            credit_cents: abs_value_diff,
-            description: "Reconciliation adjustment offset"
-          }
-          Logger.info("Line 1: #{inspect(line1)}")
-          Logger.info("Line 2: #{inspect(line2)}")
-          [line1, line2]
-        else
-          # Actual is less than system - decrease inventory
-          line1 = %{
-            account_id: inventory_account.id,
-            debit_cents: 0,
-            credit_cents: abs_value_diff,
-            description: "Inventory decrease: #{abs(difference)} #{ingredient.code} @ #{location.code}"
-          }
-          line2 = %{
-            account_id: offset_account.id,
-            debit_cents: abs_value_diff,
-            credit_cents: 0,
-            description: "Reconciliation adjustment offset"
-          }
-          Logger.info("Line 1: #{inspect(line1)}")
-          Logger.info("Line 2: #{inspect(line2)}")
-          [line1, line2]
-        end
+        lines =
+          if difference > 0 do
+            # Actual is more than system - increase inventory
+            line1 = %{
+              account_id: inventory_account.id,
+              debit_cents: abs_value_diff,
+              credit_cents: 0,
+              description:
+                "Inventory increase: #{difference} #{ingredient.code} @ #{location.code}"
+            }
+
+            line2 = %{
+              account_id: offset_account.id,
+              debit_cents: 0,
+              credit_cents: abs_value_diff,
+              description: "Reconciliation adjustment offset"
+            }
+
+            Logger.info("Line 1: #{inspect(line1)}")
+            Logger.info("Line 2: #{inspect(line2)}")
+            [line1, line2]
+          else
+            # Actual is less than system - decrease inventory
+            line1 = %{
+              account_id: inventory_account.id,
+              debit_cents: 0,
+              credit_cents: abs_value_diff,
+              description:
+                "Inventory decrease: #{abs(difference)} #{ingredient.code} @ #{location.code}"
+            }
+
+            line2 = %{
+              account_id: offset_account.id,
+              debit_cents: abs_value_diff,
+              credit_cents: 0,
+              description: "Reconciliation adjustment offset"
+            }
+
+            Logger.info("Line 1: #{inspect(line1)}")
+            Logger.info("Line 2: #{inspect(line2)}")
+            [line1, line2]
+          end
 
         Logger.info("Journal lines prepared: #{inspect(lines)}")
 
@@ -199,6 +234,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
           {:ok, journal_entry} ->
             Logger.info("Journal entry created successfully: #{journal_entry.id}")
             {:ok, %{item: updated_item, journal_entry: journal_entry}}
+
           {:error, changeset} ->
             Logger.error("Failed to create journal entry: #{inspect(changeset.errors)}")
             Repo.rollback(changeset)
@@ -208,6 +244,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reconciliation do
         {:ok, result} ->
           Logger.info("Transaction completed successfully")
           {:ok, result}
+
         {:error, reason} ->
           Logger.error("Transaction failed: #{inspect(reason)}")
           {:error, reason}

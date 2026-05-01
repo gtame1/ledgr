@@ -248,7 +248,9 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
     total_patients = length(per_patient)
     total_conversations = Enum.reduce(per_patient, 0, fn p, acc -> acc + p.count end)
-    avg = if total_patients > 0, do: Float.round(total_conversations / total_patients, 1), else: 0.0
+
+    avg =
+      if total_patients > 0, do: Float.round(total_conversations / total_patients, 1), else: 0.0
 
     # Build distribution buckets: 1, 2, 3, 4, 5+
     buckets =
@@ -272,8 +274,9 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     query =
       from d in Doctor,
         left_join: c in Consultation,
-          on: c.doctor_id == d.id and c.assigned_at >= ^to_naive_start(start_date)
-                                and c.assigned_at <= ^to_naive_end(end_date),
+        on:
+          c.doctor_id == d.id and c.assigned_at >= ^to_naive_start(start_date) and
+            c.assigned_at <= ^to_naive_end(end_date),
         group_by: d.id,
         select: %{
           id: d.id,
@@ -310,15 +313,17 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     per_doctor_query =
       from d in Doctor,
         join: c in Consultation,
-          on: c.doctor_id == d.id
-            and c.assigned_at >= ^to_naive_start(start_date)
-            and c.assigned_at <= ^to_naive_end(end_date),
+        on:
+          c.doctor_id == d.id and
+            c.assigned_at >= ^to_naive_start(start_date) and
+            c.assigned_at <= ^to_naive_end(end_date),
         group_by: d.id,
         select: %{
           id: d.id,
           name: d.name,
           total: count(c.id),
-          targeted: sum(fragment("CASE WHEN ? IS NOT NULL THEN 1 ELSE 0 END", c.targeted_doctor_id))
+          targeted:
+            sum(fragment("CASE WHEN ? IS NOT NULL THEN 1 ELSE 0 END", c.targeted_doctor_id))
         },
         order_by: [desc: count(c.id)]
 
@@ -352,7 +357,8 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       |> select([c], %{service: c.service, total_usd: sum(c.amount_usd), rows: count(c.id)})
       |> Repo.all()
 
-    by_service = Map.new(rows, fn r -> {r.service, %{total_usd: to_float(r.total_usd), rows: r.rows}} end)
+    by_service =
+      Map.new(rows, fn r -> {r.service, %{total_usd: to_float(r.total_usd), rows: r.rows}} end)
 
     total_usd = Enum.reduce(rows, 0.0, fn r, acc -> acc + to_float(r.total_usd) end)
 
@@ -360,24 +366,24 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     detail =
       ExternalCost
       |> where([c], c.date >= ^start_date and c.date <= ^end_date)
-      |> order_by([c], [asc: :service, asc: :date])
+      |> order_by([c], asc: :service, asc: :date)
       |> select([c], %{
-        id:               c.id,
-        service:          c.service,
-        date:             c.date,
-        model:            c.model,
-        amount_usd:       c.amount_usd,
-        units:            c.units,
-        unit_type:        c.unit_type,
-        posted_at:        c.posted_at,
+        id: c.id,
+        service: c.service,
+        date: c.date,
+        model: c.model,
+        amount_usd: c.amount_usd,
+        units: c.units,
+        unit_type: c.unit_type,
+        posted_at: c.posted_at,
         journal_entry_id: c.journal_entry_id
       })
       |> Repo.all()
 
     %{
       total_usd: Float.round(total_usd, 4),
-      openai:       Map.get(by_service, "openai",        %{total_usd: 0.0, rows: 0}),
-      whereby:      Map.get(by_service, "whereby",       %{total_usd: 0.0, rows: 0}),
+      openai: Map.get(by_service, "openai", %{total_usd: 0.0, rows: 0}),
+      whereby: Map.get(by_service, "whereby", %{total_usd: 0.0, rows: 0}),
       aws_app_runner: Map.get(by_service, "aws_app_runner", %{total_usd: 0.0, rows: 0}),
       detail: detail,
       last_synced: last_synced_at()
@@ -457,19 +463,19 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     per_doctor =
       from d in Doctor,
         join: c in Consultation,
-          on: c.doctor_id == d.id,
+        on: c.doctor_id == d.id,
         join: p in StripePayment,
-          on: p.consultation_id == c.id and p.status == "paid",
+        on: p.consultation_id == c.id and p.status == "paid",
         where: p.paid_at >= ^to_naive_start(start_date) and p.paid_at <= ^to_naive_end(end_date),
         group_by: [d.id, d.name, d.specialty],
         select: %{
-          id:                  d.id,
-          name:                d.name,
-          specialty:           d.specialty,
-          consultation_count:  count(c.id),
-          total_billed:        sum(p.amount),
-          doctor_share:        sum(p.amount) * 0.85,
-          stripe_fees:         sum(fragment("COALESCE(?, 0)", p.stripe_fee))
+          id: d.id,
+          name: d.name,
+          specialty: d.specialty,
+          consultation_count: count(c.id),
+          total_billed: sum(p.amount),
+          doctor_share: sum(p.amount) * 0.85,
+          stripe_fees: sum(fragment("COALESCE(?, 0)", p.stripe_fee))
         },
         order_by: [desc: sum(p.amount)]
 
@@ -479,25 +485,26 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       |> Enum.map(fn row ->
         total = to_float(row.total_billed)
         share = to_float(row.doctor_share)
-        fees  = to_float(row.stripe_fees)
+        fees = to_float(row.stripe_fees)
+
         Map.merge(row, %{
-          total_billed:  total,
-          doctor_share:  Float.round(share, 2),
-          stripe_fees:   Float.round(fees, 2),
-          net_to_hd:     Float.round(total * 0.15 - fees, 2)
+          total_billed: total,
+          doctor_share: Float.round(share, 2),
+          stripe_fees: Float.round(fees, 2),
+          net_to_hd: Float.round(total * 0.15 - fees, 2)
         })
       end)
 
-    total_billed = Enum.reduce(rows, 0.0, & &2 + &1.total_billed)
-    total_doctor_share = Enum.reduce(rows, 0.0, & &2 + &1.doctor_share)
-    total_stripe_fees  = Enum.reduce(rows, 0.0, & &2 + &1.stripe_fees)
+    total_billed = Enum.reduce(rows, 0.0, &(&2 + &1.total_billed))
+    total_doctor_share = Enum.reduce(rows, 0.0, &(&2 + &1.doctor_share))
+    total_stripe_fees = Enum.reduce(rows, 0.0, &(&2 + &1.stripe_fees))
 
     %{
       rows: rows,
-      total_billed:       Float.round(total_billed, 2),
+      total_billed: Float.round(total_billed, 2),
       total_doctor_share: Float.round(total_doctor_share, 2),
-      total_stripe_fees:  Float.round(total_stripe_fees, 2),
-      total_net_to_hd:    Float.round(total_billed * 0.15 - total_stripe_fees, 2)
+      total_stripe_fees: Float.round(total_stripe_fees, 2),
+      total_net_to_hd: Float.round(total_billed * 0.15 - total_stripe_fees, 2)
     }
   end
 
@@ -511,11 +518,17 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     |> Repo.preload([:patient, :doctor])
   end
 
-  @neon_cap_bytes 512 * 1024 * 1024  # 512 MB
+  # 512 MB
+  @neon_cap_bytes 512 * 1024 * 1024
 
   @doc "Returns current database size and % of Neon's 512 MB cap."
   def db_size do
-    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), "SELECT pg_database_size(current_database()) AS size_bytes")
+    result =
+      Ecto.Adapters.SQL.query!(
+        Repo.active_repo(),
+        "SELECT pg_database_size(current_database()) AS size_bytes"
+      )
+
     bytes = result.rows |> List.first() |> List.first() || 0
     mb = Float.round(bytes / (1024 * 1024), 1)
     percent = Float.round(bytes / @neon_cap_bytes * 100, 1)
@@ -548,6 +561,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   defp pct(_, 0), do: 0.0
   defp pct(_, nil), do: 0.0
+
   defp pct(numerator, denominator) when is_number(numerator) and is_number(denominator) do
     Float.round(numerator / denominator * 100, 1)
   end

@@ -1,9 +1,9 @@
 <section class="card">
   <div class="card-header">
-    <h2 class="card-title">Edit Supplier: <%= @supplier.name %></h2>
+    <h2 class="card-title">Edit Supplier: {@supplier.name}</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:supplier} method="put" :let={f}>
+  <.form :let={f} for={@changeset} action={@action} as={:supplier} method="put">
     <div class="form-section">
       <div class="form-section-title">Basic Info</div>
       <div class="form-grid">
@@ -15,15 +15,19 @@
 
           <div class="field">
             <label>Category</label>
-            <.input type="select" field={f[:category]} options={[
-              {"Select category...", ""},
-              {"Airline", "airline"},
-              {"Hotel", "hotel"},
-              {"Tour Operator", "tour_operator"},
-              {"Transfer", "transfer"},
-              {"Insurance", "insurance"},
-              {"Other", "other"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:category]}
+              options={[
+                {"Select category...", ""},
+                {"Airline", "airline"},
+                {"Hotel", "hotel"},
+                {"Tour Operator", "tour_operator"},
+                {"Transfer", "transfer"},
+                {"Insurance", "insurance"},
+                {"Other", "other"}
+              ]}
+            />
           </div>
 
           <div class="field">

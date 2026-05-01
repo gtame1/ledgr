@@ -2,31 +2,41 @@
   <header class="content-header">
     <div>
       <h1 class="page-title">Edit Space Rental</h1>
-      <p class="page-subtitle"><%= @rental.renter_name %> · <%= @rental.space.name %></p>
+      <p class="page-subtitle">{@rental.renter_name} · {@rental.space.name}</p>
     </div>
     <div class="actions">
-      <.link navigate={dp(@domain_path_prefix, "/space-rentals/#{@rental.id}")} class="btn">← Back</.link>
+      <.link navigate={dp(@domain_path_prefix, "/space-rentals/#{@rental.id}")} class="btn">
+        ← Back
+      </.link>
     </div>
   </header>
 
   <div class="content-body">
     <section class="card">
-      <.form for={@changeset} action={@action} as={:space_rental} method="put" :let={f}>
-
+      <.form :let={f} for={@changeset} action={@action} as={:space_rental} method="put">
         <%!-- Rental details --%>
         <div class="form-section-title">Rental</div>
         <div class="form-block" style="margin-bottom: 1.25rem;">
           <div class="field">
-            <.input type="select" field={f[:space_id]} label="Space *"
-              options={[{"Select space...", ""} | Enum.map(@spaces, &{&1.name, &1.id})]} />
+            <.input
+              type="select"
+              field={f[:space_id]}
+              label="Space *"
+              options={[{"Select space...", ""} | Enum.map(@spaces, &{&1.name, &1.id})]}
+            />
           </div>
           <div class="field">
-            <.input type="select" field={f[:status]} label="Status" options={[
-              {"Confirmed", "confirmed"},
-              {"Active", "active"},
-              {"Completed", "completed"},
-              {"Cancelled", "cancelled"}
-            ]} />
+            <.input
+              type="select"
+              field={f[:status]}
+              label="Status"
+              options={[
+                {"Confirmed", "confirmed"},
+                {"Active", "active"},
+                {"Completed", "completed"},
+                {"Cancelled", "cancelled"}
+              ]}
+            />
           </div>
         </div>
 
@@ -43,7 +53,12 @@
             <.input type="email" field={f[:renter_email]} label="Email" />
           </div>
           <div class="field">
-            <.input type="select" field={f[:customer_id]} label="Member (optional)" options={@customers} />
+            <.input
+              type="select"
+              field={f[:customer_id]}
+              label="Member (optional)"
+              options={@customers}
+            />
           </div>
         </div>
 
@@ -51,11 +66,25 @@
         <div class="form-section-title">Schedule</div>
         <div class="form-block" style="margin-bottom: 1.25rem;">
           <div class="field">
-            <.input type="datetime-local" field={f[:starts_at]} label="Start Date & Time" id="starts_at_input" />
+            <.input
+              type="datetime-local"
+              field={f[:starts_at]}
+              label="Start Date & Time"
+              id="starts_at_input"
+            />
           </div>
           <div class="field">
-            <.input type="datetime-local" field={f[:ends_at]} label="End Date & Time" id="ends_at_input" />
-            <span id="date-error" class="field-hint" style="color: var(--red, #dc2626); display: none;">
+            <.input
+              type="datetime-local"
+              field={f[:ends_at]}
+              label="End Date & Time"
+              id="ends_at_input"
+            />
+            <span
+              id="date-error"
+              class="field-hint"
+              style="color: var(--red, #dc2626); display: none;"
+            >
               End date must be after start date.
             </span>
           </div>
@@ -65,7 +94,14 @@
         <div class="form-section-title">Pricing</div>
         <div class="form-block" style="margin-bottom: 1.25rem;">
           <div class="field">
-            <.input type="number" field={f[:amount_cents]} label="Amount (MXN) *" step="0.01" min="0" id="amount_input" />
+            <.input
+              type="number"
+              field={f[:amount_cents]}
+              label="Amount (MXN) *"
+              step="0.01"
+              min="0"
+              id="amount_input"
+            />
           </div>
           <div class="field">
             <label>IVA (16%)</label>
@@ -81,22 +117,38 @@
             <span class="field-hint">Automatically 16% of amount — not editable.</span>
           </div>
           <div class="field full">
-            <label>Discount <small style="font-weight: normal; color: var(--text-muted);">(optional)</small></label>
+            <label>
+              Discount
+              <small style="font-weight: normal; color: var(--text-muted);">(optional)</small>
+            </label>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <select id="discount_type_select" class="form-input" style="width: auto; flex-shrink: 0;">
+              <select
+                id="discount_type_select"
+                class="form-input"
+                style="width: auto; flex-shrink: 0;"
+              >
                 <option value="fixed">$ Fixed</option>
                 <option value="percent">% Percent</option>
               </select>
               <input
                 id="discount_value_input"
-                type="number" step="0.01" min="0"
-                value={:erlang.float_to_binary((@rental.discount_cents || 0) / 100, [{:decimals, 2}])}
+                type="number"
+                step="0.01"
+                min="0"
+                value={
+                  :erlang.float_to_binary((@rental.discount_cents || 0) / 100, [{:decimals, 2}])
+                }
                 class="form-input"
                 style="max-width: 140px;"
               />
-              <input type="hidden" id="discount_cents_hidden"
-                     name="space_rental[discount_cents]"
-                     value={:erlang.float_to_binary((@rental.discount_cents || 0) / 100, [{:decimals, 2}])} />
+              <input
+                type="hidden"
+                id="discount_cents_hidden"
+                name="space_rental[discount_cents]"
+                value={
+                  :erlang.float_to_binary((@rental.discount_cents || 0) / 100, [{:decimals, 2}])
+                }
+              />
             </div>
             <span id="discount_preview" class="field-hint"></span>
           </div>
@@ -106,8 +158,12 @@
         <div class="form-section-title">Partner attribution</div>
         <div class="form-block" style="margin-bottom: 1.25rem;">
           <div class="field">
-            <.input type="select" field={f[:partner_split_id]} label="Partner Split (optional)"
-              options={[{"— unattributed —", ""} | @partner_split_options]} />
+            <.input
+              type="select"
+              field={f[:partner_split_id]}
+              label="Partner Split (optional)"
+              options={[{"— unattributed —", ""} | @partner_split_options]}
+            />
           </div>
         </div>
 
@@ -121,7 +177,9 @@
 
         <div class="form-actions">
           <button type="submit" id="submit-btn" class="btn primary">Update Space Rental</button>
-          <.link navigate={dp(@domain_path_prefix, "/space-rentals/#{@rental.id}")} class="btn">Cancel</.link>
+          <.link navigate={dp(@domain_path_prefix, "/space-rentals/#{@rental.id}")} class="btn">
+            Cancel
+          </.link>
         </div>
       </.form>
     </section>

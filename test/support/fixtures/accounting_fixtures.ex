@@ -12,18 +12,92 @@ defmodule Ledgr.Core.AccountingFixtures do
   def standard_accounts_fixture do
     accounts = [
       %{code: "1000", name: "Cash", type: "asset", normal_balance: "debit", is_cash: true},
-      %{code: "1100", name: "Accounts Receivable", type: "asset", normal_balance: "debit", is_cash: false},
-      %{code: "1200", name: "Ingredients Inventory", type: "asset", normal_balance: "debit", is_cash: false},
-      %{code: "1210", name: "Packing Inventory", type: "asset", normal_balance: "debit", is_cash: false},
-      %{code: "1220", name: "WIP Inventory", type: "asset", normal_balance: "debit", is_cash: false},
-      %{code: "2200", name: "Customer Deposits", type: "liability", normal_balance: "credit", is_cash: false},
-      %{code: "3000", name: "Owner's Equity", type: "equity", normal_balance: "credit", is_cash: false},
-      %{code: "3050", name: "Retained Earnings", type: "equity", normal_balance: "credit", is_cash: false},
-      %{code: "3100", name: "Owner's Drawings", type: "equity", normal_balance: "debit", is_cash: false},
-      %{code: "4000", name: "Sales Revenue", type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "4020", name: "Shipping Revenue", type: "revenue", normal_balance: "credit", is_cash: false},
-      %{code: "5000", name: "Ingredients COGS", type: "expense", normal_balance: "debit", is_cash: false, is_cogs: true},
-      %{code: "5010", name: "Packing COGS", type: "expense", normal_balance: "debit", is_cash: false, is_cogs: true}
+      %{
+        code: "1100",
+        name: "Accounts Receivable",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "1200",
+        name: "Ingredients Inventory",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "1210",
+        name: "Packing Inventory",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "1220",
+        name: "WIP Inventory",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "2200",
+        name: "Customer Deposits",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3000",
+        name: "Owner's Equity",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3050",
+        name: "Retained Earnings",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3100",
+        name: "Owner's Drawings",
+        type: "equity",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Sales Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4020",
+        name: "Shipping Revenue",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "5000",
+        name: "Ingredients COGS",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false,
+        is_cogs: true
+      },
+      %{
+        code: "5010",
+        name: "Packing COGS",
+        type: "expense",
+        normal_balance: "debit",
+        is_cash: false,
+        is_cogs: true
+      }
     ]
 
     created_accounts =
@@ -33,6 +107,7 @@ defmodule Ledgr.Core.AccountingFixtures do
           nil ->
             {:ok, account} = Accounting.create_account(attrs)
             {account.code, account}
+
           existing ->
             {existing.code, existing}
         end

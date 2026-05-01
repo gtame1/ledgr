@@ -18,27 +18,99 @@ defmodule Ledgr.Domains.CasaTame.NetWorthTest do
   defp casa_tame_accounts_fixture do
     accounts = [
       # USD cash (1000-1049)
-      %{code: "1000", name: "Cash USD",          type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1010", name: "Checking USD",      type: "asset",     normal_balance: "debit",  is_cash: true},
+      %{code: "1000", name: "Cash USD", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1010",
+        name: "Checking USD",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      },
       # USD investments (1050-1099)
-      %{code: "1050", name: "Brokerage USD",     type: "asset",     normal_balance: "debit",  is_cash: false},
+      %{
+        code: "1050",
+        name: "Brokerage USD",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
       # MXN cash (1100-1149)
-      %{code: "1100", name: "Cash MXN",          type: "asset",     normal_balance: "debit",  is_cash: true},
-      %{code: "1110", name: "Checking MXN",      type: "asset",     normal_balance: "debit",  is_cash: true},
+      %{code: "1100", name: "Cash MXN", type: "asset", normal_balance: "debit", is_cash: true},
+      %{
+        code: "1110",
+        name: "Checking MXN",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: true
+      },
       # MXN fixed assets (1150-1199)
-      %{code: "1150", name: "Property MXN",      type: "asset",     normal_balance: "debit",  is_cash: false},
+      %{
+        code: "1150",
+        name: "Property MXN",
+        type: "asset",
+        normal_balance: "debit",
+        is_cash: false
+      },
       # USD liabilities (2000-2099)
-      %{code: "2000", name: "Credit Card USD",   type: "liability", normal_balance: "credit", is_cash: false},
+      %{
+        code: "2000",
+        name: "Credit Card USD",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
       # MXN liabilities (2100-2199)
-      %{code: "2100", name: "Credit Card MXN",   type: "liability", normal_balance: "credit", is_cash: false},
+      %{
+        code: "2100",
+        name: "Credit Card MXN",
+        type: "liability",
+        normal_balance: "credit",
+        is_cash: false
+      },
       # Equity & revenue (needed for journal entries)
-      %{code: "3000", name: "Owner's Equity",    type: "equity",    normal_balance: "credit", is_cash: false},
-      %{code: "3050", name: "Retained Earnings", type: "equity",    normal_balance: "credit", is_cash: false},
-      %{code: "3100", name: "Owner's Drawings",  type: "equity",    normal_balance: "debit",  is_cash: false},
-      %{code: "4000", name: "Wages USD",         type: "revenue",   normal_balance: "credit", is_cash: false},
-      %{code: "4010", name: "Wages MXN",         type: "revenue",   normal_balance: "credit", is_cash: false},
-      %{code: "4050", name: "Other Income",      type: "revenue",   normal_balance: "credit", is_cash: false},
-      %{code: "6000", name: "Housing",           type: "expense",   normal_balance: "debit",  is_cash: false}
+      %{
+        code: "3000",
+        name: "Owner's Equity",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3050",
+        name: "Retained Earnings",
+        type: "equity",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "3100",
+        name: "Owner's Drawings",
+        type: "equity",
+        normal_balance: "debit",
+        is_cash: false
+      },
+      %{
+        code: "4000",
+        name: "Wages USD",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4010",
+        name: "Wages MXN",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{
+        code: "4050",
+        name: "Other Income",
+        type: "revenue",
+        normal_balance: "credit",
+        is_cash: false
+      },
+      %{code: "6000", name: "Housing", type: "expense", normal_balance: "debit", is_cash: false}
     ]
 
     Enum.each(accounts, fn attrs ->
@@ -65,12 +137,25 @@ defmodule Ledgr.Domains.CasaTame.NetWorthTest do
     equity = Accounting.get_account_by_code!("3000")
 
     Accounting.create_journal_entry_with_lines(
-      %{date: Ledgr.Domains.CasaTame.today(), entry_type: "reconciliation",
+      %{
+        date: Ledgr.Domains.CasaTame.today(),
+        entry_type: "reconciliation",
         reference: "seed-#{account_code}-#{System.unique_integer([:positive])}",
-        description: "Test seed"},
+        description: "Test seed"
+      },
       [
-        %{account_id: account.id, debit_cents: amount_cents, credit_cents: 0, description: "debit"},
-        %{account_id: equity.id, debit_cents: 0, credit_cents: amount_cents, description: "credit"}
+        %{
+          account_id: account.id,
+          debit_cents: amount_cents,
+          credit_cents: 0,
+          description: "debit"
+        },
+        %{
+          account_id: equity.id,
+          debit_cents: 0,
+          credit_cents: amount_cents,
+          description: "credit"
+        }
       ]
     )
   end
@@ -80,12 +165,25 @@ defmodule Ledgr.Domains.CasaTame.NetWorthTest do
     equity = Accounting.get_account_by_code!("3000")
 
     Accounting.create_journal_entry_with_lines(
-      %{date: Ledgr.Domains.CasaTame.today(), entry_type: "reconciliation",
+      %{
+        date: Ledgr.Domains.CasaTame.today(),
+        entry_type: "reconciliation",
         reference: "seed-#{account_code}-#{System.unique_integer([:positive])}",
-        description: "Test seed"},
+        description: "Test seed"
+      },
       [
-        %{account_id: equity.id, debit_cents: amount_cents, credit_cents: 0, description: "debit"},
-        %{account_id: account.id, debit_cents: 0, credit_cents: amount_cents, description: "credit"}
+        %{
+          account_id: equity.id,
+          debit_cents: amount_cents,
+          credit_cents: 0,
+          description: "debit"
+        },
+        %{
+          account_id: account.id,
+          debit_cents: 0,
+          credit_cents: amount_cents,
+          description: "credit"
+        }
       ]
     )
   end
@@ -200,8 +298,10 @@ defmodule Ledgr.Domains.CasaTame.NetWorthTest do
     end
 
     test "total_mxn converts USD net worth using exchange rate" do
-      credit_account("1000", 100_000)   # 100,000 USD cents = $1,000 USD
-      credit_account("1100", 200_000)   # 200,000 MXN cents = $2,000 MXN
+      # 100,000 USD cents = $1,000 USD
+      credit_account("1000", 100_000)
+      # 200,000 MXN cents = $2,000 MXN
+      credit_account("1100", 200_000)
 
       result = NetWorth.calculate()
       # net_usd = 100_000, net_mxn = 200_000, rate = 20.0

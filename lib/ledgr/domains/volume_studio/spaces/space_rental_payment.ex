@@ -7,10 +7,10 @@ defmodule Ledgr.Domains.VolumeStudio.Spaces.SpaceRentalPayment do
   schema "space_rental_payments" do
     belongs_to :space_rental, SpaceRental
 
-    field :amount_cents,  :integer
-    field :payment_date,  :date
-    field :method,        :string
-    field :note,          :string
+    field :amount_cents, :integer
+    field :payment_date, :date
+    field :method, :string
+    field :note, :string
 
     timestamps(type: :utc_datetime)
   end

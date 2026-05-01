@@ -169,10 +169,17 @@ defmodule Ledgr.Core.Budgets do
       |> Map.new()
 
     if budgets_by_account == %{} do
-      %{year: year, through_month: through_month, line_items: [],
-        total_budget_revenue_cents: 0, total_actual_revenue_cents: 0,
-        total_budget_expense_cents: 0, total_actual_expense_cents: 0,
-        net_budget_cents: 0, net_actual_cents: 0}
+      %{
+        year: year,
+        through_month: through_month,
+        line_items: [],
+        total_budget_revenue_cents: 0,
+        total_actual_revenue_cents: 0,
+        total_budget_expense_cents: 0,
+        total_actual_expense_cents: 0,
+        net_budget_cents: 0,
+        net_actual_cents: 0
+      }
     else
       account_ids = Map.keys(budgets_by_account)
       accounts = Repo.all(from(a in Account, where: a.id in ^account_ids))
@@ -217,8 +224,12 @@ defmodule Ledgr.Core.Budgets do
         total_actual_revenue_cents: Enum.reduce(rev_items, 0, &(&1.actual_cents + &2)),
         total_budget_expense_cents: Enum.reduce(exp_items, 0, &(&1.budget_cents + &2)),
         total_actual_expense_cents: Enum.reduce(exp_items, 0, &(&1.actual_cents + &2)),
-        net_budget_cents: Enum.reduce(rev_items, 0, &(&1.budget_cents + &2)) - Enum.reduce(exp_items, 0, &(&1.budget_cents + &2)),
-        net_actual_cents: Enum.reduce(rev_items, 0, &(&1.actual_cents + &2)) - Enum.reduce(exp_items, 0, &(&1.actual_cents + &2))
+        net_budget_cents:
+          Enum.reduce(rev_items, 0, &(&1.budget_cents + &2)) -
+            Enum.reduce(exp_items, 0, &(&1.budget_cents + &2)),
+        net_actual_cents:
+          Enum.reduce(rev_items, 0, &(&1.actual_cents + &2)) -
+            Enum.reduce(exp_items, 0, &(&1.actual_cents + &2))
       }
     end
   end

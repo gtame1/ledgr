@@ -122,21 +122,35 @@ defmodule Ledgr.Domains.VolumeStudio do
     prefix = path_prefix()
 
     [
-      %{group: "Main Menu", items: [
-        %{label: "Dashboard",           path: prefix,                                  icon: :dashboard},
-        %{label: "Subscriptions",       path: "#{prefix}/subscriptions?status=active", icon: :subscriptions},
-        %{label: "Consultations",       path: "#{prefix}/consultations",               icon: :documents},
-        %{label: "Rentals",             path: "#{prefix}/space-rentals",               icon: :receipt},
-        %{label: "Expenses",            path: "#{prefix}/expenses",                    icon: :expenses},
-        %{label: "Partner Investments", path: "#{prefix}/partner-investments",         icon: :reports},
-        %{label: "Partner Breakdown",   path: "#{prefix}/partner-splits/breakdown",    icon: :reports}
-      ]},
-      %{group: "Catalog", items: [
-        %{label: "Members",            path: "#{prefix}/customers",          icon: :customers},
-        %{label: "Subscription Plans", path: "#{prefix}/subscription-plans", icon: :services},
-        %{label: "Spaces",             path: "#{prefix}/spaces",             icon: :services},
-        %{label: "Partner Splits",     path: "#{prefix}/partner-splits",     icon: :users}
-      ]}
+      %{
+        group: "Main Menu",
+        items: [
+          %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{
+            label: "Subscriptions",
+            path: "#{prefix}/subscriptions?status=active",
+            icon: :subscriptions
+          },
+          %{label: "Consultations", path: "#{prefix}/consultations", icon: :documents},
+          %{label: "Rentals", path: "#{prefix}/space-rentals", icon: :receipt},
+          %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses},
+          %{label: "Partner Investments", path: "#{prefix}/partner-investments", icon: :reports},
+          %{
+            label: "Partner Breakdown",
+            path: "#{prefix}/partner-splits/breakdown",
+            icon: :reports
+          }
+        ]
+      },
+      %{
+        group: "Catalog",
+        items: [
+          %{label: "Members", path: "#{prefix}/customers", icon: :customers},
+          %{label: "Subscription Plans", path: "#{prefix}/subscription-plans", icon: :services},
+          %{label: "Spaces", path: "#{prefix}/spaces", icon: :services},
+          %{label: "Partner Splits", path: "#{prefix}/partner-splits", icon: :users}
+        ]
+      }
     ]
   end
 
@@ -208,7 +222,7 @@ defmodule Ledgr.Domains.VolumeStudio do
 
     pnl = Ledgr.Core.Accounting.profit_and_loss(start_date, end_date)
 
-    today        = LedgrWeb.Helpers.DomainHelpers.today_mx()
+    today = LedgrWeb.Helpers.DomainHelpers.today_mx()
     next_30_days = Date.add(today, 30)
 
     active_subs = Subscriptions.list_subscriptions(status: "active")

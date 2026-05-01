@@ -3,7 +3,7 @@
     <div>
       <h2 class="card-title">Transaction Details</h2>
       <p class="card-subtitle">
-        Journal entry #<%= @entry.id %>
+        Journal entry #{@entry.id}
       </p>
     </div>
     <.link navigate={dp(@domain_path_prefix, "/transactions")} class="btn">
@@ -12,11 +12,11 @@
   </div>
 
   <ul class="nice-list">
-    <li><strong>Date:</strong> <%= @entry.date %></li>
-    <li><strong>Type:</strong> <%= @entry.entry_type %></li>
-    <li><strong>Description:</strong> <%= @entry.description %></li>
-    <li><strong>Reference:</strong> <%= @entry.reference || "-" %></li>
-    <li><strong>Total:</strong> <%= @entry.total_amount_formatted %></li>
+    <li><strong>Date:</strong> {@entry.date}</li>
+    <li><strong>Type:</strong> {@entry.entry_type}</li>
+    <li><strong>Description:</strong> {@entry.description}</li>
+    <li><strong>Reference:</strong> {@entry.reference || "-"}</li>
+    <li><strong>Total:</strong> {@entry.total_amount_formatted}</li>
   </ul>
 
   <div class="table-wrapper" style="margin-top:1rem;">
@@ -32,13 +32,13 @@
       <tbody>
         <%= for line <- @entry.journal_lines do %>
           <tr>
-            <td><%= line.account.name %></td>
-            <td><%= line.description %></td>
+            <td>{line.account.name}</td>
+            <td>{line.description}</td>
             <td class="numeric">
-              <%= if line.debit_cents > 0, do: Ledgr.Core.Accounting.format_cents(line.debit_cents) %>
+              {if line.debit_cents > 0, do: Ledgr.Core.Accounting.format_cents(line.debit_cents)}
             </td>
             <td class="numeric">
-              <%= if line.credit_cents > 0, do: Ledgr.Core.Accounting.format_cents(line.credit_cents) %>
+              {if line.credit_cents > 0, do: Ledgr.Core.Accounting.format_cents(line.credit_cents)}
             </td>
           </tr>
         <% end %>

@@ -43,17 +43,23 @@
             <% else %>
               <%= for t <- @transfers do %>
                 <tr>
-                  <td><%= t.date %></td>
-                  <td><%= "#{t.from_account.code} – #{t.from_account.name}" %></td>
-                  <td><%= "#{t.to_account.code} – #{t.to_account.name}" %></td>
-                  <td class="numeric"><%= format_currency(t.amount_cents) %></td>
-                  <td><%= t.note %></td>
+                  <td>{t.date}</td>
+                  <td>{"#{t.from_account.code} – #{t.from_account.name}"}</td>
+                  <td>{"#{t.to_account.code} – #{t.to_account.name}"}</td>
+                  <td class="numeric">{format_currency(t.amount_cents)}</td>
+                  <td>{t.note}</td>
                   <td>
                     <div style="display: flex; gap: 0.5rem;">
-                      <.link navigate={dp(@domain_path_prefix, "/transfers/#{t.id}")} class="btn btn-sm">
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/transfers/#{t.id}")}
+                        class="btn btn-sm"
+                      >
                         View
                       </.link>
-                      <.link navigate={dp(@domain_path_prefix, "/transfers/#{t.id}/edit")} class="btn btn-sm">
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/transfers/#{t.id}/edit")}
+                        class="btn btn-sm"
+                      >
                         Edit
                       </.link>
                       <.link
@@ -93,17 +99,23 @@
             <tbody>
               <%= for je <- @fx_transfers do %>
                 <tr>
-                  <td><%= je.date %></td>
-                  <td><%= je.description %></td>
+                  <td>{je.date}</td>
+                  <td>{je.description}</td>
                   <td class="numeric">
                     <%= for line <- je.journal_lines do %>
                       <div style="font-size: 0.85rem;">
                         <%= if line.debit_cents > 0 do %>
-                          <span style="color: #059669;">+ <%= format_currency(line.debit_cents) %></span>
-                          <span style="color: var(--text-muted);"> to <%= line.account.name %></span>
+                          <span style="color: #059669;">
+                            + {format_currency(line.debit_cents)}
+                          </span>
+                          <span style="color: var(--text-muted);"> to   {line.account.name}</span>
                         <% else %>
-                          <span style="color: #dc2626;">- <%= format_currency(line.credit_cents) %></span>
-                          <span style="color: var(--text-muted);"> from <%= line.account.name %></span>
+                          <span style="color: #dc2626;">
+                            - {format_currency(line.credit_cents)}
+                          </span>
+                          <span style="color: var(--text-muted);">
+                            from {line.account.name}
+                          </span>
                         <% end %>
                       </div>
                     <% end %>

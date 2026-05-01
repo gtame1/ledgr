@@ -39,7 +39,10 @@ defmodule LedgrWeb.Storefront.StripeWebhookController do
             send_resp(conn, 200, "ok")
 
           {:error, reason} ->
-            Logger.error("Stripe webhook: failed to record shipping payment for order #{order_id}: #{inspect(reason)}")
+            Logger.error(
+              "Stripe webhook: failed to record shipping payment for order #{order_id}: #{inspect(reason)}"
+            )
+
             send_resp(conn, 500, "error")
         end
 
@@ -49,11 +52,17 @@ defmodule LedgrWeb.Storefront.StripeWebhookController do
 
         case Orders.create_payments_for_existing_orders(order_ids, session.id) do
           {:ok, _} ->
-            Logger.info("Stripe webhook: recorded Stripe payments for existing orders #{order_ids_str}")
+            Logger.info(
+              "Stripe webhook: recorded Stripe payments for existing orders #{order_ids_str}"
+            )
+
             send_resp(conn, 200, "ok")
 
           {:error, reason} ->
-            Logger.error("Stripe webhook: failed to record payments for orders #{order_ids_str}: #{inspect(reason)}")
+            Logger.error(
+              "Stripe webhook: failed to record payments for orders #{order_ids_str}: #{inspect(reason)}"
+            )
+
             send_resp(conn, 500, "error")
         end
 
@@ -66,24 +75,37 @@ defmodule LedgrWeb.Storefront.StripeWebhookController do
             send_resp(conn, 200, "ok")
 
           PendingCheckouts.already_processed?(pending) ->
-            Logger.info("Stripe webhook: PendingCheckout #{pending_checkout_id} already processed, skipping")
+            Logger.info(
+              "Stripe webhook: PendingCheckout #{pending_checkout_id} already processed, skipping"
+            )
+
             send_resp(conn, 200, "ok")
 
           true ->
-            case Orders.create_orders_from_pending_checkout(pending, session.id, session.amount_total) do
+            case Orders.create_orders_from_pending_checkout(
+                   pending,
+                   session.id,
+                   session.amount_total
+                 ) do
               {:ok, _orders} ->
                 {:ok, _} = PendingCheckouts.mark_processed(pending)
                 Logger.info("Stripe webhook: created orders for session #{session.id}")
                 send_resp(conn, 200, "ok")
 
               {:error, reason} ->
-                Logger.error("Stripe webhook: failed to create orders for session #{session.id}: #{inspect(reason)}")
+                Logger.error(
+                  "Stripe webhook: failed to create orders for session #{session.id}: #{inspect(reason)}"
+                )
+
                 send_resp(conn, 500, "error")
             end
         end
 
       true ->
-        Logger.warning("Stripe webhook: checkout.session.completed missing known metadata for session #{session.id}")
+        Logger.warning(
+          "Stripe webhook: checkout.session.completed missing known metadata for session #{session.id}"
+        )
+
         send_resp(conn, 200, "ok")
     end
   end

@@ -49,7 +49,12 @@ defmodule LedgrWeb.CustomerController do
   def edit(conn, %{"id" => id}) do
     customer = Customers.get_customer!(id)
     changeset = Customers.change_customer(customer)
-    render(conn, :edit, customer: customer, changeset: changeset, action: dp(conn, "/customers/#{customer.id}"))
+
+    render(conn, :edit,
+      customer: customer,
+      changeset: changeset,
+      action: dp(conn, "/customers/#{customer.id}")
+    )
   end
 
   def update(conn, %{"id" => id, "customer" => customer_params}) do
@@ -63,7 +68,12 @@ defmodule LedgrWeb.CustomerController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         changeset = Map.put(changeset, :action, :update)
-        render(conn, :edit, customer: customer, changeset: changeset, action: dp(conn, "/customers/#{customer.id}"))
+
+        render(conn, :edit,
+          customer: customer,
+          changeset: changeset,
+          action: dp(conn, "/customers/#{customer.id}")
+        )
     end
   end
 

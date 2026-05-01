@@ -17,7 +17,10 @@ defmodule LedgrWeb.Domains.Viaxe.ServiceController do
 
   def create(conn, %{"service" => service_params}) do
     service_params =
-      MoneyHelper.convert_params_pesos_to_cents(service_params, [:default_cost_cents, :default_price_cents])
+      MoneyHelper.convert_params_pesos_to_cents(service_params, [
+        :default_cost_cents,
+        :default_price_cents
+      ])
 
     case Services.create_service(service_params) do
       {:ok, _service} ->
@@ -39,14 +42,22 @@ defmodule LedgrWeb.Domains.Viaxe.ServiceController do
     }
 
     changeset = Services.change_service(service, attrs)
-    render(conn, :edit, service: service, changeset: changeset, action: dp(conn, "/services/#{id}"))
+
+    render(conn, :edit,
+      service: service,
+      changeset: changeset,
+      action: dp(conn, "/services/#{id}")
+    )
   end
 
   def update(conn, %{"id" => id, "service" => service_params}) do
     service = Services.get_service!(id)
 
     service_params =
-      MoneyHelper.convert_params_pesos_to_cents(service_params, [:default_cost_cents, :default_price_cents])
+      MoneyHelper.convert_params_pesos_to_cents(service_params, [
+        :default_cost_cents,
+        :default_price_cents
+      ])
 
     case Services.update_service(service, service_params) do
       {:ok, _service} ->
@@ -55,7 +66,11 @@ defmodule LedgrWeb.Domains.Viaxe.ServiceController do
         |> redirect(to: dp(conn, "/services"))
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :edit, service: service, changeset: changeset, action: dp(conn, "/services/#{id}"))
+        render(conn, :edit,
+          service: service,
+          changeset: changeset,
+          action: dp(conn, "/services/#{id}")
+        )
     end
   end
 

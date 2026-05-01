@@ -62,9 +62,10 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
 
     completed_by_status =
       from(o in Order,
-        where: o.status in ["delivered", "canceled"] and
-          fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) >= ^start_date and
-          fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) <= ^end_date,
+        where:
+          o.status in ["delivered", "canceled"] and
+            fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) >= ^start_date and
+            fragment("COALESCE(?, ?)", o.actual_delivery_date, o.delivery_date) <= ^end_date,
         group_by: o.status,
         select: {o.status, count(o.id)}
       )
@@ -104,7 +105,15 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
           product_name: p.name,
           order_count: count(o.id),
           unit_count: sum(fragment("COALESCE(?, 1)", o.quantity)),
-          revenue_cents: fragment("SUM(? * COALESCE(?, 1)) + SUM(CASE WHEN ? THEN COALESCE(?, ?) ELSE 0 END)", v.price_cents, o.quantity, o.customer_paid_shipping, o.shipping_fee_cents, ^fallback_shipping_fee)
+          revenue_cents:
+            fragment(
+              "SUM(? * COALESCE(?, 1)) + SUM(CASE WHEN ? THEN COALESCE(?, ?) ELSE 0 END)",
+              v.price_cents,
+              o.quantity,
+              o.customer_paid_shipping,
+              o.shipping_fee_cents,
+              ^fallback_shipping_fee
+            )
         },
         order_by: [desc: count(o.id)]
       )
@@ -157,6 +166,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
           case reference_patterns do
             [] ->
               base_query
+
             patterns ->
               base_query
               |> where([je], je.reference in ^patterns)
@@ -173,6 +183,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
               [_, id_str] -> String.to_integer(id_str)
               _ -> nil
             end
+
           {order_id, cogs || 0}
         end)
       end
@@ -237,8 +248,9 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
 
   defp inventory_position_summary do
     # Get all stock items with quantity > 0
-    stock_items = Inventory.list_stock_items()
-    |> Enum.filter(fn stock -> stock.quantity_on_hand > 0 end)
+    stock_items =
+      Inventory.list_stock_items()
+      |> Enum.filter(fn stock -> stock.quantity_on_hand > 0 end)
 
     # Batch-load all inventory values (4 queries instead of 4 × N)
     values_map = Inventory.batch_inventory_values()
@@ -253,9 +265,11 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
     # Count items by type — use batch map for values, no extra DB calls
     counts_by_type =
       Enum.map(stock_by_type, fn {type, items} ->
-        total_value = Enum.reduce(items, 0, fn stock, acc ->
-          acc + Map.get(values_map, {stock.ingredient_id, stock.location_id}, 0)
-        end)
+        total_value =
+          Enum.reduce(items, 0, fn stock, acc ->
+            acc + Map.get(values_map, {stock.ingredient_id, stock.location_id}, 0)
+          end)
+
         {type, %{count: length(items), total_value_cents: total_value}}
       end)
       |> Enum.into(%{})
@@ -310,7 +324,12 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
       Enum.reduce(orders, {0, 0}, fn order, {sales_acc, ship_acc} ->
         quantity = order.quantity || 1
         base = (order.variant.price_cents || 0) * quantity
-        ship = if order.customer_paid_shipping, do: order.shipping_fee_cents || OrderAccounting.shipping_fee_cents(), else: 0
+
+        ship =
+          if order.customer_paid_shipping,
+            do: order.shipping_fee_cents || OrderAccounting.shipping_fee_cents(),
+            else: 0
+
         {sales_acc + base, ship_acc + ship}
       end)
 
@@ -342,6 +361,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
               [_, id_str] -> String.to_integer(id_str)
               _ -> nil
             end
+
           {order_id, cogs || 0}
         end)
       end
@@ -374,6 +394,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
               [_, id_str] -> String.to_integer(id_str)
               _ -> nil
             end
+
           {order_id, discount || 0}
         end)
       end
@@ -389,6 +410,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
 
     # Calculate gross margin
     gross_margin_cents = revenue_cents - cogs_cents
+
     gross_margin_percent =
       if revenue_cents > 0 do
         Float.round(gross_margin_cents / revenue_cents * 100, 2)
@@ -418,17 +440,28 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
     units_sold = Enum.reduce(orders, 0, fn order, acc -> acc + (order.quantity || 1) end)
 
     # Calculate per-unit metrics
-    gross_sales_per_unit_cents = if units_sold > 0, do: div(gross_sales_cents, units_sold), else: 0
-    shipping_per_unit_cents = if units_sold > 0, do: div(shipping_revenue_cents, units_sold), else: 0
-    discounts_per_unit_cents = if units_sold > 0, do: div(total_discounts_cents, units_sold), else: 0
+    gross_sales_per_unit_cents =
+      if units_sold > 0, do: div(gross_sales_cents, units_sold), else: 0
+
+    shipping_per_unit_cents =
+      if units_sold > 0, do: div(shipping_revenue_cents, units_sold), else: 0
+
+    discounts_per_unit_cents =
+      if units_sold > 0, do: div(total_discounts_cents, units_sold), else: 0
+
     revenue_per_unit_cents = if units_sold > 0, do: div(revenue_cents, units_sold), else: 0
     cogs_per_unit_cents = if units_sold > 0, do: div(cogs_cents, units_sold), else: 0
-    gross_margin_per_unit_cents = if units_sold > 0, do: div(gross_margin_cents, units_sold), else: 0
-    expenses_per_unit_cents = if units_sold > 0, do: div(total_expenses_cents, units_sold), else: 0
+
+    gross_margin_per_unit_cents =
+      if units_sold > 0, do: div(gross_margin_cents, units_sold), else: 0
+
+    expenses_per_unit_cents =
+      if units_sold > 0, do: div(total_expenses_cents, units_sold), else: 0
 
     # Net profit (revenue - COGS - expenses)
     net_profit_cents = gross_margin_cents - total_expenses_cents
     net_profit_per_unit_cents = if units_sold > 0, do: div(net_profit_cents, units_sold), else: 0
+
     net_margin_percent =
       if revenue_cents > 0 do
         Float.round(net_profit_cents / revenue_cents * 100, 2)
@@ -443,19 +476,30 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
       |> Enum.map(fn {_variant_id, variant_orders} ->
         variant = hd(variant_orders).variant
         v_units = Enum.reduce(variant_orders, 0, fn o, acc -> acc + (o.quantity || 1) end)
+
         v_revenue =
           Enum.reduce(variant_orders, 0, fn o, acc ->
             qty = o.quantity || 1
             base = (o.variant.price_cents || 0) * qty
-            shipping = if o.customer_paid_shipping, do: o.shipping_fee_cents || OrderAccounting.shipping_fee_cents(), else: 0
+
+            shipping =
+              if o.customer_paid_shipping,
+                do: o.shipping_fee_cents || OrderAccounting.shipping_fee_cents(),
+                else: 0
+
             acc + base + shipping
           end)
+
         v_cogs = Enum.reduce(variant_orders, 0, fn o, acc -> acc + Map.get(cogs_map, o.id, 0) end)
         # Note: only orders in cogs_map contribute to v_cogs, consistent with top-level COGS.
-        v_discount = Enum.reduce(variant_orders, 0, fn o, acc -> acc + Map.get(discounts_map, o.id, 0) end)
+        v_discount =
+          Enum.reduce(variant_orders, 0, fn o, acc -> acc + Map.get(discounts_map, o.id, 0) end)
+
         v_revenue = v_revenue - v_discount
         v_gross_margin = v_revenue - v_cogs
-        v_gross_margin_percent = if v_revenue > 0, do: Float.round(v_gross_margin / v_revenue * 100, 2), else: 0.0
+
+        v_gross_margin_percent =
+          if v_revenue > 0, do: Float.round(v_gross_margin / v_revenue * 100, 2), else: 0.0
 
         %{
           variant_name: variant.name,
@@ -504,6 +548,7 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
             total = round(raw * scale)
             percent = if cogs_cents > 0, do: Float.round(total / cogs_cents * 100, 2), else: 0.0
             cost_per_unit = if units_sold > 0, do: div(total, units_sold), else: 0
+
             row
             |> Map.put(:total_cost_cents, total)
             |> Map.put(:percent_of_cogs, percent)
@@ -650,7 +695,8 @@ defmodule Ledgr.Domains.MrMunchMe.Reporting do
 
     # Aggregate by bucket
     buckets =
-      Enum.reduce(line_items, %{current: 0, days_31_60: 0, days_61_90: 0, over_90: 0}, fn item, acc ->
+      Enum.reduce(line_items, %{current: 0, days_31_60: 0, days_61_90: 0, over_90: 0}, fn item,
+                                                                                          acc ->
         case item.bucket do
           "current" -> %{acc | current: acc.current + item.outstanding_cents}
           "31-60" -> %{acc | days_31_60: acc.days_31_60 + item.outstanding_cents}

@@ -1,56 +1,71 @@
-<%
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
-%>
+<% fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
+
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end %>
 
 <section class="card ct-detail-card">
   <div class="ct-detail-header">
     <h2 class="card-title">Income Details</h2>
     <div class="ct-detail-actions">
-      <.link navigate={dp(@domain_path_prefix, "/income")} class="ct-detail-action-back">Back</.link>
-      <.link navigate={dp(@domain_path_prefix, "/income/#{@entry.id}/edit")} class="btn primary ct-detail-action-edit">Edit</.link>
-      <.link href={dp(@domain_path_prefix, "/income/#{@entry.id}")} method="delete" data-confirm="Delete this income entry?" class="btn ct-btn-danger ct-detail-action-delete">Delete</.link>
+      <.link navigate={dp(@domain_path_prefix, "/income")} class="ct-detail-action-back">
+        Back
+      </.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/income/#{@entry.id}/edit")}
+        class="btn primary ct-detail-action-edit"
+      >
+        Edit
+      </.link>
+      <.link
+        href={dp(@domain_path_prefix, "/income/#{@entry.id}")}
+        method="delete"
+        data-confirm="Delete this income entry?"
+        class="btn ct-btn-danger ct-detail-action-delete"
+      >
+        Delete
+      </.link>
     </div>
   </div>
 
   <dl class="ct-detail-list">
     <div class="ct-detail-row">
       <dt>Date</dt>
-      <dd><%= @entry.date %></dd>
+      <dd>{@entry.date}</dd>
     </div>
     <div class="ct-detail-row">
       <dt>Description</dt>
-      <dd><%= @entry.description %></dd>
+      <dd>{@entry.description}</dd>
     </div>
     <div class="ct-detail-row">
       <dt>Amount</dt>
       <dd>
         <span class={"ct-badge #{if @entry.currency == "USD", do: "ct-badge--usd", else: "ct-badge--mxn"}"}>
-          <%= @entry.currency %>
+          {@entry.currency}
         </span>
-        <strong><%= fmt.(@entry.amount_cents) %></strong>
+        <strong>{fmt.(@entry.amount_cents)}</strong>
       </dd>
     </div>
     <%= if @entry.income_category do %>
       <div class="ct-detail-row">
         <dt>Category</dt>
-        <dd><%= @entry.income_category.name %></dd>
+        <dd>{@entry.income_category.name}</dd>
       </div>
     <% end %>
     <div class="ct-detail-row">
       <dt>Deposit to</dt>
-      <dd><%= @entry.deposit_account && @entry.deposit_account.name %></dd>
+      <dd>{@entry.deposit_account && @entry.deposit_account.name}</dd>
     </div>
     <%= if @entry.source do %>
       <div class="ct-detail-row">
         <dt>Source</dt>
-        <dd><%= @entry.source %></dd>
+        <dd>{@entry.source}</dd>
       </div>
     <% end %>
   </dl>

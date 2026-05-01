@@ -144,8 +144,10 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations do
 
   defp maybe_search(query, nil), do: query
   defp maybe_search(query, ""), do: query
+
   defp maybe_search(query, search) do
     term = "%#{search}%"
+
     from(c in query,
       join: p in assoc(c, :patient),
       where: ilike(p.full_name, ^term) or ilike(p.display_name, ^term) or ilike(p.phone, ^term)
@@ -154,7 +156,13 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations do
 
   defp maybe_filter_date_range(query, nil, _), do: query
   defp maybe_filter_date_range(query, _, nil), do: query
+
   defp maybe_filter_date_range(query, start_date, end_date) do
-    where(query, [c], fragment("?::date", c.assigned_at) >= ^start_date and fragment("?::date", c.assigned_at) <= ^end_date)
+    where(
+      query,
+      [c],
+      fragment("?::date", c.assigned_at) >= ^start_date and
+        fragment("?::date", c.assigned_at) <= ^end_date
+    )
   end
 end

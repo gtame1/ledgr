@@ -20,6 +20,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.DashboardController do
     case Float.parse(rate_str) do
       {rate, _} when rate > 0 ->
         Settings.set_usd_mxn_rate(rate)
+
         conn
         |> put_flash(:info, "FX rate updated to #{rate} MXN/USD.")
         |> redirect(to: dp(conn, "/"))
@@ -37,16 +38,16 @@ defmodule LedgrWeb.Domains.HelloDoctor.DashboardController do
     messages =
       Enum.flat_map(results, fn {service, result} ->
         case result do
-          {:ok, :not_supported}        -> []
-          {:ok, %{rows_upserted: n}}   -> ["#{service}: #{n} rows synced"]
-          {:error, :not_configured}    -> ["#{service}: not configured (skipped)"]
-          {:error, reason}             -> ["#{service}: error — #{inspect(reason)}"]
+          {:ok, :not_supported} -> []
+          {:ok, %{rows_upserted: n}} -> ["#{service}: #{n} rows synced"]
+          {:error, :not_configured} -> ["#{service}: not configured (skipped)"]
+          {:error, reason} -> ["#{service}: error — #{inspect(reason)}"]
         end
       end)
 
     flash_msg =
       if Enum.empty?(messages),
-        do:   "Nothing to sync.",
+        do: "Nothing to sync.",
         else: Enum.join(messages, " | ")
 
     conn

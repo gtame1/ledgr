@@ -4,33 +4,49 @@
   <div class="mm-topbar">
     <h1 class="mm-topbar-title">Inventory</h1>
     <div style="display: flex; gap: 0.25rem;">
-      <.link navigate={dp(@domain_path_prefix, "/inventory/requirements")} class="mm-topbar-action">
+      <.link
+        navigate={dp(@domain_path_prefix, "/inventory/requirements")}
+        class="mm-topbar-action"
+      >
         <span class="material-symbols-outlined">checklist</span>
       </.link>
     </div>
   </div>
 
-  <%
-    type_labels = %{ingredients: "Ingredients", packing: "Packing", kitchen: "Kitchen", other: "Other"}
-    type_icons = %{ingredients: "restaurant", packing: "inventory_2", kitchen: "skillet", other: "more_horiz"}
-    type_order = [:ingredients, :packing, :kitchen, :other]
-    value_by_type =
-      Enum.map(type_order, fn type_key ->
-        items = Map.get(@stock_by_type, type_key, [])
-        value = Enum.reduce(items, 0, fn s, acc -> acc + (s.total_value_cents || 0) end)
-        {type_key, Map.get(type_labels, type_key, "Other"), items, value}
-      end)
-      |> Enum.filter(fn {_, _, items, _} -> items != [] end)
-  %>
+  <% type_labels = %{
+    ingredients: "Ingredients",
+    packing: "Packing",
+    kitchen: "Kitchen",
+    other: "Other"
+  }
+
+  type_icons = %{
+    ingredients: "restaurant",
+    packing: "inventory_2",
+    kitchen: "skillet",
+    other: "more_horiz"
+  }
+
+  type_order = [:ingredients, :packing, :kitchen, :other]
+
+  value_by_type =
+    Enum.map(type_order, fn type_key ->
+      items = Map.get(@stock_by_type, type_key, [])
+      value = Enum.reduce(items, 0, fn s, acc -> acc + (s.total_value_cents || 0) end)
+      {type_key, Map.get(type_labels, type_key, "Other"), items, value}
+    end)
+    |> Enum.filter(fn {_, _, items, _} -> items != [] end) %>
 
   <%!-- Hero Inventory Value Card --%>
   <div class="mm-hero-card" style="margin-bottom: 1rem;">
     <div class="mm-hero-label">Total Inventory Value</div>
-    <div class="mm-hero-value"><%= format_currency(@total_value_cents) %></div>
+    <div class="mm-hero-value">{format_currency(@total_value_cents)}</div>
     <div class="mm-hero-sublabel">
-      <%= Enum.count(@stock_items) %> items tracked
+      {Enum.count(@stock_items)} items tracked
       <%= if value_by_type != [] do %>
-        · <%= Enum.map_join(value_by_type, " · ", fn {_, label, items, _} -> "#{label} #{length(items)}" end) %>
+        · {Enum.map_join(value_by_type, " · ", fn {_, label, items, _} ->
+          "#{label} #{length(items)}"
+        end)}
       <% end %>
     </div>
   </div>
@@ -40,236 +56,407 @@
     <%= for {type_key, label, items, value} <- value_by_type do %>
       <div class="mm-stat-card" style="min-width: 130px; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;">
-          <span class="material-symbols-outlined" style="font-size: 1rem; color: #D4956A;"><%= Map.get(type_icons, type_key, "more_horiz") %></span>
-          <div class="mm-stat-label" style="margin-bottom: 0;"><%= label %></div>
+          <span class="material-symbols-outlined" style="font-size: 1rem; color: #D4956A;">
+            {Map.get(type_icons, type_key, "more_horiz")}
+          </span>
+          <div class="mm-stat-label" style="margin-bottom: 0;">{label}</div>
         </div>
-        <div class="mm-stat-value" style="font-size: 1.1rem;"><%= length(items) %></div>
-        <div style="font-size: 0.65rem; color: #9C8578;"><%= format_currency(value) %></div>
+        <div class="mm-stat-value" style="font-size: 1.1rem;">{length(items)}</div>
+        <div style="font-size: 0.65rem; color: #9C8578;">{format_currency(value)}</div>
       </div>
     <% end %>
   </div>
 
   <%!-- Quick Actions --%>
   <div class="mm-quick-actions" style="margin-bottom: 1.25rem;">
-    <.link navigate={dp(@domain_path_prefix, "/inventory/purchases/new")} class="mm-quick-pill mm-quick-pill--primary">
-      <span class="material-symbols-outlined" style="font-size: 1rem;">add_shopping_cart</span> New Purchase
+    <.link
+      navigate={dp(@domain_path_prefix, "/inventory/purchases/new")}
+      class="mm-quick-pill mm-quick-pill--primary"
+    >
+      <span class="material-symbols-outlined" style="font-size: 1rem;">add_shopping_cart</span>
+      New Purchase
     </.link>
     <.link navigate={dp(@domain_path_prefix, "/inventory/movements/new")} class="mm-quick-pill">
-      <span class="material-symbols-outlined" style="font-size: 1rem;">swap_horiz</span> Move Inventory
+      <span class="material-symbols-outlined" style="font-size: 1rem;">swap_horiz</span>
+      Move Inventory
     </.link>
   </div>
 
   <%!-- Stock by Category (collapsible sections) --%>
   <%!-- Desktop: two-column layout --%>
   <div class="mm-desktop-2col">
-  <div> <%!-- left column: stock --%>
-  <div class="mm-section-title">Stock by Ingredient</div>
+    <div>
+      <%!-- left column: stock --%>
+      <div class="mm-section-title">Stock by Ingredient</div>
 
-  <%
-    categories = [
-      {"Ingredients", :ingredients, Map.get(@stock_by_type, :ingredients, [])},
-      {"Packing", :packing, Map.get(@stock_by_type, :packing, [])},
-      {"Kitchen", :kitchen, Map.get(@stock_by_type, :kitchen, [])},
-      {"Other", :other, Map.get(@stock_by_type, :other, [])}
-    ]
-    has_any_stock = Enum.any?(categories, fn {_, _, stock} -> stock != [] end)
-  %>
+      <% categories = [
+        {"Ingredients", :ingredients, Map.get(@stock_by_type, :ingredients, [])},
+        {"Packing", :packing, Map.get(@stock_by_type, :packing, [])},
+        {"Kitchen", :kitchen, Map.get(@stock_by_type, :kitchen, [])},
+        {"Other", :other, Map.get(@stock_by_type, :other, [])}
+      ]
 
-  <%= for {label, type_key, stock_list} <- categories, stock_list != [] do %>
-    <%
-      sorted = Enum.sort_by(stock_list, &[&1.ingredient.name, &1.location.name])
-      grouped = Enum.group_by(sorted, & &1.ingredient)
-      section_id = "stock-section-#{type_key}"
-    %>
-    <div class="mm-order-card" style="margin-bottom: 0.5rem;">
-      <button
-        type="button"
-        onclick={"var s=document.getElementById('#{section_id}');var a=this.querySelector('.toggle-icon');if(s.style.display==='none'){s.style.display='block';a.textContent='expand_less';}else{s.style.display='none';a.textContent='expand_more';}"}
-        style="display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; cursor: pointer; padding: 0; color: #3A2A1F;"
-      >
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="material-symbols-outlined" style="font-size: 1.1rem; color: #D4956A;"><%= Map.get(type_icons, type_key, "more_horiz") %></span>
-          <span style="font-weight: 600; font-size: 0.9rem;"><%= label %></span>
-          <span class="mm-badge"><%= length(stock_list) %></span>
+      has_any_stock = Enum.any?(categories, fn {_, _, stock} -> stock != [] end) %>
+
+      <%= for {label, type_key, stock_list} <- categories, stock_list != [] do %>
+        <% sorted = Enum.sort_by(stock_list, &[&1.ingredient.name, &1.location.name])
+        grouped = Enum.group_by(sorted, & &1.ingredient)
+        section_id = "stock-section-#{type_key}" %>
+        <div class="mm-order-card" style="margin-bottom: 0.5rem;">
+          <button
+            type="button"
+            onclick={"var s=document.getElementById('#{section_id}');var a=this.querySelector('.toggle-icon');if(s.style.display==='none'){s.style.display='block';a.textContent='expand_less';}else{s.style.display='none';a.textContent='expand_more';}"}
+            style="display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; cursor: pointer; padding: 0; color: #3A2A1F;"
+          >
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="material-symbols-outlined" style="font-size: 1.1rem; color: #D4956A;">
+                {Map.get(type_icons, type_key, "more_horiz")}
+              </span>
+              <span style="font-weight: 600; font-size: 0.9rem;">{label}</span>
+              <span class="mm-badge">{length(stock_list)}</span>
+            </div>
+            <span
+              class="material-symbols-outlined toggle-icon"
+              style="font-size: 1.25rem; color: #9C8578;"
+            >
+              expand_less
+            </span>
+          </button>
+
+          <div id={section_id} style="margin-top: 0.75rem;">
+            <%= for {ingredient, items} <- Enum.sort_by(grouped, fn {ing, _} -> ing.name end) do %>
+              <div style="padding: 0.5rem 0; border-top: 1px solid #F0E2D6;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div>
+                    <div style="font-weight: 500; font-size: 0.85rem; color: #3A2A1F;">
+                      {ingredient.name}
+                    </div>
+                    <div style="font-size: 0.65rem; color: #9C8578;">{ingredient.code}</div>
+                  </div>
+                </div>
+                <%= for stock <- items do %>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.2rem 0 0.2rem 0.5rem; font-size: 0.8rem;">
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                      <span
+                        class="material-symbols-outlined"
+                        style="font-size: 0.75rem; color: #9C8578;"
+                      >
+                        location_on
+                      </span>
+                      <span style="color: #9C8578;">{stock.location.name}</span>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                      <span style="font-weight: 600; color: #3A2A1F;">
+                        {format_inventory(stock.quantity_on_hand, ingredient.unit)}
+                      </span>
+                      <span style="color: #9C8578; font-size: 0.7rem; min-width: 65px; text-align: right;">
+                        {format_currency(stock.total_value_cents || 0)}
+                      </span>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
         </div>
-        <span class="material-symbols-outlined toggle-icon" style="font-size: 1.25rem; color: #9C8578;">expand_less</span>
-      </button>
+      <% end %>
 
-      <div id={section_id} style="margin-top: 0.75rem;">
-        <%= for {ingredient, items} <- Enum.sort_by(grouped, fn {ing, _} -> ing.name end) do %>
-          <div style={"padding: 0.5rem 0; border-top: 1px solid #F0E2D6;"}>
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <div>
-                <div style="font-weight: 500; font-size: 0.85rem; color: #3A2A1F;"><%= ingredient.name %></div>
-                <div style="font-size: 0.65rem; color: #9C8578;"><%= ingredient.code %></div>
+      <%= unless has_any_stock do %>
+        <div class="mm-order-card" style="text-align: center; padding: 1.5rem; color: #9C8578;">
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;"
+          >
+            inventory_2
+          </span>
+          No inventory records yet.
+        </div>
+      <% end %>
+    </div>
+    <%!-- close left column --%>
+    <div>
+      <%!-- right column: movements --%>
+      <%!-- Recent Movements --%>
+      <div class="mm-section-title" id="recent_movements_card">Recent Movements</div>
+
+      <%!-- Filter toggle --%>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <button
+          type="button"
+          class="mm-quick-pill"
+          style="font-size: 0.75rem; padding: 0.3rem 0.75rem;"
+          onclick="var f=document.getElementById('movement-filters');f.style.display=f.style.display==='none'?'block':'none';"
+        >
+          <span class="material-symbols-outlined" style="font-size: 0.85rem;">filter_list</span>
+          <%= if assigns[:filter_params] && (@filter_params.search || @filter_params.movement_type || @filter_params.ingredient_id || @filter_params.from_location_id || @filter_params.to_location_id || @filter_params.date_from || @filter_params.date_to) do %>
+            Filters Active
+          <% else %>
+            Filters
+          <% end %>
+        </button>
+      </div>
+
+      <%!-- Filters panel --%>
+      <% has_active_filters =
+        assigns[:filter_params] &&
+          (@filter_params.search || @filter_params.movement_type || @filter_params.ingredient_id ||
+             @filter_params.from_location_id || @filter_params.to_location_id ||
+             @filter_params.date_from || @filter_params.date_to)
+
+      display_style = if has_active_filters, do: "block", else: "none" %>
+      <div id="movement-filters" style={"display: #{display_style}; margin-bottom: 1rem;"}>
+        <div class="mm-order-card">
+          <.form
+            for={%{}}
+            method="get"
+            action={dp(@domain_path_prefix, "/inventory")}
+            id="movement-filters-form"
+          >
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <input
+                type="text"
+                name="search"
+                value={if assigns[:filter_params], do: @filter_params.search, else: ""}
+                placeholder="Search ingredient..."
+                style="width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #F0E2D6; border-radius: 12px; background: #FFFAF5; font-size: 0.8rem;"
+              />
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <select
+                  name="movement_type"
+                  style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;"
+                >
+                  <option value="">All Types</option>
+                  <option
+                    value="purchase"
+                    selected={
+                      assigns[:filter_params] && @filter_params.movement_type == "purchase"
+                    }
+                  >
+                    Purchase
+                  </option>
+                  <option
+                    value="return"
+                    selected={assigns[:filter_params] && @filter_params.movement_type == "return"}
+                  >
+                    Return
+                  </option>
+                  <option
+                    value="usage"
+                    selected={assigns[:filter_params] && @filter_params.movement_type == "usage"}
+                  >
+                    Usage
+                  </option>
+                  <option
+                    value="transfer"
+                    selected={
+                      assigns[:filter_params] && @filter_params.movement_type == "transfer"
+                    }
+                  >
+                    Transfer
+                  </option>
+                  <option
+                    value="write_off"
+                    selected={
+                      assigns[:filter_params] && @filter_params.movement_type == "write_off"
+                    }
+                  >
+                    Write Off
+                  </option>
+                </select>
+                <select
+                  name="ingredient_id"
+                  style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;"
+                >
+                  <option value="">All Ingredients</option>
+                  <%= for {name, code} <- @ingredient_options do %>
+                    <option
+                      value={code}
+                      selected={assigns[:filter_params] && @filter_params.ingredient_id == code}
+                    >
+                      {name}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <input
+                  type="date"
+                  name="date_from"
+                  value={if assigns[:filter_params], do: @filter_params.date_from, else: ""}
+                  style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;"
+                />
+                <input
+                  type="date"
+                  name="date_to"
+                  value={if assigns[:filter_params], do: @filter_params.date_to, else: ""}
+                  style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;"
+                />
+              </div>
+
+              <div style="display: flex; gap: 0.35rem;">
+                <button
+                  type="submit"
+                  class="mm-quick-pill mm-quick-pill--primary"
+                  style="font-size: 0.75rem; padding: 0.35rem 0.75rem;"
+                >
+                  Apply
+                </button>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/inventory?scroll=movements")}
+                  class="mm-quick-pill"
+                  style="font-size: 0.75rem; padding: 0.35rem 0.75rem;"
+                >
+                  Clear
+                </.link>
+                <%= if @earliest_date && @latest_date do %>
+                  <.link
+                    navigate={
+                      dp(@domain_path_prefix, "/inventory?all_dates=true&scroll=movements")
+                    }
+                    class="mm-quick-pill"
+                    style="font-size: 0.75rem; padding: 0.35rem 0.75rem;"
+                  >
+                    All dates
+                  </.link>
+                <% end %>
               </div>
             </div>
-            <%= for stock <- items do %>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.2rem 0 0.2rem 0.5rem; font-size: 0.8rem;">
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                  <span class="material-symbols-outlined" style="font-size: 0.75rem; color: #9C8578;">location_on</span>
-                  <span style="color: #9C8578;"><%= stock.location.name %></span>
-                </div>
-                <div style="display: flex; gap: 0.75rem; align-items: center;">
-                  <span style="font-weight: 600; color: #3A2A1F;"><%= format_inventory(stock.quantity_on_hand, ingredient.unit) %></span>
-                  <span style="color: #9C8578; font-size: 0.7rem; min-width: 65px; text-align: right;"><%= format_currency(stock.total_value_cents || 0) %></span>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <%= unless has_any_stock do %>
-    <div class="mm-order-card" style="text-align: center; padding: 1.5rem; color: #9C8578;">
-      <span class="material-symbols-outlined" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">inventory_2</span>
-      No inventory records yet.
-    </div>
-  <% end %>
-
-  </div> <%!-- close left column --%>
-  <div> <%!-- right column: movements --%>
-  <%!-- Recent Movements --%>
-  <div class="mm-section-title" id="recent_movements_card">Recent Movements</div>
-
-  <%!-- Filter toggle --%>
-  <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
-    <button
-      type="button"
-      class="mm-quick-pill"
-      style="font-size: 0.75rem; padding: 0.3rem 0.75rem;"
-      onclick="var f=document.getElementById('movement-filters');f.style.display=f.style.display==='none'?'block':'none';"
-    >
-      <span class="material-symbols-outlined" style="font-size: 0.85rem;">filter_list</span>
-      <%= if assigns[:filter_params] && (@filter_params.search || @filter_params.movement_type || @filter_params.ingredient_id || @filter_params.from_location_id || @filter_params.to_location_id || @filter_params.date_from || @filter_params.date_to) do %>
-        Filters Active
-      <% else %>
-        Filters
-      <% end %>
-    </button>
-  </div>
-
-  <%!-- Filters panel --%>
-  <%
-    has_active_filters = assigns[:filter_params] && (@filter_params.search || @filter_params.movement_type || @filter_params.ingredient_id || @filter_params.from_location_id || @filter_params.to_location_id || @filter_params.date_from || @filter_params.date_to)
-    display_style = if has_active_filters, do: "block", else: "none"
-  %>
-  <div id="movement-filters" style={"display: #{display_style}; margin-bottom: 1rem;"}>
-    <div class="mm-order-card">
-      <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/inventory")} id="movement-filters-form">
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-          <input type="text" name="search" value={if assigns[:filter_params], do: @filter_params.search, else: ""} placeholder="Search ingredient..." style="width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #F0E2D6; border-radius: 12px; background: #FFFAF5; font-size: 0.8rem;" />
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <select name="movement_type" style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;">
-              <option value="">All Types</option>
-              <option value="purchase" selected={assigns[:filter_params] && @filter_params.movement_type == "purchase"}>Purchase</option>
-              <option value="return" selected={assigns[:filter_params] && @filter_params.movement_type == "return"}>Return</option>
-              <option value="usage" selected={assigns[:filter_params] && @filter_params.movement_type == "usage"}>Usage</option>
-              <option value="transfer" selected={assigns[:filter_params] && @filter_params.movement_type == "transfer"}>Transfer</option>
-              <option value="write_off" selected={assigns[:filter_params] && @filter_params.movement_type == "write_off"}>Write Off</option>
-            </select>
-            <select name="ingredient_id" style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;">
-              <option value="">All Ingredients</option>
-              <%= for {name, code} <- @ingredient_options do %>
-                <option value={code} selected={assigns[:filter_params] && @filter_params.ingredient_id == code}><%= name %></option>
-              <% end %>
-            </select>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <input type="date" name="date_from" value={if assigns[:filter_params], do: @filter_params.date_from, else: ""} style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;" />
-            <input type="date" name="date_to" value={if assigns[:filter_params], do: @filter_params.date_to, else: ""} style="padding: 0.5rem; border: 1px solid #F0E2D6; border-radius: 10px; background: #FFFAF5; font-size: 0.8rem;" />
-          </div>
-
-          <div style="display: flex; gap: 0.35rem;">
-            <button type="submit" class="mm-quick-pill mm-quick-pill--primary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">Apply</button>
-            <.link navigate={dp(@domain_path_prefix, "/inventory?scroll=movements")} class="mm-quick-pill" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">Clear</.link>
-            <%= if @earliest_date && @latest_date do %>
-              <.link navigate={dp(@domain_path_prefix, "/inventory?all_dates=true&scroll=movements")} class="mm-quick-pill" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">All dates</.link>
-            <% end %>
-          </div>
+          </.form>
         </div>
-      </.form>
-    </div>
-  </div>
+      </div>
 
-  <%= if has_active_filters do %>
-    <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: #F5E6D8; border-radius: 10px; font-size: 0.75rem; color: #5C3D2E;">
-      <span class="material-symbols-outlined" style="font-size: 0.85rem; vertical-align: middle;">filter_list</span>
-      <%= length(@recent_movements) %> movement(s) found
-    </div>
-  <% end %>
+      <%= if has_active_filters do %>
+        <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: #F5E6D8; border-radius: 10px; font-size: 0.75rem; color: #5C3D2E;">
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 0.85rem; vertical-align: middle;"
+          >
+            filter_list
+          </span>
+          {length(@recent_movements)} movement(s) found
+        </div>
+      <% end %>
 
-  <%!-- Movements list (card-based instead of table) --%>
-  <%= if @recent_movements == [] do %>
-    <div class="mm-order-card" style="text-align: center; padding: 1.5rem; color: #9C8578; margin-bottom: 2rem;">
-      No movements recorded yet.
-    </div>
-  <% else %>
-    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem;">
-      <%= for m <- @recent_movements do %>
-        <div class="mm-order-card" style="padding: 0.75rem 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="flex: 1; min-width: 0;">
-              <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.2rem;">
-                <span class={"mm-status #{cond do
+      <%!-- Movements list (card-based instead of table) --%>
+      <%= if @recent_movements == [] do %>
+        <div
+          class="mm-order-card"
+          style="text-align: center; padding: 1.5rem; color: #9C8578; margin-bottom: 2rem;"
+        >
+          No movements recorded yet.
+        </div>
+      <% else %>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem;">
+          <%= for m <- @recent_movements do %>
+            <div class="mm-order-card" style="padding: 0.75rem 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.2rem;">
+                    <span
+                      class={"mm-status #{cond do
                   m.movement_type == "purchase" -> "mm-status--new_order"
                   m.movement_type == "transfer" -> "mm-status--in_prep"
                   m.movement_type == "usage" -> "mm-status--ready"
                   m.movement_type == "return" -> "mm-status--delivered"
                   true -> "mm-status--canceled"
-                end}"} style="font-size: 0.55rem;"><%= String.capitalize(m.movement_type || "") %></span>
-                <span style="font-size: 0.65rem; color: #9C8578;"><%= fmt_date(m.movement_date, "%b %d") %></span>
-              </div>
-              <div style="font-weight: 500; font-size: 0.85rem; color: #3A2A1F;">
-                <%= m.ingredient && m.ingredient.name %>
-              </div>
-              <div style="font-size: 0.7rem; color: #9C8578; margin-top: 0.1rem;">
-                <%= m.quantity %> <%= m.ingredient && m.ingredient.unit %>
-                <%= if m.from_location do %>· from <%= m.from_location.name %><% end %>
-                <%= if m.to_location do %>· to <%= m.to_location.name %><% end %>
-              </div>
-              <%= if m.note && m.note != "" do %>
-                <div style="font-size: 0.65rem; color: #9C8578; font-style: italic; margin-top: 0.15rem;"><%= m.note %></div>
-              <% end %>
-            </div>
-            <div style="text-align: right; flex-shrink: 0; margin-left: 0.5rem;">
-              <div style="font-weight: 600; font-size: 0.85rem; color: #5C3D2E;"><%= format_currency(m.total_cost_cents) %></div>
-              <%= if m.movement_type == "purchase" do %>
-                <div style="display: flex; gap: 0.25rem; margin-top: 0.35rem; justify-content: flex-end;">
-                  <.link navigate={dp(@domain_path_prefix, "/inventory/purchases/#{m.id}/edit")} class="mm-quick-pill" style="font-size: 0.6rem; padding: 0.15rem 0.4rem;">Edit</.link>
-                  <.link href={dp(@domain_path_prefix, "/inventory/purchases/#{m.id}")} method="delete" data-confirm="Delete this purchase?" class="mm-quick-pill" style="font-size: 0.6rem; padding: 0.15rem 0.4rem; color: #b91c1c;">Del</.link>
+                end}"}
+                      style="font-size: 0.55rem;"
+                    >
+                      {String.capitalize(m.movement_type || "")}
+                    </span>
+                    <span style="font-size: 0.65rem; color: #9C8578;">
+                      {fmt_date(m.movement_date, "%b %d")}
+                    </span>
+                  </div>
+                  <div style="font-weight: 500; font-size: 0.85rem; color: #3A2A1F;">
+                    {m.ingredient && m.ingredient.name}
+                  </div>
+                  <div style="font-size: 0.7rem; color: #9C8578; margin-top: 0.1rem;">
+                    {m.quantity} {m.ingredient && m.ingredient.unit}
+                    <%= if m.from_location do %>
+                      · from {m.from_location.name}
+                    <% end %>
+                    <%= if m.to_location do %>
+                      · to {m.to_location.name}
+                    <% end %>
+                  </div>
+                  <%= if m.note && m.note != "" do %>
+                    <div style="font-size: 0.65rem; color: #9C8578; font-style: italic; margin-top: 0.15rem;">
+                      {m.note}
+                    </div>
+                  <% end %>
                 </div>
-              <% end %>
-              <%= if m.movement_type == "transfer" do %>
-                <div style="display: flex; gap: 0.25rem; margin-top: 0.35rem; justify-content: flex-end;">
-                  <.link navigate={dp(@domain_path_prefix, "/inventory/movements/#{m.id}/edit")} class="mm-quick-pill" style="font-size: 0.6rem; padding: 0.15rem 0.4rem;">Edit</.link>
-                  <.link href={dp(@domain_path_prefix, "/inventory/movements/#{m.id}")} method="delete" data-confirm="Delete this transfer?" class="mm-quick-pill" style="font-size: 0.6rem; padding: 0.15rem 0.4rem; color: #b91c1c;">Del</.link>
+                <div style="text-align: right; flex-shrink: 0; margin-left: 0.5rem;">
+                  <div style="font-weight: 600; font-size: 0.85rem; color: #5C3D2E;">
+                    {format_currency(m.total_cost_cents)}
+                  </div>
+                  <%= if m.movement_type == "purchase" do %>
+                    <div style="display: flex; gap: 0.25rem; margin-top: 0.35rem; justify-content: flex-end;">
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/inventory/purchases/#{m.id}/edit")}
+                        class="mm-quick-pill"
+                        style="font-size: 0.6rem; padding: 0.15rem 0.4rem;"
+                      >
+                        Edit
+                      </.link>
+                      <.link
+                        href={dp(@domain_path_prefix, "/inventory/purchases/#{m.id}")}
+                        method="delete"
+                        data-confirm="Delete this purchase?"
+                        class="mm-quick-pill"
+                        style="font-size: 0.6rem; padding: 0.15rem 0.4rem; color: #b91c1c;"
+                      >
+                        Del
+                      </.link>
+                    </div>
+                  <% end %>
+                  <%= if m.movement_type == "transfer" do %>
+                    <div style="display: flex; gap: 0.25rem; margin-top: 0.35rem; justify-content: flex-end;">
+                      <.link
+                        navigate={dp(@domain_path_prefix, "/inventory/movements/#{m.id}/edit")}
+                        class="mm-quick-pill"
+                        style="font-size: 0.6rem; padding: 0.15rem 0.4rem;"
+                      >
+                        Edit
+                      </.link>
+                      <.link
+                        href={dp(@domain_path_prefix, "/inventory/movements/#{m.id}")}
+                        method="delete"
+                        data-confirm="Delete this transfer?"
+                        class="mm-quick-pill"
+                        style="font-size: 0.6rem; padding: 0.15rem 0.4rem; color: #b91c1c;"
+                      >
+                        Del
+                      </.link>
+                    </div>
+                  <% end %>
                 </div>
-              <% end %>
+              </div>
             </div>
-          </div>
+          <% end %>
         </div>
+
+        <%= if @has_more_movements do %>
+          <div style="margin-bottom: 2rem; text-align: center;">
+            <button
+              id="load-more-movements-btn"
+              class="mm-quick-pill"
+              data-current-limit={@movements_limit}
+            >
+              <span class="material-symbols-outlined" style="font-size: 0.85rem;">
+                expand_more
+              </span>
+              Load More
+            </button>
+          </div>
+        <% end %>
       <% end %>
     </div>
-
-    <%= if @has_more_movements do %>
-      <div style="margin-bottom: 2rem; text-align: center;">
-        <button
-          id="load-more-movements-btn"
-          class="mm-quick-pill"
-          data-current-limit={@movements_limit}
-        >
-          <span class="material-symbols-outlined" style="font-size: 0.85rem;">expand_more</span> Load More
-        </button>
-      </div>
-    <% end %>
-  <% end %>
-  </div> <%!-- close right column --%>
-  </div> <%!-- close mm-desktop-2col --%>
+    <%!-- close right column --%>
+  </div>
+  <%!-- close mm-desktop-2col --%>
 </div>
 
 <script>

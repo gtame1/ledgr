@@ -11,7 +11,7 @@
             <p>Please review the fields below.</p>
             <ul>
               <%= for {field, {message, _}} <- @changeset.errors do %>
-                <li><strong><%= field %>:</strong> <%= message %></li>
+                <li><strong>{field}:</strong> {message}</li>
               <% end %>
             </ul>
           </div>
@@ -32,7 +32,12 @@
             </div>
 
             <div class="field full">
-              <.input field={f[:delivery_address]} type="textarea" label="Delivery Address" rows="3" />
+              <.input
+                field={f[:delivery_address]}
+                type="textarea"
+                label="Delivery Address"
+                rows="3"
+              />
             </div>
           </div>
         </div>

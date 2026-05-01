@@ -11,13 +11,19 @@
   <% active_count = Enum.count(@discount_codes, & &1.active) %>
   <% inactive_count = length(@discount_codes) - active_count %>
   <p style="font-size: 0.8rem; color: #9C8578; margin-bottom: 1rem;">
-    <%= active_count %> active code<%= if active_count != 1, do: "s" %><%= if inactive_count > 0, do: " · #{inactive_count} inactive" %>
+    {active_count} active code{if active_count != 1, do: "s"}{if inactive_count > 0,
+      do: " · #{inactive_count} inactive"}
   </p>
 
   <div style="display: flex; flex-direction: column; gap: 0.5rem;">
     <%= if @discount_codes == [] do %>
       <div class="mm-order-card" style="text-align: center; padding: 2rem 1rem; color: #9C8578;">
-        <span class="material-symbols-outlined" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">sell</span>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;"
+        >
+          sell
+        </span>
         No discount codes yet.
       </div>
     <% else %>
@@ -25,25 +31,32 @@
         <div class="mm-order-card">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
             <div>
-              <div style="font-family: monospace; font-weight: 700; font-size: 1.1rem; color: #3A2A1F; letter-spacing: 0.05em;"><%= code.code %></div>
+              <div style="font-family: monospace; font-weight: 700; font-size: 1.1rem; color: #3A2A1F; letter-spacing: 0.05em;">
+                {code.code}
+              </div>
               <div style="font-size: 0.75rem; color: #9C8578; margin-top: 0.15rem;">
                 <%= if code.discount_type == "flat" do %>
-                  $<%= code.discount_value %> MXN off
+                  ${code.discount_value} MXN off
                 <% else %>
-                  <%= code.discount_value %>% off
+                  {code.discount_value}% off
                 <% end %>
-                · Used <%= code.uses_count %> time<%= if code.uses_count != 1, do: "s" %><%= if code.max_uses, do: " / #{code.max_uses}" %>
+                · Used {code.uses_count} time{if code.uses_count != 1, do: "s"}{if code.max_uses,
+                  do: " / #{code.max_uses}"}
               </div>
               <%= if code.expires_at do %>
                 <div style="font-size: 0.65rem; color: #9C8578; margin-top: 0.1rem;">
-                  Expires: <%= code.expires_at %>
+                  Expires: {code.expires_at}
                 </div>
               <% end %>
             </div>
             <%= if code.active do %>
-              <span class="mm-status mm-status--delivered" style="font-size: 0.6rem;">Active</span>
+              <span class="mm-status mm-status--delivered" style="font-size: 0.6rem;">
+                Active
+              </span>
             <% else %>
-              <span class="mm-status mm-status--canceled" style="font-size: 0.6rem;">Inactive</span>
+              <span class="mm-status mm-status--canceled" style="font-size: 0.6rem;">
+                Inactive
+              </span>
             <% end %>
           </div>
 
@@ -54,9 +67,13 @@
               class="mm-quick-pill"
               style={"font-size: 0.7rem; padding: 0.2rem 0.6rem;#{unless code.active, do: " background: #d4edda; color: #155724; border-color: #c3e6cb;"}"}
             >
-              <%= if code.active, do: "Deactivate", else: "Activate" %>
+              {if code.active, do: "Deactivate", else: "Activate"}
             </.link>
-            <.link navigate={dp(@domain_path_prefix, "/discount-codes/#{code.id}/edit")} class="mm-quick-pill" style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">
+            <.link
+              navigate={dp(@domain_path_prefix, "/discount-codes/#{code.id}/edit")}
+              class="mm-quick-pill"
+              style="font-size: 0.7rem; padding: 0.2rem 0.6rem;"
+            >
               Edit
             </.link>
             <.link

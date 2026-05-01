@@ -8,133 +8,174 @@
       <h1 class="mm-topbar-title">Calendar</h1>
     </div>
     <div style="display: flex; gap: 0.25rem;">
-      <.link navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}")} class="mm-topbar-action">
+      <.link
+        navigate={
+          dp(
+            @domain_path_prefix,
+            "/orders/calendar?year=#{prev_month(@year, @month).year}&month=#{prev_month(@year, @month).month}"
+          )
+        }
+        class="mm-topbar-action"
+      >
         <span class="material-symbols-outlined">chevron_left</span>
       </.link>
-      <.link navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{today_mx().year}&month=#{today_mx().month}")} class="mm-topbar-action" style="font-size: 0.75rem; font-weight: 600; color: #5C3D2E;">
+      <.link
+        navigate={
+          dp(
+            @domain_path_prefix,
+            "/orders/calendar?year=#{today_mx().year}&month=#{today_mx().month}"
+          )
+        }
+        class="mm-topbar-action"
+        style="font-size: 0.75rem; font-weight: 600; color: #5C3D2E;"
+      >
         Today
       </.link>
-      <.link navigate={dp(@domain_path_prefix, "/orders/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}")} class="mm-topbar-action">
+      <.link
+        navigate={
+          dp(
+            @domain_path_prefix,
+            "/orders/calendar?year=#{next_month(@year, @month).year}&month=#{next_month(@year, @month).month}"
+          )
+        }
+        class="mm-topbar-action"
+      >
         <span class="material-symbols-outlined">chevron_right</span>
       </.link>
     </div>
   </div>
 
-<div class="calendar-page">
+  <div class="calendar-page">
+    <div class="calendar-month-title">
+      {fmt_date(@first_day, "%B %Y")}
+    </div>
 
-  <div class="calendar-month-title">
-    <%= fmt_date(@first_day, "%B %Y") %>
-  </div>
+    <div class="calendar-grid">
+      <div class="calendar-weekday">S</div>
+      <div class="calendar-weekday">M</div>
+      <div class="calendar-weekday">T</div>
+      <div class="calendar-weekday">W</div>
+      <div class="calendar-weekday">T</div>
+      <div class="calendar-weekday">F</div>
+      <div class="calendar-weekday">S</div>
 
-  <div class="calendar-grid">
-    <div class="calendar-weekday">S</div>
-    <div class="calendar-weekday">M</div>
-    <div class="calendar-weekday">T</div>
-    <div class="calendar-weekday">W</div>
-    <div class="calendar-weekday">T</div>
-    <div class="calendar-weekday">F</div>
-    <div class="calendar-weekday">S</div>
-
-    <%= for date <- Date.range(@calendar_start, @calendar_end) do %>
-      <%
-        day_orders = Map.get(@orders_by_date, date, [])
+      <%= for date <- Date.range(@calendar_start, @calendar_end) do %>
+        <% day_orders = Map.get(@orders_by_date, date, [])
         visible_orders = Enum.take(day_orders, 3)
         overflow_count = max(0, length(day_orders) - 3)
-        orders_json = Jason.encode!(Enum.map(day_orders, fn o ->
-          %{
-            id: o.id,
-            customer_name: o.customer_name,
-            product: (o.variant && (o.variant.product.name <> " · " <> o.variant.name)) || "",
-            quantity: o.quantity || 1,
-            status: o.status,
-            delivery_time: o.delivery_time,
-            url: dp(@domain_path_prefix, "/orders/#{o.id}")
-          }
-        end))
-        day_label = fmt_date(date, "%A, %B %-d")
-      %>
-      <div class={
-        [
-          "calendar-day",
-          if(Date.compare(date, @first_day) == :lt or Date.compare(date, @last_day) == :gt, do: "calendar-day-other-month"),
-          if(Date.compare(date, @today) == :eq, do: "calendar-day-today")
-        ]
-      }
-        data-day-label={day_label}
-        data-orders={orders_json}
-      >
-        <div class="calendar-day-number">
-          <%= date.day %>
-        </div>
-        <div class="calendar-day-orders">
-          <%= if length(day_orders) > 0 do %>
-            <div class="calendar-orders-count">
-              <strong><%= length(day_orders) %></strong> <%= if length(day_orders) == 1, do: "order", else: "orders" %>
-            </div>
-            <div class="calendar-orders-list">
-              <%= for order <- visible_orders do %>
-                <div class="calendar-order-item"
-                     data-tooltip-content={"#{order.customer_name} · #{(order.variant && (order.variant.product.name <> " · " <> order.variant.name)) || "—"}#{if (order.quantity || 1) > 1, do: " ×#{order.quantity}", else: ""}#{if order.delivery_time, do: " · #{order.delivery_time}", else: ""}"}>
-                  <span class={
-                    cond do
-                      order.status == "new_order" -> "calendar-order-status-new_order"
-                      order.status == "in_prep" -> "calendar-order-status-in_prep"
-                      order.status == "ready" -> "calendar-order-status-ready"
-                      order.status == "delivered" -> "calendar-order-status-delivered"
-                      true -> ""
-                    end
-                  }></span>
-                  <.link navigate={dp(@domain_path_prefix, "/orders/#{order.id}")} class="calendar-order-link">
-                    <%= order.customer_name %> - <%= order.variant && (order.variant.product.name <> " · " <> order.variant.name) %><%= if (order.quantity || 1) > 1, do: " x#{order.quantity}" %>
-                  </.link>
-                </div>
-              <% end %>
-              <%= if overflow_count > 0 do %>
-                <button class="calendar-order-more" type="button">
-                  +<%= overflow_count %> more
-                </button>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
-  </div>
 
-  <div class="calendar-legend">
-    <div class="calendar-legend-items">
-      <div class="calendar-legend-item">
-        <span class="calendar-order-status-new_order"></span>
-        <span>New</span>
-      </div>
-      <div class="calendar-legend-item">
-        <span class="calendar-order-status-in_prep"></span>
-        <span>Prep</span>
-      </div>
-      <div class="calendar-legend-item">
-        <span class="calendar-order-status-ready"></span>
-        <span>Ready</span>
-      </div>
-      <div class="calendar-legend-item">
-        <span class="calendar-order-status-delivered"></span>
-        <span>Done</span>
+        orders_json =
+          Jason.encode!(
+            Enum.map(day_orders, fn o ->
+              %{
+                id: o.id,
+                customer_name: o.customer_name,
+                product: (o.variant && o.variant.product.name <> " · " <> o.variant.name) || "",
+                quantity: o.quantity || 1,
+                status: o.status,
+                delivery_time: o.delivery_time,
+                url: dp(@domain_path_prefix, "/orders/#{o.id}")
+              }
+            end)
+          )
+
+        day_label = fmt_date(date, "%A, %B %-d") %>
+        <div
+          class={[
+            "calendar-day",
+            if(Date.compare(date, @first_day) == :lt or Date.compare(date, @last_day) == :gt,
+              do: "calendar-day-other-month"
+            ),
+            if(Date.compare(date, @today) == :eq, do: "calendar-day-today")
+          ]}
+          data-day-label={day_label}
+          data-orders={orders_json}
+        >
+          <div class="calendar-day-number">
+            {date.day}
+          </div>
+          <div class="calendar-day-orders">
+            <%= if length(day_orders) > 0 do %>
+              <div class="calendar-orders-count">
+                <strong>{length(day_orders)}</strong> {if length(day_orders) == 1,
+                  do: "order",
+                  else: "orders"}
+              </div>
+              <div class="calendar-orders-list">
+                <%= for order <- visible_orders do %>
+                  <div
+                    class="calendar-order-item"
+                    data-tooltip-content={"#{order.customer_name} · #{(order.variant && (order.variant.product.name <> " · " <> order.variant.name)) || "—"}#{if (order.quantity || 1) > 1, do: " ×#{order.quantity}", else: ""}#{if order.delivery_time, do: " · #{order.delivery_time}", else: ""}"}
+                  >
+                    <span class={
+                      cond do
+                        order.status == "new_order" -> "calendar-order-status-new_order"
+                        order.status == "in_prep" -> "calendar-order-status-in_prep"
+                        order.status == "ready" -> "calendar-order-status-ready"
+                        order.status == "delivered" -> "calendar-order-status-delivered"
+                        true -> ""
+                      end
+                    }>
+                    </span>
+                    <.link
+                      navigate={dp(@domain_path_prefix, "/orders/#{order.id}")}
+                      class="calendar-order-link"
+                    >
+                      {order.customer_name} - {order.variant &&
+                        order.variant.product.name <> " · " <> order.variant.name}{if (order.quantity ||
+                                                                                         1) > 1,
+                                                                                      do:
+                                                                                        " x#{order.quantity}"}
+                    </.link>
+                  </div>
+                <% end %>
+                <%= if overflow_count > 0 do %>
+                  <button class="calendar-order-more" type="button">
+                    +{overflow_count} more
+                  </button>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="calendar-legend">
+      <div class="calendar-legend-items">
+        <div class="calendar-legend-item">
+          <span class="calendar-order-status-new_order"></span>
+          <span>New</span>
+        </div>
+        <div class="calendar-legend-item">
+          <span class="calendar-order-status-in_prep"></span>
+          <span>Prep</span>
+        </div>
+        <div class="calendar-legend-item">
+          <span class="calendar-order-status-ready"></span>
+          <span>Ready</span>
+        </div>
+        <div class="calendar-legend-item">
+          <span class="calendar-order-status-delivered"></span>
+          <span>Done</span>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<%!-- Shared detail panel: bottom drawer on mobile, centered modal on desktop --%>
-<div id="calendar-detail-panel" class="calendar-detail-panel" aria-hidden="true">
-  <div class="calendar-detail-backdrop"></div>
-  <div class="calendar-detail-content">
-    <div class="calendar-detail-header">
-      <h3 id="calendar-detail-title" class="calendar-detail-title"></h3>
-      <button id="calendar-detail-close" type="button" class="calendar-detail-close">✕</button>
+  <%!-- Shared detail panel: bottom drawer on mobile, centered modal on desktop --%>
+  <div id="calendar-detail-panel" class="calendar-detail-panel" aria-hidden="true">
+    <div class="calendar-detail-backdrop"></div>
+    <div class="calendar-detail-content">
+      <div class="calendar-detail-header">
+        <h3 id="calendar-detail-title" class="calendar-detail-title"></h3>
+        <button id="calendar-detail-close" type="button" class="calendar-detail-close">✕</button>
+      </div>
+      <div id="calendar-detail-orders" class="calendar-detail-orders"></div>
     </div>
-    <div id="calendar-detail-orders" class="calendar-detail-orders"></div>
   </div>
-</div>
 
-<%!-- Floating tooltip for desktop hover --%>
-<div id="calendar-tooltip" class="calendar-tooltip" aria-hidden="true"></div>
-</div> <%!-- close mm-page --%>
+  <%!-- Floating tooltip for desktop hover --%>
+  <div id="calendar-tooltip" class="calendar-tooltip" aria-hidden="true"></div>
+</div>
+<%!-- close mm-page --%>

@@ -22,7 +22,8 @@ defmodule Ledgr.Core.Accounting.AccountTest do
     attrs = %{
       code: "9999",
       name: "Weird",
-      type: "weird",          # invalid
+      # invalid
+      type: "weird",
       normal_balance: "debit",
       is_cash: false
     }

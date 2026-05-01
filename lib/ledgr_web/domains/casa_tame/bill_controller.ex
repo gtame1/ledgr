@@ -116,15 +116,17 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
   def calendar(conn, params) do
     today = Ledgr.Domains.CasaTame.today()
 
-    year = case params["year"] do
-      nil -> today.year
-      y -> String.to_integer(y)
-    end
+    year =
+      case params["year"] do
+        nil -> today.year
+        y -> String.to_integer(y)
+      end
 
-    month = case params["month"] do
-      nil -> today.month
-      m -> String.to_integer(m)
-    end
+    month =
+      case params["month"] do
+        nil -> today.month
+        m -> String.to_integer(m)
+      end
 
     month = max(1, min(12, month))
 
@@ -151,11 +153,12 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
   end
 
   def new(conn, _params) do
-    changeset = Bills.change_bill(%RecurringBill{
-      next_due_date: Ledgr.Domains.CasaTame.today(),
-      currency: "MXN",
-      frequency: "monthly"
-    })
+    changeset =
+      Bills.change_bill(%RecurringBill{
+        next_due_date: Ledgr.Domains.CasaTame.today(),
+        currency: "MXN",
+        frequency: "monthly"
+      })
 
     render(conn, :new,
       changeset: changeset,
@@ -203,7 +206,11 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
         conn |> put_flash(:info, "Bill updated.") |> redirect(to: dp(conn, "/bills"))
 
       {:error, changeset} ->
-        render(conn, :edit, bill: bill, changeset: changeset, action: dp(conn, "/bills/#{bill.id}"))
+        render(conn, :edit,
+          bill: bill,
+          changeset: changeset,
+          action: dp(conn, "/bills/#{bill.id}")
+        )
     end
   end
 
@@ -218,23 +225,25 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
 
     case Bills.mark_paid(bill) do
       {:ok, _} ->
-        msg = if bill.frequency == "one_time",
-          do: "Bill marked as paid and archived.",
-          else: "Bill marked as paid. Next due: #{Bills.advance_due_date(bill)}."
+        msg =
+          if bill.frequency == "one_time",
+            do: "Bill marked as paid and archived.",
+            else: "Bill marked as paid. Next due: #{Bills.advance_due_date(bill)}."
 
         # Redirect to expense form with bill data prefilled
         if bill.amount_cents do
           expense_account_id = bill_category_to_expense_account(bill.category)
           amount_pesos = bill.amount_cents / 100
 
-          query = URI.encode_query(%{
-            "from_bill" => bill.name,
-            "description" => bill.name,
-            "amount" => amount_pesos,
-            "currency" => bill.currency || "MXN",
-            "expense_account_id" => expense_account_id || "",
-            "date" => to_string(Ledgr.Domains.CasaTame.today())
-          })
+          query =
+            URI.encode_query(%{
+              "from_bill" => bill.name,
+              "description" => bill.name,
+              "amount" => amount_pesos,
+              "currency" => bill.currency || "MXN",
+              "expense_account_id" => expense_account_id || "",
+              "date" => to_string(Ledgr.Domains.CasaTame.today())
+            })
 
           conn
           |> put_flash(:info, msg <> " Record the expense below.")
@@ -251,14 +260,21 @@ defmodule LedgrWeb.Domains.CasaTame.BillController do
   # Map bill categories to expense account codes
   defp bill_category_to_expense_account(category) do
     # Find a reasonable default expense account for each bill category
-    code = case category do
-      "credit_card" -> "6060"    # Financial
-      "utility" -> "6020"        # Utilities
-      "loan" -> "6060"           # Financial
-      "insurance" -> "6070"      # Health & Personal Care
-      "subscription" -> "6050"   # Entertainment
-      _ -> "6099"                # Other
-    end
+    code =
+      case category do
+        # Financial
+        "credit_card" -> "6060"
+        # Utilities
+        "utility" -> "6020"
+        # Financial
+        "loan" -> "6060"
+        # Health & Personal Care
+        "insurance" -> "6070"
+        # Entertainment
+        "subscription" -> "6050"
+        # Other
+        _ -> "6099"
+      end
 
     case Ledgr.Core.Accounting.get_account_by_code(code) do
       nil -> nil

@@ -14,7 +14,9 @@ end %>
   </div>
 
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Link Payment to Consultation</h1>
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">
+      Link Payment to Consultation
+    </h1>
   </div>
 
   <%!-- Payment summary --%>
@@ -22,12 +24,16 @@ end %>
     <div class="flex items-center justify-between">
       <div>
         <div class="text-sm" style="color: var(--text-muted);">Payment</div>
-        <div class="text-lg font-bold" style="color: var(--text-main);"><%= fmt.(pay.amount) %> MXN</div>
+        <div class="text-lg font-bold" style="color: var(--text-main);">
+          {fmt.(pay.amount)} MXN
+        </div>
         <div class="text-sm" style="color: var(--text-muted);">
-          <%= pay.customer_name || "Unknown" %> &middot; <%= fmt_datetime(pay.paid_at) || "---" %>
+          {pay.customer_name || "Unknown"} &middot; {fmt_datetime(pay.paid_at) || "---"}
         </div>
       </div>
-      <span class={"hd-badge hd-badge--#{pay.status}"}><%= pay.status |> to_string() |> String.capitalize() %></span>
+      <span class={"hd-badge hd-badge--#{pay.status}"}>
+        {pay.status |> to_string() |> String.capitalize()}
+      </span>
     </div>
   </div>
 
@@ -35,12 +41,16 @@ end %>
   <%= if Enum.empty?(@consultations) do %>
     <div class="hd-card p-8 text-center">
       <div class="text-3xl mb-2 opacity-30">🔍</div>
-      <div class="text-sm" style="color: var(--text-muted);">No pending consultations found to link.</div>
+      <div class="text-sm" style="color: var(--text-muted);">
+        No pending consultations found to link.
+      </div>
     </div>
   <% else %>
     <div class="hd-card overflow-hidden">
       <div class="p-4" style="border-bottom: 1px solid var(--border-subtle);">
-        <div class="text-sm font-medium" style="color: var(--text-muted);">Select a consultation to link this payment to:</div>
+        <div class="text-sm font-medium" style="color: var(--text-muted);">
+          Select a consultation to link this payment to:
+        </div>
       </div>
       <div class="divide-y" style="border-color: var(--border-subtle);">
         <%= for c <- @consultations do %>
@@ -48,24 +58,44 @@ end %>
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium" style="color: var(--text-main);">
-                  <%= if c.patient, do: (c.patient.full_name || c.patient.display_name || "Unknown"), else: "Unknown" %>
+                  {if c.patient,
+                    do: c.patient.full_name || c.patient.display_name || "Unknown",
+                    else: "Unknown"}
                 </span>
-                <span class={"hd-badge hd-badge--#{c.status}"}><%= c.status |> to_string() |> String.replace("_", " ") |> String.capitalize() %></span>
-                <span class={"hd-badge hd-badge--#{c.payment_status}"}><%= c.payment_status |> to_string() |> String.capitalize() %></span>
+                <span class={"hd-badge hd-badge--#{c.status}"}>
+                  {c.status |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+                </span>
+                <span class={"hd-badge hd-badge--#{c.payment_status}"}>
+                  {c.payment_status |> to_string() |> String.capitalize()}
+                </span>
               </div>
               <div class="text-xs mt-1" style="color: var(--text-muted);">
-                <%= if c.doctor, do: c.doctor.name, else: "No doctor assigned" %>
-                &middot; <%= fmt_datetime(c.assigned_at) || "---" %>
+                {if c.doctor, do: c.doctor.name, else: "No doctor assigned"} &middot; {fmt_datetime(
+                  c.assigned_at
+                ) || "---"}
                 <%= if c.payment_amount do %>
-                  &middot; <%= fmt.(c.payment_amount) %>
+                  &middot; {fmt.(c.payment_amount)}
                 <% end %>
               </div>
             </div>
-            <form method="post" action={dp(@domain_path_prefix, "/payments/#{pay.id}/link")}
-              onsubmit={"return confirm('Link this payment to consultation with #{if c.patient, do: (c.patient.full_name || c.patient.display_name), else: "Unknown"}?')"}>
-              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+            <form
+              method="post"
+              action={dp(@domain_path_prefix, "/payments/#{pay.id}/link")}
+              onsubmit={"return confirm('Link this payment to consultation with #{if c.patient, do: (c.patient.full_name || c.patient.display_name), else: "Unknown"}?')"}
+            >
+              <input
+                type="hidden"
+                name="_csrf_token"
+                value={Plug.CSRFProtection.get_csrf_token()}
+              />
               <input type="hidden" name="consultation_id" value={c.id} />
-              <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.35rem 0.75rem;">Link</button>
+              <button
+                type="submit"
+                class="hd-btn-primary text-sm"
+                style="padding: 0.35rem 0.75rem;"
+              >
+                Link
+              </button>
             </form>
           </div>
         <% end %>

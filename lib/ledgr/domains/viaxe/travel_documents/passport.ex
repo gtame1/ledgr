@@ -7,7 +7,8 @@ defmodule Ledgr.Domains.Viaxe.TravelDocuments.Passport do
   schema "passports" do
     belongs_to :customer, Customer
 
-    field :country, :string           # issuing country code e.g. "MX", "US"
+    # issuing country code e.g. "MX", "US"
+    field :country, :string
     field :number, :string
     field :issue_date, :date
     field :expiry_date, :date

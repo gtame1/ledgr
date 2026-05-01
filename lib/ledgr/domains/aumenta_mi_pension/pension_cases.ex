@@ -44,16 +44,21 @@ defmodule Ledgr.Domains.AumentaMiPension.PensionCases do
 
   defp maybe_filter_modalidad(query, nil), do: query
   defp maybe_filter_modalidad(query, ""), do: query
+
   defp maybe_filter_modalidad(query, modalidad),
     do: where(query, [p], p.recommended_modalidad == ^modalidad)
 
   defp maybe_search(query, nil), do: query
   defp maybe_search(query, ""), do: query
+
   defp maybe_search(query, search) do
     term = "%#{search}%"
+
     from(p in query,
       join: cu in assoc(p, :customer),
-      where: ilike(cu.full_name, ^term) or ilike(cu.display_name, ^term) or ilike(cu.phone, ^term) or ilike(cu.curp, ^term) or ilike(cu.nss, ^term)
+      where:
+        ilike(cu.full_name, ^term) or ilike(cu.display_name, ^term) or ilike(cu.phone, ^term) or
+          ilike(cu.curp, ^term) or ilike(cu.nss, ^term)
     )
   end
 end

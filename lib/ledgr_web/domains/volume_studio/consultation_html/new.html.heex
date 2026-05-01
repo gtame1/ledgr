@@ -5,12 +5,16 @@
 
   <div class="content-body">
     <section class="card">
-      <.form for={@changeset} action={@action} as={:consultation} :let={f}>
+      <.form :let={f} for={@changeset} action={@action} as={:consultation}>
         <div class="form-grid">
           <div class="form-block">
             <div class="field">
-              <.input type="select" field={f[:customer_id]} label="Member *"
-                options={[{"Select member...", ""} | @customers]} />
+              <.input
+                type="select"
+                field={f[:customer_id]}
+                label="Member *"
+                options={[{"Select member...", ""} | @customers]}
+              />
             </div>
 
             <div class="field">
@@ -22,11 +26,22 @@
             </div>
 
             <div class="field">
-              <.input type="number" field={f[:duration_minutes]} label="Duration (minutes)" min="1" />
+              <.input
+                type="number"
+                field={f[:duration_minutes]}
+                label="Duration (minutes)"
+                min="1"
+              />
             </div>
 
             <div class="field">
-              <.input type="number" field={f[:amount_cents]} label="Amount (MXN) *" step="0.01" min="0" />
+              <.input
+                type="number"
+                field={f[:amount_cents]}
+                label="Amount (MXN) *"
+                step="0.01"
+                min="0"
+              />
             </div>
 
             <div class="field">
@@ -34,17 +49,26 @@
             </div>
 
             <div class="field">
-              <.input type="select" field={f[:status]} label="Status" options={[
-                {"Scheduled", "scheduled"},
-                {"Completed", "completed"},
-                {"Cancelled", "cancelled"},
-                {"No Show", "no_show"}
-              ]} />
+              <.input
+                type="select"
+                field={f[:status]}
+                label="Status"
+                options={[
+                  {"Scheduled", "scheduled"},
+                  {"Completed", "completed"},
+                  {"Cancelled", "cancelled"},
+                  {"No Show", "no_show"}
+                ]}
+              />
             </div>
 
             <div class="field">
-              <.input type="select" field={f[:partner_split_id]} label="Partner Split"
-                options={[{"— unattributed —", ""} | @partner_split_options]} />
+              <.input
+                type="select"
+                field={f[:partner_split_id]}
+                label="Partner Split"
+                options={[{"— unattributed —", ""} | @partner_split_options]}
+              />
             </div>
 
             <div class="field full">

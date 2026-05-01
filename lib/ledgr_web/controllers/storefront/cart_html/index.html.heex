@@ -12,7 +12,11 @@
         <div class="cart-item">
           <div class="cart-item-image">
             <%= if item.product.image_url do %>
-              <img src={item.product.image_url} alt={item.product.name} onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'" />
+              <img
+                src={item.product.image_url}
+                alt={item.product.name}
+                onerror="this.onerror=null;this.src='/images/mr-munchme-logos/mr-munchme-icon.png'"
+              />
             <% else %>
               <div class="cart-item-placeholder">
                 <img src="/images/mr-munchme-logos/mr-munchme-icon.png" alt="MrMunchMe" />
@@ -21,29 +25,52 @@
           </div>
           <div class="cart-item-info">
             <a href={"/mr-munch-me/menu/#{item.product.id}"} class="cart-item-name">
-              <%= item.product.name %> · <%= item.variant.name %>
+              {item.product.name} · {item.variant.name}
             </a>
-            <div class="cart-item-price"><%= format_price(item.variant.price_cents) %> c/u</div>
+            <div class="cart-item-price">{format_price(item.variant.price_cents)} c/u</div>
           </div>
           <div class="cart-item-quantity">
-            <form method="post" action="/mr-munch-me/cart/update" id={"qty-form-#{item.variant.id}"}>
-              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+            <form
+              method="post"
+              action="/mr-munch-me/cart/update"
+              id={"qty-form-#{item.variant.id}"}
+            >
+              <input
+                type="hidden"
+                name="_csrf_token"
+                value={Plug.CSRFProtection.get_csrf_token()}
+              />
               <input type="hidden" name="_method" value="put" />
               <input type="hidden" name="variant_id" value={item.variant.id} />
-              <input type="hidden" name="quantity" id={"qty-#{item.variant.id}"} value={item.quantity} />
+              <input
+                type="hidden"
+                name="quantity"
+                id={"qty-#{item.variant.id}"}
+                value={item.quantity}
+              />
               <div class="qty-controls">
-                <button type="button" class="qty-btn qty-dec" data-variant-id={item.variant.id}>−</button>
-                <span class="qty-value" id={"qty-display-#{item.variant.id}"}><%= item.quantity %></span>
-                <button type="button" class="qty-btn qty-inc" data-variant-id={item.variant.id}>+</button>
+                <button type="button" class="qty-btn qty-dec" data-variant-id={item.variant.id}>
+                  −
+                </button>
+                <span class="qty-value" id={"qty-display-#{item.variant.id}"}>
+                  {item.quantity}
+                </span>
+                <button type="button" class="qty-btn qty-inc" data-variant-id={item.variant.id}>
+                  +
+                </button>
               </div>
             </form>
           </div>
           <div class="cart-item-subtotal">
-            <%= format_price(item.subtotal) %>
+            {format_price(item.subtotal)}
           </div>
           <div class="cart-item-remove">
             <form method="post" action="/mr-munch-me/cart/remove">
-              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+              <input
+                type="hidden"
+                name="_csrf_token"
+                value={Plug.CSRFProtection.get_csrf_token()}
+              />
               <input type="hidden" name="variant_id" value={item.variant.id} />
               <button type="submit" class="btn-remove" title="Quitar">&times;</button>
             </form>
@@ -55,7 +82,7 @@
     <div class="cart-summary">
       <div class="cart-total">
         <span class="cart-total-label">Total:</span>
-        <span class="cart-total-amount"><%= format_price(@cart_total) %></span>
+        <span class="cart-total-amount">{format_price(@cart_total)}</span>
       </div>
     </div>
 

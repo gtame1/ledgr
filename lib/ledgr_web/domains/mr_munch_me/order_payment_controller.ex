@@ -21,9 +21,18 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderPaymentController do
     payment = Orders.get_order_payment!(id)
 
     # Convert amounts from cents to pesos for form display
-    amount_pesos = if payment.amount_cents, do: MoneyHelper.cents_to_pesos(payment.amount_cents), else: nil
-    customer_amount_pesos = if payment.customer_amount_cents, do: MoneyHelper.cents_to_pesos(payment.customer_amount_cents), else: nil
-    partner_amount_pesos = if payment.partner_amount_cents, do: MoneyHelper.cents_to_pesos(payment.partner_amount_cents), else: nil
+    amount_pesos =
+      if payment.amount_cents, do: MoneyHelper.cents_to_pesos(payment.amount_cents), else: nil
+
+    customer_amount_pesos =
+      if payment.customer_amount_cents,
+        do: MoneyHelper.cents_to_pesos(payment.customer_amount_cents),
+        else: nil
+
+    partner_amount_pesos =
+      if payment.partner_amount_cents,
+        do: MoneyHelper.cents_to_pesos(payment.partner_amount_cents),
+        else: nil
 
     attrs = %{
       "payment_date" => payment.payment_date,
@@ -52,9 +61,20 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderPaymentController do
     payment = Orders.get_order_payment!(id)
 
     # Convert amounts from pesos to cents
-    amount_cents = if params["amount"], do: MoneyHelper.pesos_to_cents(params["amount"]), else: payment.amount_cents
-    customer_amount_cents = if params["customer_amount"], do: MoneyHelper.pesos_to_cents(params["customer_amount"]), else: payment.customer_amount_cents
-    partner_amount_cents = if params["partner_amount"], do: MoneyHelper.pesos_to_cents(params["partner_amount"]), else: payment.partner_amount_cents
+    amount_cents =
+      if params["amount"],
+        do: MoneyHelper.pesos_to_cents(params["amount"]),
+        else: payment.amount_cents
+
+    customer_amount_cents =
+      if params["customer_amount"],
+        do: MoneyHelper.pesos_to_cents(params["customer_amount"]),
+        else: payment.customer_amount_cents
+
+    partner_amount_cents =
+      if params["partner_amount"],
+        do: MoneyHelper.pesos_to_cents(params["partner_amount"]),
+        else: payment.partner_amount_cents
 
     attrs =
       params
@@ -96,7 +116,6 @@ defmodule LedgrWeb.Domains.MrMunchMe.OrderPaymentController do
     end
   end
 end
-
 
 defmodule LedgrWeb.Domains.MrMunchMe.OrderPaymentHTML do
   use LedgrWeb, :html

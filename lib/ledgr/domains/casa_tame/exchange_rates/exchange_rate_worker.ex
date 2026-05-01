@@ -30,7 +30,10 @@ defmodule Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker do
         Logger.info("[CasaTame] Exchange rate cached successfully")
 
       {:error, reason} ->
-        Logger.warning("[CasaTame] Exchange rate fetch failed: #{inspect(reason)}, will retry in 1 hour")
+        Logger.warning(
+          "[CasaTame] Exchange rate fetch failed: #{inspect(reason)}, will retry in 1 hour"
+        )
+
         schedule_fetch(:timer.hours(1))
         {:noreply, state}
     end

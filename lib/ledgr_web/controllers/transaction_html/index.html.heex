@@ -31,9 +31,9 @@
         <% else %>
           <%= for entry <- @entries do %>
             <tr>
-              <td><%= entry.date %></td>
-              <td><%= entry.description %></td>
-              <td><%= entry.entry_type %></td>
+              <td>{entry.date}</td>
+              <td>{entry.description}</td>
+              <td>{entry.entry_type}</td>
               <td class="numeric">
                 <.link navigate={dp(@domain_path_prefix, "/transactions/#{entry.id}")} class="btn">
                   View

@@ -37,8 +37,12 @@ defmodule Ledgr.Domains.AumentaMiPension.Agents do
     update_agent(agent, %{is_available: !agent.is_available})
   end
 
-  def count_by_status(:active), do: Agent |> where([a], a.is_available == true) |> Repo.aggregate(:count)
-  def count_by_status(:inactive), do: Agent |> where([a], a.is_available == false) |> Repo.aggregate(:count)
+  def count_by_status(:active),
+    do: Agent |> where([a], a.is_available == true) |> Repo.aggregate(:count)
+
+  def count_by_status(:inactive),
+    do: Agent |> where([a], a.is_available == false) |> Repo.aggregate(:count)
+
   def count_by_status(_), do: Repo.aggregate(Agent, :count)
 
   def count_all, do: Repo.aggregate(Agent, :count)
@@ -59,6 +63,7 @@ defmodule Ledgr.Domains.AumentaMiPension.Agents do
 
   defp maybe_search(query, nil), do: query
   defp maybe_search(query, ""), do: query
+
   defp maybe_search(query, search) do
     term = "%#{search}%"
     where(query, [a], ilike(a.name, ^term) or ilike(a.phone, ^term) or ilike(a.email, ^term))

@@ -4,12 +4,17 @@
   </header>
 
   <div class="content-body">
-    <.period_selector action={dp(@domain_path_prefix, "/reports/cash_flow")} start_date={@start_date} end_date={@end_date} domain_path_prefix={@domain_path_prefix} />
-
-    <!-- Cash Flow Summary -->
+    <.period_selector
+      action={dp(@domain_path_prefix, "/reports/cash_flow")}
+      start_date={@start_date}
+      end_date={@end_date}
+      domain_path_prefix={@domain_path_prefix}
+    />
+    
+<!-- Cash Flow Summary -->
     <section class="card">
       <h2 class="card-title">
-        Cash Flow: <%= @cash_flow.period.start_date %> to <%= @cash_flow.period.end_date %>
+        Cash Flow: {@cash_flow.period.start_date} to {@cash_flow.period.end_date}
       </h2>
       <p class="card-subtitle">
         Cash inflows and outflows for the selected period.
@@ -19,77 +24,77 @@
         <div class="metric-card">
           <div class="metric-label">Cash Inflows</div>
           <div class="metric-value" style="color: #059669;">
-            <%= format_currency(@cash_flow.cash_inflows_cents) %>
+            {format_currency(@cash_flow.cash_inflows_cents)}
           </div>
         </div>
 
         <div class="metric-card">
           <div class="metric-label">Cash Outflows</div>
           <div class="metric-value" style="color: #dc2626;">
-            <%= format_currency(@cash_flow.cash_outflows_cents) %>
+            {format_currency(@cash_flow.cash_outflows_cents)}
           </div>
         </div>
 
         <% color = if @cash_flow.net_cash_flow_cents >= 0, do: "#059669", else: "#dc2626" %>
 
         <div class="metric-card">
-            <div class="metric-label">Net Cash Flow</div>
+          <div class="metric-label">Net Cash Flow</div>
 
-            <div class="metric-value" style={"color: #{color}"}>
-                <%= format_currency(@cash_flow.net_cash_flow_cents) %>
-            </div>
+          <div class="metric-value" style={"color: #{color}"}>
+            {format_currency(@cash_flow.net_cash_flow_cents)}
+          </div>
         </div>
       </div>
     </section>
-
-    <!-- Cash Flow Charts -->
+    
+<!-- Cash Flow Charts -->
     <section class="card">
       <h2 class="card-title">Cash Flow Visualization</h2>
       <p class="card-subtitle">
         Visual breakdown of where money came from and where it went.
       </p>
 
-      <%
-        # Prepare inflows chart data
-        inflows_labels = ["Sales", "Investments", "Other"]
-        inflows_data = [
-          @cash_flow.breakdown.sales_inflows_cents,
-          @cash_flow.breakdown.investment_inflows_cents,
-          @cash_flow.breakdown.other_inflows_cents
+      <% # Prepare inflows chart data
+      inflows_labels = ["Sales", "Investments", "Other"]
+
+      inflows_data = [
+        @cash_flow.breakdown.sales_inflows_cents,
+        @cash_flow.breakdown.investment_inflows_cents,
+        @cash_flow.breakdown.other_inflows_cents
+      ]
+
+      inflows_chart_data = %{
+        format: "currency",
+        labels: inflows_labels,
+        datasets: [
+          %{
+            data: inflows_data,
+            backgroundColor: ["#059669", "#10b981", "#6ee7b7"],
+            borderWidth: 0
+          }
         ]
+      }
 
-        inflows_chart_data = %{
-          format: "currency",
-          labels: inflows_labels,
-          datasets: [
-            %{
-              data: inflows_data,
-              backgroundColor: ["#059669", "#10b981", "#6ee7b7"],
-              borderWidth: 0
-            }
-          ]
-        }
+      # Prepare outflows chart data
+      outflows_labels = ["Expenses & Inventory", "Withdrawals", "Other"]
 
-        # Prepare outflows chart data
-        outflows_labels = ["Expenses & Inventory", "Withdrawals", "Other"]
-        outflows_data = [
-          @cash_flow.breakdown.expense_outflows_cents,
-          @cash_flow.breakdown.withdrawal_outflows_cents,
-          @cash_flow.breakdown.other_outflows_cents
+      outflows_data = [
+        @cash_flow.breakdown.expense_outflows_cents,
+        @cash_flow.breakdown.withdrawal_outflows_cents,
+        @cash_flow.breakdown.other_outflows_cents
+      ]
+
+      outflows_chart_data = %{
+        format: "currency",
+        labels: outflows_labels,
+        datasets: [
+          %{
+            data: outflows_data,
+            backgroundColor: ["#dc2626", "#f97316", "#fbbf24"],
+            borderWidth: 0
+          }
         ]
-
-        outflows_chart_data = %{
-          format: "currency",
-          labels: outflows_labels,
-          datasets: [
-            %{
-              data: outflows_data,
-              backgroundColor: ["#dc2626", "#f97316", "#fbbf24"],
-              borderWidth: 0
-            }
-          ]
-        }
-      %>
+      } %>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
         <div>
@@ -97,7 +102,8 @@
             Cash Inflows
           </h3>
           <div id="inflows-chart-wrapper" phx-hook="DoughnutChart" style="height: 220px;">
-            <canvas id="inflows-chart" data-chart-data={Jason.encode!(inflows_chart_data)}></canvas>
+            <canvas id="inflows-chart" data-chart-data={Jason.encode!(inflows_chart_data)}>
+            </canvas>
           </div>
         </div>
 
@@ -106,13 +112,14 @@
             Cash Outflows
           </h3>
           <div id="outflows-chart-wrapper" phx-hook="DoughnutChart" style="height: 220px;">
-            <canvas id="outflows-chart" data-chart-data={Jason.encode!(outflows_chart_data)}></canvas>
+            <canvas id="outflows-chart" data-chart-data={Jason.encode!(outflows_chart_data)}>
+            </canvas>
           </div>
         </div>
       </div>
     </section>
-
-    <!-- Cash Flow Breakdown -->
+    
+<!-- Cash Flow Breakdown -->
     <section class="card">
       <h2 class="card-title">Cash Flow Details</h2>
       <p class="card-subtitle">
@@ -129,72 +136,79 @@
           </thead>
           <tbody>
             <tr>
-              <td colspan="2" style="font-weight: 600; background-color: #f0f9ff;">Cash Inflows</td>
+              <td colspan="2" style="font-weight: 600; background-color: #f0f9ff;">
+                Cash Inflows
+              </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Sales (Order Payments)</td>
               <td class="numeric" style="color: #059669;">
-                <%= format_currency(@cash_flow.breakdown.sales_inflows_cents) %>
+                {format_currency(@cash_flow.breakdown.sales_inflows_cents)}
               </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Investments</td>
               <td class="numeric" style="color: #059669;">
-                <%= format_currency(@cash_flow.breakdown.investment_inflows_cents) %>
+                {format_currency(@cash_flow.breakdown.investment_inflows_cents)}
               </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Other Inflows</td>
               <td class="numeric" style="color: #059669;">
-                <%= format_currency(@cash_flow.breakdown.other_inflows_cents) %>
+                {format_currency(@cash_flow.breakdown.other_inflows_cents)}
               </td>
             </tr>
             <tr style="font-weight: 600; background-color: #e0f2fe;">
               <td>Total Inflows</td>
               <td class="numeric" style="color: #059669;">
-                <%= format_currency(@cash_flow.cash_inflows_cents) %>
+                {format_currency(@cash_flow.cash_inflows_cents)}
               </td>
             </tr>
             <tr>
-              <td colspan="2" style="font-weight: 600; background-color: #fef2f2; padding-top: 1rem;">Cash Outflows</td>
+              <td
+                colspan="2"
+                style="font-weight: 600; background-color: #fef2f2; padding-top: 1rem;"
+              >
+                Cash Outflows
+              </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Expenses &amp; Inventory Purchases</td>
               <td class="numeric" style="color: #dc2626;">
-                <%= format_currency(@cash_flow.breakdown.expense_outflows_cents) %>
+                {format_currency(@cash_flow.breakdown.expense_outflows_cents)}
               </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Withdrawals</td>
               <td class="numeric" style="color: #dc2626;">
-                <%= format_currency(@cash_flow.breakdown.withdrawal_outflows_cents) %>
+                {format_currency(@cash_flow.breakdown.withdrawal_outflows_cents)}
               </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem;">Other Outflows</td>
               <td class="numeric" style="color: #dc2626;">
-                <%= format_currency(@cash_flow.breakdown.other_outflows_cents) %>
+                {format_currency(@cash_flow.breakdown.other_outflows_cents)}
               </td>
             </tr>
             <tr style="font-weight: 600; background-color: #fee2e2;">
               <td>Total Outflows</td>
               <td class="numeric" style="color: #dc2626;">
-                <%= format_currency(@cash_flow.cash_outflows_cents) %>
+                {format_currency(@cash_flow.cash_outflows_cents)}
               </td>
             </tr>
             <tr style="font-weight: 700; background-color: #f0fdf4; border-top: 2px solid #333;">
               <td>Net Cash Flow</td>
 
               <td class="numeric" style={"color: #{color}"}>
-                <%= format_currency(@cash_flow.net_cash_flow_cents) %>
+                {format_currency(@cash_flow.net_cash_flow_cents)}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
-
-    <!-- Cash Balance Reconciliation -->
+    
+<!-- Cash Balance Reconciliation -->
     <section class="card">
       <h2 class="card-title">Cash Balance Reconciliation</h2>
       <p class="card-subtitle">
@@ -211,27 +225,37 @@
           </thead>
           <tbody>
             <tr>
-              <td>Beginning Cash Balance <span style="color: var(--text-muted); font-size: 0.85rem;">(as of <%= Date.add(@cash_flow.period.start_date, -1) %>)</span></td>
+              <td>
+                Beginning Cash Balance
+                <span style="color: var(--text-muted); font-size: 0.85rem;">
+                  (as of {Date.add(@cash_flow.period.start_date, -1)})
+                </span>
+              </td>
               <td class="numeric">
-                <%= format_currency(@cash_flow.beginning_balance_cents) %>
+                {format_currency(@cash_flow.beginning_balance_cents)}
               </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem; color: #059669;">+ Cash Inflows</td>
               <td class="numeric" style="color: #059669;">
-                <%= format_currency(@cash_flow.cash_inflows_cents) %>
+                {format_currency(@cash_flow.cash_inflows_cents)}
               </td>
             </tr>
             <tr>
               <td style="padding-left: 2rem; color: #dc2626;">− Cash Outflows</td>
               <td class="numeric" style="color: #dc2626;">
-                (<%= format_currency(@cash_flow.cash_outflows_cents) %>)
+                ({format_currency(@cash_flow.cash_outflows_cents)})
               </td>
             </tr>
             <tr style="font-weight: 700; background-color: #f0fdf4; border-top: 2px solid #333;">
-              <td>Ending Cash Balance <span style="color: var(--text-muted); font-size: 0.85rem;">(as of <%= @cash_flow.period.end_date %>)</span></td>
+              <td>
+                Ending Cash Balance
+                <span style="color: var(--text-muted); font-size: 0.85rem;">
+                  (as of {@cash_flow.period.end_date})
+                </span>
+              </td>
               <td class="numeric">
-                <%= format_currency(@cash_flow.ending_balance_cents) %>
+                {format_currency(@cash_flow.ending_balance_cents)}
               </td>
             </tr>
           </tbody>
@@ -240,4 +264,3 @@
     </section>
   </div>
 </section>
-

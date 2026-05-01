@@ -7,10 +7,13 @@ defmodule Ledgr.Domains.Viaxe.TravelDocuments.LoyaltyProgram do
   schema "loyalty_programs" do
     belongs_to :customer, Customer
 
-    field :program_name, :string      # e.g. "AAdvantage", "Marriott Bonvoy"
-    field :program_type, :string      # airline, hotel, car_rental, other
+    # e.g. "AAdvantage", "Marriott Bonvoy"
+    field :program_name, :string
+    # airline, hotel, car_rental, other
+    field :program_type, :string
     field :member_number, :string
-    field :tier, :string              # Gold, Platinum, Elite, etc.
+    # Gold, Platinum, Elite, etc.
+    field :tier, :string
     field :notes, :string
 
     timestamps(type: :utc_datetime)

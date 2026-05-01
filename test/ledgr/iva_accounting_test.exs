@@ -22,8 +22,11 @@ defmodule Ledgr.Core.IvaAccountingTest do
               normal_balance: "debit",
               is_cash: false
             })
+
           acc
-        existing -> existing
+
+        existing ->
+          existing
       end
 
     sales_tax_payable =
@@ -37,8 +40,11 @@ defmodule Ledgr.Core.IvaAccountingTest do
               normal_balance: "credit",
               is_cash: false
             })
+
           acc
-        existing -> existing
+
+        existing ->
+          existing
       end
 
     # Create a generic expense account for tests
@@ -60,7 +66,10 @@ defmodule Ledgr.Core.IvaAccountingTest do
   end
 
   describe "record_expense/1 with IVA splitting" do
-    test "expense without IVA creates 2-line entry", %{accounts: accounts, expense_acc: expense_acc} do
+    test "expense without IVA creates 2-line entry", %{
+      accounts: accounts,
+      expense_acc: expense_acc
+    } do
       cash = accounts["1000"]
 
       {:ok, expense} =
@@ -132,7 +141,10 @@ defmodule Ledgr.Core.IvaAccountingTest do
       assert total_debits == total_credits
     end
 
-    test "expense with nil iva_cents treated as zero IVA", %{accounts: accounts, expense_acc: expense_acc} do
+    test "expense with nil iva_cents treated as zero IVA", %{
+      accounts: accounts,
+      expense_acc: expense_acc
+    } do
       cash = accounts["1000"]
 
       {:ok, expense} =
@@ -163,7 +175,11 @@ defmodule Ledgr.Core.IvaAccountingTest do
       assert position.as_of_date == ~D[2026-01-01]
     end
 
-    test "tracks IVA receivable from expenses", %{accounts: accounts, expense_acc: expense_acc, iva_receivable: iva_receivable} do
+    test "tracks IVA receivable from expenses", %{
+      accounts: accounts,
+      expense_acc: expense_acc,
+      iva_receivable: iva_receivable
+    } do
       cash = accounts["1000"]
 
       # Two expenses with IVA
@@ -193,17 +209,40 @@ defmodule Ledgr.Core.IvaAccountingTest do
       assert position.net_position_cents == 2_400
     end
 
-    test "tracks IVA payable from sales", %{accounts: accounts, sales_tax_payable: sales_tax_payable} do
+    test "tracks IVA payable from sales", %{
+      accounts: accounts,
+      sales_tax_payable: sales_tax_payable
+    } do
       cash = accounts["1000"]
 
       # Simulate a sale with IVA collected: Dr Cash, Cr Revenue, Cr Sales Tax Payable
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-04-10], entry_type: "sale", reference: "iva-sale-1", description: "Sale with IVA"},
+          %{
+            date: ~D[2026-04-10],
+            entry_type: "sale",
+            reference: "iva-sale-1",
+            description: "Sale with IVA"
+          },
           [
-            %{account_id: cash.id, debit_cents: 11_600, credit_cents: 0, description: "cash received"},
-            %{account_id: accounts["4000"].id, debit_cents: 0, credit_cents: 10_000, description: "revenue"},
-            %{account_id: sales_tax_payable.id, debit_cents: 0, credit_cents: 1_600, description: "IVA collected"}
+            %{
+              account_id: cash.id,
+              debit_cents: 11_600,
+              credit_cents: 0,
+              description: "cash received"
+            },
+            %{
+              account_id: accounts["4000"].id,
+              debit_cents: 0,
+              credit_cents: 10_000,
+              description: "revenue"
+            },
+            %{
+              account_id: sales_tax_payable.id,
+              debit_cents: 0,
+              credit_cents: 1_600,
+              description: "IVA collected"
+            }
           ]
         )
 
@@ -233,11 +272,26 @@ defmodule Ledgr.Core.IvaAccountingTest do
       # IVA collected on sale: 2_400
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: ~D[2026-05-15], entry_type: "sale", reference: "iva-net-1", description: "Sale"},
+          %{
+            date: ~D[2026-05-15],
+            entry_type: "sale",
+            reference: "iva-net-1",
+            description: "Sale"
+          },
           [
             %{account_id: cash.id, debit_cents: 17_400, credit_cents: 0, description: "cash"},
-            %{account_id: accounts["4000"].id, debit_cents: 0, credit_cents: 15_000, description: "rev"},
-            %{account_id: sales_tax_payable.id, debit_cents: 0, credit_cents: 2_400, description: "iva"}
+            %{
+              account_id: accounts["4000"].id,
+              debit_cents: 0,
+              credit_cents: 15_000,
+              description: "rev"
+            },
+            %{
+              account_id: sales_tax_payable.id,
+              debit_cents: 0,
+              credit_cents: 2_400,
+              description: "iva"
+            }
           ]
         )
 

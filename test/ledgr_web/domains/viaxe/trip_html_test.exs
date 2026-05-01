@@ -132,6 +132,7 @@ defmodule LedgrWeb.Domains.Viaxe.TripHTMLTest do
     test "always returns a value in 0..6" do
       for year <- [2024, 2025, 2026], month <- 1..12 do
         blanks = TripHTML.calendar_leading_blanks(year, month)
+
         assert blanks in 0..6,
                "Expected 0-6 for #{year}-#{month}, got #{blanks}"
       end

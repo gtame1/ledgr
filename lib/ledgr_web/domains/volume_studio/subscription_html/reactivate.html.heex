@@ -1,14 +1,12 @@
 <div class="new-subscription-card">
-
   <section class="card" style="margin-bottom: 1.5rem;">
     <div class="card-header">
       <div>
         <h2 class="card-title">Reactivate Subscription</h2>
         <p class="card-subtitle">
-          <%= @subscription.customer.name %> ·
-          <%= @subscription.subscription_plan.name %> ·
+          {@subscription.customer.name} · {@subscription.subscription_plan.name} ·
           <span class={"status-badge #{status_class(@subscription.status)}"}>
-            <%= String.capitalize(@subscription.status) %>
+            {String.capitalize(@subscription.status)}
           </span>
         </p>
       </div>
@@ -17,7 +15,9 @@
   </section>
 
   <section class="card">
-    <h3 class="card-title" style="font-size: 1rem; margin-bottom: 0.25rem;">New Subscription Period</h3>
+    <h3 class="card-title" style="font-size: 1rem; margin-bottom: 0.25rem;">
+      New Subscription Period
+    </h3>
     <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.25rem;">
       Set a new expiration date to reactivate this subscription.
     </p>
@@ -43,7 +43,7 @@
             id="ends_on"
             type="date"
             name="subscription[ends_on]"
-            value={Date.add(today_mx(), (@subscription.subscription_plan.duration_days || 30))}
+            value={Date.add(today_mx(), @subscription.subscription_plan.duration_days || 30)}
             min={Date.to_string(today_mx())}
             class="form-input"
             required
@@ -57,5 +57,4 @@
       </div>
     </form>
   </section>
-
 </div>

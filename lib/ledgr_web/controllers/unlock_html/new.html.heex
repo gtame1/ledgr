@@ -1,13 +1,18 @@
 <div class="ledgr-unlock">
   <div class="ledgr-unlock-card">
     <div class="ledgr-unlock-logo-wrap">
-      <img src={~p"/images/ledgr-logos/logo/ledgr-logo.png"} alt="Ledgr" class="ledgr-unlock-logo" onerror="this.style.display='none'" />
+      <img
+        src={~p"/images/ledgr-logos/logo/ledgr-logo.png"}
+        alt="Ledgr"
+        class="ledgr-unlock-logo"
+        onerror="this.style.display='none'"
+      />
     </div>
 
     <h2 class="ledgr-unlock-title">Enter Password</h2>
 
     <%= if @error do %>
-      <div class="ledgr-unlock-error"><%= @error %></div>
+      <div class="ledgr-unlock-error">{@error}</div>
     <% end %>
 
     <form action="/unlock" method="post" class="ledgr-unlock-form">
@@ -15,8 +20,14 @@
 
       <div class="ledgr-unlock-field">
         <label for="password">Password</label>
-        <input type="password" name="password" id="password" required autofocus
-          placeholder="Enter site password" />
+        <input
+          type="password"
+          name="password"
+          id="password"
+          required
+          autofocus
+          placeholder="Enter site password"
+        />
       </div>
 
       <button type="submit" class="ledgr-unlock-btn">Continue</button>

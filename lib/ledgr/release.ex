@@ -20,10 +20,10 @@ defmodule Ledgr.Release do
 
   # Production seed files — real business data only, no dummy/sample records.
   @prod_seed_paths %{
-    Ledgr.Repos.MrMunchMe       => "priv/repos/mr_munch_me/seeds_prod.exs",
-    Ledgr.Repos.Viaxe           => "priv/repos/viaxe/seeds_prod.exs",
-    Ledgr.Repos.CasaTame        => "priv/repos/casa_tame/seeds_prod.exs",
-    Ledgr.Repos.HelloDoctor     => "priv/repos/hello_doctor/seeds_prod.exs",
+    Ledgr.Repos.MrMunchMe => "priv/repos/mr_munch_me/seeds_prod.exs",
+    Ledgr.Repos.Viaxe => "priv/repos/viaxe/seeds_prod.exs",
+    Ledgr.Repos.CasaTame => "priv/repos/casa_tame/seeds_prod.exs",
+    Ledgr.Repos.HelloDoctor => "priv/repos/hello_doctor/seeds_prod.exs",
     Ledgr.Repos.AumentaMiPension => "priv/repos/aumenta_mi_pension/seeds_prod.exs"
   }
 
@@ -147,23 +147,23 @@ defmodule Ledgr.Release do
     deletes = [
       # Order children
       {Ledgr.Domains.MrMunchMe.Orders.OrderIngredient, "order ingredients"},
-      {Ledgr.Domains.MrMunchMe.Orders.OrderPayment,    "order payments"},
-      {Ledgr.Domains.MrMunchMe.Orders.Order,           "orders"},
+      {Ledgr.Domains.MrMunchMe.Orders.OrderPayment, "order payments"},
+      {Ledgr.Domains.MrMunchMe.Orders.Order, "orders"},
       # Recipe children
-      {Ledgr.Domains.MrMunchMe.Inventory.RecipeLine,   "recipe lines"},
-      {Ledgr.Domains.MrMunchMe.Inventory.Recipe,       "recipes"},
+      {Ledgr.Domains.MrMunchMe.Inventory.RecipeLine, "recipe lines"},
+      {Ledgr.Domains.MrMunchMe.Inventory.Recipe, "recipes"},
       # Inventory children
       {Ledgr.Domains.MrMunchMe.Inventory.InventoryMovement, "inventory movements"},
-      {Ledgr.Domains.MrMunchMe.Inventory.InventoryItem,     "inventory items"},
+      {Ledgr.Domains.MrMunchMe.Inventory.InventoryItem, "inventory items"},
       # Product children
       {Ledgr.Domains.MrMunchMe.Orders.ProductImage, "product images"},
       # Master data (parents)
-      {Ledgr.Domains.MrMunchMe.Orders.Product,          "products"},
-      {Ledgr.Domains.MrMunchMe.Inventory.Ingredient,    "ingredients"},
-      {Ledgr.Domains.MrMunchMe.Inventory.Location,      "inventory locations"},
-      {Ledgr.Core.Partners.CapitalContribution,         "capital contributions"},
-      {Ledgr.Core.Partners.Partner,                     "partners"},
-      {Ledgr.Core.Accounts.User,                        "users"}
+      {Ledgr.Domains.MrMunchMe.Orders.Product, "products"},
+      {Ledgr.Domains.MrMunchMe.Inventory.Ingredient, "ingredients"},
+      {Ledgr.Domains.MrMunchMe.Inventory.Location, "inventory locations"},
+      {Ledgr.Core.Partners.CapitalContribution, "capital contributions"},
+      {Ledgr.Core.Partners.Partner, "partners"},
+      {Ledgr.Core.Accounts.User, "users"}
     ]
 
     for {schema, label} <- deletes do
@@ -178,9 +178,9 @@ defmodule Ledgr.Release do
     repo = Ledgr.Repos.Viaxe
 
     deletes = [
-      {Ledgr.Domains.Viaxe.Services.Service,   "services"},
+      {Ledgr.Domains.Viaxe.Services.Service, "services"},
       {Ledgr.Domains.Viaxe.Suppliers.Supplier, "suppliers"},
-      {Ledgr.Core.Accounts.User,               "users"}
+      {Ledgr.Core.Accounts.User, "users"}
     ]
 
     for {schema, label} <- deletes do
@@ -199,7 +199,7 @@ defmodule Ledgr.Release do
   defp repo_configured?(repo) do
     case Application.fetch_env(@app, repo) do
       {:ok, config} -> Keyword.has_key?(config, :url)
-      :error        -> false
+      :error -> false
     end
   end
 

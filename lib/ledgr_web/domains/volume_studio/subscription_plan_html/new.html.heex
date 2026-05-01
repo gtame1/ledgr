@@ -3,8 +3,7 @@
     <h2 class="card-title">New Subscription Plan</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:subscription_plan} :let={f}>
-
+  <.form :let={f} for={@changeset} action={@action} as={:subscription_plan}>
     <p class="form-section-title">Plan</p>
     <div class="form-block" style="margin-bottom: 1.75rem;">
       <div class="field">
@@ -14,8 +13,16 @@
 
       <div class="field">
         <label>Type</label>
-        <.input type="select" field={f[:plan_type]}
-          options={[{"Membership", "membership"}, {"Package", "package"}, {"Promo", "promo"}, {"Extra Service", "extra"}]} />
+        <.input
+          type="select"
+          field={f[:plan_type]}
+          options={[
+            {"Membership", "membership"},
+            {"Package", "package"},
+            {"Promo", "promo"},
+            {"Extra Service", "extra"}
+          ]}
+        />
       </div>
 
       <div class="field">
@@ -61,16 +68,21 @@
     <div class="field full" style="margin-bottom: 1.75rem;">
       <label>
         Description
-        <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);margin-left:0.25rem;">— optional</span>
+        <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted);margin-left:0.25rem;">
+          — optional
+        </span>
       </label>
-      <.input type="textarea" field={f[:description]} placeholder="Internal notes about this plan…" />
+      <.input
+        type="textarea"
+        field={f[:description]}
+        placeholder="Internal notes about this plan…"
+      />
     </div>
 
     <div class="form-actions">
       <button type="submit" class="btn primary">Save Plan</button>
       <.link navigate={dp(@domain_path_prefix, "/subscription-plans")} class="btn">Cancel</.link>
     </div>
-
   </.form>
 </section>
 

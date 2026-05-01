@@ -1,78 +1,125 @@
 <section class="card" style="margin-bottom: 1.5rem;">
   <div class="card-header">
     <div>
-      <h2 class="card-title"><%= @consultation.customer.name %></h2>
+      <h2 class="card-title">{@consultation.customer.name}</h2>
       <p class="card-subtitle">
-        <%= @consultation.instructor_name || "—" %> ·
+        {@consultation.instructor_name || "—"} ·
         <span class={"status-badge #{status_class(@consultation.status)}"}>
-          <%= String.capitalize(@consultation.status) %>
+          {String.capitalize(@consultation.status)}
         </span>
       </p>
     </div>
 
     <div class="actions">
       <%= if is_nil(@consultation.paid_at) do %>
-        <.link navigate={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/payment/new")} class="btn primary">
+        <.link
+          navigate={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/payment/new")}
+          class="btn primary"
+        >
           Record Payment
         </.link>
       <% end %>
       <%= if @consultation.status == "scheduled" do %>
-        <form action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")} method="post" style="display:inline;">
+        <form
+          action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")}
+          method="post"
+          style="display:inline;"
+        >
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
           <input type="hidden" name="status" value="completed" />
-          <button type="submit" class="btn" onclick="return confirm('Mark this consultation as completed?')">Mark Completed</button>
+          <button
+            type="submit"
+            class="btn"
+            onclick="return confirm('Mark this consultation as completed?')"
+          >
+            Mark Completed
+          </button>
         </form>
-        <form action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")} method="post" style="display:inline;">
+        <form
+          action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")}
+          method="post"
+          style="display:inline;"
+        >
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
           <input type="hidden" name="status" value="cancelled" />
-          <button type="submit" class="btn danger" onclick="return confirm('Cancel this consultation?')">Cancel</button>
+          <button
+            type="submit"
+            class="btn danger"
+            onclick="return confirm('Cancel this consultation?')"
+          >
+            Cancel
+          </button>
         </form>
-        <form action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")} method="post" style="display:inline;">
+        <form
+          action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")}
+          method="post"
+          style="display:inline;"
+        >
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
           <input type="hidden" name="status" value="no_show" />
-          <button type="submit" class="btn danger" onclick="return confirm('Mark as no-show?')">No Show</button>
+          <button type="submit" class="btn danger" onclick="return confirm('Mark as no-show?')">
+            No Show
+          </button>
         </form>
       <% end %>
       <%= if @consultation.status in ["completed", "cancelled", "no_show"] do %>
-        <form action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")} method="post" style="display:inline;">
+        <form
+          action={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/status")}
+          method="post"
+          style="display:inline;"
+        >
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
           <input type="hidden" name="status" value="scheduled" />
-          <button type="submit" class="btn" onclick="return confirm('Reopen this consultation as scheduled?')">Reopen</button>
+          <button
+            type="submit"
+            class="btn"
+            onclick="return confirm('Reopen this consultation as scheduled?')"
+          >
+            Reopen
+          </button>
         </form>
       <% end %>
-      <.link navigate={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/edit")} class="btn">Edit</.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/edit")}
+        class="btn"
+      >
+        Edit
+      </.link>
       <.link navigate={dp(@domain_path_prefix, "/consultations")} class="btn">← Back</.link>
     </div>
   </div>
 
-  <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+  <div
+    class="detail-grid"
+    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;"
+  >
     <div class="detail-item">
       <span class="label">Date &amp; Time</span>
-      <span><%= fmt_datetime(@consultation.scheduled_at, "%b %d, %Y · %H:%M") %></span>
+      <span>{fmt_datetime(@consultation.scheduled_at, "%b %d, %Y · %H:%M")}</span>
     </div>
     <div class="detail-item">
       <span class="label">Duration</span>
-      <span><%= @consultation.duration_minutes %> minutes</span>
+      <span>{@consultation.duration_minutes} minutes</span>
     </div>
     <div class="detail-item">
       <span class="label">Amount</span>
-      <span><%= format_currency(@consultation.amount_cents) %></span>
+      <span>{format_currency(@consultation.amount_cents)}</span>
     </div>
     <%= if @consultation.iva_cents && @consultation.iva_cents > 0 do %>
       <div class="detail-item">
         <span class="label">IVA</span>
-        <span><%= format_currency(@consultation.iva_cents) %></span>
+        <span>{format_currency(@consultation.iva_cents)}</span>
       </div>
       <div class="detail-item">
         <span class="label">Total</span>
-        <span><%= format_currency(@consultation.amount_cents + @consultation.iva_cents) %></span>
+        <span>{format_currency(@consultation.amount_cents + @consultation.iva_cents)}</span>
       </div>
     <% end %>
     <div class="detail-item">
       <span class="label">Paid</span>
       <span>
         <%= if @consultation.paid_at do %>
-          <span class="status-badge status-paid">Paid <%= fmt_date(@consultation.paid_at) %></span>
+          <span class="status-badge status-paid">Paid {fmt_date(@consultation.paid_at)}</span>
         <% else %>
           <span class="status-badge status-unpaid">Unpaid</span>
         <% end %>
@@ -86,7 +133,7 @@
     <div class="card-header">
       <h3 class="card-title" style="font-size: 1rem;">Notes</h3>
     </div>
-    <p style="margin-top: 0.5rem; color: var(--text-muted);"><%= @consultation.notes %></p>
+    <p style="margin-top: 0.5rem; color: var(--text-muted);">{@consultation.notes}</p>
   </section>
 <% end %>
 
@@ -95,14 +142,20 @@
   <div class="card-header">
     <h3 class="card-title" style="font-size: 1rem;">Payment History</h3>
     <%= if is_nil(@consultation.paid_at) do %>
-      <.link navigate={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/payment/new")} class="btn primary" style="font-size: 0.8rem;">
+      <.link
+        navigate={dp(@domain_path_prefix, "/consultations/#{@consultation.id}/payment/new")}
+        class="btn primary"
+        style="font-size: 0.8rem;"
+      >
         + Record Payment
       </.link>
     <% end %>
   </div>
 
   <%= if @payments == [] do %>
-    <p style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.875rem;">No payments recorded yet.</p>
+    <p style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.875rem;">
+      No payments recorded yet.
+    </p>
   <% else %>
     <div style="margin-top: 0.75rem; overflow-x: auto;">
       <table class="table" style="width: 100%;">
@@ -115,15 +168,15 @@
         </thead>
         <tbody>
           <%= for entry <- @payments do %>
-            <%
-              cash_line = entry.journal_lines |> Enum.find(&(&1.debit_cents > 0))
-              amount_cents = if cash_line, do: cash_line.debit_cents, else: 0
-              note = if cash_line, do: cash_line.description, else: nil
-            %>
+            <% cash_line = entry.journal_lines |> Enum.find(&(&1.debit_cents > 0))
+            amount_cents = if cash_line, do: cash_line.debit_cents, else: 0
+            note = if cash_line, do: cash_line.description, else: nil %>
             <tr>
-              <td style="white-space: nowrap; font-size: 0.875rem;"><%= entry.date %></td>
-              <td style="text-align: right; font-weight: 600;"><%= format_currency(amount_cents) %></td>
-              <td style="color: var(--text-muted); font-size: 0.875rem;"><%= note || "—" %></td>
+              <td style="white-space: nowrap; font-size: 0.875rem;">{entry.date}</td>
+              <td style="text-align: right; font-weight: 600;">
+                {format_currency(amount_cents)}
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.875rem;">{note || "—"}</td>
             </tr>
           <% end %>
         </tbody>

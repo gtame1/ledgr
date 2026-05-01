@@ -3,8 +3,7 @@
     <h2 class="card-title">New Customer</h2>
   </div>
 
-  <.form for={@changeset} action={@action} as={:customer} :let={f}>
-
+  <.form :let={f} for={@changeset} action={@action} as={:customer}>
     <div class="form-section">
       <div class="form-section-title">Personal Info</div>
       <div class="form-grid">
@@ -55,7 +54,12 @@
           </div>
           <div class="field">
             <label>Nationality</label>
-            <input type="text" name="customer[travel_profile][nationality]" class="input" placeholder="e.g. Mexican" />
+            <input
+              type="text"
+              name="customer[travel_profile][nationality]"
+              class="input"
+              placeholder="e.g. Mexican"
+            />
           </div>
           <div class="field">
             <label>Seat Preference</label>
@@ -95,15 +99,28 @@
         <div class="form-block">
           <div class="field">
             <label>Emergency Contact Name</label>
-            <input type="text" name="customer[travel_profile][emergency_contact_name]" class="input" />
+            <input
+              type="text"
+              name="customer[travel_profile][emergency_contact_name]"
+              class="input"
+            />
           </div>
           <div class="field">
             <label>Emergency Contact Phone</label>
-            <input type="text" name="customer[travel_profile][emergency_contact_phone]" class="input" />
+            <input
+              type="text"
+              name="customer[travel_profile][emergency_contact_phone]"
+              class="input"
+            />
           </div>
           <div class="field" style="grid-column: 1 / -1;">
             <label>Medical / Allergy Notes</label>
-            <textarea name="customer[travel_profile][medical_notes]" class="input" rows="3" placeholder="Allergies, vaccines, special requirements..."></textarea>
+            <textarea
+              name="customer[travel_profile][medical_notes]"
+              class="input"
+              rows="3"
+              placeholder="Allergies, vaccines, special requirements..."
+            ></textarea>
           </div>
         </div>
       </div>

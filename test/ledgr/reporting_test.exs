@@ -29,7 +29,11 @@ defmodule Ledgr.Core.ReportingTest do
       assert result.cogs_cents == 0
     end
 
-    test "calculates revenue for delivered orders", %{product: product, variant: variant, location: location} do
+    test "calculates revenue for delivered orders", %{
+      product: product,
+      variant: variant,
+      location: location
+    } do
       today = Date.utc_today()
 
       # Create a delivered order
@@ -42,7 +46,11 @@ defmodule Ledgr.Core.ReportingTest do
       assert result.revenue_per_unit_cents == variant.price_cents
     end
 
-    test "includes shipping revenue when customer_paid_shipping is true", %{product: product, variant: variant, location: location} do
+    test "includes shipping revenue when customer_paid_shipping is true", %{
+      product: product,
+      variant: variant,
+      location: location
+    } do
       # Create shipping variant
       envio_product = product_fixture(%{name: "Shipping"})
       _envio_variant = variant_fixture(%{product: envio_product, sku: "ENVIO", price_cents: 5000})
@@ -71,7 +79,11 @@ defmodule Ledgr.Core.ReportingTest do
       assert result.revenue_cents == variant.price_cents + 5000
     end
 
-    test "excludes non-delivered orders from calculations", %{product: product, variant: variant, location: location} do
+    test "excludes non-delivered orders from calculations", %{
+      product: product,
+      variant: variant,
+      location: location
+    } do
       today = Date.utc_today()
 
       # Create orders with different statuses
@@ -92,8 +104,21 @@ defmodule Ledgr.Core.ReportingTest do
       _tomorrow = Date.add(today, 1)
 
       # Create orders on different dates
-      _yesterday_order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: yesterday})
-      _today_order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+      _yesterday_order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: yesterday
+        })
+
+      _today_order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
 
       # Query only today
       result = DomainReporting.unit_economics(product.id, today, today)
@@ -104,7 +129,11 @@ defmodule Ledgr.Core.ReportingTest do
       assert result_both.units_sold == 2
     end
 
-    test "calculates gross margin correctly", %{product: product, variant: variant, location: location} do
+    test "calculates gross margin correctly", %{
+      product: product,
+      variant: variant,
+      location: location
+    } do
       today = Date.utc_today()
 
       _order = order_fixture(%{variant: variant, location: location, status: "delivered"})
@@ -115,10 +144,21 @@ defmodule Ledgr.Core.ReportingTest do
       assert result.gross_margin_cents == result.revenue_cents - result.cogs_cents
     end
 
-    test "defaults to all time when no dates provided", %{product: product, variant: variant, location: location} do
+    test "defaults to all time when no dates provided", %{
+      product: product,
+      variant: variant,
+      location: location
+    } do
       # Create an order with today's date (Mexico City timezone, matching the function's default end date)
       today = LedgrWeb.Helpers.DomainHelpers.today_mx()
-      _order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+
+      _order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
 
       result = DomainReporting.unit_economics(product.id, nil, nil)
 
@@ -160,7 +200,12 @@ defmodule Ledgr.Core.ReportingTest do
       # Simulate a cash receipt: Dr Cash, Cr AR
       {:ok, _entry} =
         Accounting.create_journal_entry_with_lines(
-          %{date: today, entry_type: "order_payment", reference: "Test", description: "Test payment"},
+          %{
+            date: today,
+            entry_type: "order_payment",
+            reference: "Test",
+            description: "Test payment"
+          },
           [
             %{account_id: cash.id, debit_cents: 10000, credit_cents: 0, description: "Cash in"},
             %{account_id: ar.id, debit_cents: 0, credit_cents: 10000, description: "AR credit"}
@@ -203,7 +248,12 @@ defmodule Ledgr.Core.ReportingTest do
 
       {:ok, _entry} =
         Accounting.create_journal_entry_with_lines(
-          %{date: today, entry_type: "internal_transfer", reference: "Transfer", description: "Internal transfer"},
+          %{
+            date: today,
+            entry_type: "internal_transfer",
+            reference: "Transfer",
+            description: "Internal transfer"
+          },
           [
             %{account_id: cash2.id, debit_cents: 5000, credit_cents: 0, description: "Bank in"},
             %{account_id: cash.id, debit_cents: 0, credit_cents: 5000, description: "Cash out"}
@@ -224,7 +274,12 @@ defmodule Ledgr.Core.ReportingTest do
 
       {:ok, _entry} =
         Accounting.create_journal_entry_with_lines(
-          %{date: today, entry_type: "investment", reference: "Investment", description: "Owner investment"},
+          %{
+            date: today,
+            entry_type: "investment",
+            reference: "Investment",
+            description: "Owner investment"
+          },
           [
             %{account_id: cash.id, debit_cents: 50000, credit_cents: 0, description: "Cash in"},
             %{account_id: equity.id, debit_cents: 0, credit_cents: 50000, description: "Equity"}
@@ -244,9 +299,19 @@ defmodule Ledgr.Core.ReportingTest do
 
       {:ok, _entry} =
         Accounting.create_journal_entry_with_lines(
-          %{date: today, entry_type: "withdrawal", reference: "Withdrawal", description: "Owner withdrawal"},
+          %{
+            date: today,
+            entry_type: "withdrawal",
+            reference: "Withdrawal",
+            description: "Owner withdrawal"
+          },
           [
-            %{account_id: drawings.id, debit_cents: 20000, credit_cents: 0, description: "Drawings"},
+            %{
+              account_id: drawings.id,
+              debit_cents: 20000,
+              credit_cents: 0,
+              description: "Drawings"
+            },
             %{account_id: cash.id, debit_cents: 0, credit_cents: 20000, description: "Cash out"}
           ]
         )
@@ -266,7 +331,12 @@ defmodule Ledgr.Core.ReportingTest do
       # Add cash yesterday (before period)
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: yesterday, entry_type: "order_payment", reference: "Prior", description: "Prior payment"},
+          %{
+            date: yesterday,
+            entry_type: "order_payment",
+            reference: "Prior",
+            description: "Prior payment"
+          },
           [
             %{account_id: cash.id, debit_cents: 15000, credit_cents: 0, description: "Cash"},
             %{account_id: ar.id, debit_cents: 0, credit_cents: 15000, description: "AR"}
@@ -276,7 +346,12 @@ defmodule Ledgr.Core.ReportingTest do
       # Add cash today (inside period)
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: today, entry_type: "order_payment", reference: "Today", description: "Today payment"},
+          %{
+            date: today,
+            entry_type: "order_payment",
+            reference: "Today",
+            description: "Today payment"
+          },
           [
             %{account_id: cash.id, debit_cents: 5000, credit_cents: 0, description: "Cash"},
             %{account_id: ar.id, debit_cents: 0, credit_cents: 5000, description: "AR"}
@@ -392,7 +467,12 @@ defmodule Ledgr.Core.ReportingTest do
 
       {:ok, _} =
         Accounting.create_journal_entry_with_lines(
-          %{date: today, entry_type: "order_delivered", reference: "Rev2", description: "Revenue"},
+          %{
+            date: today,
+            entry_type: "order_delivered",
+            reference: "Rev2",
+            description: "Revenue"
+          },
           [
             %{account_id: ar.id, debit_cents: 30000, credit_cents: 0, description: "AR"},
             %{account_id: sales.id, debit_cents: 0, credit_cents: 30000, description: "Sales"}
@@ -472,7 +552,10 @@ defmodule Ledgr.Core.ReportingTest do
       assert result.delivered_orders == 1
     end
 
-    test "calculates revenue from all non-canceled orders", %{variant: variant, location: location} do
+    test "calculates revenue from all non-canceled orders", %{
+      variant: variant,
+      location: location
+    } do
       today = Date.utc_today()
 
       _order1 = order_fixture(%{variant: variant, location: location, status: "delivered"})
@@ -500,11 +583,15 @@ defmodule Ledgr.Core.ReportingTest do
 
       assert length(result.orders_by_product) == 2
 
-      product1_stats = Enum.find(result.orders_by_product, fn p -> p.product_id == product1.id end)
+      product1_stats =
+        Enum.find(result.orders_by_product, fn p -> p.product_id == product1.id end)
+
       assert product1_stats.order_count == 2
       assert product1_stats.revenue_cents == 20000
 
-      product2_stats = Enum.find(result.orders_by_product, fn p -> p.product_id == product2.id end)
+      product2_stats =
+        Enum.find(result.orders_by_product, fn p -> p.product_id == product2.id end)
+
       assert product2_stats.order_count == 1
       assert product2_stats.revenue_cents == 20000
     end
@@ -513,8 +600,21 @@ defmodule Ledgr.Core.ReportingTest do
       today = Date.utc_today()
       yesterday = Date.add(today, -1)
 
-      _yesterday_order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: yesterday})
-      _today_order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+      _yesterday_order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: yesterday
+        })
+
+      _today_order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
 
       # Query only today
       result = DomainReporting.dashboard_metrics(today, today)
@@ -538,7 +638,10 @@ defmodule Ledgr.Core.ReportingTest do
       assert result.avg_order_value_cents == variant.price_cents
     end
 
-    test "calculates avg order value from all non-canceled orders", %{variant: variant, location: location} do
+    test "calculates avg order value from all non-canceled orders", %{
+      variant: variant,
+      location: location
+    } do
       today = Date.utc_today()
 
       _order = order_fixture(%{variant: variant, location: location, status: "new_order"})
@@ -579,7 +682,14 @@ defmodule Ledgr.Core.ReportingTest do
     test "includes unpaid delivered order in current bucket when as_of_date equals delivery_date",
          %{variant: variant, location: location} do
       today = Date.utc_today()
-      order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+
+      order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
 
       result = DomainReporting.ar_aging_report(today)
 
@@ -599,7 +709,15 @@ defmodule Ledgr.Core.ReportingTest do
     test "excludes fully paid delivered order from line items",
          %{accounts: accounts, variant: variant, location: location} do
       today = Date.utc_today()
-      order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+
+      order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
+
       _payment = order_payment_fixture(order, accounts["1000"], %{"amount_cents" => 10000})
 
       result = DomainReporting.ar_aging_report(today)
@@ -611,7 +729,15 @@ defmodule Ledgr.Core.ReportingTest do
     test "shows outstanding balance for partially paid order",
          %{accounts: accounts, variant: variant, location: location} do
       today = Date.utc_today()
-      order = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: today})
+
+      order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: today
+        })
+
       _payment = order_payment_fixture(order, accounts["1000"], %{"amount_cents" => 3000})
 
       result = DomainReporting.ar_aging_report(today)
@@ -629,13 +755,40 @@ defmodule Ledgr.Core.ReportingTest do
       as_of = Date.utc_today()
 
       # current: ≤ 30 days — 15 days ago
-      _c = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: Date.add(as_of, -15)})
+      _c =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: Date.add(as_of, -15)
+        })
+
       # 31-60 days — 45 days ago
-      _a = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: Date.add(as_of, -45)})
+      _a =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: Date.add(as_of, -45)
+        })
+
       # 61-90 days — 75 days ago
-      _b = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: Date.add(as_of, -75)})
+      _b =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: Date.add(as_of, -75)
+        })
+
       # 90+ days — 100 days ago
-      _d = order_fixture(%{variant: variant, location: location, status: "delivered", delivery_date: Date.add(as_of, -100)})
+      _d =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: Date.add(as_of, -100)
+        })
 
       result = DomainReporting.ar_aging_report(as_of)
 
@@ -650,9 +803,30 @@ defmodule Ledgr.Core.ReportingTest do
     test "excludes non-delivered orders (new_order, in_prep, canceled)",
          %{variant: variant, location: location} do
       today = Date.utc_today()
-      _new = order_fixture(%{variant: variant, location: location, status: "new_order", delivery_date: today})
-      _in_prep = order_fixture(%{variant: variant, location: location, status: "in_prep", delivery_date: today})
-      _canceled = order_fixture(%{variant: variant, location: location, status: "canceled", delivery_date: today})
+
+      _new =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "new_order",
+          delivery_date: today
+        })
+
+      _in_prep =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "in_prep",
+          delivery_date: today
+        })
+
+      _canceled =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "canceled",
+          delivery_date: today
+        })
 
       result = DomainReporting.ar_aging_report(today)
 
@@ -668,13 +842,14 @@ defmodule Ledgr.Core.ReportingTest do
       # but actual_delivery_date pushes it into "31-60" (45 days ago)
       actual_delivery_date = Date.add(as_of, -45)
 
-      _order = order_fixture(%{
-        variant: variant,
-        location: location,
-        status: "delivered",
-        delivery_date: delivery_date,
-        actual_delivery_date: actual_delivery_date
-      })
+      _order =
+        order_fixture(%{
+          variant: variant,
+          location: location,
+          status: "delivered",
+          delivery_date: delivery_date,
+          actual_delivery_date: actual_delivery_date
+        })
 
       result = DomainReporting.ar_aging_report(as_of)
 

@@ -18,7 +18,9 @@ defmodule Ledgr.Repo.Migrations.BackfillIngredientInventoryTypes do
     end
 
     # Ensure all other ingredients are set to 'ingredients' (default should already be set, but just in case)
-    execute("UPDATE ingredients SET inventory_type = 'ingredients' WHERE inventory_type IS NULL OR inventory_type = ''")
+    execute(
+      "UPDATE ingredients SET inventory_type = 'ingredients' WHERE inventory_type IS NULL OR inventory_type = ''"
+    )
   end
 
   def down do

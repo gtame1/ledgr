@@ -14,7 +14,15 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionPlansTest do
   describe "list_subscription_plans/0" do
     test "returns all non-deleted plans" do
       plan1 = plan_fixture(%{name: "Monthly", price_cents: 50000})
-      plan2 = plan_fixture(%{name: "Package", price_cents: 30000, plan_type: "package", class_limit: 10, duration_days: 30})
+
+      plan2 =
+        plan_fixture(%{
+          name: "Package",
+          price_cents: 30000,
+          plan_type: "package",
+          class_limit: 10,
+          duration_days: 30
+        })
 
       plans = SubscriptionPlans.list_subscription_plans()
       ids = Enum.map(plans, & &1.id)
@@ -102,7 +110,9 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionPlansTest do
     end
 
     test "requires price_cents > 0" do
-      assert {:error, changeset} = SubscriptionPlans.create_subscription_plan(%{name: "Bad", price_cents: 0})
+      assert {:error, changeset} =
+               SubscriptionPlans.create_subscription_plan(%{name: "Bad", price_cents: 0})
+
       assert errors_on(changeset)[:price_cents]
     end
   end
@@ -110,14 +120,22 @@ defmodule Ledgr.Domains.VolumeStudio.SubscriptionPlansTest do
   describe "update_subscription_plan/2" do
     test "updates a plan's name and price" do
       plan = plan_fixture(%{name: "Old Name"})
-      assert {:ok, updated} = SubscriptionPlans.update_subscription_plan(plan, %{name: "New Name", price_cents: 60000})
+
+      assert {:ok, updated} =
+               SubscriptionPlans.update_subscription_plan(plan, %{
+                 name: "New Name",
+                 price_cents: 60000
+               })
+
       assert updated.name == "New Name"
       assert updated.price_cents == 60000
     end
 
     test "returns error on invalid attrs" do
       plan = plan_fixture()
-      assert {:error, %Ecto.Changeset{}} = SubscriptionPlans.update_subscription_plan(plan, %{price_cents: 0})
+
+      assert {:error, %Ecto.Changeset{}} =
+               SubscriptionPlans.update_subscription_plan(plan, %{price_cents: 0})
     end
   end
 

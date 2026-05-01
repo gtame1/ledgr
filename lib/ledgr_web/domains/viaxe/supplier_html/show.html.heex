@@ -1,54 +1,63 @@
 <section class="card">
   <div class="card-header">
     <div>
-      <h2 class="card-title"><%= @supplier.name %></h2>
+      <h2 class="card-title">{@supplier.name}</h2>
       <p class="card-subtitle">Supplier details</p>
     </div>
     <div style="display: flex; gap: 0.5rem;">
-      <.link navigate={dp(@domain_path_prefix, "/suppliers/#{@supplier.id}/edit")} class="btn primary">Edit</.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/suppliers/#{@supplier.id}/edit")}
+        class="btn primary"
+      >
+        Edit
+      </.link>
       <.link navigate={dp(@domain_path_prefix, "/suppliers")} class="btn">← Back</.link>
     </div>
   </div>
 
-  <div class="detail-grid" style="display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 0.5rem 1.5rem; margin-bottom: 1.5rem;">
+  <div
+    class="detail-grid"
+    style="display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 0.5rem 1.5rem; margin-bottom: 1.5rem;"
+  >
     <strong>Category:</strong>
     <span>
       <%= if @supplier.category do %>
-        <%= String.capitalize(String.replace(@supplier.category, "_", " ")) %>
+        {String.capitalize(String.replace(@supplier.category, "_", " "))}
       <% else %>
         —
       <% end %>
     </span>
 
     <strong>Contact:</strong>
-    <span><%= @supplier.contact_name || "—" %></span>
+    <span>{@supplier.contact_name || "—"}</span>
 
     <strong>Email:</strong>
-    <span><%= @supplier.email || "—" %></span>
+    <span>{@supplier.email || "—"}</span>
 
     <strong>Phone:</strong>
-    <span><%= @supplier.phone || "—" %></span>
+    <span>{@supplier.phone || "—"}</span>
 
     <strong>Website:</strong>
     <span>
       <%= if @supplier.website do %>
-        <a href={@supplier.website} target="_blank" rel="noopener" class="link-text"><%= @supplier.website %></a>
+        <a href={@supplier.website} target="_blank" rel="noopener" class="link-text">
+          {@supplier.website}
+        </a>
       <% else %>
         —
       <% end %>
     </span>
 
     <strong>Country:</strong>
-    <span><%= @supplier.country || "—" %></span>
+    <span>{@supplier.country || "—"}</span>
 
     <strong>City:</strong>
-    <span><%= @supplier.city || "—" %></span>
+    <span>{@supplier.city || "—"}</span>
 
     <strong>Address:</strong>
-    <span style="grid-column: span 3;"><%= @supplier.address || "—" %></span>
+    <span style="grid-column: span 3;">{@supplier.address || "—"}</span>
 
     <strong>Notes:</strong>
-    <span style="grid-column: span 3;"><%= @supplier.notes || "—" %></span>
+    <span style="grid-column: span 3;">{@supplier.notes || "—"}</span>
   </div>
-
 </section>

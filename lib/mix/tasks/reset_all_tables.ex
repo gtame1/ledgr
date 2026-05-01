@@ -3,7 +3,16 @@ defmodule Mix.Tasks.ResetAllTables do
 
   alias Ledgr.Repo
   alias Ledgr.Core.Accounting.{Account, JournalEntry, JournalLine, MoneyTransfer}
-  alias Ledgr.Domains.MrMunchMe.Inventory.{InventoryItem, InventoryMovement, Ingredient, Location, Recipe, RecipeLine}
+
+  alias Ledgr.Domains.MrMunchMe.Inventory.{
+    InventoryItem,
+    InventoryMovement,
+    Ingredient,
+    Location,
+    Recipe,
+    RecipeLine
+  }
+
   alias Ledgr.Domains.MrMunchMe.Orders.{Order, Product, OrderPayment}
   alias Ledgr.Core.Partners.{Partner, CapitalContribution}
   alias Ledgr.Core.Expenses.Expense
@@ -23,10 +32,12 @@ defmodule Mix.Tasks.ResetAllTables do
       Repo.delete_all(InventoryItem)
       Repo.delete_all(CapitalContribution)
       Repo.delete_all(MoneyTransfer)
-      Repo.delete_all(RecipeLine)  # Depends on Recipe
+      # Depends on Recipe
+      Repo.delete_all(RecipeLine)
 
       # 2) Mid-level dependents
-      Repo.delete_all(Recipe)      # Depends on Product, must be deleted before Product
+      # Depends on Product, must be deleted before Product
+      Repo.delete_all(Recipe)
       Repo.delete_all(Order)
       Repo.delete_all(Product)
       Repo.delete_all(Ingredient)

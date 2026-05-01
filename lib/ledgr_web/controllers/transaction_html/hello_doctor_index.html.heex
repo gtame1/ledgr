@@ -20,42 +20,84 @@ end %>
       <table class="hd-table w-full">
         <thead>
           <tr>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Date</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Description</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Type</th>
-            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Reference</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Total</th>
-            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">Actions</th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Date
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Description
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Type
+            </th>
+            <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Reference
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Total
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           <%= if Enum.empty?(@entries) do %>
             <tr>
-              <td colspan="6" class="p-6 text-center" style="color: var(--text-muted);">No transactions yet.</td>
+              <td colspan="6" class="p-6 text-center" style="color: var(--text-muted);">
+                No transactions yet.
+              </td>
             </tr>
           <% else %>
             <%= for entry <- @entries do %>
-              <% total_cents = Enum.reduce(entry.journal_lines, 0, fn line, acc -> acc + (line.debit_cents || 0) end) %>
+              <% total_cents =
+                Enum.reduce(entry.journal_lines, 0, fn line, acc ->
+                  acc + (line.debit_cents || 0)
+                end) %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= fmt_date(entry.date, "%b %d, %Y") %>
+                  {fmt_date(entry.date, "%b %d, %Y")}
                 </td>
                 <td class="p-3 text-sm font-medium" style="color: var(--text-main);">
-                  <%= entry.description || "---" %>
+                  {entry.description || "---"}
                 </td>
                 <td class="p-3">
                   <span class="hd-badge">
-                    <%= entry.entry_type |> to_string() |> String.replace("_", " ") |> String.capitalize() %>
+                    {entry.entry_type
+                    |> to_string()
+                    |> String.replace("_", " ")
+                    |> String.capitalize()}
                   </span>
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
-                  <%= entry.reference || "---" %>
+                  {entry.reference || "---"}
                 </td>
                 <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
-                  <%= fmt.(total_cents) %>
+                  {fmt.(total_cents)}
                 </td>
                 <td class="p-3 text-right">
-                  <.link navigate={dp(@domain_path_prefix, "/transactions/#{entry.id}")} class="text-sm font-medium" style="color: var(--accent);">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/transactions/#{entry.id}")}
+                    class="text-sm font-medium"
+                    style="color: var(--accent);"
+                  >
                     View
                   </.link>
                 </td>

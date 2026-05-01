@@ -11,19 +11,19 @@
       </p>
 
       <.form
+        :let={f}
         for={@changeset}
         as={:transfer}
         action={dp(@domain_path_prefix, "/transfers/#{@transfer.id}")}
         method="patch"
         class="form-grid"
-        :let={f}
       >
         <%= if @changeset.action do %>
           <div class="alert alert-error">
             <p>There were problems with the transfer:</p>
             <ul>
               <%= for {field, {msg, _opts}} <- @changeset.errors do %>
-                <li><strong><%= field %>:</strong> <%= msg %></li>
+                <li><strong>{field}:</strong> {msg}</li>
               <% end %>
             </ul>
           </div>
@@ -45,7 +45,9 @@
                       value={value}
                       data-currency={currency}
                       selected={to_string(f[:from_account_id].value) == to_string(value)}
-                    ><%= label %></option>
+                    >
+                      {label}
+                    </option>
                   <% end %>
                 </select>
               </label>
@@ -67,7 +69,9 @@
                       value={value}
                       data-currency={currency}
                       selected={to_string(f[:to_account_id].value) == to_string(value)}
-                    ><%= label %></option>
+                    >
+                      {label}
+                    </option>
                   <% end %>
                 </select>
               </label>
@@ -116,4 +120,3 @@
     </section>
   </div>
 </section>
-

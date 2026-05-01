@@ -2,22 +2,24 @@
 <section class="card">
   <div class="card-header">
     <div>
-      <h2 class="card-title"><%= @trip.title %></h2>
+      <h2 class="card-title">{@trip.title}</h2>
       <p class="card-subtitle">
         <span class={"status-badge #{status_class(@trip.status)}"}>
-          <%= String.capitalize(@trip.status) %>
+          {String.capitalize(@trip.status)}
         </span>
         <%= if @trip.start_date do %>
-          &nbsp; <%= @trip.start_date %> → <%= @trip.end_date || "open" %>
+          &nbsp; {@trip.start_date} → {@trip.end_date || "open"}
         <% end %>
       </p>
     </div>
     <div style="display: flex; gap: 0.5rem;">
-      <.link navigate={dp(@domain_path_prefix, "/trips/#{@trip.id}")} class="btn">← Back to Trip</.link>
+      <.link navigate={dp(@domain_path_prefix, "/trips/#{@trip.id}")} class="btn">
+        ← Back to Trip
+      </.link>
     </div>
   </div>
-
-  <!-- Legend -->
+  
+<!-- Legend -->
   <div class="trip-calendar-legend">
     <span class="legend-item"><span class="cal-dot cal-flight"></span>Flight</span>
     <span class="legend-item"><span class="cal-dot cal-hotel"></span>Hotel</span>
@@ -41,27 +43,27 @@
   <%= for {year, month} <- @calendar_months do %>
     <section class="card" style="margin-top: 1.5rem;">
       <div class="calendar-month-header">
-        <%= month_label(month, year) %>
+        {month_label(month, year)}
       </div>
 
       <div class="calendar-grid">
         <!-- Day-of-week headers (Mon-first) -->
         <%= for day_name <- ~w(Mon Tue Wed Thu Fri Sat Sun) do %>
-          <div class="cal-day-header"><%= day_name %></div>
+          <div class="cal-day-header">{day_name}</div>
         <% end %>
-
-        <!-- Leading blank cells -->
+        
+<!-- Leading blank cells -->
         <% blanks = calendar_leading_blanks(year, month) %>
         <%= for _ <- List.duplicate(nil, blanks) do %>
           <div class="cal-cell cal-empty"></div>
         <% end %>
-
-        <!-- Day cells -->
+        
+<!-- Day cells -->
         <%= for day <- 1..calendar_days_in_month(year, month) do %>
           <% date = Date.new!(year, month, day) %>
           <% day_bookings = Map.get(@events_by_date, date, []) %>
           <div class={"cal-cell#{if date == today_mx(), do: " cal-today", else: ""}"}>
-            <div class="cal-day-num"><%= day %></div>
+            <div class="cal-day-num">{day}</div>
 
             <%= for booking <- day_bookings do %>
               <.link
@@ -69,7 +71,10 @@
                 class={"cal-event cal-#{booking.booking_type || "other"}"}
                 title={"#{booking.destination || "Booking ##{booking.id}"} · #{booking.booking_type || "other"} · #{String.capitalize(String.replace(booking.status, "_", " "))}"}
               >
-                <%= event_icon(booking.booking_type) %>&nbsp;<%= booking.destination || "##{booking.id}" %><%= if booking.return_date && booking.return_date != booking.travel_date do %>&nbsp;→&nbsp;<%= booking.return_date %><% end %>
+                {event_icon(booking.booking_type)}&nbsp;{booking.destination || "##{booking.id}"}
+                <%= if booking.return_date && booking.return_date != booking.travel_date do %>
+                  &nbsp;→&nbsp;{booking.return_date}
+                <% end %>
               </.link>
             <% end %>
           </div>

@@ -13,20 +13,31 @@
     <.link
       navigate={dp(@domain_path_prefix, "/orders?status=new_order&status=in_prep&status=ready")}
       class={"mm-tab-pill#{if @filters.status in [nil, "", "new_order", "in_prep", "ready"], do: " mm-tab-pill--active"}"}
-    >Active</.link>
+    >
+      Active
+    </.link>
     <.link
       navigate={dp(@domain_path_prefix, "/orders?status=delivered")}
       class={"mm-tab-pill#{if @filters.status == "delivered", do: " mm-tab-pill--active"}"}
-    >Completed</.link>
+    >
+      Completed
+    </.link>
     <.link
       navigate={dp(@domain_path_prefix, "/orders?status=canceled")}
       class={"mm-tab-pill#{if @filters.status == "canceled", do: " mm-tab-pill--active"}"}
-    >Canceled</.link>
+    >
+      Canceled
+    </.link>
   </div>
 
   <%!-- Search Bar --%>
   <div style="position: relative; margin-bottom: 1rem;">
-    <span class="material-symbols-outlined" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #9C8578; font-size: 1.1rem;">search</span>
+    <span
+      class="material-symbols-outlined"
+      style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #9C8578; font-size: 1.1rem;"
+    >
+      search
+    </span>
     <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/orders")}>
       <%= for {k, v} <- @filters, v not in [nil, ""], k != :q do %>
         <input type="hidden" name={k} value={v} />
@@ -42,9 +53,14 @@
   </div>
 
   <%!-- Filter Chips --%>
-  <.form for={%{}} method="get" action={dp(@domain_path_prefix, "/orders")} :let={_f}>
+  <.form :let={_f} for={%{}} method="get" action={dp(@domain_path_prefix, "/orders")}>
     <div class="mm-filter-chips" style="margin-bottom: 1.5rem;">
-      <select name="status" class="mm-filter-chip" onchange="this.form.submit()" style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;">
+      <select
+        name="status"
+        class="mm-filter-chip"
+        onchange="this.form.submit()"
+        style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;"
+      >
         <option value="">Status</option>
         <option value="new_order" selected={@filters.status == "new_order"}>Nuevo</option>
         <option value="in_prep" selected={@filters.status == "in_prep"}>En Prep</option>
@@ -53,28 +69,49 @@
         <option value="canceled" selected={@filters.status == "canceled"}>Cancelado</option>
       </select>
 
-      <select name="delivery_type" class="mm-filter-chip" onchange="this.form.submit()" style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;">
+      <select
+        name="delivery_type"
+        class="mm-filter-chip"
+        onchange="this.form.submit()"
+        style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;"
+      >
         <option value="">Delivery Type</option>
         <option value="pickup" selected={@filters.delivery_type == "pickup"}>Pickup</option>
         <option value="delivery" selected={@filters.delivery_type == "delivery"}>Delivery</option>
       </select>
 
-      <select name="product_id" class="mm-filter-chip" onchange="this.form.submit()" style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;">
+      <select
+        name="product_id"
+        class="mm-filter-chip"
+        onchange="this.form.submit()"
+        style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;"
+      >
         <option value="">Product</option>
         <%= for {label, id} <- @product_filter_options do %>
-          <option value={id} selected={to_string(id) == @filters.product_id}><%= label %></option>
+          <option value={id} selected={to_string(id) == @filters.product_id}>{label}</option>
         <% end %>
       </select>
 
-      <select name="prep_location_id" class="mm-filter-chip" onchange="this.form.submit()" style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;">
+      <select
+        name="prep_location_id"
+        class="mm-filter-chip"
+        onchange="this.form.submit()"
+        style="appearance: none; padding-right: 1.5rem; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22><path fill=%22%235C3D2E%22 d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 0.4rem center;"
+      >
         <option value="">Location</option>
         <%= for {label, id} <- @location_filter_options do %>
-          <option value={id} selected={to_string(id) == @filters.prep_location_id}><%= label %></option>
+          <option value={id} selected={to_string(id) == @filters.prep_location_id}>
+            {label}
+          </option>
         <% end %>
       </select>
 
       <%= if filters_active?(@filters) do %>
-        <.link navigate={dp(@domain_path_prefix, "/orders")} class="mm-filter-chip" style="color: #9C8578;">
+        <.link
+          navigate={dp(@domain_path_prefix, "/orders")}
+          class="mm-filter-chip"
+          style="color: #9C8578;"
+        >
           <span class="material-symbols-outlined" style="font-size: 0.85rem;">close</span> Clear
         </.link>
       <% end %>
@@ -85,7 +122,12 @@
   <div class="mm-desktop-only">
     <%= if Enum.empty?(@orders) do %>
       <div class="mm-order-card" style="text-align: center; padding: 2rem 1rem; color: #9C8578;">
-        <span class="material-symbols-outlined" style="font-size: 2.5rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">shopping_bag</span>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 2.5rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;"
+        >
+          shopping_bag
+        </span>
         No active orders.
       </div>
     <% else %>
@@ -105,24 +147,39 @@
         <tbody>
           <%= for order <- @orders do %>
             <tr onclick={"window.location.href='#{dp(@domain_path_prefix, "/orders/#{order.id}")}';"}>
-              <td class="muted" style="font-variant-numeric: tabular-nums; font-size: 0.8rem;"><%= order.id %></td>
-              <td style="font-weight: 500;"><%= order.customer_name %></td>
+              <td class="muted" style="font-variant-numeric: tabular-nums; font-size: 0.8rem;">
+                {order.id}
+              </td>
+              <td style="font-weight: 500;">{order.customer_name}</td>
               <td>
-                <%= order.variant && (order.variant.product.name <> " · " <> order.variant.name) %><%= if (order.quantity || 1) > 1, do: " x#{order.quantity}" %>
+                {order.variant && order.variant.product.name <> " · " <> order.variant.name}{if (order.quantity ||
+                                                                                                   1) >
+                                                                                                  1,
+                                                                                                do:
+                                                                                                  " x#{order.quantity}"}
                 <%= if order.special_instructions && order.special_instructions != "" do %>
-                  <div style="font-size: 0.75rem; color: #9C8578; font-style: italic; margin-top: 0.1rem;"><%= String.slice(order.special_instructions, 0, 50) %></div>
+                  <div style="font-size: 0.75rem; color: #9C8578; font-style: italic; margin-top: 0.1rem;">
+                    {String.slice(order.special_instructions, 0, 50)}
+                  </div>
                 <% end %>
               </td>
               <td>
-                <div><%= order.delivery_date %></div>
-                <div style="font-size: 0.7rem; color: #9C8578;"><%= String.capitalize(order.delivery_type || "") %></div>
+                <div>{order.delivery_date}</div>
+                <div style="font-size: 0.7rem; color: #9C8578;">
+                  {String.capitalize(order.delivery_type || "")}
+                </div>
               </td>
               <td>
                 <span class={"mm-status mm-status--#{order.status}"}>
-                  <%= order.status |> String.replace("_", " ") |> String.capitalize() %>
+                  {order.status |> String.replace("_", " ") |> String.capitalize()}
                 </span>
                 <%= if order.is_gift do %>
-                  <span class="mm-badge" style="background: #fef3c7; color: #92400e; margin-left: 0.25rem;">Gift</span>
+                  <span
+                    class="mm-badge"
+                    style="background: #fef3c7; color: #92400e; margin-left: 0.25rem;"
+                  >
+                    Gift
+                  </span>
                 <% end %>
               </td>
               <td>
@@ -141,30 +198,75 @@
                 <% end %>
               </td>
               <td class="numeric" style="font-weight: 600;">
-                <%= if order.payment_summary, do: format_currency(order.payment_summary.order_total_cents), else: "" %>
+                {if order.payment_summary,
+                  do: format_currency(order.payment_summary.order_total_cents),
+                  else: ""}
               </td>
               <td onclick="event.stopPropagation();">
                 <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                   <%= if order.status == "new_order" do %>
-                    <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{order.id}/status")} method="post" style="display: inline;" onsubmit="return confirm('Move to In Prep?');">
+                    <.form
+                      for={%{}}
+                      as={:status}
+                      action={dp(@domain_path_prefix, "/orders/#{order.id}/status")}
+                      method="post"
+                      style="display: inline;"
+                      onsubmit="return confirm('Move to In Prep?');"
+                    >
                       <input type="hidden" name="status[status]" value="in_prep" />
-                      <button class="mm-quick-pill mm-quick-pill--primary" type="submit" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">In Prep</button>
+                      <button
+                        class="mm-quick-pill mm-quick-pill--primary"
+                        type="submit"
+                        style="font-size: 0.65rem; padding: 0.15rem 0.5rem;"
+                      >
+                        In Prep
+                      </button>
                     </.form>
                   <% end %>
                   <%= if order.status == "in_prep" do %>
-                    <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{order.id}/status")} method="post" style="display: inline;">
+                    <.form
+                      for={%{}}
+                      as={:status}
+                      action={dp(@domain_path_prefix, "/orders/#{order.id}/status")}
+                      method="post"
+                      style="display: inline;"
+                    >
                       <input type="hidden" name="status[status]" value="ready" />
-                      <button class="mm-quick-pill mm-quick-pill--primary" type="submit" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">Ready</button>
+                      <button
+                        class="mm-quick-pill mm-quick-pill--primary"
+                        type="submit"
+                        style="font-size: 0.65rem; padding: 0.15rem 0.5rem;"
+                      >
+                        Ready
+                      </button>
                     </.form>
                   <% end %>
                   <%= if order.status == "ready" do %>
-                    <.form for={%{}} as={:status} action={dp(@domain_path_prefix, "/orders/#{order.id}/status")} method="post" style="display: inline;">
+                    <.form
+                      for={%{}}
+                      as={:status}
+                      action={dp(@domain_path_prefix, "/orders/#{order.id}/status")}
+                      method="post"
+                      style="display: inline;"
+                    >
                       <input type="hidden" name="status[status]" value="delivered" />
-                      <button class="mm-quick-pill mm-quick-pill--primary" type="submit" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">Delivered</button>
+                      <button
+                        class="mm-quick-pill mm-quick-pill--primary"
+                        type="submit"
+                        style="font-size: 0.65rem; padding: 0.15rem 0.5rem;"
+                      >
+                        Delivered
+                      </button>
                     </.form>
                   <% end %>
                   <%= if !order.is_gift and (!order.payment_summary || !order.payment_summary.fully_paid?) do %>
-                    <.link navigate={dp(@domain_path_prefix, "/orders/#{order.id}/payments/new")} class="mm-quick-pill" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">Pay</.link>
+                    <.link
+                      navigate={dp(@domain_path_prefix, "/orders/#{order.id}/payments/new")}
+                      class="mm-quick-pill"
+                      style="font-size: 0.65rem; padding: 0.15rem 0.5rem;"
+                    >
+                      Pay
+                    </.link>
                   <% end %>
                 </div>
               </td>
@@ -179,93 +281,143 @@
   <div class="mm-mobile-only">
     <%= if Enum.empty?(@orders) do %>
       <div class="mm-order-card" style="text-align: center; padding: 2rem 1rem; color: #9C8578;">
-        <span class="material-symbols-outlined" style="font-size: 2.5rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;">shopping_bag</span>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 2.5rem; opacity: 0.4; display: block; margin-bottom: 0.5rem;"
+        >
+          shopping_bag
+        </span>
         No active orders.
       </div>
     <% else %>
       <%= for order <- @orders do %>
-        <.link navigate={dp(@domain_path_prefix, "/orders/#{order.id}")} style="text-decoration: none; color: inherit; display: block;">
+        <.link
+          navigate={dp(@domain_path_prefix, "/orders/#{order.id}")}
+          style="text-decoration: none; color: inherit; display: block;"
+        >
           <div class="mm-order-card">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
               <div style="display: flex; gap: 0.75rem;">
                 <div class="mm-order-thumb">
-                  <span style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 1.25rem;">🍿</span>
+                  <span style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 1.25rem;">
+                    🍿
+                  </span>
                 </div>
                 <div>
-                  <h3 style="font-weight: 600; font-size: 0.875rem; line-height: 1.3; color: #3A2A1F;"><%= order.customer_name %></h3>
-                  <p style="font-size: 0.6875rem; color: #9C8578;">Order #<%= order.id %></p>
+                  <h3 style="font-weight: 600; font-size: 0.875rem; line-height: 1.3; color: #3A2A1F;">
+                    {order.customer_name}
+                  </h3>
+                  <p style="font-size: 0.6875rem; color: #9C8578;">Order #{order.id}</p>
                 </div>
               </div>
               <span class={"mm-status mm-status--#{order.status}"}>
-                <%= order.status |> String.replace("_", " ") |> String.capitalize() %>
+                {order.status |> String.replace("_", " ") |> String.capitalize()}
               </span>
             </div>
 
             <div style="margin-bottom: 0.75rem; border-bottom: 1px solid #F0E2D6; padding-bottom: 0.75rem;">
               <p style="font-size: 0.75rem; color: #3A2A1F; font-weight: 500;">
-                <%= order.variant && (order.variant.product.name <> " - " <> order.variant.name) %><%= if (order.quantity || 1) > 1, do: " x #{order.quantity}" %>
+                {order.variant && order.variant.product.name <> " - " <> order.variant.name}{if (order.quantity ||
+                                                                                                   1) >
+                                                                                                  1,
+                                                                                                do:
+                                                                                                  " x #{order.quantity}"}
               </p>
               <%= if order.special_instructions && order.special_instructions != "" do %>
                 <p style="font-size: 0.6875rem; color: #9C8578; font-style: italic; margin-top: 0.15rem;">
-                  <%= order.special_instructions %>
+                  {order.special_instructions}
                 </p>
               <% end %>
               <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.6875rem; color: #9C8578; margin-top: 0.35rem;">
-                <span class="material-symbols-outlined" style="font-size: 0.875rem;">calendar_today</span>
-                <span><%= order.delivery_date %></span>
+                <span class="material-symbols-outlined" style="font-size: 0.875rem;">
+                  calendar_today
+                </span>
+                <span>{order.delivery_date}</span>
               </div>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <span class="mm-delivery-badge">
-                  <span class="material-symbols-outlined" style="font-size: 0.75rem;"><%= if order.delivery_type == "delivery", do: "directions_car", else: "home" %></span>
-                  <%= String.capitalize(order.delivery_type || "pickup") %>
+                  <span class="material-symbols-outlined" style="font-size: 0.75rem;">
+                    {if order.delivery_type == "delivery", do: "directions_car", else: "home"}
+                  </span>
+                  {String.capitalize(order.delivery_type || "pickup")}
                 </span>
                 <%= if order.is_gift do %>
                   <span class="mm-badge" style="background: #fef3c7; color: #92400e;">Gift</span>
                 <% else %>
                   <%= if order.payment_summary && order.payment_summary.fully_paid? do %>
-                    <span class="mm-payment-paid" style="display: flex; align-items: center; gap: 0.2rem;">
-                      <span class="material-symbols-outlined" style="font-size: 0.875rem; font-variation-settings: 'FILL' 1;">check_circle</span> Paid
+                    <span
+                      class="mm-payment-paid"
+                      style="display: flex; align-items: center; gap: 0.2rem;"
+                    >
+                      <span
+                        class="material-symbols-outlined"
+                        style="font-size: 0.875rem; font-variation-settings: 'FILL' 1;"
+                      >
+                        check_circle
+                      </span>
+                      Paid
                     </span>
                   <% else %>
-                    <span class="mm-payment-pending" style="display: flex; align-items: center; gap: 0.2rem;">
-                      <span class="material-symbols-outlined" style="font-size: 0.875rem;">hourglass_empty</span> Pending
+                    <span
+                      class="mm-payment-pending"
+                      style="display: flex; align-items: center; gap: 0.2rem;"
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 0.875rem;">
+                        hourglass_empty
+                      </span>
+                      Pending
                     </span>
                   <% end %>
                 <% end %>
               </div>
               <span style="font-weight: 700; color: #5C3D2E; font-size: 0.9rem;">
-                <%= if order.payment_summary, do: format_currency(order.payment_summary.order_total_cents), else: "" %>
+                {if order.payment_summary,
+                  do: format_currency(order.payment_summary.order_total_cents),
+                  else: ""}
               </span>
             </div>
           </div>
         </.link>
       <% end %>
     <% end %>
-  </div> <%!-- close mm-mobile-only --%>
+  </div>
+  <%!-- close mm-mobile-only --%>
 
   <%!-- Completed Orders --%>
   <%= if not Enum.empty?(@completed_orders) do %>
     <div class="mm-section-title" style="margin-top: 1.5rem;">Completed Orders</div>
     <%= for order <- @completed_orders do %>
-      <.link navigate={dp(@domain_path_prefix, "/orders/#{order.id}")} style="text-decoration: none; color: inherit; display: block;">
+      <.link
+        navigate={dp(@domain_path_prefix, "/orders/#{order.id}")}
+        style="text-decoration: none; color: inherit; display: block;"
+      >
         <div class="mm-order-card">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <h3 style="font-weight: 600; font-size: 0.875rem; color: #3A2A1F;"><%= order.customer_name %></h3>
+              <h3 style="font-weight: 600; font-size: 0.875rem; color: #3A2A1F;">
+                {order.customer_name}
+              </h3>
               <p style="font-size: 0.6875rem; color: #9C8578;">
-                <%= order.variant && (order.variant.product.name <> " - " <> order.variant.name) %><%= if (order.quantity || 1) > 1, do: " x #{order.quantity}" %>
-                · <%= order.delivery_date %>
+                {order.variant && order.variant.product.name <> " - " <> order.variant.name}{if (order.quantity ||
+                                                                                                   1) >
+                                                                                                  1,
+                                                                                                do:
+                                                                                                  " x #{order.quantity}"} · {order.delivery_date}
               </p>
             </div>
             <div style="text-align: right;">
               <span style="font-weight: 700; color: #5C3D2E; font-size: 0.85rem;">
-                <%= if order.payment_summary, do: format_currency(order.payment_summary.order_total_cents), else: "" %>
+                {if order.payment_summary,
+                  do: format_currency(order.payment_summary.order_total_cents),
+                  else: ""}
               </span>
               <div style="margin-top: 0.15rem;">
-                <span class={"mm-status mm-status--#{order.status}"}><%= order.status |> String.replace("_", " ") |> String.capitalize() %></span>
+                <span class={"mm-status mm-status--#{order.status}"}>
+                  {order.status |> String.replace("_", " ") |> String.capitalize()}
+                </span>
               </div>
             </div>
           </div>
@@ -275,7 +427,15 @@
 
     <%= if @has_more_completed do %>
       <div style="margin-top: 0.75rem; text-align: center;">
-        <.link navigate={dp(@domain_path_prefix, "/orders?#{URI.encode_query(Map.merge(@filters, %{completed_offset: @completed_offset + 10}))}")} class="mm-quick-pill">
+        <.link
+          navigate={
+            dp(
+              @domain_path_prefix,
+              "/orders?#{URI.encode_query(Map.merge(@filters, %{completed_offset: @completed_offset + 10}))}"
+            )
+          }
+          class="mm-quick-pill"
+        >
           Load more
         </.link>
       </div>
@@ -286,18 +446,28 @@
   <%= if @filters.status != "canceled" and not Enum.empty?(@canceled_orders) do %>
     <div class="mm-section-title" style="margin-top: 1.5rem;">Canceled Orders</div>
     <%= for order <- @canceled_orders do %>
-      <.link navigate={dp(@domain_path_prefix, "/orders/#{order.id}")} style="text-decoration: none; color: inherit; display: block;">
+      <.link
+        navigate={dp(@domain_path_prefix, "/orders/#{order.id}")}
+        style="text-decoration: none; color: inherit; display: block;"
+      >
         <div class="mm-order-card">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <h3 style="font-weight: 600; font-size: 0.875rem; color: #3A2A1F;"><%= order.customer_name %></h3>
+              <h3 style="font-weight: 600; font-size: 0.875rem; color: #3A2A1F;">
+                {order.customer_name}
+              </h3>
               <p style="font-size: 0.6875rem; color: #9C8578;">
-                <%= order.variant && (order.variant.product.name <> " - " <> order.variant.name) %><%= if (order.quantity || 1) > 1, do: " x #{order.quantity}" %>
-                · <%= order.delivery_date %>
+                {order.variant && order.variant.product.name <> " - " <> order.variant.name}{if (order.quantity ||
+                                                                                                   1) >
+                                                                                                  1,
+                                                                                                do:
+                                                                                                  " x #{order.quantity}"} · {order.delivery_date}
               </p>
             </div>
             <div style="text-align: right;">
-              <span class={"mm-status mm-status--#{order.status}"}><%= order.status |> String.replace("_", " ") |> String.capitalize() %></span>
+              <span class={"mm-status mm-status--#{order.status}"}>
+                {order.status |> String.replace("_", " ") |> String.capitalize()}
+              </span>
             </div>
           </div>
         </div>
@@ -306,7 +476,15 @@
 
     <%= if @has_more_canceled do %>
       <div style="margin-top: 0.75rem; text-align: center;">
-        <.link navigate={dp(@domain_path_prefix, "/orders?#{URI.encode_query(Map.merge(@filters, %{canceled_offset: @canceled_offset + 50}))}")} class="mm-quick-pill">
+        <.link
+          navigate={
+            dp(
+              @domain_path_prefix,
+              "/orders?#{URI.encode_query(Map.merge(@filters, %{canceled_offset: @canceled_offset + 50}))}"
+            )
+          }
+          class="mm-quick-pill"
+        >
           Load more
         </.link>
       </div>

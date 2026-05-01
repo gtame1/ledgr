@@ -1,196 +1,284 @@
-<%
-  total_refunded = Enum.sum(Enum.map(@expense.refunds, & &1.amount_cents))
-  net_cents = @expense.amount_cents - total_refunded
+<% total_refunded = Enum.sum(Enum.map(@expense.refunds, & &1.amount_cents))
+net_cents = @expense.amount_cents - total_refunded
 
-  fmt = fn cents when is_integer(cents) ->
-    sign = if cents < 0, do: "-", else: ""
-    amount = abs(cents) / 100
-    formatted = :erlang.float_to_binary(amount, decimals: 2)
-    [whole, dec] = String.split(formatted, ".")
-    whole_with_commas = whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
-    "#{sign}$#{whole_with_commas}.#{dec}"
-  end
+fmt = fn cents when is_integer(cents) ->
+  sign = if cents < 0, do: "-", else: ""
+  amount = abs(cents) / 100
+  formatted = :erlang.float_to_binary(amount, decimals: 2)
+  [whole, dec] = String.split(formatted, ".")
 
-  fmt_bytes = fn
-    nil -> ""
-    bytes when bytes < 1024 -> "#{bytes} B"
-    bytes when bytes < 1024 * 1024 -> "#{Float.round(bytes / 1024, 1)} KB"
-    bytes -> "#{Float.round(bytes / (1024 * 1024), 1)} MB"
-  end
-%>
+  whole_with_commas =
+    whole |> String.reverse() |> String.replace(~r/(\d{3})(?=\d)/, "\\1,") |> String.reverse()
+
+  "#{sign}$#{whole_with_commas}.#{dec}"
+end
+
+fmt_bytes = fn
+  nil -> ""
+  bytes when bytes < 1024 -> "#{bytes} B"
+  bytes when bytes < 1024 * 1024 -> "#{Float.round(bytes / 1024, 1)} KB"
+  bytes -> "#{Float.round(bytes / (1024 * 1024), 1)} MB"
+end %>
 
 <div class="ct-show-layout">
-
+  
 <!-- Expense Details -->
-<section class="card ct-detail-card">
-  <div class="ct-detail-header">
-    <h2 class="card-title">Expense Details</h2>
-    <div class="ct-detail-actions">
-      <.link navigate={dp(@domain_path_prefix, "/expenses")} class="ct-detail-action-back">Back</.link>
-      <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/edit")} class="btn primary ct-detail-action-edit">Edit</.link>
-      <.link href={dp(@domain_path_prefix, "/expenses/#{@expense.id}")} method="delete" data-confirm="Delete this expense?" class="btn ct-btn-danger ct-detail-action-delete">Delete</.link>
-    </div>
-  </div>
-
-  <dl class="ct-detail-list">
-    <div class="ct-detail-row">
-      <dt>Date</dt>
-      <dd><%= @expense.date %></dd>
-    </div>
-    <div class="ct-detail-row">
-      <dt>Description</dt>
-      <dd><%= @expense.description %></dd>
-    </div>
-    <div class="ct-detail-row">
-      <dt>Amount</dt>
-      <dd>
-        <span class={"ct-badge #{if @expense.currency == "USD", do: "ct-badge--usd", else: "ct-badge--mxn"}"}>
-          <%= @expense.currency %>
-        </span>
-        <strong><%= fmt.(@expense.amount_cents) %></strong>
-      </dd>
-    </div>
-    <div class="ct-detail-row">
-      <dt>Category</dt>
-      <dd><%= @expense.expense_account && @expense.expense_account.name %></dd>
-    </div>
-    <%= if @expense.splits != [] do %>
-      <div class="ct-detail-row ct-detail-row--splits">
-        <dt>Paid from</dt>
-        <dd>
-          <%= for split <- @expense.splits do %>
-            <div class="ct-split-detail-row">
-              <span><%= split.account && split.account.name %></span>
-              <span><%= fmt.(split.amount_cents) %></span>
-            </div>
-          <% end %>
-        </dd>
-      </div>
-    <% else %>
-      <div class="ct-detail-row">
-        <dt>Paid from</dt>
-        <dd><%= @expense.paid_from_account && @expense.paid_from_account.name %></dd>
-      </div>
-    <% end %>
-    <%= if @expense.payee do %>
-      <div class="ct-detail-row">
-        <dt>Payee</dt>
-        <dd><%= @expense.payee %></dd>
-      </div>
-    <% end %>
-  </dl>
-
-  <!-- Refunds -->
-  <%= if @expense.refunds != [] do %>
-    <div class="ct-refunds-section">
-      <div class="ct-refunds-header">
-        <h3 class="ct-refunds-title">Refunds</h3>
-        <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/new")} class="ct-refund-add-link">
-          + Add refund
+  <section class="card ct-detail-card">
+    <div class="ct-detail-header">
+      <h2 class="card-title">Expense Details</h2>
+      <div class="ct-detail-actions">
+        <.link navigate={dp(@domain_path_prefix, "/expenses")} class="ct-detail-action-back">
+          Back
+        </.link>
+        <.link
+          navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/edit")}
+          class="btn primary ct-detail-action-edit"
+        >
+          Edit
+        </.link>
+        <.link
+          href={dp(@domain_path_prefix, "/expenses/#{@expense.id}")}
+          method="delete"
+          data-confirm="Delete this expense?"
+          class="btn ct-btn-danger ct-detail-action-delete"
+        >
+          Delete
         </.link>
       </div>
-      <ul class="ct-refund-list">
-        <%= for refund <- @expense.refunds do %>
-          <li class="ct-refund-row">
-            <div class="ct-refund-info">
-              <span class="ct-refund-amount"><%= fmt.(refund.amount_cents) %></span>
-              <span class="ct-refund-meta">
-                <%= refund.date %> · <%= refund.refund_to_account && refund.refund_to_account.name %>
-                <%= if refund.reason do %> · <em><%= refund.reason %></em><% end %>
-              </span>
-            </div>
-            <.link
-              href={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/#{refund.id}")}
-              method="delete"
-              data-confirm="Remove this refund?"
-              class="ct-attachment-delete"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-            </.link>
-          </li>
-        <% end %>
-      </ul>
-      <div class="ct-refunds-summary">
-        <span>Total refunded: <strong><%= fmt.(total_refunded) %></strong></span>
-        <span class="ct-refunds-net">Net: <strong><%= fmt.(net_cents) %></strong></span>
+    </div>
+
+    <dl class="ct-detail-list">
+      <div class="ct-detail-row">
+        <dt>Date</dt>
+        <dd>{@expense.date}</dd>
       </div>
-    </div>
-  <% else %>
-    <div class="ct-refunds-empty">
-      <.link navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/new")} class="ct-refund-add-link">
-        ↩ Record a refund
-      </.link>
-    </div>
-  <% end %>
-</section>
-
-<!-- Receipts & Documents -->
-<section class="card ct-receipts-card">
-  <h2 class="card-title" style="margin-bottom: 0.75rem;">Receipts & Documents</h2>
-
-  <div class="ct-receipts-body">
-    <!-- File list -->
-    <div>
-      <p class="ct-receipts-sublabel">Attached files</p>
-      <%= if @expense.attachments == [] do %>
-        <p style="font-size: 0.85rem; color: var(--ct-on-surface-variant); padding: 0.5rem 0;">No receipts attached yet.</p>
-      <% else %>
-        <ul class="ct-attachment-list">
-          <%= for att <- @expense.attachments do %>
-            <li class="ct-attachment-row">
-              <div class="ct-attachment-icon">
-                <%= if String.starts_with?(att.content_type || "", "image/") do %>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <% else %>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <% end %>
+      <div class="ct-detail-row">
+        <dt>Description</dt>
+        <dd>{@expense.description}</dd>
+      </div>
+      <div class="ct-detail-row">
+        <dt>Amount</dt>
+        <dd>
+          <span class={"ct-badge #{if @expense.currency == "USD", do: "ct-badge--usd", else: "ct-badge--mxn"}"}>
+            {@expense.currency}
+          </span>
+          <strong>{fmt.(@expense.amount_cents)}</strong>
+        </dd>
+      </div>
+      <div class="ct-detail-row">
+        <dt>Category</dt>
+        <dd>{@expense.expense_account && @expense.expense_account.name}</dd>
+      </div>
+      <%= if @expense.splits != [] do %>
+        <div class="ct-detail-row ct-detail-row--splits">
+          <dt>Paid from</dt>
+          <dd>
+            <%= for split <- @expense.splits do %>
+              <div class="ct-split-detail-row">
+                <span>{split.account && split.account.name}</span>
+                <span>{fmt.(split.amount_cents)}</span>
               </div>
-              <div class="ct-attachment-info">
-                <a href={Ledgr.Receipts.url_for(att.stored_path)} target="_blank" class="ct-attachment-name">
-                  <%= att.filename %>
-                </a>
-                <%= if att.file_size do %>
-                  <span class="ct-attachment-meta"><%= fmt_bytes.(att.file_size) %></span>
-                <% end %>
+            <% end %>
+          </dd>
+        </div>
+      <% else %>
+        <div class="ct-detail-row">
+          <dt>Paid from</dt>
+          <dd>{@expense.paid_from_account && @expense.paid_from_account.name}</dd>
+        </div>
+      <% end %>
+      <%= if @expense.payee do %>
+        <div class="ct-detail-row">
+          <dt>Payee</dt>
+          <dd>{@expense.payee}</dd>
+        </div>
+      <% end %>
+    </dl>
+    
+<!-- Refunds -->
+    <%= if @expense.refunds != [] do %>
+      <div class="ct-refunds-section">
+        <div class="ct-refunds-header">
+          <h3 class="ct-refunds-title">Refunds</h3>
+          <.link
+            navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/new")}
+            class="ct-refund-add-link"
+          >
+            + Add refund
+          </.link>
+        </div>
+        <ul class="ct-refund-list">
+          <%= for refund <- @expense.refunds do %>
+            <li class="ct-refund-row">
+              <div class="ct-refund-info">
+                <span class="ct-refund-amount">{fmt.(refund.amount_cents)}</span>
+                <span class="ct-refund-meta">
+                  {refund.date} · {refund.refund_to_account && refund.refund_to_account.name}
+                  <%= if refund.reason do %>
+                    · <em>{refund.reason}</em>
+                  <% end %>
+                </span>
               </div>
               <.link
-                href={dp(@domain_path_prefix, "/expenses/#{@expense.id}/attachments/#{att.id}")}
+                href={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/#{refund.id}")}
                 method="delete"
-                data-confirm="Remove this receipt?"
+                data-confirm="Remove this refund?"
                 class="ct-attachment-delete"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
+                </svg>
               </.link>
             </li>
           <% end %>
         </ul>
-      <% end %>
+        <div class="ct-refunds-summary">
+          <span>Total refunded: <strong>{fmt.(total_refunded)}</strong></span>
+          <span class="ct-refunds-net">Net: <strong>{fmt.(net_cents)}</strong></span>
+        </div>
+      </div>
+    <% else %>
+      <div class="ct-refunds-empty">
+        <.link
+          navigate={dp(@domain_path_prefix, "/expenses/#{@expense.id}/refunds/new")}
+          class="ct-refund-add-link"
+        >
+          ↩ Record a refund
+        </.link>
+      </div>
+    <% end %>
+  </section>
+  
+<!-- Receipts & Documents -->
+  <section class="card ct-receipts-card">
+    <h2 class="card-title" style="margin-bottom: 0.75rem;">Receipts & Documents</h2>
+
+    <div class="ct-receipts-body">
+      <!-- File list -->
+      <div>
+        <p class="ct-receipts-sublabel">Attached files</p>
+        <%= if @expense.attachments == [] do %>
+          <p style="font-size: 0.85rem; color: var(--ct-on-surface-variant); padding: 0.5rem 0;">
+            No receipts attached yet.
+          </p>
+        <% else %>
+          <ul class="ct-attachment-list">
+            <%= for att <- @expense.attachments do %>
+              <li class="ct-attachment-row">
+                <div class="ct-attachment-icon">
+                  <%= if String.starts_with?(att.content_type || "", "image/") do %>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" /><circle
+                        cx="8.5"
+                        cy="8.5"
+                        r="1.5"
+                      /><polyline points="21 15 16 10 5 21" />
+                    </svg>
+                  <% else %>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  <% end %>
+                </div>
+                <div class="ct-attachment-info">
+                  <a
+                    href={Ledgr.Receipts.url_for(att.stored_path)}
+                    target="_blank"
+                    class="ct-attachment-name"
+                  >
+                    {att.filename}
+                  </a>
+                  <%= if att.file_size do %>
+                    <span class="ct-attachment-meta">{fmt_bytes.(att.file_size)}</span>
+                  <% end %>
+                </div>
+                <.link
+                  href={dp(@domain_path_prefix, "/expenses/#{@expense.id}/attachments/#{att.id}")}
+                  method="delete"
+                  data-confirm="Remove this receipt?"
+                  class="ct-attachment-delete"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
+                  </svg>
+                </.link>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+      
+<!-- Upload form -->
+      <form
+        action={dp(@domain_path_prefix, "/expenses/#{@expense.id}/attachments")}
+        method="post"
+        enctype="multipart/form-data"
+        class="ct-upload-form"
+      >
+        <p class="ct-receipts-sublabel">Quick add</p>
+        <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+        <label class="ct-upload-zone" for="ct-upload-input">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line
+              x1="12"
+              y1="3"
+              x2="12"
+              y2="15"
+            />
+          </svg>
+          <span id="ct-upload-zone-text">Attach receipt or document</span>
+          <input
+            type="file"
+            id="ct-upload-input"
+            name="attachment[file]"
+            accept="image/*,application/pdf"
+            style="display: none;"
+            onchange="document.getElementById('ct-upload-zone-text').textContent = this.files[0]?.name || 'Attach receipt or document'"
+          />
+        </label>
+        <button type="submit" class="ct-upload-submit">Upload</button>
+      </form>
     </div>
-
-    <!-- Upload form -->
-    <form
-      action={dp(@domain_path_prefix, "/expenses/#{@expense.id}/attachments")}
-      method="post"
-      enctype="multipart/form-data"
-      class="ct-upload-form"
-    >
-      <p class="ct-receipts-sublabel">Quick add</p>
-      <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
-      <label class="ct-upload-zone" for="ct-upload-input">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <span id="ct-upload-zone-text">Attach receipt or document</span>
-        <input
-          type="file"
-          id="ct-upload-input"
-          name="attachment[file]"
-          accept="image/*,application/pdf"
-          style="display: none;"
-          onchange="document.getElementById('ct-upload-zone-text').textContent = this.files[0]?.name || 'Attach receipt or document'"
-        />
-      </label>
-      <button type="submit" class="ct-upload-submit">Upload</button>
-    </form>
-  </div>
-</section>
-
-</div><%!-- end ct-show-layout --%>
+  </section>
+</div>
+<%!-- end ct-show-layout --%>

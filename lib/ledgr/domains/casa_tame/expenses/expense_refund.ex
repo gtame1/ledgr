@@ -15,10 +15,10 @@ defmodule Ledgr.Domains.CasaTame.Expenses.ExpenseRefund do
   alias Ledgr.Core.Accounting.Account
 
   schema "expense_refunds" do
-    field :date,         :date
+    field :date, :date
     field :amount_cents, :integer
-    field :currency,     :string
-    field :reason,       :string
+    field :currency, :string
+    field :reason, :string
 
     belongs_to :expense, Ledgr.Domains.CasaTame.Expenses.CasaTameExpense
     belongs_to :refund_to_account, Account
@@ -45,18 +45,29 @@ defmodule Ledgr.Domains.CasaTame.Expenses.ExpenseRefund do
   end
 
   defp validate_currency_matches_account(changeset) do
-    currency   = get_field(changeset, :currency)
+    currency = get_field(changeset, :currency)
     account_id = get_field(changeset, :refund_to_account_id)
 
     if currency && account_id do
       case Ledgr.Repo.get(Account, account_id) do
-        nil -> changeset
+        nil ->
+          changeset
+
         account ->
           valid? =
             case currency do
-              "USD" -> Enum.any?(@usd_ranges, fn {from, to} -> account.code >= from and account.code <= to end)
-              "MXN" -> Enum.any?(@mxn_ranges, fn {from, to} -> account.code >= from and account.code <= to end)
-              _ -> true
+              "USD" ->
+                Enum.any?(@usd_ranges, fn {from, to} ->
+                  account.code >= from and account.code <= to
+                end)
+
+              "MXN" ->
+                Enum.any?(@mxn_ranges, fn {from, to} ->
+                  account.code >= from and account.code <= to
+                end)
+
+              _ ->
+                true
             end
 
           if valid?,
