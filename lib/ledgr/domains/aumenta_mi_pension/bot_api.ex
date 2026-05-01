@@ -23,6 +23,8 @@ defmodule Ledgr.Domains.AumentaMiPension.BotApi do
   Options:
     * `:dry_run` (boolean, default false) — preview only, no mutations
     * `:force` (boolean, default false) — override unfulfilled-payment guard
+    * `:reset_terms` (boolean, default false) — also clear terms-of-service
+      acceptance (for LFPDPPP / right-to-erasure requests)
     * `:reason` (string) — surfaced in bot logs for audit
 
   Returns:
@@ -39,6 +41,7 @@ defmodule Ledgr.Domains.AumentaMiPension.BotApi do
       body = %{
         dry_run: Keyword.get(opts, :dry_run, false),
         force: Keyword.get(opts, :force, false),
+        reset_terms: Keyword.get(opts, :reset_terms, false),
         reason: Keyword.get(opts, :reason, "ledgr admin")
       }
 

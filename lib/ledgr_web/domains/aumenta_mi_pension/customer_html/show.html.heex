@@ -361,6 +361,9 @@ end %>
           <%= if forced? do %>
             <span style="background: #E07A2F; color: white; padding: 2px 8px; border-radius: 999px; font-size: 11px; margin-left: 8px;">FORCED</span>
           <% end %>
+          <%= if @preview["reset_terms"] do %>
+            <span style="background: #B91C1C; color: white; padding: 2px 8px; border-radius: 999px; font-size: 11px; margin-left: 8px;">+ T&amp;C RESET</span>
+          <% end %>
         </h2>
         <span class="text-xs" style="color: var(--text-muted);">
           Generated <%= @preview["previewed_at"] %>
@@ -505,6 +508,20 @@ end %>
             <span style="color: var(--text-muted);">
               — skip the unfulfilled-payments guard. Only check this if you
               know what you're doing.
+            </span>
+          </span>
+        </label>
+      </div>
+
+      <div class="mb-3">
+        <label class="flex items-center gap-2 text-sm cursor-pointer" style="color: var(--text-main);">
+          <input type="checkbox" name="reset_terms" />
+          <span>
+            <strong>Reset terms acceptance</strong>
+            <span style="color: var(--text-muted);">
+              — also clear the customer's T&amp;C acceptance. Use for
+              LFPDPPP / right-to-erasure requests; otherwise leave unchecked
+              so they don't have to re-accept on next message.
             </span>
           </span>
         </label>

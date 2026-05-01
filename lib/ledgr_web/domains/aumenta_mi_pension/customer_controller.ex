@@ -52,6 +52,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.CustomerController do
       preview ->
         opts = [
           force: preview["force"] || false,
+          reset_terms: preview["reset_terms"] || false,
           reason: "#{preview["reason"] || "ledgr admin"} (via Ledgr, confirmed preview)"
         ]
 
@@ -79,9 +80,14 @@ defmodule LedgrWeb.Domains.AumentaMiPension.CustomerController do
 
       true ->
         force? = params["force"] == "on"
+        reset_terms? = params["reset_terms"] == "on"
         reason = params["reason"] || "ledgr admin"
 
-        opts = [force: force?, reason: "#{reason} (via Ledgr)"]
+        opts = [
+          force: force?,
+          reset_terms: reset_terms?,
+          reason: "#{reason} (via Ledgr)"
+        ]
 
         case action do
           "preview" ->
@@ -90,6 +96,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.CustomerController do
                 preview_data = %{
                   "body" => body,
                   "force" => force?,
+                  "reset_terms" => reset_terms?,
                   "reason" => reason,
                   "customer_id" => id,
                   "previewed_at" => DateTime.utc_now() |> DateTime.to_iso8601()
