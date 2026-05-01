@@ -109,6 +109,14 @@
     </script>
   </head>
   <body data-domain={if assigns[:current_domain], do: assigns[:current_domain].slug()}>
+    <%= if assigns[:current_domain] && assigns[:current_domain].slug() == "aumenta-mi-pension" && Application.get_env(:ledgr, :amp_dev_shares_prod_db, false) do %>
+      <div
+        style="background: #B91C1C; color: white; padding: 8px 16px; text-align: center; font-weight: 700; font-size: 13px; letter-spacing: 0.02em; position: sticky; top: 0; z-index: 9999; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"
+      >
+        ⚠ DEV → PROD: this Ledgr is connected to the production AMP database.
+        Every write here hits the live bot's data. Be deliberate.
+      </div>
+    <% end %>
     <%= if assigns[:current_domain] do %>
       <% domain = assigns[:current_domain] %>
       <% prefix = domain.path_prefix() %>
