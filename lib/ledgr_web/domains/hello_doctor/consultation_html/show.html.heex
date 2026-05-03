@@ -203,41 +203,82 @@ end %>
 
       <%!-- Doctor Notes & Patient Summary --%>
       <%= if c.doctor_notes || c.patient_summary do %>
+        <%
+          # doctor_notes may be a JSON string from the bot — try to decode it
+          parsed_notes =
+            case Jason.decode(c.doctor_notes || "") do
+              {:ok, map} when is_map(map) -> map
+              _ -> nil
+            end
+        %>
         <div class="hd-card p-5">
           <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
             Doctor's Notes
           </h2>
+          <%= if parsed_notes do %>
+            <div class="space-y-3">
+              <%= if v = parsed_notes["diagnostico"] do %>
+                <div>
+                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Diagnosis</div>
+                  <div class="text-sm" style="color: var(--text-main);">{v}</div>
+                </div>
+              <% end %>
+              <%= if v = parsed_notes["tratamiento"] do %>
+                <div>
+                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Treatment</div>
+                  <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">{v}</div>
+                </div>
+              <% end %>
+              <%= if v = parsed_notes["seguimiento"] do %>
+                <div>
+                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Follow-up</div>
+                  <div class="text-sm" style="color: var(--text-main);">{v}</div>
+                </div>
+              <% end %>
+              <%= if v = parsed_notes["notas_internas"] do %>
+                <div>
+                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Internal Notes</div>
+                  <div class="text-sm italic" style="color: var(--text-muted);">{v}</div>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <%= if c.doctor_notes do %>
+              <div class="mb-3">
+                <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                  {c.doctor_notes}
+                </div>
+              </div>
+            <% end %>
+          <% end %>
           <%= if c.patient_summary do %>
-            <div class="mb-3">
+            <div class={"#{if parsed_notes || c.doctor_notes, do: "mt-4 pt-4", else: ""}"} style={if parsed_notes || c.doctor_notes, do: "border-top: 1px solid var(--border-subtle);", else: ""}>
               <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
-                Summary
+                Patient Summary
               </div>
               <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
                 {c.patient_summary}
               </div>
             </div>
           <% end %>
-          <%= if c.doctor_notes do %>
-            <div>
-              <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
-                Notes
-              </div>
-              <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
-                {c.doctor_notes}
-              </div>
-            </div>
-          <% end %>
         </div>
       <% end %>
 
-      <%!-- Prescriptions --%>
+      <%!-- Prescriptions — deduplicated: keep only the latest per diagnosis --%>
       <%= if c.prescriptions && !Enum.empty?(c.prescriptions) do %>
+        <%
+          deduped_prescriptions =
+            c.prescriptions
+            |> Enum.sort_by(& &1.created_at, {:desc, DateTime})
+            |> Enum.uniq_by(&(&1.diagnosis || &1.content))
+            |> Enum.sort_by(& &1.created_at, {:asc, DateTime})
+        %>
         <div class="hd-card p-5">
           <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
             Prescriptions
           </h2>
           <div class="space-y-3">
-            <%= for rx <- c.prescriptions do %>
+            <%= for rx <- deduped_prescriptions do %>
               <div
                 class="p-4 rounded-lg"
                 style="background: var(--bg); border: 1px solid var(--border-subtle);"
