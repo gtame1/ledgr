@@ -161,15 +161,37 @@
             </div>
           </div>
         </div>
-        <%= if is_nil(d.prescrypto_medic_id) && !is_nil(d.email) && !is_nil(d.cedula_profesional) do %>
+        <%= if is_nil(d.prescrypto_medic_id) do %>
           <div class="mt-5">
-            <.link
-              href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
-              method="post"
-              class="hd-btn-secondary"
-            >
-              Retry Prescrypto Sync
-            </.link>
+            <%
+              missing = Enum.reject([
+                (if is_nil(d.email), do: "email", else: nil),
+                (if is_nil(d.cedula_profesional), do: "Cédula Profesional", else: nil),
+                (if is_nil(d.prescrypto_specialty_no), do: "Cédula de Especialidad", else: nil)
+              ], &is_nil/1)
+            %>
+            <%= if missing == [] do %>
+              <.link
+                href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
+                method="post"
+                class="hd-btn-secondary"
+              >
+                Sync to Prescrypto
+              </.link>
+            <% else %>
+              <div class="flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm"
+                style="background: #fef9c3; border: 1px solid #fde68a; color: #92400e;">
+                <span class="mt-0.5">⚠️</span>
+                <div>
+                  <span class="font-medium">Can't sync to Prescrypto.</span>
+                  Missing: {Enum.join(missing, ", ")}.
+                  <.link navigate={dp(@domain_path_prefix, "/doctors/#{d.id}/edit")}
+                    style="color: #92400e; text-decoration: underline;">
+                    Edit doctor
+                  </.link> to add these fields.
+                </div>
+              </div>
+            <% end %>
           </div>
         <% end %>
       </div>
