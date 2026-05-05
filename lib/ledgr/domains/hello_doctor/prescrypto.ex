@@ -2,34 +2,37 @@ defmodule Ledgr.Domains.HelloDoctor.Prescrypto do
   require Logger
 
   @doc """
-  Registers a doctor with Prescrypto and returns {:ok, %{prescrypto_medic_id: int, prescrypto_token: string}}
+  Registers a doctor with Prescrypto and returns
+  {:ok, %{prescrypto_medic_id: int, prescrypto_token: string | nil, prescrypto_specialty_verified: bool}}
   or {:error, reason}. Never logs or exposes the token in error messages.
+
+  Only `email`, `cedula_profesional`, and `name` are strictly required by us;
+  Prescrypto only requires `name`/`email`/`password` per their docs. Optional
+  fields (specialty_no, specialty, university) are sent as empty strings when
+  missing — Prescrypto rejects nil but accepts "".
   """
   def create_medic(%{email: nil}), do: {:error, :missing_email}
   def create_medic(%{cedula_profesional: nil}), do: {:error, :missing_cedula}
-  def create_medic(%{prescrypto_specialty_no: nil}), do: {:error, :missing_specialty_no}
 
   def create_medic(doctor) do
-    alias Ledgr.Domains.HelloDoctor.Specialties
-
     config = Application.get_env(:ledgr, :prescrypto, [])
 
     if config[:enabled] == false do
       {:error, :disabled}
     else
-      base_url = config[:base_url] || "https://integration.prescrypto.com/"
+      base_url = config[:base_url] || "https://prescrypto.com/"
       token = config[:token]
-
-      prescrypto_specialty_id = Specialties.prescrypto_specialty_id_for(doctor.specialty)
 
       body = %{
         "name" => doctor.name,
         "email" => doctor.email,
         "password" => random_password(),
         "cedula_prof" => doctor.cedula_profesional,
-        "specialty" => prescrypto_specialty_id || doctor.specialty,
-        "specialty_no" => doctor.prescrypto_specialty_no,
-        "alma_mater" => doctor.university
+        # Per Prescrypto docs `specialty` is a free-text string (e.g. "Medicina General"),
+        # not an ID from their catalog. Send the doctor's specialty name directly.
+        "specialty" => doctor.specialty || "",
+        "specialty_no" => doctor.prescrypto_specialty_no || "",
+        "alma_mater" => doctor.university || ""
       }
 
       req_opts =
@@ -41,7 +44,12 @@ defmodule Ledgr.Domains.HelloDoctor.Prescrypto do
 
       case Req.post(Req.new(base_url: base_url), req_opts) do
         {:ok, %{status: status, body: resp_body}} when status in [200, 201] ->
-          {:ok, %{prescrypto_medic_id: resp_body["id"], prescrypto_token: resp_body["token"]}}
+          {:ok,
+           %{
+             prescrypto_medic_id: resp_body["id"],
+             prescrypto_token: resp_body["token"],
+             prescrypto_specialty_verified: resp_body["specialty_verified"] || false
+           }}
 
         {:ok, %{status: status, body: resp_body}} when status in 400..499 ->
           if duplicate_email_error?(resp_body) do
@@ -125,12 +133,18 @@ defmodule Ledgr.Domains.HelloDoctor.Prescrypto do
 
   # Fetches an existing Prescrypto medic by email. Token is not available via GET,
   # so it is returned as nil — the medic ID is sufficient for prescription linking.
+  # Also returns the latest specialty_verified flag so we can surface verification status.
   defp find_existing_medic(email, base_url, token) do
     url = base_url <> "api/v2/medics/?email=#{URI.encode_www_form(email)}"
 
     case Req.get(Req.new(), url: url, headers: [{"authorization", "Token #{token}"}]) do
       {:ok, %{status: 200, body: %{"results" => [medic | _]}}} ->
-        {:ok, %{prescrypto_medic_id: medic["id"], prescrypto_token: nil}}
+        {:ok,
+         %{
+           prescrypto_medic_id: medic["id"],
+           prescrypto_token: nil,
+           prescrypto_specialty_verified: medic["specialty_verified"] || false
+         }}
 
       {:ok, %{status: 200, body: %{"results" => []}}} ->
         Logger.warning("[Prescrypto] Duplicate email but medic not found by lookup for #{email}")

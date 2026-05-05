@@ -146,11 +146,23 @@
           </div>
           <div>
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
-              Specialty Verified
+              Cédula Verified
             </div>
-            <div class="text-sm" style="color: var(--text-main);">
-              {if d.prescrypto_specialty_verified, do: "✅", else: "❌"}
-            </div>
+            <%= cond do %>
+              <% is_nil(d.prescrypto_medic_id) -> %>
+                <span class="text-sm" style="color: var(--text-muted);">—</span>
+              <% d.prescrypto_specialty_verified -> %>
+                <span class="inline-flex items-center gap-1 text-sm font-medium"
+                  style="color: #065f46;">
+                  ✅ Verified
+                </span>
+              <% true -> %>
+                <span class="inline-flex items-center gap-1 text-sm font-medium"
+                  style="color: #92400e;"
+                  title="Prescrypto staff verify cédulas asynchronously. Click Refresh to check current status.">
+                  ⏳ Pending verification
+                </span>
+            <% end %>
           </div>
           <div>
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
@@ -161,24 +173,17 @@
             </div>
           </div>
         </div>
-        <%= if is_nil(d.prescrypto_medic_id) do %>
-          <div class="mt-5">
-            <%
-              missing = Enum.reject([
-                (if is_nil(d.email), do: "email", else: nil),
-                (if is_nil(d.cedula_profesional), do: "Cédula Profesional", else: nil),
-                (if is_nil(d.prescrypto_specialty_no), do: "Cédula de Especialidad", else: nil)
-              ], &is_nil/1)
-            %>
-            <%= if missing == [] do %>
-              <.link
-                href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
-                method="post"
-                class="hd-btn-secondary"
-              >
-                Sync to Prescrypto
-              </.link>
-            <% else %>
+        <div class="mt-5">
+          <%
+            # Only email + cédula profesional are strictly required by us
+            # (Prescrypto only requires email/name/password). Specialty cédula is optional.
+            missing = Enum.reject([
+              (if is_nil(d.email), do: "email", else: nil),
+              (if is_nil(d.cedula_profesional), do: "Cédula Profesional", else: nil)
+            ], &is_nil/1)
+          %>
+          <%= cond do %>
+            <% missing != [] -> %>
               <div class="flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm"
                 style="background: #fef9c3; border: 1px solid #fde68a; color: #92400e;">
                 <span class="mt-0.5">⚠️</span>
@@ -191,9 +196,25 @@
                   </.link> to add these fields.
                 </div>
               </div>
-            <% end %>
-          </div>
-        <% end %>
+            <% is_nil(d.prescrypto_medic_id) -> %>
+              <.link
+                href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
+                method="post"
+                class="hd-btn-secondary"
+              >
+                Sync to Prescrypto
+              </.link>
+            <% true -> %>
+              <.link
+                href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
+                method="post"
+                class="hd-btn-secondary"
+                title="Re-fetches the medic from Prescrypto to update verification status"
+              >
+                Refresh from Prescrypto
+              </.link>
+          <% end %>
+        </div>
       </div>
     </div>
 

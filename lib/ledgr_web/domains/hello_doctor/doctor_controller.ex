@@ -63,29 +63,39 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
     doctor = Doctors.get_doctor!(id)
 
     case Ledgr.Domains.HelloDoctor.Prescrypto.create_medic(doctor) do
-      {:ok, %{prescrypto_medic_id: medic_id, prescrypto_token: medic_token}} ->
-        {:ok, _} =
-          Doctors.update_doctor(doctor, %{
-            prescrypto_medic_id: medic_id,
-            prescrypto_token: medic_token,
+      {:ok, result} ->
+        # result has :prescrypto_medic_id, :prescrypto_token, :prescrypto_specialty_verified
+        # Build the update map. Don't overwrite an existing token with nil (the GET
+        # fallback path can't recover the token, only the medic ID + verified flag).
+        updates =
+          %{
+            prescrypto_medic_id: result.prescrypto_medic_id,
+            prescrypto_specialty_verified: result.prescrypto_specialty_verified,
             prescrypto_synced_at: DateTime.utc_now()
-          })
+          }
+          |> then(fn m ->
+            if result.prescrypto_token,
+              do: Map.put(m, :prescrypto_token, result.prescrypto_token),
+              else: m
+          end)
+
+        {:ok, _} = Doctors.update_doctor(doctor, updates)
+
+        verified_msg =
+          if result.prescrypto_specialty_verified,
+            do: " — cédula verified ✅",
+            else: " — cédula pending verification by Prescrypto"
 
         conn
-        |> put_flash(:info, "Prescrypto sync successful (medic ##{medic_id}).")
+        |> put_flash(
+          :info,
+          "Prescrypto sync successful (medic ##{result.prescrypto_medic_id})#{verified_msg}."
+        )
         |> redirect(to: dp(conn, "/doctors/#{id}"))
 
       {:error, {:api_error, _status, errors}} ->
         conn
         |> put_flash(:error, "Prescrypto sync failed: #{format_prescrypto_errors(errors)}")
-        |> redirect(to: dp(conn, "/doctors/#{id}"))
-
-      {:error, :missing_specialty_no} ->
-        conn
-        |> put_flash(
-          :error,
-          "Prescrypto sync failed: this doctor has no Cédula de Especialidad. Add it via Edit Doctor."
-        )
         |> redirect(to: dp(conn, "/doctors/#{id}"))
 
       {:error, :missing_cedula} ->

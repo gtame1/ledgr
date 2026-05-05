@@ -49,12 +49,20 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
     alias Ledgr.Domains.HelloDoctor.Prescrypto
 
     case Prescrypto.create_medic(doctor) do
-      {:ok, %{prescrypto_medic_id: medic_id, prescrypto_token: medic_token}} ->
-        case update_doctor(doctor, %{
-               prescrypto_medic_id: medic_id,
-               prescrypto_token: medic_token,
-               prescrypto_synced_at: DateTime.utc_now()
-             }) do
+      {:ok, result} ->
+        updates =
+          %{
+            prescrypto_medic_id: result.prescrypto_medic_id,
+            prescrypto_specialty_verified: result.prescrypto_specialty_verified,
+            prescrypto_synced_at: DateTime.utc_now()
+          }
+          |> then(fn m ->
+            if result.prescrypto_token,
+              do: Map.put(m, :prescrypto_token, result.prescrypto_token),
+              else: m
+          end)
+
+        case update_doctor(doctor, updates) do
           {:ok, updated} -> updated
           {:error, _} -> doctor
         end
