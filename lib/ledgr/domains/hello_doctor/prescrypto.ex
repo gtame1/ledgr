@@ -20,7 +20,7 @@ defmodule Ledgr.Domains.HelloDoctor.Prescrypto do
     if config[:enabled] == false do
       {:error, :disabled}
     else
-      base_url = config[:base_url] || "https://prescrypto.com/"
+      base_url = config[:base_url] || "https://www.prescrypto.com/"
       token = config[:token]
 
       body = %{

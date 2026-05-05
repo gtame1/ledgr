@@ -180,7 +180,7 @@ end
 # (dev uses dev.secret.exs with the sandbox token; prod sets PRESCRYPTO_TOKEN)
 if token = System.get_env("PRESCRYPTO_TOKEN") do
   config :ledgr, :prescrypto,
-    base_url: System.get_env("PRESCRYPTO_BASE_URL", "https://prescrypto.com/"),
+    base_url: System.get_env("PRESCRYPTO_BASE_URL", "https://www.prescrypto.com/"),
     token: token,
     enabled: true
 end
