@@ -269,9 +269,9 @@ end %>
         <%
           deduped_prescriptions =
             c.prescriptions
-            |> Enum.sort_by(& &1.created_at, {:desc, DateTime})
+            |> Enum.sort_by(& &1.created_at, {:desc, NaiveDateTime})
             |> Enum.uniq_by(&(&1.diagnosis || &1.content))
-            |> Enum.sort_by(& &1.created_at, {:asc, DateTime})
+            |> Enum.sort_by(& &1.created_at, {:asc, NaiveDateTime})
         %>
         <div class="hd-card p-5">
           <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
