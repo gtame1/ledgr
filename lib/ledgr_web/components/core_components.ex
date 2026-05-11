@@ -859,26 +859,29 @@ defmodule LedgrWeb.CoreComponents do
 
   def format_currency_colorized(cents) when is_integer(cents) do
     color_class = if cents < 0, do: "text-red-600", else: ""
-    amount = abs(cents) / 100
-
-    formatted =
-      amount
-      |> :erlang.float_to_binary(decimals: 2)
-      |> insert_commas()
-
-    sign = if cents < 0, do: "-", else: ""
-    assigns = %{formatted: formatted, sign: sign, color_class: color_class}
+    assigns = %{text: format_currency_text(cents), color_class: color_class}
 
     ~H"""
-    <span class={@color_class}>
-      {@sign}${@formatted} MXN
-    </span>
+    <span class={@color_class}>{@text}</span>
     """
   end
 
   def format_currency_colorized(_), do: ""
   def format_currency(cents) when is_integer(cents), do: format_currency_colorized(cents)
   def format_currency(_), do: ""
+
+  def format_currency_text(cents) when is_integer(cents) do
+    sign = if cents < 0, do: "-", else: ""
+
+    formatted =
+      (abs(cents) / 100)
+      |> :erlang.float_to_binary(decimals: 2)
+      |> insert_commas()
+
+    "#{sign}$#{formatted} MXN"
+  end
+
+  def format_currency_text(_), do: ""
 
   def format_inventory_colorized(number, unit) when is_float(number) do
     {color_class, sign} = if number < 0, do: {"text-red-600", "-"}, else: {"", ""}

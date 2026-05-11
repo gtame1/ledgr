@@ -273,7 +273,7 @@
             <div style="display: flex; justify-content: space-between; color: #9C8578;">
               <span>
                 Product{if (@order.quantity || 1) > 1,
-                  do: " (#{format_currency(@order.variant.price_cents)} x #{@order.quantity})"}
+                  do: " (#{format_currency_text(@order.variant.price_cents)} x #{@order.quantity})"}
               </span>
               <span>{format_currency(@payment_summary.original_price_cents)}</span>
             </div>

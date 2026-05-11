@@ -20,7 +20,7 @@
           type="select"
           field={f[:subscription_plan_id]}
           options={
-            Enum.map(@plans, &{"#{&1.name} (#{format_currency(&1.price_cents)}/mo)", &1.id})
+            Enum.map(@plans, &{"#{&1.name} (#{format_currency_text(&1.price_cents)}/mo)", &1.id})
           }
         />
       </div>
