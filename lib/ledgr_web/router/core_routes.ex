@@ -75,6 +75,7 @@ defmodule LedgrWeb.Router.CoreRoutes do
       # Transactions
       resources "/transactions", TransactionController, only: [:index, :new, :create, :show]
       get "/account-transactions", AccountTransactionController, :index
+      post "/account-transactions/reconcile", AccountTransactionController, :reconcile
 
       # Reports
       get "/reports/pnl", ReportController, :pnl
