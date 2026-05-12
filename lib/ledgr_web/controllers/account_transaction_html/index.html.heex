@@ -100,7 +100,7 @@
             <button type="submit" class="btn" style="font-size: 0.85rem;">✓ Mark Reconciled</button>
           </form>
 
-          <%= if @selected_account.type == "liability" && String.starts_with?(@selected_account.code, "2") do %>
+          <%= if assigns[:current_domain] == Ledgr.Domains.CasaTame && @selected_account.type == "liability" && String.starts_with?(@selected_account.code, "2") do %>
             <.link
               navigate={dp(@domain_path_prefix, "/card-credits/new?account_id=#{@selected_account.id}")}
               class="btn"
