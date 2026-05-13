@@ -52,11 +52,14 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations do
         {:ok, updated} ->
           updated = Repo.preload(updated, [:patient, :doctor])
 
-          # Create accounting journal entry
+          # Create accounting journal entry. Pass through the Stripe fee if
+          # already fetched upstream (in StripeSync) to avoid a redundant
+          # round trip to the Stripe API here.
           case Ledgr.Domains.HelloDoctor.ConsultationAccounting.record_payment(
                  updated,
                  amount,
-                 stripe_session_id: attrs[:stripe_session_id]
+                 stripe_session_id: attrs[:stripe_session_id],
+                 stripe_fee_cents: attrs[:stripe_fee_cents]
                ) do
             {:ok, _entry} -> updated
             {:error, reason} -> Repo.rollback(reason)

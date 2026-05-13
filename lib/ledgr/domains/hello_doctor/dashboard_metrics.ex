@@ -455,11 +455,16 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   @doc """
   Returns per-doctor payout breakdown for the given period.
-  Shows total billed, doctor share (85%), and consultation count.
-  Sourced from StripePayments linked to consultations — only includes
-  consultations that have a linked paid Stripe payment.
+
+  Shows total billed, doctor share (flat $100 MXN per paid consultation),
+  Stripe fees, and HD net (billed − doctor share − fees). Sourced from
+  StripePayments linked to consultations — only includes consultations that
+  have a linked paid Stripe payment.
   """
   def doctor_payout_report(start_date, end_date) do
+    doctor_share_pesos =
+      Ledgr.Domains.HelloDoctor.ConsultationAccounting.doctor_share_mxn()
+
     per_doctor =
       from d in Doctor,
         join: c in Consultation,
@@ -474,7 +479,6 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
           specialty: d.specialty,
           consultation_count: count(c.id),
           total_billed: sum(p.amount),
-          doctor_share: sum(p.amount) * 0.85,
           stripe_fees: sum(fragment("COALESCE(?, 0)", p.stripe_fee))
         },
         order_by: [desc: sum(p.amount)]
@@ -484,14 +488,14 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       |> Repo.all()
       |> Enum.map(fn row ->
         total = to_float(row.total_billed)
-        share = to_float(row.doctor_share)
         fees = to_float(row.stripe_fees)
+        share = row.consultation_count * doctor_share_pesos
 
         Map.merge(row, %{
           total_billed: total,
           doctor_share: Float.round(share, 2),
           stripe_fees: Float.round(fees, 2),
-          net_to_hd: Float.round(total * 0.15 - fees, 2)
+          net_to_hd: Float.round(total - share - fees, 2)
         })
       end)
 
@@ -504,7 +508,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       total_billed: Float.round(total_billed, 2),
       total_doctor_share: Float.round(total_doctor_share, 2),
       total_stripe_fees: Float.round(total_stripe_fees, 2),
-      total_net_to_hd: Float.round(total_billed * 0.15 - total_stripe_fees, 2)
+      total_net_to_hd: Float.round(total_billed - total_doctor_share - total_stripe_fees, 2)
     }
   end
 

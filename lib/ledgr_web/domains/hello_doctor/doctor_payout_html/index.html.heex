@@ -54,7 +54,7 @@
       <div class="hd-kpi-value" style="color: #dc2626;">
         ${:erlang.float_to_binary(@report.total_doctor_share + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">85% of gross billed</div>
+      <div class="hd-kpi-sub">flat $100 MXN per paid consultation</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Stripe Fees</div>
@@ -68,7 +68,7 @@
       <div class="hd-kpi-value" style="color: var(--accent);">
         ${:erlang.float_to_binary(@report.total_net_to_hd + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">15% commission minus Stripe fees</div>
+      <div class="hd-kpi-sub">billed minus doctor share & Stripe fees</div>
     </div>
   </div>
 
@@ -117,13 +117,13 @@
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
-              Doctor Share (85%)
+              Doctor Share
             </th>
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
-              HD Net (15%−fees)
+              HD Net
             </th>
             <th class="p-3 pr-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">
             </th>

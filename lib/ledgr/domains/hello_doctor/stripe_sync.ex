@@ -14,6 +14,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   require Logger
 
   alias Ledgr.Repo
+  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Domains.HelloDoctor.Consultations
   alias Ledgr.Domains.HelloDoctor.StripeRefunds
@@ -125,14 +126,29 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
          {:ok, pi} <-
            Stripe.PaymentIntent.retrieve(pi_id, %{expand: ["latest_charge"]}, api_key: api_key) do
       charge = pi.latest_charge
+      original_cents = round(payment.amount * 100)
+      amount_refunded_cents = (charge && Map.get(charge, :amount_refunded)) || 0
+      amount_refunded_pesos = amount_refunded_cents / 100.0
 
       stripe_status =
         cond do
-          charge && Map.get(charge, :refunded) == true -> "refunded"
-          charge && (Map.get(charge, :amount_refunded) || 0) > 0 -> "refunded"
-          pi.status == "succeeded" -> "paid"
-          pi.status == "canceled" -> "canceled"
-          true -> payment.status
+          charge && Map.get(charge, :refunded) == true ->
+            "refunded"
+
+          amount_refunded_cents > 0 && amount_refunded_cents >= original_cents ->
+            "refunded"
+
+          amount_refunded_cents > 0 ->
+            "partially_refunded"
+
+          pi.status == "succeeded" ->
+            "paid"
+
+          pi.status == "canceled" ->
+            "canceled"
+
+          true ->
+            payment.status
         end
 
       # Also backfill product_name if missing
@@ -141,14 +157,17 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           fetch_product_name(%{id: payment.stripe_session_id}, api_key)
         end
 
-      updates = %{status: stripe_status}
+      changed_refund? = amount_refunded_pesos != (payment.amount_refunded || 0.0)
+      changed_status? = stripe_status != payment.status
+
+      updates = %{status: stripe_status, amount_refunded: amount_refunded_pesos}
       updates = if product_name, do: Map.put(updates, :product_name, product_name), else: updates
 
-      if stripe_status != payment.status || product_name do
+      if changed_status? || changed_refund? || product_name do
         payment |> StripePayment.changeset(updates) |> Repo.update()
 
         Logger.info(
-          "[HelloDoctor StripeSync] Payment #{payment.id} updated: status=#{stripe_status}, product=#{product_name || "unchanged"}"
+          "[HelloDoctor StripeSync] Payment #{payment.id} updated: status=#{stripe_status}, refunded=$#{amount_refunded_pesos}, product=#{product_name || "unchanged"}"
         )
 
         {:ok, :updated, stripe_status}
@@ -199,50 +218,63 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
                 nil
             end
 
-          # Try to fetch actual Stripe fee and detect refund status
-          {fee_cents, payment_status} = fetch_fee_and_status(session, api_key)
-          fee_pesos = if fee_cents, do: fee_cents / 100.0, else: nil
+          # Single Stripe API round trip — yields fee, refund state, status,
+          # and the *actual* charge time.
+          charge_info = fetch_charge_info(session, api_key)
+          fee_pesos = if charge_info.fee_cents, do: charge_info.fee_cents / 100.0, else: nil
+          amount_refunded_pesos = charge_info.amount_refunded_cents / 100.0
 
           attrs = %{
             stripe_session_id: session.id,
             stripe_payment_intent_id: session.payment_intent,
             amount: amount_pesos,
+            amount_refunded: amount_refunded_pesos,
             currency: session.currency || "mxn",
-            status: payment_status,
+            status: charge_info.status,
             customer_email: customer_email,
             customer_name: customer_name,
             consultation_id: consultation_id,
             stripe_fee: fee_pesos,
             product_name: product_name,
-            paid_at:
-              DateTime.from_unix!(session.created)
-              |> DateTime.to_naive()
-              |> NaiveDateTime.truncate(:second)
+            paid_at: charge_info.paid_at_naive
           }
 
-          case %StripePayment{}
-               |> StripePayment.changeset(attrs)
-               |> Repo.insert() do
-            {:ok, payment} ->
-              if consultation_id do
-                # link_to_consultation calls ConsultationAccounting.record_payment,
-                # which creates the full journal entry (revenue + fee + doctor payout).
-                # Do NOT also call create_payment_journal_entry or entries double up.
-                link_to_consultation(consultation_id, amount_pesos, session.id)
-              else
-                # No consultation linked — create a basic GL entry for the revenue.
-                create_payment_journal_entry(payment)
-              end
+          # Insert the payment AND its journal entry inside one transaction —
+          # avoids orphaning a payment row if the GL side fails. If anything
+          # rolls back, both sides are gone and the next sync/webhook will
+          # cleanly retry.
+          Repo.transaction(fn ->
+            case %StripePayment{}
+                 |> StripePayment.changeset(attrs)
+                 |> Repo.insert() do
+              {:ok, payment} ->
+                je_result =
+                  if consultation_id do
+                    link_to_consultation(
+                      consultation_id,
+                      amount_pesos,
+                      session.id,
+                      charge_info.fee_cents
+                    )
+                  else
+                    create_payment_journal_entry(payment)
+                  end
 
-              {:ok, payment}
+                case je_result do
+                  {:ok, _} -> payment
+                  {:error, reason} -> Repo.rollback(reason)
+                  :ok -> payment
+                  _ -> payment
+                end
 
-            {:error, changeset} ->
-              Logger.warning(
-                "[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}"
-              )
+              {:error, changeset} ->
+                Logger.warning(
+                  "[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}"
+                )
 
-              {:error, changeset}
-          end
+                Repo.rollback(changeset)
+            end
+          end)
         else
           Logger.warning(
             "[HelloDoctor StripeSync] Skipping session #{session.id} — product_ids=#{inspect(line_item_product_ids)} did not match #{inspect(@hellodoctor_product_ids)}"
@@ -257,15 +289,16 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     end
   end
 
-  defp link_to_consultation(consultation_id, amount_pesos, session_id) do
+  defp link_to_consultation(consultation_id, amount_pesos, session_id, fee_cents) do
     case Consultations.get_consultation(consultation_id) do
       nil ->
-        :ok
+        {:ok, :no_consultation}
 
       consultation ->
         Consultations.record_stripe_payment(consultation, %{
           payment_amount: amount_pesos,
-          stripe_session_id: session_id
+          stripe_session_id: session_id,
+          stripe_fee_cents: fee_cents
         })
     end
   end
@@ -326,12 +359,12 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           lines
         end
 
-      # Add doctor payable lines (85%)
+      # Add doctor payable lines (flat $100 MXN per paid consultation)
       doctor_payable_account = Accounting.get_account_by_code("2000")
 
       lines =
         if doctor_payable_account do
-          doctor_payout_cents = round(amount_cents * 0.85)
+          doctor_payout_cents = ConsultationAccounting.doctor_share_cents()
 
           lines ++
             [
@@ -339,7 +372,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
                 account_id: consultation_revenue.id,
                 debit_cents: doctor_payout_cents,
                 credit_cents: 0,
-                description: "Doctor's share (85%)"
+                description: "Doctor's share"
               },
               %{
                 account_id: doctor_payable_account.id,
@@ -363,8 +396,25 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     end
   end
 
-  # Returns {fee_cents_or_nil, status_string} by fetching the payment intent.
-  defp fetch_fee_and_status(session, api_key) do
+  # Returns a charge_info map by fetching the payment intent's latest charge.
+  # Centralises every field that depends on the charge so we only hit the
+  # Stripe API once per webhook (vs. the old code which re-fetched the fee
+  # later in ConsultationAccounting.record_payment).
+  #
+  #   %{
+  #     fee_cents: integer | nil,           # actual Stripe processing fee
+  #     amount_refunded_cents: integer,     # 0 for non-refunded payments
+  #     status: "paid" | "refunded" | "partially_refunded" | "canceled",
+  #     paid_at_naive: NaiveDateTime.t      # actual charge time, not session create
+  #   }
+  defp fetch_charge_info(session, api_key) do
+    fallback = %{
+      fee_cents: nil,
+      amount_refunded_cents: 0,
+      status: "paid",
+      paid_at_naive: session_created_naive(session)
+    }
+
     if session.payment_intent do
       try do
         case Stripe.PaymentIntent.retrieve(session.payment_intent, %{expand: ["latest_charge"]},
@@ -372,39 +422,84 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
              ) do
           {:ok, pi} ->
             charge = pi.latest_charge
+            amount_refunded = (charge && Map.get(charge, :amount_refunded)) || 0
+            session_amount = session.amount_total || 0
 
             status =
               cond do
-                charge && Map.get(charge, :refunded) == true -> "refunded"
-                charge && (Map.get(charge, :amount_refunded) || 0) > 0 -> "refunded"
-                pi.status == "succeeded" -> "paid"
-                pi.status == "canceled" -> "canceled"
-                true -> "paid"
+                charge && Map.get(charge, :refunded) == true ->
+                  "refunded"
+
+                amount_refunded > 0 && amount_refunded >= session_amount ->
+                  "refunded"
+
+                amount_refunded > 0 ->
+                  "partially_refunded"
+
+                pi.status == "succeeded" ->
+                  "paid"
+
+                pi.status == "canceled" ->
+                  "canceled"
+
+                true ->
+                  "paid"
               end
 
-            bt_id = charge && Map.get(charge, :balance_transaction)
+            fee = fetch_charge_fee(charge, api_key)
+            paid_at = charge_paid_at(charge) || fallback.paid_at_naive
 
-            fee =
-              if bt_id do
-                bt_id = if is_binary(bt_id), do: bt_id, else: bt_id.id
-
-                case Stripe.BalanceTransaction.retrieve(bt_id, %{}, api_key: api_key) do
-                  {:ok, bt} -> bt.fee
-                  _ -> nil
-                end
-              end
-
-            {fee, status}
+            %{
+              fee_cents: fee,
+              amount_refunded_cents: amount_refunded,
+              status: status,
+              paid_at_naive: paid_at
+            }
 
           _ ->
-            {nil, "paid"}
+            fallback
         end
       rescue
-        _ -> {nil, "paid"}
+        _ -> fallback
       end
     else
-      {nil, "paid"}
+      fallback
     end
+  end
+
+  defp fetch_charge_fee(nil, _api_key), do: nil
+
+  defp fetch_charge_fee(charge, api_key) do
+    bt_id = Map.get(charge, :balance_transaction)
+    bt_id = if is_binary(bt_id), do: bt_id, else: bt_id && Map.get(bt_id, :id)
+
+    if bt_id do
+      case Stripe.BalanceTransaction.retrieve(bt_id, %{}, api_key: api_key) do
+        {:ok, bt} -> bt.fee
+        _ -> nil
+      end
+    end
+  end
+
+  defp charge_paid_at(nil), do: nil
+
+  defp charge_paid_at(charge) do
+    case Map.get(charge, :created) do
+      ts when is_integer(ts) ->
+        ts
+        |> DateTime.from_unix!()
+        |> DateTime.to_naive()
+        |> NaiveDateTime.truncate(:second)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp session_created_naive(session) do
+    DateTime.from_unix!(session.created)
+    |> DateTime.to_naive()
+    |> NaiveDateTime.truncate(:second)
   end
 
   # Returns {product_name_string_or_nil, [product_id, ...]} for a session.

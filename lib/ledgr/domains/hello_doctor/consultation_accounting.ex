@@ -6,18 +6,18 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   the double-entry journal entries:
 
   1. Revenue recognition:
-     DEBIT  1200 Stripe Receivable     $500   (money coming from Stripe)
-     CREDIT 4000 Consultation Revenue  $500   (full amount as revenue)
+     DEBIT  1200 Stripe Receivable     $120   (money coming from Stripe)
+     CREDIT 4000 Consultation Revenue  $120   (full amount as revenue)
 
   2. Stripe processing fee:
-     DEBIT  6000 Payment Processing    $21    (actual Stripe fee)
-     CREDIT 1200 Stripe Receivable     $21    (deducted from receivable)
+     DEBIT  6000 Payment Processing    $5     (actual Stripe fee)
+     CREDIT 1200 Stripe Receivable     $5     (deducted from receivable)
 
-  3. Doctor payout (85%):
-     DEBIT  4000 Consultation Revenue  $425   (reclassify doctor's share)
-     CREDIT 2000 Doctor Payable        $425   (owe doctor 85%)
+  3. Doctor payout (flat $100 MXN per paid consultation):
+     DEBIT  4000 Consultation Revenue  $100   (reclassify doctor's share)
+     CREDIT 2000 Doctor Payable        $100   (owe doctor $100)
 
-  Net result: HelloDoctor keeps 15% commission minus Stripe fees.
+  Net result: HelloDoctor keeps (amount − $100) commission minus Stripe fees.
   """
 
   require Logger
@@ -30,24 +30,39 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   @payment_processing_code "6000"
   @doctor_payable_code "2000"
 
-  @commission_rate 0.15
+  # Flat amount paid to the doctor for every paid consultation, in MXN.
+  # Single source of truth — used by accounting, refunds, sync, and reports.
+  @doctor_share_mxn 100.0
+
+  @doc "Flat doctor share per paid consultation, in MXN pesos."
+  def doctor_share_mxn, do: @doctor_share_mxn
+
+  @doc "Flat doctor share per paid consultation, in centavos."
+  def doctor_share_cents, do: round(@doctor_share_mxn * 100)
 
   @doc """
   Records a consultation payment as journal entries.
 
   `consultation` must have patient and doctor preloaded.
   `amount_pesos` is the total payment amount in pesos (float).
+
+  Options:
+    :stripe_session_id — used to fetch the actual Stripe fee from the API
+    :stripe_fee_cents  — if already known (e.g. from the webhook upsert),
+                         use this and skip the extra API round trip
   """
   def record_payment(consultation, amount_pesos, opts \\ []) do
     amount_cents = round(amount_pesos * 100)
-    commission_cents = round(amount_cents * @commission_rate)
-    doctor_payout_cents = amount_cents - commission_cents
+    doctor_payout_cents = doctor_share_cents()
 
     stripe_session_id = opts[:stripe_session_id]
 
-    # Fetch actual Stripe fee if we have a session ID
+    # Prefer the fee passed in (already fetched at webhook time); fall back to
+    # Stripe API; finally fall back to an estimate.
     fee_cents =
-      fetch_stripe_fee_cents(stripe_session_id) || estimate_stripe_fee_cents(amount_cents)
+      opts[:stripe_fee_cents] ||
+        fetch_stripe_fee_cents(stripe_session_id) ||
+        estimate_stripe_fee_cents(amount_cents)
 
     patient_name =
       if consultation.patient do
@@ -104,12 +119,12 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
         credit_cents: fee_cents,
         description: "Stripe fee deducted from receivable"
       },
-      # 3. Doctor payout (85%): reclassify from revenue to payable
+      # 3. Doctor payout (flat $100 MXN): reclassify from revenue to payable
       %{
         account_id: consultation_revenue.id,
         debit_cents: doctor_payout_cents,
         credit_cents: 0,
-        description: "Doctor's share (85%) — Dr. #{doctor_name}"
+        description: "Doctor's share — Dr. #{doctor_name}"
       },
       %{
         account_id: doctor_payable.id,

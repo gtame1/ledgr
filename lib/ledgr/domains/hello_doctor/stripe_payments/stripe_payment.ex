@@ -6,6 +6,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripePayments.StripePayment do
     field :stripe_session_id, :string
     field :stripe_payment_intent_id, :string
     field :amount, :float
+    field :amount_refunded, :float, default: 0.0
     field :currency, :string, default: "mxn"
     field :status, :string, default: "paid"
     field :customer_email, :string
@@ -19,7 +20,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripePayments.StripePayment do
   end
 
   @required ~w[stripe_session_id amount status paid_at]a
-  @optional ~w[stripe_payment_intent_id currency customer_email customer_name consultation_id stripe_fee product_name]a
+  @optional ~w[stripe_payment_intent_id amount_refunded currency customer_email customer_name consultation_id stripe_fee product_name]a
 
   def changeset(payment, attrs) do
     payment

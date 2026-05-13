@@ -90,32 +90,34 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
       end
 
     if payment_intent_id do
+      amount_refunded_cents = Map.get(charge, :amount_refunded, 0) || 0
+      amount_refunded_pesos = amount_refunded_cents / 100.0
+
       case Ledgr.Repo.get_by(StripePayment, stripe_payment_intent_id: payment_intent_id) do
         nil ->
           Logger.warning(
             "[HelloDoctor] Stripe webhook: charge.refunded for unknown payment_intent #{payment_intent_id}"
           )
 
-        %StripePayment{status: "refunded"} = payment ->
-          # Already marked refunded (e.g. initiated from Ledgr UI) — skip status update
-          # but create the GL reversal if it doesn't exist yet.
-          Logger.info(
-            "[HelloDoctor] Stripe webhook: charge.refunded for already-refunded payment #{payment.id} — ensuring GL entry exists"
-          )
+        %StripePayment{} = payment ->
+          original_cents = round(payment.amount * 100)
+          full_refund? = amount_refunded_cents >= original_cents
+          new_status = if full_refund?, do: "refunded", else: "partially_refunded"
 
-          StripeRefunds.create_refund_journal_entry(payment)
-
-        payment ->
-          # Mark as refunded and post GL reversal in one go
+          # Update amount_refunded + status (idempotent — same values on retry).
+          # The refund JE creator is itself idempotent via the reference check.
           {:ok, updated} =
             payment
-            |> StripePayment.changeset(%{status: "refunded"})
+            |> StripePayment.changeset(%{
+              status: new_status,
+              amount_refunded: amount_refunded_pesos
+            })
             |> Ledgr.Repo.update()
 
           StripeRefunds.create_refund_journal_entry(updated)
 
           Logger.info(
-            "[HelloDoctor] Stripe webhook: marked payment #{payment.id} as refunded and created GL reversal (charge #{charge.id})"
+            "[HelloDoctor] Stripe webhook: payment #{payment.id} refunded $#{amount_refunded_pesos} (#{new_status}) — JE ensured (charge #{charge.id})"
           )
       end
     else
