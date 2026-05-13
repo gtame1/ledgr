@@ -448,6 +448,12 @@
                       <span class="material-symbols-outlined">list_alt</span> Transactions
                     </.link>
                     <.link
+                      navigate={"#{prefix}/transfers"}
+                      class={"mm-nav-item#{if String.starts_with?(req_path, "#{prefix}/transfers"), do: " mm-nav-item--active"}"}
+                    >
+                      <span class="material-symbols-outlined">sync_alt</span> Money Transfers
+                    </.link>
+                    <.link
                       navigate={"#{prefix}/customers"}
                       class={"mm-nav-item#{if String.starts_with?(req_path, "#{prefix}/customers"), do: " mm-nav-item--active"}"}
                     >
