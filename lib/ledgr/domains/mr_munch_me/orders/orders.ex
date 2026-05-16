@@ -12,7 +12,7 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
     DiscountCode
   }
 
-  alias Ledgr.Domains.MrMunchMe.{OrderAccounting, PendingCheckout}
+  alias Ledgr.Domains.MrMunchMe.{Notifications, OrderAccounting, PendingCheckout}
   alias Ledgr.Domains.MrMunchMe.Inventory.Location
   alias Ledgr.Core.{Customers, Accounting}
   alias Ledgr.Repo
@@ -983,6 +983,22 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
         stripe_session_id,
         stripe_amount_total_cents
       ) do
+    result = do_create_orders_from_pending_checkout(pending, stripe_session_id, stripe_amount_total_cents)
+
+    with {:ok, orders} <- result do
+      orders
+      |> Repo.preload(variant: :product)
+      |> Notifications.notify_new_order("stripe")
+    end
+
+    result
+  end
+
+  defp do_create_orders_from_pending_checkout(
+         %PendingCheckout{} = pending,
+         stripe_session_id,
+         stripe_amount_total_cents
+       ) do
     stripe_account = Accounting.get_account_by_code!("1005")
     default_location = Repo.get_by!(Location, code: "CASA_AG")
     customer = Customers.get_customer!(pending.customer_id)
@@ -1092,37 +1108,48 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
   def create_payments_for_existing_orders(order_ids, stripe_session_id) do
     stripe_account = Accounting.get_account_by_code!("1005")
 
-    Repo.transaction(fn ->
-      Enum.each(order_ids, fn order_id ->
-        order = Repo.get!(Order, order_id) |> Repo.preload([:variant, :order_payments])
+    result =
+      Repo.transaction(fn ->
+        Enum.flat_map(order_ids, fn order_id ->
+          order = Repo.get!(Order, order_id) |> Repo.preload([:variant, :order_payments])
 
-        # Idempotency: skip if already has a Stripe payment
-        already_paid = Enum.any?(order.order_payments, fn p -> p.method == "stripe" end)
+          # Idempotency: skip if already has a Stripe payment
+          already_paid = Enum.any?(order.order_payments, fn p -> p.method == "stripe" end)
 
-        unless already_paid do
-          order
-          |> Order.changeset(%{"stripe_checkout_session_id" => stripe_session_id})
-          |> Repo.update!()
+          if already_paid do
+            []
+          else
+            order
+            |> Order.changeset(%{"stripe_checkout_session_id" => stripe_session_id})
+            |> Repo.update!()
 
-          summary = payment_summary_from_preloaded(order)
-          amount_cents = summary.product_total_cents
+            summary = payment_summary_from_preloaded(order)
+            amount_cents = summary.product_total_cents
 
-          payment_attrs = %{
-            "order_id" => order_id,
-            "amount_cents" => amount_cents,
-            "paid_to_account_id" => stripe_account.id,
-            "method" => "stripe",
-            "payment_date" => LedgrWeb.Helpers.DomainHelpers.today_mx(),
-            "is_deposit" => false
-          }
+            payment_attrs = %{
+              "order_id" => order_id,
+              "amount_cents" => amount_cents,
+              "paid_to_account_id" => stripe_account.id,
+              "method" => "stripe",
+              "payment_date" => LedgrWeb.Helpers.DomainHelpers.today_mx(),
+              "is_deposit" => false
+            }
 
-          case create_order_payment(payment_attrs) do
-            {:ok, _payment} -> :ok
-            {:error, reason} -> Repo.rollback(reason)
+            case create_order_payment(payment_attrs) do
+              {:ok, _payment} -> [order]
+              {:error, reason} -> Repo.rollback(reason)
+            end
           end
-        end
+        end)
       end)
-    end)
+
+    with {:ok, newly_paid_orders} <- result, [_ | _] <- newly_paid_orders do
+      newly_paid_orders
+      |> Repo.preload(variant: :product)
+      |> Notifications.notify_payment_received()
+    end
+
+    result
   end
 
   @doc """
@@ -1146,6 +1173,18 @@ defmodule Ledgr.Domains.MrMunchMe.Orders do
   end
 
   def create_orders_cod(cart, customer_id, checkout_attrs) do
+    result = do_create_orders_cod(cart, customer_id, checkout_attrs)
+
+    with {:ok, orders} <- result do
+      orders
+      |> Repo.preload(variant: :product)
+      |> Notifications.notify_new_order("cod")
+    end
+
+    result
+  end
+
+  defp do_create_orders_cod(cart, customer_id, checkout_attrs) do
     default_location = Repo.get_by!(Location, code: "CASA_AG")
     customer = Customers.get_customer!(customer_id)
 

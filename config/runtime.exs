@@ -185,6 +185,19 @@ if token = System.get_env("PRESCRYPTO_TOKEN") do
     enabled: true
 end
 
+# Wassenger (WhatsApp) — sends server-initiated alerts (e.g. new MrMunchMe
+# orders). If WASSENGER_API_KEY is missing, sends silently no-op and log a
+# warning so the rest of the app keeps working.
+config :ledgr, :wassenger,
+  api_key: System.get_env("WASSENGER_API_KEY"),
+  device_id: System.get_env("WASSENGER_DEVICE_ID")
+
+# MrMunchMe alert recipient (E.164 without +). Defaults to the public
+# business number 525543417149 if unset.
+if phone = System.get_env("MR_MUNCH_ME_ALERT_PHONE") do
+  config :ledgr, :mr_munch_me, alert_phone: phone
+end
+
 if config_env() == :prod do
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||
