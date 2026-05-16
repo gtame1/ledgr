@@ -4,7 +4,7 @@ defmodule Ledgr.Domains.MrMunchMe.Notifications do
 
   Currently sends WhatsApp alerts to the MrMunchMe business number when
   a new web order is created or when an existing COD order is paid via
-  Stripe. All sends are fire-and-forget (`Wassenger.send_text_async/2`)
+  Stripe. All sends are fire-and-forget (`CallMeBot.send_text_async/2`)
   so customer-facing flows never block on the WhatsApp API.
 
   ## Configuration
@@ -17,7 +17,7 @@ defmodule Ledgr.Domains.MrMunchMe.Notifications do
 
   require Logger
 
-  alias Ledgr.Notifications.Wassenger
+  alias Ledgr.Notifications.CallMeBot
 
   @default_phone "525543417149"
 
@@ -32,7 +32,7 @@ defmodule Ledgr.Domains.MrMunchMe.Notifications do
 
       [first | _] = orders ->
         message = build_new_order_message(orders, first, payment_method)
-        Wassenger.send_text_async(alert_phone(), message)
+        CallMeBot.send_text_async(alert_phone(), message)
     end
   end
 
@@ -47,7 +47,7 @@ defmodule Ledgr.Domains.MrMunchMe.Notifications do
 
       [first | _] = orders ->
         message = build_payment_message(orders, first)
-        Wassenger.send_text_async(alert_phone(), message)
+        CallMeBot.send_text_async(alert_phone(), message)
     end
   end
 

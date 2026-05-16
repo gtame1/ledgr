@@ -185,15 +185,18 @@ if token = System.get_env("PRESCRYPTO_TOKEN") do
     enabled: true
 end
 
-# Wassenger (WhatsApp) — sends server-initiated alerts (e.g. new MrMunchMe
-# orders). If WASSENGER_API_KEY is missing, sends silently no-op and log a
-# warning so the rest of the app keeps working.
-config :ledgr, :wassenger,
-  api_key: System.get_env("WASSENGER_API_KEY"),
-  device_id: System.get_env("WASSENGER_DEVICE_ID")
+# CallMeBot (WhatsApp) — free per-recipient WhatsApp sender used for
+# server-initiated alerts (e.g. new MrMunchMe orders). One-time setup:
+# from the receiving phone, send "I allow callmebot to send me messages"
+# to +34 644 51 96 80; CallMeBot replies with the API key.
+# If CALLMEBOT_API_KEY is missing the integration silently no-ops and
+# logs a warning so the rest of the app keeps working.
+config :ledgr, :callmebot,
+  api_key: System.get_env("CALLMEBOT_API_KEY")
 
-# MrMunchMe alert recipient (E.164 without +). Defaults to the public
-# business number 525543417149 if unset.
+# MrMunchMe alert recipient (E.164, with or without leading +). Must be
+# the same phone that authorized the CallMeBot API key above. Defaults
+# to the public business number 525543417149 if unset.
 if phone = System.get_env("MR_MUNCH_ME_ALERT_PHONE") do
   config :ledgr, :mr_munch_me, alert_phone: phone
 end
