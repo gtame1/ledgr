@@ -188,7 +188,7 @@ end
 # CallMeBot (WhatsApp) — free per-recipient WhatsApp sender used for
 # server-initiated alerts (e.g. new MrMunchMe orders). One-time setup:
 # from the receiving phone, send "I allow callmebot to send me messages"
-# to +34 644 51 96 80; CallMeBot replies with the API key.
+# to +34 623 75 84 18; CallMeBot replies with the API key.
 # If CALLMEBOT_API_KEY is missing the integration silently no-ops and
 # logs a warning so the rest of the app keeps working.
 config :ledgr, :callmebot,

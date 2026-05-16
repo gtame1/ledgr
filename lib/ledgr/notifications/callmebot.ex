@@ -5,8 +5,11 @@ defmodule Ledgr.Notifications.CallMeBot do
   ## One-time setup
 
   From the receiving phone, send the literal text
-  `I allow callmebot to send me messages` to `+34 644 51 96 80`. CallMeBot
+  `I allow callmebot to send me messages` to `+34 623 75 84 18`. CallMeBot
   replies with an API key. Put that key in `CALLMEBOT_API_KEY`.
+
+  Pre-filled WhatsApp link (open on the receiving phone):
+  https://wa.me/34623758418?text=I%20allow%20callmebot%20to%20send%20me%20messages
 
   ## Configuration
 
