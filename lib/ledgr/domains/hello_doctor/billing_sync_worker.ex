@@ -35,6 +35,11 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSyncWorker do
 
     try do
       Ledgr.Repo.put_active_repo(Ledgr.Repos.HelloDoctor)
+      # Also pin the active domain — JournalEntry.types/0 reads it to know
+      # which domain-specific entry_types (e.g. "external_cost") are allowed.
+      # Without this, posting falls back to whatever domain was last set and
+      # rejects "external_cost" as :inclusion-invalid.
+      Ledgr.Domain.put_current(Ledgr.Domains.HelloDoctor)
 
       pull_results = BillingSync.sync_all()
       Logger.info("[HelloDoctor.BillingSyncWorker] sync_all: #{inspect(pull_results)}")

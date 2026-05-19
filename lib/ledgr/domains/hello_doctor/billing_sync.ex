@@ -78,7 +78,7 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
 
     url =
       "https://api.openai.com/v1/organization/usage/completions" <>
-        "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=100"
+        "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31"
 
     headers = [
       {"Authorization", "Bearer #{api_key}"},
@@ -99,7 +99,7 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
         # Also sync embeddings
         embed_url =
           "https://api.openai.com/v1/organization/usage/embeddings" <>
-            "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=100"
+            "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31"
 
         embed_rows =
           case :httpc.request(
