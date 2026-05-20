@@ -82,7 +82,8 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
     project_filter =
       case Application.get_env(:ledgr, :hello_doctor_openai_project_id) do
         nil -> ""
-        id -> "&project_ids[]=#{URI.encode_www_form(id)}"
+        # Erlang's :httpc rejects literal [] in URIs — they must be percent-encoded.
+        id -> "&project_ids%5B%5D=#{URI.encode_www_form(id)}"
       end
 
     url =
