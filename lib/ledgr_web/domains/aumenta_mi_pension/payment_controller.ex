@@ -2,7 +2,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.PaymentController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.AumentaMiPension.StripePayments.StripePayment
-  alias Ledgr.Domains.AumentaMiPension.{StripeSync, StripeRefunds, PaymentLinking}
+  alias Ledgr.Domains.AumentaMiPension.{StripeSync, StripeRefunds, PaymentLinking, Payments}
   alias Ledgr.Repo
 
   import Ecto.Query, warn: false
@@ -16,10 +16,12 @@ defmodule LedgrWeb.Domains.AumentaMiPension.PaymentController do
       |> maybe_filter_status(params["status"])
       |> Repo.all()
 
+    bot_payments = Payments.list_payments(limit: 100)
     stats = payment_stats()
 
     render(conn, :index,
       payments: payments,
+      bot_payments: bot_payments,
       stats: stats,
       current_status: params["status"]
     )

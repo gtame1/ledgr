@@ -59,3 +59,18 @@ end
 Active-item accent color comes from `theme().accent` (fallback `theme().primary`). Any domain that implements `nav_icons/0` automatically gets the standard look; domains without it fall back to the legacy dropdown nav.
 
 Reference implementations: `Ledgr.Domains.HelloDoctor`, `Ledgr.Domains.AumentaMiPension`.
+
+## Aumenta Mi Pensión — schema ownership
+
+The AMP database is shared with the external bot service. Two writers, one Postgres:
+
+- **Bot owns** (don't write Ecto migrations for these — apply changes via the bot's migration tooling, then sync the Ecto schema here):
+  `agents`, `agent_assistant_messages`, `calculadora_submissions`, `checkup_responses`,
+  `consultations`, `consultation_calls`, `conversations`, `customers`, `messages`,
+  `outbound_messages`, `payments`, `pension_cases`, `webhook_dedup`.
+
+- **Ledgr owns** (managed via `priv/repos/aumenta_mi_pension/migrations`):
+  `stripe_payments`, `users`, `accounts`, `journal_entries`, `journal_lines`,
+  `app_settings`, `customer_deletions`.
+
+When you spot drift between the bot DB and our Ecto schemas, update the schema files in `lib/ledgr/domains/aumenta_mi_pension/<table>/` — don't write a migration. `Ledgr.Repos.AumentaMiPension` is configured with `priv: "priv/repos/aumenta_mi_pension"` so `mix ecto.migrate` only sees ledgr-owned migrations.

@@ -1,0 +1,126 @@
+<% fmt_money = fn
+  nil -> "---"
+  amount -> "$#{:erlang.float_to_binary(amount / 1, decimals: 0)} MXN"
+end %>
+
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Calculadora</h1>
+  </div>
+
+  <%!-- KPI Cards --%>
+  <div class="hd-kpi-grid mb-6">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Sesiones Totales</div>
+      <div class="hd-kpi-value">{@total}</div>
+      <div class="hd-kpi-sub">simulaciones</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Con Contacto</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">{@leads}</div>
+      <div class="hd-kpi-sub">leads capturados</div>
+    </div>
+  </div>
+
+  <%!-- Filters --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/calculadora")} class="flex gap-3 items-end">
+      <div class="flex-1">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Búsqueda
+        </label>
+        <input
+          type="text"
+          name="search"
+          value={@current_search}
+          placeholder="Nombre, teléfono, email o campaña..."
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        />
+      </div>
+      <label class="flex items-center gap-2 text-sm" style="color: var(--text-main);">
+        <input type="checkbox" name="leads_only" value="1" checked={@leads_only} /> Solo con contacto
+      </label>
+      <button type="submit" class="hd-btn-secondary">Filtrar</button>
+    </form>
+  </div>
+
+  <%!-- Submissions table --%>
+  <div class="hd-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Fecha
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Contacto
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Edad / Semanas
+            </th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Pensión Estimada
+            </th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Ganancia 20a
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Campaña
+            </th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if Enum.empty?(@submissions) do %>
+            <tr>
+              <td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">
+                Sin envíos.
+              </td>
+            </tr>
+          <% else %>
+            <%= for s <- @submissions do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  {fmt_datetime(s.created_at) || "---"}
+                </td>
+                <td class="p-3">
+                  <div class="text-sm font-medium" style="color: var(--text-main);">
+                    {s.contact_name || "Anónimo"}
+                  </div>
+                  <div class="text-xs" style="color: var(--text-muted);">
+                    {s.contact_phone || s.contact_email || ""}
+                  </div>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {fmt_date(s.birth_date) || "---"} · {s.weeks_contributed || "?"}sem
+                </td>
+                <td class="p-3 text-sm text-right font-semibold" style="color: var(--text-main);">
+                  {fmt_money.(Decimal.to_float(s.estimated_monthly_pension_mxn || Decimal.new(0)))}
+                </td>
+                <td class="p-3 text-sm text-right" style="color: var(--accent);">
+                  {fmt_money.(Decimal.to_float(s.net_gain_20yr_mxn || Decimal.new(0)))}
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  {s.utm_campaign || s.utm_source || "—"}
+                </td>
+                <td class="p-3 text-right">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/calculadora/#{s.id}")}
+                    class="text-sm font-medium"
+                    style="color: var(--accent);"
+                  >
+                    Ver
+                  </.link>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

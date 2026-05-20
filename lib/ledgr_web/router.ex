@@ -563,6 +563,12 @@ defmodule LedgrWeb.Router do
     resources "/pension-cases", Domains.AumentaMiPension.PensionCaseController,
       only: [:index, :show]
 
+    resources "/calculadora", Domains.AumentaMiPension.CalculadoraController,
+      only: [:index, :show]
+
+    resources "/checkup", Domains.AumentaMiPension.CheckupController,
+      only: [:index, :show]
+
     resources "/payments", Domains.AumentaMiPension.PaymentController, only: [:index, :show]
     post "/payments/sync", Domains.AumentaMiPension.PaymentController, :sync
     post "/payments/:id/refund", Domains.AumentaMiPension.PaymentController, :refund

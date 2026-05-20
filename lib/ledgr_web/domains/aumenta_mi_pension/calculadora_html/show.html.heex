@@ -1,0 +1,143 @@
+<% fmt_money = fn
+  nil -> "---"
+  %Decimal{} = d -> "$#{Decimal.to_string(d, :normal)} MXN"
+  amount when is_number(amount) -> "$#{amount} MXN"
+end %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/calculadora")} class="hd-back">
+      ← Calculadora
+    </.link>
+  </div>
+
+  <h1 class="text-2xl font-bold mb-6" style="color: var(--text-main);">
+    Simulación #{@submission.id}
+  </h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <%!-- Inputs --%>
+    <div class="hd-card p-4">
+      <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">Inputs</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Fecha de nacimiento</dt>
+          <dd style="color: var(--text-main);">{fmt_date(@submission.birth_date) || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Semanas cotizadas</dt>
+          <dd style="color: var(--text-main);">{@submission.weeks_contributed || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">SBC diario IMSS</dt>
+          <dd style="color: var(--text-main);">{fmt_money.(@submission.daily_salary_imss_mxn)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Edad objetivo</dt>
+          <dd style="color: var(--text-main);">{@submission.target_retirement_age || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Pensión deseada</dt>
+          <dd style="color: var(--text-main);">{fmt_money.(@submission.desired_monthly_pension_mxn)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Ahorro disponible</dt>
+          <dd style="color: var(--text-main);">{fmt_money.(@submission.available_savings_mxn)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Cónyuge</dt>
+          <dd style="color: var(--text-main);">{if @submission.has_spouse, do: "Sí", else: "No"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Modo de salario</dt>
+          <dd style="color: var(--text-main);">{@submission.salary_mode || "---"}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <%!-- Outputs --%>
+    <div class="hd-card p-4">
+      <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">Resultados</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Pensión mensual estimada</dt>
+          <dd class="font-semibold" style="color: var(--accent);">
+            {fmt_money.(@submission.estimated_monthly_pension_mxn)}
+          </dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Pensión anual estimada</dt>
+          <dd style="color: var(--text-main);">{fmt_money.(@submission.estimated_annual_pension_mxn)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Pensión sin M40</dt>
+          <dd style="color: var(--text-main);">{fmt_money.(@submission.pension_without_m40_mxn)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Ganancia neta 20a</dt>
+          <dd class="font-semibold" style="color: var(--accent);">
+            {fmt_money.(@submission.net_gain_20yr_mxn)}
+          </dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Total invertido</dt>
+          <dd style="color: var(--text-main);">{fmt_money.(@submission.total_invested_mxn)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Edad óptima retiro</dt>
+          <dd style="color: var(--text-main);">{@submission.optimal_retirement_age || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Nivel UMA</dt>
+          <dd style="color: var(--text-main);">{@submission.uma_level || "---"}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <%!-- Contact --%>
+    <div class="hd-card p-4">
+      <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">Contacto</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Nombre</dt>
+          <dd style="color: var(--text-main);">{@submission.contact_name || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Teléfono</dt>
+          <dd style="color: var(--text-main);">{@submission.contact_phone || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Email</dt>
+          <dd style="color: var(--text-main);">{@submission.contact_email || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Preferencia de pago</dt>
+          <dd style="color: var(--text-main);">{@submission.payment_preference || "---"}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <%!-- Attribution --%>
+    <div class="hd-card p-4">
+      <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">Atribución</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">UTM source</dt>
+          <dd style="color: var(--text-main);">{@submission.utm_source || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">UTM medium</dt>
+          <dd style="color: var(--text-main);">{@submission.utm_medium || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">UTM campaign</dt>
+          <dd style="color: var(--text-main);">{@submission.utm_campaign || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Referrer</dt>
+          <dd class="break-all" style="color: var(--text-main);">{@submission.referrer || "---"}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</div>

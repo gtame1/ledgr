@@ -1,0 +1,115 @@
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Checkup</h1>
+  </div>
+
+  <%!-- KPI Cards --%>
+  <div class="hd-kpi-grid mb-6">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Respuestas Totales</div>
+      <div class="hd-kpi-value">{@total}</div>
+      <div class="hd-kpi-sub">checkups completados</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Con Contacto</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">{@leads}</div>
+      <div class="hd-kpi-sub">leads capturados</div>
+    </div>
+  </div>
+
+  <%!-- Filters --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" action={dp(@domain_path_prefix, "/checkup")} class="flex gap-3 items-end">
+      <div class="flex-1">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Búsqueda
+        </label>
+        <input
+          type="text"
+          name="search"
+          value={@current_search}
+          placeholder="Nombre, teléfono, NSS, CURP o campaña..."
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        />
+      </div>
+      <label class="flex items-center gap-2 text-sm" style="color: var(--text-main);">
+        <input type="checkbox" name="leads_only" value="1" checked={@leads_only} /> Solo con contacto
+      </label>
+      <button type="submit" class="hd-btn-secondary">Filtrar</button>
+    </form>
+  </div>
+
+  <%!-- Responses table --%>
+  <div class="hd-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Fecha
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Contacto
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Régimen
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Siguiente paso
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Campaña
+            </th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if Enum.empty?(@responses) do %>
+            <tr>
+              <td colspan="6" class="p-6 text-center" style="color: var(--text-muted);">
+                Sin respuestas.
+              </td>
+            </tr>
+          <% else %>
+            <%= for r <- @responses do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  {fmt_datetime(r.created_at) || "---"}
+                </td>
+                <td class="p-3">
+                  <div class="text-sm font-medium" style="color: var(--text-main);">
+                    {r.contact_name || "Anónimo"}
+                  </div>
+                  <div class="text-xs" style="color: var(--text-muted);">
+                    {r.contact_phone || r.contact_email || ""}
+                  </div>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  {r.regimen_classification || "—"}
+                </td>
+                <td class="p-3 text-sm" style="color: var(--accent);">
+                  {r.recommended_next_step || "—"}
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  {r.utm_campaign || r.utm_source || "—"}
+                </td>
+                <td class="p-3 text-right">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/checkup/#{r.id}")}
+                    class="text-sm font-medium"
+                    style="color: var(--accent);"
+                  >
+                    Ver
+                  </.link>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

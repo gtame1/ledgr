@@ -21,6 +21,7 @@ defmodule Ledgr.Domains.AumentaMiPension.Customers.Customer do
     field :terms_accepted_at, :naive_datetime
     field :ley_73, :boolean
     field :last_imss_contribution_date, :string
+    field :m40_monthly_budget, :float
 
     has_many :consultations, Ledgr.Domains.AumentaMiPension.Consultations.Consultation
     has_many :conversations, Ledgr.Domains.AumentaMiPension.Conversations.Conversation
@@ -30,7 +31,7 @@ defmodule Ledgr.Domains.AumentaMiPension.Customers.Customer do
   end
 
   @required ~w[id]a
-  @optional ~w[phone display_name full_name date_of_birth gender curp nss weeks_contributed last_registered_salary current_employment_status terms_accepted terms_accepted_at ley_73 last_imss_contribution_date]a
+  @optional ~w[phone display_name full_name date_of_birth gender curp nss weeks_contributed last_registered_salary current_employment_status terms_accepted terms_accepted_at ley_73 last_imss_contribution_date m40_monthly_budget]a
 
   def changeset(customer, attrs) do
     customer

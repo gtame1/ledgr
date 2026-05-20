@@ -36,7 +36,100 @@ end %>
     </div>
   </div>
 
-  <%!-- Payments Table --%>
+  <%!-- Bot Orders Table (canonical order log from bot DB) --%>
+  <div class="mb-3 flex items-baseline justify-between">
+    <h2 class="text-lg font-semibold" style="color: var(--text-main);">Órdenes del Bot</h2>
+    <span class="text-xs" style="color: var(--text-muted);">
+      Fuente: tabla <code>payments</code> (bot)
+    </span>
+  </div>
+  <div class="hd-card overflow-hidden mb-8">
+    <div class="overflow-x-auto">
+      <table class="hd-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Fecha
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Cliente
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Producto
+            </th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Monto
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Estatus
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Pagado
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Conversación
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= if Enum.empty?(@bot_payments) do %>
+            <tr>
+              <td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">
+                Sin órdenes del bot aún.
+              </td>
+            </tr>
+          <% else %>
+            <%= for bp <- @bot_payments do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  {fmt_datetime(bp.created_at) || "---"}
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">
+                  <%= if bp.customer do %>
+                    {bp.customer.full_name || bp.customer.display_name || bp.customer.phone}
+                  <% else %>
+                    ---
+                  <% end %>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-main);">{bp.product}</td>
+                <td class="p-3 text-sm text-right font-semibold" style="color: var(--text-main);">
+                  ${bp.amount_mxn} MXN
+                </td>
+                <td class="p-3">
+                  <span class={"hd-badge hd-badge--#{bp.status}"}>
+                    {bp.status |> to_string() |> String.capitalize()}
+                  </span>
+                </td>
+                <td class="p-3 text-sm" style="color: var(--text-muted);">
+                  {fmt_datetime(bp.paid_at) || "---"}
+                </td>
+                <td class="p-3 text-sm">
+                  <%= if bp.conversation_id do %>
+                    <.link
+                      navigate={dp(@domain_path_prefix, "/conversations/#{bp.conversation_id}")}
+                      style="color: var(--accent);"
+                    >
+                      Ver
+                    </.link>
+                  <% else %>
+                    <span style="color: var(--text-muted);">---</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%!-- Stripe Payments Table (Ledgr's finance-side mirror) --%>
+  <div class="mb-3 flex items-baseline justify-between">
+    <h2 class="text-lg font-semibold" style="color: var(--text-main);">Pagos de Stripe</h2>
+    <span class="text-xs" style="color: var(--text-muted);">
+      Fuente: tabla <code>stripe_payments</code> (Ledgr)
+    </span>
+  </div>
   <div class="hd-card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="hd-table w-full">

@@ -1,0 +1,162 @@
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/checkup")} class="hd-back">
+      ← Checkup
+    </.link>
+  </div>
+
+  <h1 class="text-2xl font-bold mb-2" style="color: var(--text-main);">
+    Checkup #{@response.id}
+  </h1>
+
+  <div class="mb-6 flex flex-wrap gap-x-4 gap-y-1 text-sm" style="color: var(--text-muted);">
+    <%= if step = current_mission(@response.mission_progress) do %>
+      <span>
+        Paso: <span class="font-mono font-semibold" style="color: var(--accent);">{step}</span>
+      </span>
+    <% end %>
+    <%= if seen = first_seen_at(@response.mission_progress) do %>
+      <span>Primera vista: {seen}</span>
+    <% end %>
+    <span>Guardado: {fmt_datetime(@response.created_at)}</span>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <%!-- Survey --%>
+    <div class="hd-card p-4">
+      <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">Respuestas</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">¿Ya pensionado?</dt>
+          <dd style="color: var(--text-main);">{bool_label(@response.already_retired)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">¿Nacido antes 7/1997?</dt>
+          <dd style="color: var(--text-main);">{bool_label(@response.birth_before_july_1997)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Semanas cotizadas</dt>
+          <dd style="color: var(--text-main);">{@response.weeks_contributed || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Último año cotizado</dt>
+          <dd style="color: var(--text-main);">{@response.last_year_cotized || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Régimen</dt>
+          <dd style="color: var(--text-main);">{@response.regimen_classification || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">¿AFORE?</dt>
+          <dd style="color: var(--text-main);">{bool_label(@response.has_afore)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Nombre AFORE</dt>
+          <dd style="color: var(--text-main);">{@response.afore_name || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Cita IMSS</dt>
+          <dd style="color: var(--text-main);">{@response.imss_appointment_status || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Tipo de pensión</dt>
+          <dd style="color: var(--text-main);">{@response.pension_type || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">¿Sabe su salario?</dt>
+          <dd style="color: var(--text-main);">{bool_label(@response.salary_known)}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Último salario</dt>
+          <dd style="color: var(--text-main);">
+            <%= if @response.last_salary_mxn do %>
+              ${Decimal.to_string(@response.last_salary_mxn, :normal)} MXN
+            <% else %>
+              ---
+            <% end %>
+          </dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Modo de salario</dt>
+          <dd style="color: var(--text-main);">{@response.salary_mode || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Recomendación</dt>
+          <dd class="font-semibold" style="color: var(--accent);">
+            {@response.recommended_next_step || "---"}
+          </dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Paso deseado</dt>
+          <dd style="color: var(--text-main);">{@response.desired_next_step || "---"}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <%!-- Contact --%>
+    <div class="hd-card p-4">
+      <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">Contacto</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Nombre</dt>
+          <dd style="color: var(--text-main);">{@response.contact_name || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Teléfono</dt>
+          <dd style="color: var(--text-main);">{@response.contact_phone || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Email</dt>
+          <dd style="color: var(--text-main);">{@response.contact_email || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Fecha de nacimiento</dt>
+          <dd style="color: var(--text-main);">{fmt_date(@response.contact_birth_date) || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">NSS</dt>
+          <dd class="font-mono" style="color: var(--text-main);">{@response.contact_nss || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">CURP</dt>
+          <dd class="font-mono" style="color: var(--text-main);">{@response.contact_curp || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Preferencia de pago</dt>
+          <dd style="color: var(--text-main);">{@response.payment_preference || "---"}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <%!-- Attribution --%>
+    <div class="hd-card p-4 md:col-span-2">
+      <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">Atribución</h2>
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">UTM source</dt>
+          <dd style="color: var(--text-main);">{@response.utm_source || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">UTM medium</dt>
+          <dd style="color: var(--text-main);">{@response.utm_medium || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">UTM campaign</dt>
+          <dd style="color: var(--text-main);">{@response.utm_campaign || "---"}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt style="color: var(--text-muted);">Referrer</dt>
+          <dd class="break-all" style="color: var(--text-main);">{@response.referrer || "---"}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <%!-- Raw mission_progress JSON (debug) --%>
+    <details class="hd-card p-4 md:col-span-2">
+      <summary class="text-sm font-bold uppercase cursor-pointer" style="color: var(--text-muted);">
+        Mission Progress (raw JSON)
+      </summary>
+      <pre class="text-xs whitespace-pre-wrap mt-3" style="color: var(--text-main);"><%= Jason.encode!(@response.mission_progress, pretty: true) %></pre>
+    </details>
+  </div>
+</div>

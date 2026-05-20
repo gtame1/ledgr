@@ -21,6 +21,11 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations.Conversation do
     field :data_review_sent_at, :naive_datetime
     field :created_at, :naive_datetime
     field :last_message_at, :naive_datetime
+    field :escalation_offered_at, :utc_datetime
+    field :guide_budget_requested_at, :utc_datetime
+    field :guide_delivered_at, :utc_datetime
+    field :stall_count, :integer, default: 0
+    field :hallucinated_fallback_count, :integer, default: 0
 
     belongs_to :customer, Ledgr.Domains.AumentaMiPension.Customers.Customer
     has_many :consultations, Ledgr.Domains.AumentaMiPension.Consultations.Consultation

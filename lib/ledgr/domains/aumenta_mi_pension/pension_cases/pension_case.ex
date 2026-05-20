@@ -26,6 +26,8 @@ defmodule Ledgr.Domains.AumentaMiPension.PensionCases.PensionCase do
     field :media_analyses, :string
     field :call_transcript, :string
     field :ai_summary, :string
+    field :simulation_pending_at, :utc_datetime
+    field :simulation_started_at, :utc_datetime
 
     belongs_to :customer, Ledgr.Domains.AumentaMiPension.Customers.Customer
     belongs_to :conversation, Ledgr.Domains.AumentaMiPension.Conversations.Conversation
