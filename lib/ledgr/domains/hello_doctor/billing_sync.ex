@@ -21,19 +21,6 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
 
-  # ── OpenAI pricing (USD per 1M tokens, as of 2025) ────────────
-  # Format: %{model_prefix => {input_per_m, output_per_m}}
-  @openai_pricing %{
-    "gpt-4o-mini" => {0.150, 0.600},
-    "gpt-4o" => {5.000, 15.000},
-    "gpt-4-turbo" => {10.00, 30.000},
-    "gpt-4" => {30.00, 60.000},
-    "gpt-3.5-turbo" => {0.500, 1.500},
-    "text-embedding-3-small" => {0.020, 0.020},
-    "text-embedding-3-large" => {0.130, 0.130},
-    "text-embedding-ada-002" => {0.100, 0.100}
-  }
-
   # Whereby: $0.004 per participant-minute (estimate for starter plan)
   @whereby_cost_per_minute 0.004
 
@@ -79,16 +66,22 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
     # Filter to just the HelloDoctor OpenAI project. The admin key has org-wide
     # access, so without this we'd pull costs from ALL projects in the org
     # (LiveMed-MC, AumentaMiPension, etc.) and book them as HelloDoctor expense.
+    # Erlang's :httpc rejects literal [] in URIs — they must be percent-encoded.
     project_filter =
       case Application.get_env(:ledgr, :hello_doctor_openai_project_id) do
         nil -> ""
-        # Erlang's :httpc rejects literal [] in URIs — they must be percent-encoded.
         id -> "&project_ids%5B%5D=#{URI.encode_www_form(id)}"
       end
 
-    url =
-      "https://api.openai.com/v1/organization/usage/completions" <>
-        "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31" <>
+    # /v1/organization/costs returns the actual billed $ (post-discount,
+    # current-price) per project per day. We group_by=line_item so we get a
+    # per-model breakdown AND because OpenAI's project_ids filter only takes
+    # effect when paired with a group_by; without one the API returns
+    # whichever project's data it lists first instead of filtering.
+    base_url =
+      "https://api.openai.com/v1/organization/costs" <>
+        "?start_time=#{start_unix}&end_time=#{end_unix}" <>
+        "&bucket_width=1d&limit=31&group_by%5B%5D=line_item" <>
         project_filter
 
     headers = [
@@ -96,143 +89,118 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
       {"Content-Type", "application/json"}
     ]
 
-    case :httpc.request(
-           :get,
-           {String.to_charlist(url),
-            Enum.map(headers, fn {k, v} -> {String.to_charlist(k), String.to_charlist(v)} end)},
-           [],
-           []
-         ) do
-      {:ok, {{_, 200, _}, _resp_headers, body}} ->
+    case fetch_all_openai_cost_pages(base_url, headers, []) do
+      {:ok, buckets} ->
+        rows = parse_and_upsert_openai_costs(buckets)
+        {:ok, %{rows_upserted: rows}}
+
+      {:error, reason} ->
+        Logger.error("[BillingSync.OpenAI] Cost fetch failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  # Cursor-paginates /organization/costs via the `next_page` token until
+  # has_more=false. Cost data is small (~hundreds of bytes per bucket) so we
+  # accumulate in memory.
+  defp fetch_all_openai_cost_pages(url, headers, acc) do
+    http_headers =
+      Enum.map(headers, fn {k, v} -> {String.to_charlist(k), String.to_charlist(v)} end)
+
+    case :httpc.request(:get, {String.to_charlist(url), http_headers}, [], []) do
+      {:ok, {{_, 200, _}, _, body}} ->
         parsed = Jason.decode!(List.to_string(body))
-        rows = parse_and_upsert_openai_completions(parsed)
+        buckets = Map.get(parsed, "data", [])
+        new_acc = acc ++ buckets
 
-        # Also sync embeddings (same project filter)
-        embed_url =
-          "https://api.openai.com/v1/organization/usage/embeddings" <>
-            "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31" <>
-            project_filter
-
-        embed_rows =
-          case :httpc.request(
-                 :get,
-                 {String.to_charlist(embed_url),
-                  Enum.map(headers, fn {k, v} ->
-                    {String.to_charlist(k), String.to_charlist(v)}
-                  end)},
-                 [],
-                 []
-               ) do
-            {:ok, {{_, 200, _}, _, embed_body}} ->
-              embed_parsed = Jason.decode!(List.to_string(embed_body))
-              parse_and_upsert_openai_embeddings(embed_parsed)
-
-            _ ->
-              0
-          end
-
-        {:ok, %{rows_upserted: rows + embed_rows}}
+        if parsed["has_more"] && parsed["next_page"] do
+          next_url = url <> "&page=#{URI.encode_www_form(parsed["next_page"])}"
+          fetch_all_openai_cost_pages(next_url, headers, new_acc)
+        else
+          {:ok, new_acc}
+        end
 
       {:ok, {{_, status, _}, _, body}} ->
         Logger.warning("[BillingSync.OpenAI] HTTP #{status}: #{List.to_string(body)}")
         {:error, {:http_error, status}}
 
       {:error, reason} ->
-        Logger.error("[BillingSync.OpenAI] Request failed: #{inspect(reason)}")
         {:error, reason}
     end
   end
 
-  defp parse_and_upsert_openai_completions(%{"data" => buckets}) when is_list(buckets) do
+  defp parse_and_upsert_openai_costs(buckets) when is_list(buckets) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    Enum.reduce(buckets, 0, fn bucket, count ->
-      # Each bucket has: start_time (unix), end_time, results (list of per-model usage)
-      bucket_date = unix_to_date(bucket["start_time"])
+    # OpenAI returns multiple results per bucket (one per line_item: input,
+    # cached input, output, embedding, etc.). Aggregate (date, model) → totals.
+    totals =
+      Enum.reduce(buckets, %{}, fn bucket, acc ->
+        bucket_date = unix_to_date(bucket["start_time"])
+        results = Map.get(bucket, "results", [])
 
-      results = Map.get(bucket, "results", [])
+        Enum.reduce(results, acc, fn result, inner_acc ->
+          usd = parse_amount(get_in(result, ["amount", "value"]))
+          quantity = parse_amount(result["quantity"])
+          line_item = result["line_item"]
+          model = base_model_from_line_item(line_item)
+          key = {bucket_date, model}
 
-      Enum.reduce(results, count, fn result, inner_count ->
-        model = result["model"] || "unknown"
-        input_tokens = result["input_tokens"] || 0
-        output_tokens = result["output_tokens"] || 0
+          current = Map.get(inner_acc, key, %{usd: 0.0, qty: 0.0, lines: %{}})
 
-        {input_price, output_price} = pricing_for_model(model)
-        amount_usd = (input_tokens * input_price + output_tokens * output_price) / 1_000_000.0
-
-        # Only upsert if there was actual usage
-        if input_tokens + output_tokens > 0 do
-          upsert_external_cost(%{
-            service: "openai",
-            date: bucket_date,
-            model: model,
-            amount_usd: amount_usd,
-            units: input_tokens + output_tokens,
-            unit_type: "tokens",
-            raw_response: %{
-              "input_tokens" => input_tokens,
-              "output_tokens" => output_tokens,
-              "model" => model
-            },
-            synced_at: now
+          Map.put(inner_acc, key, %{
+            usd: current.usd + usd,
+            qty: current.qty + quantity,
+            lines: Map.update(current.lines, line_item || "(no line_item)", usd, &(&1 + usd))
           })
-
-          inner_count + 1
-        else
-          inner_count
-        end
+        end)
       end)
+
+    Enum.reduce(totals, 0, fn {{date, model}, %{usd: usd, qty: qty, lines: lines}}, count ->
+      if usd > 0 do
+        upsert_external_cost(%{
+          service: "openai",
+          date: date,
+          model: model,
+          amount_usd: usd,
+          units: qty,
+          unit_type: "tokens",
+          raw_response: %{
+            "line_items" => lines,
+            "total_quantity" => qty,
+            "model" => model,
+            "source" => "openai_costs_endpoint"
+          },
+          synced_at: now
+        })
+
+        count + 1
+      else
+        count
+      end
     end)
   end
 
-  defp parse_and_upsert_openai_completions(_), do: 0
+  # OpenAI returns amount.value as a high-precision string (e.g.
+  # "0.0408070500..."), not a number. Quantity can be float or null.
+  defp parse_amount(nil), do: 0.0
+  defp parse_amount(v) when is_number(v), do: v * 1.0
 
-  defp parse_and_upsert_openai_embeddings(%{"data" => buckets}) when is_list(buckets) do
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
-
-    Enum.reduce(buckets, 0, fn bucket, count ->
-      bucket_date = unix_to_date(bucket["start_time"])
-      results = Map.get(bucket, "results", [])
-
-      Enum.reduce(results, count, fn result, inner_count ->
-        model = result["model"] || "unknown"
-        input_tokens = result["input_tokens"] || 0
-
-        {input_price, _} = pricing_for_model(model)
-        amount_usd = input_tokens * input_price / 1_000_000.0
-
-        if input_tokens > 0 do
-          upsert_external_cost(%{
-            service: "openai",
-            date: bucket_date,
-            model: "#{model}:embed",
-            amount_usd: amount_usd,
-            units: input_tokens,
-            unit_type: "tokens",
-            raw_response: %{
-              "input_tokens" => input_tokens,
-              "model" => model,
-              "type" => "embeddings"
-            },
-            synced_at: now
-          })
-
-          inner_count + 1
-        else
-          inner_count
-        end
-      end)
-    end)
+  defp parse_amount(v) when is_binary(v) do
+    case Float.parse(v) do
+      {f, _} -> f
+      _ -> 0.0
+    end
   end
 
-  defp parse_and_upsert_openai_embeddings(_), do: 0
+  # line_item looks like "gpt-4o-mini-2024-07-18, input" or
+  # "text-embedding-3-small, input" — keep just the model name before the comma.
+  defp base_model_from_line_item(nil), do: "unknown"
 
-  defp pricing_for_model(model) do
-    # Find the first matching prefix in our pricing map
-    case Enum.find(@openai_pricing, fn {prefix, _} -> String.starts_with?(model, prefix) end) do
-      {_, prices} -> prices
-      # conservative fallback
-      nil -> {1.00, 3.00}
+  defp base_model_from_line_item(line_item) when is_binary(line_item) do
+    case String.split(line_item, ",", parts: 2) do
+      [model | _] -> String.trim(model)
+      _ -> line_item
     end
   end
 
