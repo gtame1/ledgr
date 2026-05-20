@@ -12,19 +12,22 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorChatController do
     )
   end
 
-  def show(conn, %{"id" => doctor_id} = params) do
+  def show(conn, %{"id" => doctor_id}) do
     {doctor, messages} = DoctorAssistantMessages.get_doctor_thread!(doctor_id)
 
-    # Group messages by consultation_id (nil = general chat)
-    grouped =
+    # Messages already come back chronologically ascending from the context.
+    # Compute distinct consultations referenced (excluding nil) for the header.
+    consultation_count =
       messages
-      |> Enum.group_by(& &1.consultation_id)
-      |> Enum.sort_by(fn {_k, msgs} -> List.first(msgs).created_at end)
+      |> Enum.map(& &1.consultation_id)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+      |> length()
 
     render(conn, :show,
       doctor: doctor,
-      grouped_messages: grouped,
-      current_filter: params["consultation_id"]
+      messages: messages,
+      consultation_count: consultation_count
     )
   end
 end
