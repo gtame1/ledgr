@@ -5,6 +5,7 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
 
   alias Ledgr.Domains.HelloDoctor.StripeSync
   alias Ledgr.Domains.HelloDoctor.StripeRefunds
+  alias Ledgr.Domains.HelloDoctor.StripePayouts
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
 
   @doc """
@@ -30,6 +31,9 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
 
       {:ok, %Stripe.Event{type: "charge.refunded", data: %{object: charge}}} ->
         handle_refund(conn, charge)
+
+      {:ok, %Stripe.Event{type: "payout.paid", data: %{object: payout}}} ->
+        handle_payout(conn, payout)
 
       {:ok, %Stripe.Event{type: type}} ->
         Logger.debug("[HelloDoctor] Stripe webhook: unhandled event type #{type}")
@@ -127,5 +131,34 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
     end
 
     send_resp(conn, 200, "ok")
+  end
+
+  defp handle_payout(conn, payout) do
+    Logger.info(
+      "[HelloDoctor] Stripe payout.paid: #{payout.id}, amount=$#{(payout.amount || 0) / 100} " <>
+        "#{String.upcase(payout.currency || "")}"
+    )
+
+    case StripePayouts.upsert_payout(payout) do
+      {:ok, :already_recorded} ->
+        send_resp(conn, 200, "ok — already recorded")
+
+      {:ok, :no_consultation_amount} ->
+        Logger.info(
+          "[HelloDoctor] Payout #{payout.id} had no consultation activity (Retos-only) — skipped"
+        )
+
+        send_resp(conn, 200, "ok — skipped (non-consultation payout)")
+
+      {:ok, _entry} ->
+        send_resp(conn, 200, "ok")
+
+      {:error, reason} ->
+        Logger.error(
+          "[HelloDoctor] Failed to record payout #{payout.id}: #{inspect(reason)}"
+        )
+
+        send_resp(conn, 500, "error")
+    end
   end
 end

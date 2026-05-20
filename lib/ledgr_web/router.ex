@@ -475,6 +475,7 @@ defmodule LedgrWeb.Router do
     # Payments (queries consultations with payment data)
     resources "/payments", Domains.HelloDoctor.PaymentController, only: [:index, :show]
     post "/payments/sync", Domains.HelloDoctor.PaymentController, :sync
+    post "/payments/sync-payouts", Domains.HelloDoctor.PaymentController, :sync_payouts
     post "/payments/backfill-gl", Domains.HelloDoctor.PaymentController, :backfill_gl
     post "/payments/:id/refund", Domains.HelloDoctor.PaymentController, :refund
     post "/payments/:id/check-status", Domains.HelloDoctor.PaymentController, :check_status

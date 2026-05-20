@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.StripeSync
+  alias Ledgr.Domains.HelloDoctor.StripePayouts
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Repo
 
@@ -45,6 +46,20 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
       {:error, reason} ->
         conn
         |> put_flash(:error, "Sync failed: #{inspect(reason)}")
+        |> redirect(to: dp(conn, "/payments"))
+    end
+  end
+
+  def sync_payouts(conn, _params) do
+    case StripePayouts.sync_recent_payouts(limit: 50) do
+      {:ok, new_count} ->
+        conn
+        |> put_flash(:info, "Synced #{new_count} new Stripe payout(s) to the GL.")
+        |> redirect(to: dp(conn, "/payments"))
+
+      {:error, reason} ->
+        conn
+        |> put_flash(:error, "Payout sync failed: #{inspect(reason)}")
         |> redirect(to: dp(conn, "/payments"))
     end
   end

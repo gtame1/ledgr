@@ -114,7 +114,8 @@ defmodule Ledgr.Domains.HelloDoctor do
       {"Refund", "refund"},
       {"Commission", "commission"},
       {"Operating Expense", "operating_expense"},
-      {"External Cost", "external_cost"}
+      {"External Cost", "external_cost"},
+      {"Stripe Payout", "payout"}
     ]
   end
 

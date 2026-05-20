@@ -12,6 +12,14 @@ end %>
         Sync from Stripe
       </.link>
       <.link
+        href={dp(@domain_path_prefix, "/payments/sync-payouts")}
+        method="post"
+        class="hd-btn-secondary"
+        data-confirm="Fetch Stripe payouts (Stripe → Bank transfers) and book the consultation-portion as GL entries. Safe to re-run; entries are idempotent."
+      >
+        Sync Payouts
+      </.link>
+      <.link
         href={dp(@domain_path_prefix, "/payments/backfill-gl")}
         method="post"
         class="hd-btn-secondary"
