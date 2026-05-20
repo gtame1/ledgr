@@ -146,6 +146,12 @@ if key = System.get_env("HELLO_DOCTOR_OPENAI_API_KEY") do
   config :ledgr, hello_doctor_openai_api_key: key
 end
 
+# Scope the OpenAI cost sync to a single project — the admin key has access
+# to the whole org otherwise.
+if id = System.get_env("HELLO_DOCTOR_OPENAI_PROJECT_ID") do
+  config :ledgr, hello_doctor_openai_project_id: id
+end
+
 if key = System.get_env("HELLO_DOCTOR_WHEREBY_API_KEY") do
   config :ledgr, hello_doctor_whereby_api_key: key
 end

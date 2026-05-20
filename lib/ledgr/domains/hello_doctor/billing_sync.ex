@@ -76,9 +76,19 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
     start_unix = DateTime.to_unix(DateTime.new!(start_date, ~T[00:00:00], "Etc/UTC"))
     end_unix = DateTime.to_unix(DateTime.new!(end_date, ~T[23:59:59], "Etc/UTC"))
 
+    # Filter to just the HelloDoctor OpenAI project. The admin key has org-wide
+    # access, so without this we'd pull costs from ALL projects in the org
+    # (LiveMed-MC, AumentaMiPension, etc.) and book them as HelloDoctor expense.
+    project_filter =
+      case Application.get_env(:ledgr, :hello_doctor_openai_project_id) do
+        nil -> ""
+        id -> "&project_ids[]=#{URI.encode_www_form(id)}"
+      end
+
     url =
       "https://api.openai.com/v1/organization/usage/completions" <>
-        "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31"
+        "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31" <>
+        project_filter
 
     headers = [
       {"Authorization", "Bearer #{api_key}"},
@@ -96,10 +106,11 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSync do
         parsed = Jason.decode!(List.to_string(body))
         rows = parse_and_upsert_openai_completions(parsed)
 
-        # Also sync embeddings
+        # Also sync embeddings (same project filter)
         embed_url =
           "https://api.openai.com/v1/organization/usage/embeddings" <>
-            "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31"
+            "?start_time=#{start_unix}&end_time=#{end_unix}&bucket_width=1d&limit=31" <>
+            project_filter
 
         embed_rows =
           case :httpc.request(
