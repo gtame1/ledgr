@@ -517,7 +517,7 @@ defmodule LedgrWeb.Router do
         Domains.HelloDoctor.DoctorPayoutController,
         :bulk_template
 
-    post "/doctor-payouts/:doctor_id/record-payout",
+    post "/doctor-payouts/record-payout",
          Domains.HelloDoctor.DoctorPayoutController,
          :record_payout
 

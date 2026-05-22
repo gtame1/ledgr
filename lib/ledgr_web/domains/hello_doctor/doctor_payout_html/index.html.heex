@@ -5,107 +5,179 @@
       <div>
         <h1 class="text-2xl font-bold" style="color: var(--text-main);">Doctor Payouts</h1>
         <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 60ch;">
-          What HelloDoctor owes each doctor for the selected period.
+          Every billed consultation in the selected period. Click a row to open the
+          consultation, or select one or more to record a payout. Each payout posts
+          a journal entry — <strong>DEBIT 2000 Doctor Payable / CREDIT 1010 Bank-MXN</strong>
+          — recording the cash movement.
         </p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3">
-        <a
-          href={dp(@domain_path_prefix, "/doctor-payouts/bulk-upload")}
-          class="hd-btn-secondary text-sm"
-          style="padding: 0.5rem 0.95rem;"
-        >
-          ⬆ Bulk upload CSV
-        </a>
+      <form method="get" class="flex flex-wrap items-center gap-2">
+        <input
+          type="date"
+          name="start_date"
+          value={@start_date}
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem;"
+        />
+        <span style="color: var(--text-muted);">→</span>
+        <input
+          type="date"
+          name="end_date"
+          value={@end_date}
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem;"
+        />
 
-        <form method="get" class="flex items-center gap-2">
-          <input
-            type="date"
-            name="start_date"
-            value={@start_date}
-            class="hd-input text-sm"
-            style="padding: 0.4rem 0.65rem;"
-          />
-          <span style="color: var(--text-muted);">→</span>
-          <input
-            type="date"
-            name="end_date"
-            value={@end_date}
-            class="hd-input text-sm"
-            style="padding: 0.4rem 0.65rem;"
-          />
-          <button type="submit" class="hd-btn-sm">Filter</button>
-        </form>
-      </div>
+        <select
+          name="doctor_id"
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem;"
+        >
+          <option value="">All doctors</option>
+          <%= for d <- @doctors do %>
+            <option value={d.id} selected={@doctor_id == d.id}>{d.name}</option>
+          <% end %>
+        </select>
+
+        <select
+          name="status"
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem;"
+        >
+          <%= for {label, value} <- [{"All status", "all"}, {"Unpaid", "unpaid"}, {"Paid", "paid"}, {"Refunded", "refunded"}] do %>
+            <option value={value} selected={to_string(@status) == value}>{label}</option>
+          <% end %>
+        </select>
+
+        <input type="hidden" name="sort" value={@sort} />
+        <input type="hidden" name="dir" value={@dir} />
+
+        <button type="submit" class="hd-btn-sm">Filter</button>
+      </form>
     </div>
   </div>
 
   <%!-- ── Summary KPIs ── --%>
-  <div class="hd-kpi-grid mb-8" style="gap: 1.5rem;">
+  <div class="hd-kpi-grid mb-6" style="gap: 1.5rem;">
     <div class="hd-kpi">
       <div class="hd-kpi-label">Total Billed</div>
       <div class="hd-kpi-value">
-        ${:erlang.float_to_binary(@report.total_billed + 0.0, decimals: 2)}
+        ${:erlang.float_to_binary(@totals.total_billed + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">gross revenue from paid consultations</div>
-    </div>
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Total Owed to Doctors</div>
-      <div class="hd-kpi-value" style="color: #dc2626;">
-        ${:erlang.float_to_binary(@report.total_doctor_share + 0.0, decimals: 2)}
-      </div>
-      <div class="hd-kpi-sub">flat $100 MXN per paid consultation</div>
+      <div class="hd-kpi-sub">{@totals.count} consultation(s)</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Stripe Fees</div>
       <div class="hd-kpi-value">
-        ${:erlang.float_to_binary(@report.total_stripe_fees + 0.0, decimals: 2)}
+        ${:erlang.float_to_binary(@totals.total_stripe_fees + 0.0, decimals: 2)}
       </div>
       <div class="hd-kpi-sub">total processing costs</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">Net to HelloDoctor</div>
-      <div class="hd-kpi-value" style="color: var(--accent);">
-        ${:erlang.float_to_binary(@report.total_net_to_hd + 0.0, decimals: 2)}
+      <div class="hd-kpi-label">Doctor Share</div>
+      <div class="hd-kpi-value" style="color: #dc2626;">
+        ${:erlang.float_to_binary(@totals.total_doctor_share + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">billed minus doctor share & Stripe fees</div>
+      <div class="hd-kpi-sub">
+        {@totals.total_unpaid} unpaid · {@totals.total_paid_out} paid
+      </div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">HD Net</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">
+        ${:erlang.float_to_binary(@totals.total_hd_net + 0.0, decimals: 2)}
+      </div>
+      <div class="hd-kpi-sub">
+        <%= if @totals.total_refunded > 0 do %>
+          refunds: ${:erlang.float_to_binary(@totals.total_refunded + 0.0, decimals: 2)}
+        <% else %>
+          billed − fees − share − refunds
+        <% end %>
+      </div>
     </div>
   </div>
 
-  <%!-- ── Per-doctor table ── --%>
-  <%= if Enum.empty?(@report.rows) do %>
+  <%!-- ── Bulk action bar ── --%>
+  <div
+    id="bulk-bar"
+    class="mb-3 flex items-center justify-between gap-3 p-3 rounded-md"
+    style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); display: none;"
+  >
+    <div class="text-sm" style="color: var(--text-main);">
+      <strong id="bulk-count">0</strong>
+      consultation(s) selected
+      <span id="bulk-doctor" style="color: var(--text-muted);"></span>
+      <span
+        id="bulk-warn"
+        style="color: #dc2626; margin-left: 0.75rem; display: none; font-weight: 500;"
+      >
+        ⚠ Selections must all belong to the same doctor.
+      </span>
+    </div>
+    <button id="bulk-record-btn" type="button" class="hd-btn-primary" style="font-size: 0.85rem;">
+      Record payout
+    </button>
+  </div>
+
+  <%!-- ── Consultations table ── --%>
+  <%= if Enum.empty?(@rows) do %>
     <div class="hd-empty">
       <div class="hd-empty-icon">💸</div>
-      <p>No paid consultations with linked payments in this period.</p>
+      <p>No billed consultations in this period.</p>
     </div>
   <% else %>
     <div class="hd-card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
       <table class="w-full text-sm">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
-            <th
-              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
-              style="color: var(--text-muted);"
-            >
-              Doctor
+            <th class="p-3 pl-4" style="width: 2.5rem;">
+              <input type="checkbox" id="select-all" />
             </th>
             <th
               class="text-left p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
-              Specialty
+              <a
+                href={"?" <> payouts_query(assigns, %{sort: "date", dir: next_dir(@sort, @dir, "date")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Date{sort_arrow(@sort, @dir, "date")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Patient
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              <a
+                href={"?" <> payouts_query(assigns, %{sort: "doctor", dir: next_dir(@sort, @dir, "doctor")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Doctor{sort_arrow(@sort, @dir, "doctor")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Status
             </th>
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
-              Consultations
-            </th>
-            <th
-              class="text-right p-3 text-xs font-semibold uppercase"
-              style="color: var(--text-muted);"
-            >
-              Total Billed
+              <a
+                href={"?" <> payouts_query(assigns, %{sort: "billed", dir: next_dir(@sort, @dir, "billed")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Total Billed{sort_arrow(@sort, @dir, "billed")}
+              </a>
             </th>
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
@@ -123,124 +195,319 @@
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
-              HD Net
+              <a
+                href={"?" <> payouts_query(assigns, %{sort: "hd_net", dir: next_dir(@sort, @dir, "hd_net")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                HD Net{sort_arrow(@sort, @dir, "hd_net")}
+              </a>
             </th>
             <th class="p-3 pr-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">
             </th>
           </tr>
         </thead>
         <tbody>
-          <%= for row <- @report.rows do %>
-            <tr style="border-bottom: 1px solid var(--border-subtle);">
-              <td class="p-3 pl-4 font-medium" style="color: var(--text-main);">{row.name}</td>
-              <td class="p-3" style="color: var(--text-muted);">{row.specialty || "—"}</td>
-              <td class="p-3 text-right">{row.consultation_count}</td>
+          <%= for row <- @rows do %>
+            <tr
+              class="payout-row"
+              data-consultation-id={row.consultation_id}
+              data-doctor-id={row.doctor_id}
+              data-doctor-name={row.doctor_name}
+              data-patient-name={row.patient_name}
+              data-doctor-share={row.doctor_share}
+              data-consultation-url={dp(@domain_path_prefix, "/consultations/#{row.consultation_id}")}
+              style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;"
+            >
+              <td class="p-3 pl-4">
+                <input
+                  type="checkbox"
+                  class="row-checkbox"
+                  data-doctor-id={row.doctor_id}
+                  disabled={is_nil(row.doctor_id)}
+                />
+              </td>
+              <td class="p-3" style="color: var(--text-muted); white-space: nowrap;">
+                {row.paid_date}
+              </td>
+              <td class="p-3" style="color: var(--text-main);">{row.patient_name}</td>
+              <td class="p-3" style="color: var(--text-main);">
+                <%= if row.doctor_id do %>
+                  {row.doctor_name}
+                  <%= if row.doctor_specialty do %>
+                    <span style="color: var(--text-muted); font-size: 0.75rem;">
+                      · {row.doctor_specialty}
+                    </span>
+                  <% end %>
+                <% else %>
+                  <span style="color: var(--text-muted); font-style: italic;">Unassigned</span>
+                <% end %>
+              </td>
+              <td class="p-3">
+                <div class="flex flex-wrap gap-1">
+                  <%= if row.stripe_status == "refunded" or row.amount_refunded > 0 do %>
+                    <span style="background: #fee2e2; color: #991b1b; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">
+                      Refunded
+                    </span>
+                  <% end %>
+                  <%= cond do %>
+                    <% row.payout_count > 0 -> %>
+                      <span style="background: #d1fae5; color: #065f46; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">
+                        Paid · {row.last_payout_date}
+                      </span>
+                    <% true -> %>
+                      <span style="background: var(--bg-secondary); color: var(--text-muted); padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">
+                        Unpaid
+                      </span>
+                  <% end %>
+                </div>
+              </td>
               <td class="p-3 text-right font-medium">
-                ${:erlang.float_to_binary(row.total_billed + 0.0, decimals: 2)}
+                ${:erlang.float_to_binary(row.amount + 0.0, decimals: 2)}
+                <%= if row.amount_refunded > 0 do %>
+                  <div style="color: #dc2626; font-size: 0.7rem; font-weight: normal;">
+                    −${:erlang.float_to_binary(row.amount_refunded + 0.0, decimals: 2)} refunded
+                  </div>
+                <% end %>
               </td>
               <td class="p-3 text-right" style="color: var(--text-muted);">
-                ${:erlang.float_to_binary(row.stripe_fees + 0.0, decimals: 2)}
+                ${:erlang.float_to_binary(row.stripe_fee + 0.0, decimals: 2)}
               </td>
               <td class="p-3 text-right font-semibold" style="color: #dc2626;">
                 ${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)}
               </td>
               <td class="p-3 text-right" style="color: var(--accent);">
-                ${:erlang.float_to_binary(row.net_to_hd + 0.0, decimals: 2)}
+                ${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}
               </td>
               <td class="p-3 pr-4 text-right">
-                <button
-                  onclick={"document.getElementById('payout-modal-#{row.id}').showModal()"}
-                  class="hd-btn-sm"
-                  style="font-size: 0.7rem; padding: 0.2rem 0.6rem;"
-                >
-                  Record payout
-                </button>
+                <%= if row.doctor_id do %>
+                  <button
+                    type="button"
+                    class="hd-btn-sm record-single-btn"
+                    style="font-size: 0.7rem; padding: 0.2rem 0.6rem;"
+                  >
+                    Record
+                  </button>
+                <% end %>
               </td>
             </tr>
           <% end %>
         </tbody>
-        <tfoot>
-          <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
-            <td class="p-3 pl-4 font-bold" colspan="3">Totals</td>
-            <td class="p-3 text-right font-bold">
-              ${:erlang.float_to_binary(@report.total_billed + 0.0, decimals: 2)}
-            </td>
-            <td class="p-3 text-right font-bold">
-              ${:erlang.float_to_binary(@report.total_stripe_fees + 0.0, decimals: 2)}
-            </td>
-            <td class="p-3 text-right font-bold" style="color: #dc2626;">
-              ${:erlang.float_to_binary(@report.total_doctor_share + 0.0, decimals: 2)}
-            </td>
-            <td class="p-3 text-right font-bold" style="color: var(--accent);">
-              ${:erlang.float_to_binary(@report.total_net_to_hd + 0.0, decimals: 2)}
-            </td>
-            <td class="p-3 pr-4"></td>
-          </tr>
-        </tfoot>
       </table>
     </div>
 
-    <%!-- ── Record Payout modals (one per doctor) ── --%>
-    <%= for row <- @report.rows do %>
-      <dialog
-        id={"payout-modal-#{row.id}"}
-        style="border-radius: 0.75rem; border: 1px solid var(--border-subtle); padding: 1.5rem; width: 24rem; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"
+    <%!-- ── Shared Record Payout modal ── --%>
+    <dialog
+      id="payout-modal"
+      style="border-radius: 0.75rem; border: 1px solid var(--border-subtle); padding: 1.5rem; width: 28rem; max-width: 92vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"
+    >
+      <h3 class="text-base font-bold mb-1" style="color: var(--text-main);">
+        Record payout — <span id="modal-doctor-name">—</span>
+      </h3>
+      <p class="text-sm mb-4" style="color: var(--text-muted);">
+        <span id="modal-consultation-count">0</span> consultation(s) ·
+        default doctor share: <strong id="modal-default-amount">$0.00</strong> MXN
+      </p>
+
+      <details class="mb-4" style="color: var(--text-muted); font-size: 0.8rem;">
+        <summary style="cursor: pointer;">Show selected consultations</summary>
+        <ul id="modal-consultation-list" style="margin-top: 0.5rem; padding-left: 1rem;"></ul>
+      </details>
+
+      <form
+        action={dp(@domain_path_prefix, "/doctor-payouts/record-payout")}
+        method="post"
       >
-        <h3 class="text-base font-bold mb-1" style="color: var(--text-main);">
-          Record payout — {row.name}
-        </h3>
-        <p class="text-sm mb-4" style="color: var(--text-muted);">
-          Owed:
-          <strong>${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)} MXN</strong>
-        </p>
+        <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+        <input type="hidden" name="doctor_id" id="modal-doctor-id" />
+        <input type="hidden" name="consultation_ids" id="modal-consultation-ids" />
 
-        <form
-          action={dp(@domain_path_prefix, "/doctor-payouts/#{row.id}/record-payout")}
-          method="post"
-        >
-          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+        <div class="mb-3">
+          <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+            Amount (MXN)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            name="amount"
+            id="modal-amount"
+            class="hd-input w-full"
+            required
+          />
+        </div>
 
-          <div class="mb-3">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
             <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
-              Amount (MXN)
+              Payout date
             </label>
             <input
-              type="number"
-              step="0.01"
-              name="amount"
-              value={Float.round(row.doctor_share, 2)}
+              type="date"
+              name="payout_date"
+              id="modal-payout-date"
+              value={@today}
               class="hd-input w-full"
               required
             />
           </div>
-
-          <div class="mb-4">
+          <div>
             <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
-              Description / Reference
+              Payment method
             </label>
-            <input
-              type="text"
-              name="description"
-              value={"Payout to #{row.name} — #{@start_date} to #{@end_date}"}
-              class="hd-input w-full"
-              required
-            />
+            <select name="payment_method" id="modal-payment-method" class="hd-input w-full">
+              <%= for m <- @payment_methods do %>
+                <option value={m}>{humanize_method(m)}</option>
+              <% end %>
+            </select>
           </div>
+        </div>
 
-          <div class="flex justify-end gap-2">
-            <button
-              type="button"
-              onclick={"document.getElementById('payout-modal-#{row.id}').close()"}
-              class="hd-btn-secondary"
-            >
-              Cancel
-            </button>
-            <button type="submit" class="hd-btn-primary">
-              Record payout
-            </button>
-          </div>
-        </form>
-      </dialog>
-    <% end %>
+        <div class="mb-3">
+          <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+            Reference (transfer ID, optional)
+          </label>
+          <input
+            type="text"
+            name="reference"
+            id="modal-reference"
+            class="hd-input w-full"
+            placeholder="e.g. SPEI clave 1234567"
+          />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+            Notes (optional)
+          </label>
+          <textarea name="notes" id="modal-notes" rows="2" class="hd-input w-full"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            onclick="document.getElementById('payout-modal').close()"
+            class="hd-btn-secondary"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="hd-btn-primary">
+            Record payout
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      (function () {
+        const modal = document.getElementById('payout-modal');
+        const bulkBar = document.getElementById('bulk-bar');
+        const bulkCount = document.getElementById('bulk-count');
+        const bulkDoctor = document.getElementById('bulk-doctor');
+        const bulkWarn = document.getElementById('bulk-warn');
+        const bulkBtn = document.getElementById('bulk-record-btn');
+        const selectAll = document.getElementById('select-all');
+
+        function rowFromEl(el) {
+          const tr = el.closest('tr.payout-row');
+          return {
+            id: tr.dataset.consultationId,
+            doctorId: tr.dataset.doctorId,
+            doctorName: tr.dataset.doctorName,
+            patientName: tr.dataset.patientName,
+            doctorShare: parseFloat(tr.dataset.doctorShare || '0')
+          };
+        }
+
+        function selectedRows() {
+          return Array.from(document.querySelectorAll('.row-checkbox:checked'))
+            .map(rowFromEl);
+        }
+
+        function uniqueDoctors(rows) {
+          return [...new Set(rows.map(r => r.doctorId))];
+        }
+
+        function updateBulkBar() {
+          const rows = selectedRows();
+          if (rows.length === 0) {
+            bulkBar.style.display = 'none';
+            return;
+          }
+          bulkBar.style.display = 'flex';
+          bulkCount.textContent = rows.length;
+          const doctors = uniqueDoctors(rows);
+          if (doctors.length === 1) {
+            bulkDoctor.textContent = '· ' + rows[0].doctorName;
+            bulkWarn.style.display = 'none';
+            bulkBtn.disabled = false;
+            bulkBtn.style.opacity = 1;
+          } else {
+            bulkDoctor.textContent = '· ' + doctors.length + ' different doctors';
+            bulkWarn.style.display = 'inline';
+            bulkBtn.disabled = true;
+            bulkBtn.style.opacity = 0.5;
+          }
+        }
+
+        function openModal(rows) {
+          if (rows.length === 0) return;
+          const totalShare = rows.reduce((s, r) => s + r.doctorShare, 0);
+          document.getElementById('modal-doctor-name').textContent = rows[0].doctorName;
+          document.getElementById('modal-doctor-id').value = rows[0].doctorId;
+          document.getElementById('modal-consultation-ids').value =
+            rows.map(r => r.id).join(',');
+          document.getElementById('modal-consultation-count').textContent = rows.length;
+          document.getElementById('modal-default-amount').textContent =
+            '$' + totalShare.toFixed(2);
+          document.getElementById('modal-amount').value = totalShare.toFixed(2);
+          document.getElementById('modal-reference').value = '';
+          document.getElementById('modal-notes').value = '';
+
+          const list = document.getElementById('modal-consultation-list');
+          list.innerHTML = '';
+          rows.forEach(r => {
+            const li = document.createElement('li');
+            li.textContent = r.patientName + ' (consultation ' + r.id + ')';
+            list.appendChild(li);
+          });
+
+          modal.showModal();
+        }
+
+        // Single-row Record button
+        document.querySelectorAll('.record-single-btn').forEach(btn => {
+          btn.addEventListener('click', () => openModal([rowFromEl(btn)]));
+        });
+
+        // Bulk Record button
+        bulkBtn.addEventListener('click', () => {
+          const rows = selectedRows();
+          if (uniqueDoctors(rows).length === 1) openModal(rows);
+        });
+
+        // Row checkboxes
+        document.querySelectorAll('.row-checkbox').forEach(cb => {
+          cb.addEventListener('change', updateBulkBar);
+        });
+
+        // Select-all
+        selectAll.addEventListener('change', e => {
+          document.querySelectorAll('.row-checkbox:not([disabled])').forEach(cb => {
+            cb.checked = e.target.checked;
+          });
+          updateBulkBar();
+        });
+
+        // Click anywhere on a row (except checkbox / button / link) → open
+        // the consultation page.
+        document.querySelectorAll('tr.payout-row').forEach(tr => {
+          tr.addEventListener('click', e => {
+            if (e.target.closest('input, button, a, label')) return;
+            const url = tr.dataset.consultationUrl;
+            if (url) window.location.href = url;
+          });
+        });
+      })();
+    </script>
   <% end %>
 </div>

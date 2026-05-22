@@ -3,85 +3,118 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
 
   alias Ledgr.Domains.HelloDoctor.DashboardMetrics
   alias Ledgr.Domains.HelloDoctor.DoctorPayoutImport
+  alias Ledgr.Domains.HelloDoctor.DoctorPayouts
   alias Ledgr.Domains.HelloDoctor.ExternalCostAccounting
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
-  alias Ledgr.Core.Accounting
 
   import Ecto.Query, warn: false
 
-  # ── Doctor payout report ────────────────────────────────────────
+  # ── Per-consultation payout list ────────────────────────────────
 
   def index(conn, params) do
     today = Ledgr.Domains.HelloDoctor.today()
     start_date = parse_date(params["start_date"]) || Date.beginning_of_month(today)
     end_date = parse_date(params["end_date"]) || today
+    doctor_id = blank_to_nil(params["doctor_id"])
+    status = params["status"] || "all"
+    sort = params["sort"] || "date"
+    dir = params["dir"] || default_dir(sort)
 
-    report = DashboardMetrics.doctor_payout_report(start_date, end_date)
+    rows =
+      DoctorPayouts.list_consultations_with_payouts(start_date, end_date,
+        doctor_id: doctor_id,
+        status: status,
+        sort: sort,
+        dir: dir
+      )
+
+    totals = DoctorPayouts.summarize(rows)
+
+    doctors =
+      Ledgr.Repo.all(
+        from d in Ledgr.Domains.HelloDoctor.Doctors.Doctor, order_by: [asc: d.name]
+      )
 
     render(conn, :index,
-      report: report,
+      rows: rows,
+      totals: totals,
       start_date: start_date,
-      end_date: end_date
+      end_date: end_date,
+      doctor_id: doctor_id,
+      status: status,
+      sort: sort,
+      dir: dir,
+      doctors: doctors,
+      payment_methods:
+        Ledgr.Domains.HelloDoctor.DoctorPayouts.DoctorPayout.payment_methods(),
+      today: today
     )
   end
 
-  # ── Record a doctor payout (mark as paid) ───────────────────────
+  defp default_dir("doctor"), do: "asc"
+  defp default_dir(_), do: "desc"
 
-  @doc """
-  Records that HelloDoctor has paid a doctor.
-  Creates a journal entry:
-    DEBIT  2000 Doctor Payable   [amount_pesos]
-    CREDIT 1010 Bank - MXN       [amount_pesos]
-  """
-  def record_payout(conn, %{
-        "doctor_id" => doctor_id,
-        "amount" => amount_str,
-        "description" => description
-      }) do
-    amount_pesos = String.to_float(amount_str)
-    amount_cents = round(amount_pesos * 100)
+  # ── Record a doctor payout for one or more consultations ────────
 
-    doctor_payable = Accounting.get_account_by_code!("2000")
-    bank_mxn = Accounting.get_account_by_code!("1010")
+  def record_payout(conn, params) do
+    consultation_ids =
+      case params["consultation_ids"] do
+        list when is_list(list) -> list
+        str when is_binary(str) and str != "" -> String.split(str, ",", trim: true)
+        _ -> []
+      end
 
-    entry_attrs = %{
-      date: Ledgr.Domains.HelloDoctor.today(),
-      entry_type: "doctor_payout",
-      reference: "DoctorPayout-#{doctor_id}",
-      description: description || "Doctor payout",
-      payee: "Doctor ##{doctor_id}"
+    attrs = %{
+      doctor_id: params["doctor_id"],
+      consultation_ids: consultation_ids,
+      payout_date: params["payout_date"],
+      amount: params["amount"],
+      payment_method: params["payment_method"] || "bank_transfer",
+      reference: blank_to_nil(params["reference"]),
+      notes: blank_to_nil(params["notes"])
     }
 
-    lines = [
-      %{
-        account_id: doctor_payable.id,
-        debit_cents: amount_cents,
-        credit_cents: 0,
-        description: "Clearing doctor payable — #{description}"
-      },
-      %{
-        account_id: bank_mxn.id,
-        debit_cents: 0,
-        credit_cents: amount_cents,
-        description: "Bank transfer to doctor — #{description}"
-      }
-    ]
+    case DoctorPayouts.create_payout(attrs) do
+      {:ok, payout} ->
+        amount_pesos = payout.amount_cents / 100.0
 
-    case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
-      {:ok, _entry} ->
         conn
         |> put_flash(
           :info,
-          "Payout of $#{:erlang.float_to_binary(amount_pesos, decimals: 2)} MXN recorded successfully."
+          "Payout of $#{:erlang.float_to_binary(amount_pesos, decimals: 2)} MXN recorded " <>
+            "for #{length(consultation_ids)} consultation(s)."
         )
         |> redirect(to: dp(conn, "/doctor-payouts"))
 
-      {:error, changeset} ->
+      {:error, reason} when is_binary(reason) ->
         conn
-        |> put_flash(:error, "Failed to record payout: #{inspect(changeset)}")
+        |> put_flash(:error, "Failed to record payout: #{reason}")
+        |> redirect(to: dp(conn, "/doctor-payouts"))
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn
+        |> put_flash(
+          :error,
+          "Failed to record payout: #{format_errors(changeset)}"
+        )
+        |> redirect(to: dp(conn, "/doctor-payouts"))
+
+      {:error, other} ->
+        conn
+        |> put_flash(:error, "Failed to record payout: #{inspect(other)}")
         |> redirect(to: dp(conn, "/doctor-payouts"))
     end
+  end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(v), do: v
+
+  defp format_errors(%Ecto.Changeset{} = cs) do
+    cs.errors
+    |> Enum.map(fn {field, {msg, _}} -> "#{field} #{msg}" end)
+    |> Enum.join("; ")
   end
 
   # ── Post single external cost to GL ────────────────────────────
@@ -241,4 +274,56 @@ end
 defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutHTML do
   use LedgrWeb, :html
   embed_templates "doctor_payout_html/*"
+
+  def humanize_method("bank_transfer"), do: "Bank transfer"
+  def humanize_method("cash"), do: "Cash"
+  def humanize_method("spei"), do: "SPEI"
+  def humanize_method("other"), do: "Other"
+  def humanize_method(other), do: other
+
+  @doc """
+  Builds a query string for the doctor payouts page with the given overrides
+  applied on top of the current filter/sort state. `nil` values drop the key.
+  """
+  def payouts_query(assigns, overrides) do
+    base = %{
+      "start_date" => to_string(assigns.start_date),
+      "end_date" => to_string(assigns.end_date),
+      "doctor_id" => assigns.doctor_id,
+      "status" => assigns.status,
+      "sort" => assigns.sort,
+      "dir" => assigns.dir
+    }
+
+    base
+    |> Map.merge(Map.new(overrides, fn {k, v} -> {to_string(k), v} end))
+    |> Enum.reject(fn {_, v} -> v in [nil, "", "all"] end)
+    |> URI.encode_query()
+  end
+
+  @doc """
+  Renders a sort indicator arrow for the column header — empty if the column
+  isn't the active sort.
+  """
+  def sort_arrow(current_sort, current_dir, column) do
+    cond do
+      to_string(current_sort) != to_string(column) -> ""
+      to_string(current_dir) == "asc" -> " ↑"
+      true -> " ↓"
+    end
+  end
+
+  @doc """
+  Returns the direction the column should toggle to when clicked.
+  """
+  def next_dir(current_sort, current_dir, column) do
+    if to_string(current_sort) == to_string(column) do
+      if to_string(current_dir) == "asc", do: "desc", else: "asc"
+    else
+      case to_string(column) do
+        "doctor" -> "asc"
+        _ -> "desc"
+      end
+    end
+  end
 end

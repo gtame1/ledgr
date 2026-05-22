@@ -43,10 +43,18 @@ defmodule Ledgr.Core.Accounting.JournalEntry do
   ]
 
   def types do
-    domain = Ledgr.Domain.current()
-
+    # Validation accepts entry types from EVERY registered domain, not just
+    # the active one. The journal_entries table is shared across domains, so
+    # restricting validation to the current domain breaks background jobs and
+    # scripts (which run without a per-request domain) and any cross-domain
+    # tooling. UI dropdowns still scope to the current domain via
+    # `entry_types/0` — this function is for the validate_inclusion check.
     domain_types =
-      if domain, do: domain.journal_entry_types() |> Enum.map(&elem(&1, 1)), else: []
+      :ledgr
+      |> Application.get_env(:domains, [])
+      |> Enum.flat_map(fn d -> d.journal_entry_types() end)
+      |> Enum.map(&elem(&1, 1))
+      |> Enum.uniq()
 
     @core_types ++ domain_types
   end
