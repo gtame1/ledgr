@@ -34,28 +34,37 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   @doctor_payable_code "2000"
   @bank_mxn_code "1010"
 
+  # Consultations in any of these `payment_status` values are considered
+  # billed and worth listing on the payouts page.
+  @payable_statuses ~w[paid confirmed refunded]
+
   # ── Read: per-consultation list with payout status ──────────────
 
   @doc """
-  Returns a list of billed consultations (those with a linked Stripe
-  payment) within the date range, enriched with doctor/patient names,
-  computed amounts, and any existing payout info.
+  Returns a list of billed consultations within the date range, enriched
+  with doctor/patient names, computed amounts, and any existing payout info.
 
-  Date range filters on `stripe_payments.paid_at`.
+  The query is driven by `consultations` (the bot's source of truth for
+  whether a consultation is paid/refunded), with `stripe_payments`
+  left-joined for billing detail. A consultation appears as soon as the
+  bot marks it paid; Stripe fees and exact amounts populate once the
+  Stripe webhook lands (or `StripeSync.sync_recent_payments/1` runs).
+  Until then the row uses `consultation.payment_amount` and flags
+  `:stripe_synced?` as `false`.
+
+  Date range filters on the consultation's billing date, taken as the
+  first non-null of `stripe_payments.paid_at`,
+  `consultation.payment_confirmed_at`, `consultation.completed_at`, or
+  `consultation.assigned_at`.
 
   ## Options
 
     * `:doctor_id` — restrict to a single doctor
     * `:status` — one of `:all` (default), `:paid` (has ≥1 payout),
-      `:unpaid` (no payouts), `:refunded` (stripe refunded or amount_refunded > 0)
-    * `:sort` — one of `:date` (default — `paid_at`), `:doctor`, `:billed`, `:hd_net`
+      `:unpaid` (no payouts), `:refunded` (stripe refunded or
+      consultation marked refunded)
+    * `:sort` — one of `:date` (default), `:doctor`, `:billed`, `:hd_net`
     * `:dir` — `:asc` or `:desc` (defaults: date→desc, doctor→asc, billed→desc, hd_net→desc)
-
-  Each row map contains: `:consultation_id`, `:doctor_id`, `:doctor_name`,
-  `:doctor_specialty`, `:patient_name`, `:paid_at`, `:paid_date`,
-  `:amount`, `:amount_refunded`, `:stripe_fee`, `:stripe_status`,
-  `:consultation_status`, `:doctor_share`, `:hd_net`, `:payout_count`,
-  `:last_payout_date`.
   """
   def list_consultations_with_payouts(start_date, end_date, opts \\ []) do
     share = ConsultationAccounting.doctor_share_mxn()
@@ -64,14 +73,31 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     doctor_id = opts[:doctor_id]
 
     base_query =
-      from(sp in StripePayment,
-        join: c in Consultation,
-        on: c.id == sp.consultation_id,
+      from(c in Consultation,
+        left_join: sp in StripePayment,
+        on: sp.consultation_id == c.id,
         left_join: d in Doctor,
         on: c.doctor_id == d.id,
         left_join: p in Patient,
         on: c.patient_id == p.id,
-        where: sp.paid_at >= ^start_naive and sp.paid_at <= ^end_naive,
+        where:
+          c.payment_status in ^@payable_statuses and
+            fragment(
+              "COALESCE(?, ?, ?, ?) >= ?",
+              sp.paid_at,
+              c.payment_confirmed_at,
+              c.completed_at,
+              c.assigned_at,
+              ^start_naive
+            ) and
+            fragment(
+              "COALESCE(?, ?, ?, ?) <= ?",
+              sp.paid_at,
+              c.payment_confirmed_at,
+              c.completed_at,
+              c.assigned_at,
+              ^end_naive
+            ),
         select: %{
           consultation_id: c.id,
           doctor_id: d.id,
@@ -79,19 +105,29 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
           doctor_specialty: d.specialty,
           patient_full_name: p.full_name,
           patient_display_name: p.display_name,
-          paid_at: sp.paid_at,
-          amount: sp.amount,
+          stripe_payment_id: sp.id,
+          paid_at:
+            fragment(
+              "COALESCE(?, ?, ?, ?)",
+              sp.paid_at,
+              c.payment_confirmed_at,
+              c.completed_at,
+              c.assigned_at
+            ),
+          stripe_amount: sp.amount,
+          consultation_amount: c.payment_amount,
           amount_refunded: sp.amount_refunded,
           stripe_fee: sp.stripe_fee,
           stripe_status: sp.status,
-          consultation_status: c.status
+          consultation_status: c.status,
+          consultation_payment_status: c.payment_status
         }
       )
 
     base_query =
       if doctor_id in [nil, "", "all"],
         do: base_query,
-        else: from([_sp, c] in base_query, where: c.doctor_id == ^doctor_id)
+        else: from([c, _sp, _d, _p] in base_query, where: c.doctor_id == ^doctor_id)
 
     rows = Repo.all(base_query)
 
@@ -100,11 +136,21 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
     rows
     |> Enum.map(fn row ->
-      billed = to_float(row.amount)
+      stripe_synced? = not is_nil(row.stripe_payment_id)
+
+      billed =
+        if stripe_synced?,
+          do: to_float(row.stripe_amount),
+          else: to_float(row.consultation_amount)
+
       refunded = to_float(row.amount_refunded)
       fee = to_float(row.stripe_fee)
       hd_net = billed - fee - share - refunded
       summary = Map.get(payout_index, row.consultation_id, %{count: 0, last_date: nil})
+
+      refunded? =
+        row.stripe_status == "refunded" or refunded > 0 or
+          row.consultation_payment_status == "refunded"
 
       %{
         consultation_id: row.consultation_id,
@@ -117,8 +163,10 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         amount: Float.round(billed, 2),
         amount_refunded: Float.round(refunded, 2),
         stripe_fee: Float.round(fee, 2),
-        stripe_status: row.stripe_status,
+        stripe_status: row.stripe_status || row.consultation_payment_status,
         consultation_status: row.consultation_status,
+        stripe_synced?: stripe_synced?,
+        refunded?: refunded?,
         doctor_share: Float.round(share, 2),
         hd_net: Float.round(hd_net, 2),
         payout_count: summary.count,
@@ -140,7 +188,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   end
 
   defp apply_status_filter(rows, status) when status in [:refunded, "refunded"] do
-    Enum.filter(rows, &(&1.stripe_status == "refunded" or &1.amount_refunded > 0))
+    Enum.filter(rows, & &1.refunded?)
   end
 
   defp apply_status_filter(rows, _), do: rows

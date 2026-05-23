@@ -244,9 +244,17 @@
               </td>
               <td class="p-3">
                 <div class="flex flex-wrap gap-1">
-                  <%= if row.stripe_status == "refunded" or row.amount_refunded > 0 do %>
+                  <%= if row.refunded? do %>
                     <span style="background: #fee2e2; color: #991b1b; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">
                       Refunded
+                    </span>
+                  <% end %>
+                  <%= if not row.stripe_synced? do %>
+                    <span
+                      title="No Stripe payment row yet — fees/exact amounts will populate after the next sync."
+                      style="background: #fef3c7; color: #92400e; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"
+                    >
+                      Pending Stripe sync
                     </span>
                   <% end %>
                   <%= cond do %>
@@ -270,13 +278,21 @@
                 <% end %>
               </td>
               <td class="p-3 text-right" style="color: var(--text-muted);">
-                ${:erlang.float_to_binary(row.stripe_fee + 0.0, decimals: 2)}
+                <%= if row.stripe_synced? do %>
+                  ${:erlang.float_to_binary(row.stripe_fee + 0.0, decimals: 2)}
+                <% else %>
+                  <span title="Stripe payment not yet synced">—</span>
+                <% end %>
               </td>
               <td class="p-3 text-right font-semibold" style="color: #dc2626;">
                 ${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)}
               </td>
               <td class="p-3 text-right" style="color: var(--accent);">
-                ${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}
+                <%= if row.stripe_synced? do %>
+                  ${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}
+                <% else %>
+                  <span title="Awaits Stripe fee data">~${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}</span>
+                <% end %>
               </td>
               <td class="p-3 pr-4 text-right">
                 <%= if row.doctor_id do %>
