@@ -34,31 +34,11 @@
           style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
         >
           <option value="">Todas</option>
-          <option value="greeting" selected={@current_funnel_stage == "greeting"}>Saludo</option>
-          <option value="data_collection" selected={@current_funnel_stage == "data_collection"}>
-            Recolección de Datos
-          </option>
-          <option value="qualification" selected={@current_funnel_stage == "qualification"}>
-            Calificación
-          </option>
-          <option value="simulation_sent" selected={@current_funnel_stage == "simulation_sent"}>
-            Simulación Enviada
-          </option>
-          <option
-            value="agent_recommended"
-            selected={@current_funnel_stage == "agent_recommended"}
-          >
-            Agente Recomendado
-          </option>
-          <option
-            value="consultation_active"
-            selected={@current_funnel_stage == "consultation_active"}
-          >
-            Consulta Activa
-          </option>
-          <option value="completed" selected={@current_funnel_stage == "completed"}>
-            Completada
-          </option>
+          <%= for stage <- @funnel_stages do %>
+            <option value={stage} selected={@current_funnel_stage == stage}>
+              {funnel_stage_label(stage)}
+            </option>
+          <% end %>
         </select>
       </div>
       <div class="flex-1 min-w-[200px]">
@@ -146,7 +126,7 @@
               <tr
                 class="border-t cursor-pointer hover:bg-[rgba(31,59,106,0.04)]"
                 style="border-color: var(--border-subtle);"
-                onclick={"window.location='#{dp(@domain_path_prefix, "/conversations/#{conv.id}")}';"}
+                onclick={"window.location='#{dp(@domain_path_prefix, "/conversations/#{conv.id}") <> @filter_qs}';"}
               >
                 <td class="p-3">
                   <div class="text-sm font-medium" style="color: var(--text-main);">
@@ -171,10 +151,7 @@
                 </td>
                 <td class="p-3">
                   <span class="text-sm" style="color: var(--text-main);">
-                    {conv.funnel_stage
-                    |> to_string()
-                    |> String.replace("_", " ")
-                    |> String.capitalize()}
+                    {funnel_stage_label(conv.funnel_stage)}
                   </span>
                 </td>
                 <td class="p-3 text-center">
@@ -202,7 +179,7 @@
                 </td>
                 <td class="p-3 text-right">
                   <.link
-                    navigate={dp(@domain_path_prefix, "/conversations/#{conv.id}")}
+                    navigate={dp(@domain_path_prefix, "/conversations/#{conv.id}") <> @filter_qs}
                     class="text-sm font-medium"
                     style="color: var(--accent);"
                   >

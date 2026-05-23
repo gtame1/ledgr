@@ -3,10 +3,50 @@
 <% messages = conv.messages || [] %>
 
 <div class="hd-page">
-  <div class="mb-4">
-    <.link navigate={dp(@domain_path_prefix, "/conversations")} class="hd-back">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <.link
+      navigate={dp(@domain_path_prefix, "/conversations") <> @filter_qs}
+      class="hd-back"
+    >
       &larr; Volver a Conversaciones
     </.link>
+
+    <div class="flex items-center gap-2">
+      <%= if @prev_id do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/conversations/#{@prev_id}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Conversación anterior (más reciente)"
+        >
+          &larr; Anterior
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay conversación más reciente en la lista filtrada"
+        >
+          &larr; Anterior
+        </span>
+      <% end %>
+      <%= if @next_id do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/conversations/#{@next_id}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Conversación siguiente (más antigua)"
+        >
+          Siguiente &rarr;
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay conversación más antigua en la lista filtrada"
+        >
+          Siguiente &rarr;
+        </span>
+      <% end %>
+    </div>
   </div>
 
   <%!-- Header --%>
@@ -22,7 +62,7 @@
       {conv.status |> to_string() |> String.capitalize()}
     </span>
     <span class="text-sm" style="color: var(--text-muted);">
-      {conv.funnel_stage |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+      {funnel_stage_label(conv.funnel_stage)}
     </span>
   </div>
 
@@ -161,6 +201,223 @@
         </div>
       <% end %>
 
+      <%!--
+        CRM pipeline — operator's traditional contact/sales funnel.
+        Independent of the four-axis state model below; both groups
+        live on the same `conversation_crm` row but track different
+        concerns.
+      --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          CRM
+        </h3>
+        <.form
+          for={%{}}
+          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/crm")}
+          method="post"
+          class="space-y-3"
+        >
+          <input
+            type="hidden"
+            name="_filters"
+            value={String.replace_prefix(@filter_qs, "?", "")}
+          />
+
+          <div>
+            <label
+              for="conv_crm_contact_stage"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Etapa de Contacto
+            </label>
+            <select
+              id="conv_crm_contact_stage"
+              name="contact_stage"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(@crm_entry.contact_stage)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_contact_stage_options do %>
+                <option value={value} selected={@crm_entry.contact_stage == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <div>
+            <label
+              for="conv_crm_sales_stage"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Etapa de Venta
+            </label>
+            <select
+              id="conv_crm_sales_stage"
+              name="sales_stage"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(@crm_entry.sales_stage)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_sales_stage_options do %>
+                <option value={value} selected={@crm_entry.sales_stage == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <p class="text-xs" style="color: var(--text-muted);">
+            Se guarda automáticamente al cambiar.
+          </p>
+        </.form>
+      </div>
+
+      <%!--
+        Four-axis state model (operator-driven mirror of the bot's
+        planned state machine). Independent of the CRM pipeline above;
+        once the bot ships its own axes on `conversations`, we'll
+        reconcile (bot becomes canonical, this stays as override or
+        gets retired).
+      --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Estado de la Conversación
+        </h3>
+        <.form
+          for={%{}}
+          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/crm")}
+          method="post"
+          class="space-y-3"
+        >
+          <input
+            type="hidden"
+            name="_filters"
+            value={String.replace_prefix(@filter_qs, "?", "")}
+          />
+
+          <%!-- Axis 1: funnel_stage (lifecycle position) --%>
+          <div>
+            <label
+              for="conv_crm_funnel_stage"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Etapa del Funnel
+            </label>
+            <select
+              id="conv_crm_funnel_stage"
+              name="funnel_stage"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(@crm_entry.funnel_stage)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_funnel_stage_options do %>
+                <option value={value} selected={@crm_entry.funnel_stage == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <%!-- Axis 2: qualification_verdict (diagnostic outcome) --%>
+          <div>
+            <label
+              for="conv_crm_qualification_verdict"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Veredicto de Calificación
+            </label>
+            <select
+              id="conv_crm_qualification_verdict"
+              name="qualification_verdict"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(@crm_entry.qualification_verdict)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_qualification_verdict_options do %>
+                <option value={value} selected={@crm_entry.qualification_verdict == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <%!-- Axis 3: escalation_status (live-agent track) --%>
+          <div>
+            <label
+              for="conv_crm_escalation_status"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Estado de Escalación
+            </label>
+            <select
+              id="conv_crm_escalation_status"
+              name="escalation_status"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(@crm_entry.escalation_status)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_escalation_status_options do %>
+                <option value={value} selected={@crm_entry.escalation_status == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <%!-- Axis 4: engagement_health (stuck-signal) --%>
+          <div>
+            <label
+              for="conv_crm_engagement_health"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Salud del Engagement
+            </label>
+            <select
+              id="conv_crm_engagement_health"
+              name="engagement_health"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(@crm_entry.engagement_health)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_engagement_health_options do %>
+                <option value={value} selected={@crm_entry.engagement_health == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <p class="text-xs" style="color: var(--text-muted);">
+            Se guarda automáticamente al cambiar.
+          </p>
+        </.form>
+      </div>
+
       <%!-- Conversation Details --%>
       <div class="hd-card p-5">
         <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
@@ -174,9 +431,9 @@
             </span>
           </div>
           <div class="flex justify-between">
-            <span style="color: var(--text-muted);">Etapa del Funnel</span>
+            <span style="color: var(--text-muted);">Etapa del Funnel (Bot)</span>
             <span style="color: var(--text-main);">
-              {conv.funnel_stage |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+              {funnel_stage_label(conv.funnel_stage)}
             </span>
           </div>
           <div class="flex justify-between">

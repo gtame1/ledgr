@@ -544,6 +544,10 @@ defmodule LedgrWeb.Router do
     resources "/conversations", Domains.AumentaMiPension.ConversationListController,
       only: [:index, :show]
 
+    post "/conversations/:id/crm",
+         Domains.AumentaMiPension.ConversationListController,
+         :update_crm
+
     resources "/agent-chats", Domains.AumentaMiPension.AgentChatController, only: [:index, :show]
 
     resources "/consultations", Domains.AumentaMiPension.ConsultationController,

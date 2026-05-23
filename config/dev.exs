@@ -61,15 +61,9 @@ config :ledgr, Ledgr.Repos.HelloDoctor,
   pool_size: 10,
   priv: "priv/repos/hello_doctor"
 
-config :ledgr, Ledgr.Repos.AumentaMiPension,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "ledgr_aumenta_mi_pension_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10,
-  priv: "priv/repos/aumenta_mi_pension"
+# AMP repo config lives at the END of this file (after dev.secret.exs loads),
+# so a local `dev.secret.exs` can `System.put_env/2` the Neon URL before the
+# env-var check runs. See the block below `import_config("dev.secret.exs")`.
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -138,5 +132,48 @@ config :swoosh, :api_client, false
 
 config :ledgr, :prescrypto, enabled: false
 
-# Load local secrets (Stripe keys, etc.) — file is gitignored
+# Load local secrets (Stripe keys, Neon URLs, etc.) — file is gitignored.
+# Must come BEFORE the AMP repo config so a local secret can set
+# AUMENTA_MI_PENSION_DATABASE_URL via System.put_env/2.
 if File.exists?("config/dev.secret.exs"), do: import_config("dev.secret.exs")
+
+# AMP dev DB.
+#
+# Default: local Postgres (`ledgr_aumenta_mi_pension_dev`) — fine for working on
+# the Ledgr-owned tables (`users`, `accounts`, `journal_entries`, etc.).
+#
+# Override: set `AUMENTA_MI_PENSION_DATABASE_URL` (typically from
+# `config/dev.secret.exs`) to point at a Neon dev branch. The bot-owned tables
+# (`conversations`, `customers`, `messages`, …) only exist on Neon, so any view
+# that queries them needs the override. See CLAUDE.md "Aumenta Mi Pensión —
+# schema ownership" for the full table split.
+if amp_url = System.get_env("AUMENTA_MI_PENSION_DATABASE_URL") do
+  IO.puts(:stderr, "[dev.exs] AMP repo → Neon (#{URI.parse(amp_url).host})")
+
+  config :ledgr, Ledgr.Repos.AumentaMiPension,
+    url: amp_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(URI.parse(amp_url).host || "")
+    ],
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10,
+    priv: "priv/repos/aumenta_mi_pension"
+else
+  IO.puts(
+    :stderr,
+    "[dev.exs] AMP repo → local Postgres (bot-owned tables WILL be missing; " <>
+      "set AUMENTA_MI_PENSION_DATABASE_URL to use the Neon dev branch)"
+  )
+
+  config :ledgr, Ledgr.Repos.AumentaMiPension,
+    username: "postgres",
+    password: "postgres",
+    hostname: "localhost",
+    database: "ledgr_aumenta_mi_pension_dev",
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10,
+    priv: "priv/repos/aumenta_mi_pension"
+end

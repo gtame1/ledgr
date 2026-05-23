@@ -106,6 +106,10 @@ defmodule Ledgr.Application do
           ],
           else: []
         ) ++
+        if(@mix_env != :test and Ledgr.Repos.AumentaMiPension in optional_repos,
+          do: [Ledgr.Domains.AumentaMiPension.FunnelStageAudit],
+          else: []
+        ) ++
         [
           # Start to serve requests, typically the last entry
           LedgrWeb.Endpoint
