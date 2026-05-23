@@ -76,17 +76,28 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations do
   end
 
   @doc """
-  Funnel stages the bot writes to `conversations.funnel_stage`, plus a
-  few legacy values still referenced in older templates. Kept in roughly
-  the order a conversation progresses through the funnel so dropdowns
-  read naturally.
+  Funnel stages the bot writes to `conversations.funnel_stage`.
+
+  The column is mid-migration (2026-05-23) from a flat legacy vocabulary
+  to the four-axis state model. Both vocabularies coexist on rows until
+  the bot finishes its backfill, so this list is the **union** of:
+
+    * Legacy values (greeting, education, ..., completed) — still on
+      most rows.
+    * New four-axis funnel_stage values (intake, qualifying, terminal,
+      escalating, closed) — what the bot is writing on new conversations.
 
   Source of truth lives in the bot's state machine; this list is a
-  defensive mirror — keep it in sync when the bot adds new stages.
-  Last audited against `divine-sea-76492882` (Neon) on 2026-05-23.
+  defensive mirror — keep it in sync. The `FunnelStageAudit` worker
+  surfaces drift on boot.
   """
   def funnel_stages do
     ~w[
+      intake
+      qualifying
+      terminal
+      escalating
+      closed
       greeting
       education
       data_collection

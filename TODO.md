@@ -16,39 +16,50 @@
 
 ## Aumenta Mi Pensión
 
-### Bot four-axis migration — revisit when bot ships
+### Bot four-axis migration — in progress
 
-The bot service is migrating from a flat `funnel_stage` enum on
-`conversations` to a four-axis state model (`funnel_stage`,
-`qualification_verdict`, `escalation_status`, `engagement_health`).
-Today Ledgr mirrors those four axes on the operator-owned
-`conversation_crm` overlay. Once the bot's columns land on
-`conversations`, do this:
+The bot shipped the schema migration on 2026-05-23, adding
+`qualification_verdict`, `escalation_status`, `engagement_health` to
+`conversations` and starting to repurpose the existing `funnel_stage`
+column with the new five-value vocabulary (intake / qualifying /
+terminal / escalating / closed). Data migration is just starting —
+most rows still hold the legacy `funnel_stage` vocabulary, and the
+three new axes are mostly NULL.
 
-- [ ] **Schema sync.** Add the four bot columns to
-  `Ledgr.Domains.AumentaMiPension.Conversations.Conversation` (no
-  Ledgr migration — bot owns the table).
-- [ ] **Pick a reconciliation model.** Either:
-  - **Bot wins, overlay dies** — drop the four axes from
-    `conversation_crm`; show reads `conv.funnel_stage` etc. directly.
-    Keep `contact_stage` / `sales_stage` (they're independent).
-  - **Bot canonical, overlay is override** — both columns exist; UI
-    shows bot value when overlay is null; add a "revert to bot"
-    affordance.
-- [ ] **Retire / extend `FunnelStageAudit`.** Drop it if the bot's
-  `funnel_stage` column is gone/renamed, or generalize it into a
-  shared `EnumAudit` that watches all four new columns (and future
-  axes for other domains).
-- [ ] **Vocabulary reconciliation.** Compare the bot's axis values
-  against what's in `CrmEntry` today; align where they diverge.
-- [ ] **Index filter follow-through.** `/conversations` filters on
-  `conversations.funnel_stage` — if the bot renames/restructures the
-  column, update the controller, the dropdown, and `funnel_stages/0`.
-- [ ] **Backfill script.** Project the existing flat funnel values on
-  the 458 historical conversations onto the new axes; review the
-  before/after counts side by side before running.
-- [ ] **Convert this checklist to GH issues** once the bot has a
-  ship date, so each item has a home.
+Reconciliation choice: **overlay-as-override**. The bot is the
+canonical writer; the operator's `conversation_crm` overlay wins on
+display when set. Selecting "— usar valor del bot —" clears the
+overlay and reveals the bot's value.
+
+- [x] **Schema sync.** Added the three new fields to
+  `Ledgr.Domains.AumentaMiPension.Conversations.Conversation`.
+- [x] **Reconciliation model picked.** Overlay-as-override (above).
+- [x] **CRM card UX updated.** Each axis select edits the overlay;
+  bot's value shown as a caption below; yellow "Anulado por operador"
+  badge + orange select border when the overlay overrides.
+- [x] **Vocabulary reconciliation (in part).** Added the new funnel
+  vocab (intake / qualifying / terminal / escalating / closed) to
+  `Conversations.funnel_stages/0` and the `@funnel_labels` map.
+- [ ] **Retire / extend `FunnelStageAudit`.** Currently still useful
+  for `conversations.funnel_stage` (mixed vocab during transition).
+  Should be generalized into a shared `EnumAudit` that also watches
+  `qualification_verdict`, `escalation_status`, `engagement_health` —
+  catching drift the moment the bot starts using a value we don't
+  recognize. Worth doing before those axes get populated in volume.
+- [ ] **Index filter follow-through.** The `/conversations` filter
+  dropdown still only filters by the bot's `funnel_stage` column.
+  Once the new axes have data, add per-axis filters (or at least a
+  `qualification_verdict` filter — it's the most actionable for an
+  asesor).
+- [ ] **Backfill.** The 364 historical conversations still have the
+  legacy `funnel_stage` vocabulary and `NULL` on the new three axes.
+  Decide whether to leave them as-is (bot may eventually recompute)
+  or write a one-time backfill script projecting legacy → new vocab.
+- [ ] **Drop legacy scattered fields.** `qualifies`,
+  `recommended_modalidad`, `agent_recommended`,
+  `agent_declined_by_customer`, `resolved_without_agent` still exist
+  on `conversations`. Bot plan was to subsume them; coordinate
+  removal once the new axes are reliably populated.
 
 ### Funnel stage drift (long-term)
 

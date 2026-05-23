@@ -282,11 +282,20 @@
       </div>
 
       <%!--
-        Four-axis state model (operator-driven mirror of the bot's
-        planned state machine). Independent of the CRM pipeline above;
-        once the bot ships its own axes on `conversations`, we'll
-        reconcile (bot becomes canonical, this stays as override or
-        gets retired).
+        Four-axis state model. The bot is the canonical writer (it
+        writes to conversations.qualification_verdict / escalation_status /
+        engagement_health, and is migrating conversations.funnel_stage to
+        the new vocabulary). The operator can override any axis via the
+        `conversation_crm` overlay; the override wins on display.
+
+        UX:
+          * Select edits the OVERLAY value.
+          * Caption below each select shows the bot's current value.
+          * A yellow "Anulado por operador" badge appears when the
+            overlay is set.
+          * Selecting "— usar valor del bot —" clears the overlay
+            (POSTs empty string, which the changeset normalizes to nil),
+            revealing the bot's value again.
       --%>
       <div class="hd-card p-5">
         <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
@@ -318,10 +327,10 @@
               name="funnel_stage"
               onchange="this.form.submit()"
               class="w-full rounded-md border px-3 py-2 text-sm"
-              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              style={"background: var(--bg-surface); border-color: #{if @crm_entry.funnel_stage, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
             >
               <option value="" selected={is_nil(@crm_entry.funnel_stage)}>
-                — sin definir —
+                — usar valor del bot —
               </option>
               <%= for {label, value} <- @crm_funnel_stage_options do %>
                 <option value={value} selected={@crm_entry.funnel_stage == value}>
@@ -329,6 +338,17 @@
                 </option>
               <% end %>
             </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot: <span style="color: var(--text-main);">{funnel_stage_label(conv.funnel_stage)}</span>
+              <%= if @crm_entry.funnel_stage do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
           </div>
 
           <%!-- Axis 2: qualification_verdict (diagnostic outcome) --%>
@@ -345,10 +365,10 @@
               name="qualification_verdict"
               onchange="this.form.submit()"
               class="w-full rounded-md border px-3 py-2 text-sm"
-              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              style={"background: var(--bg-surface); border-color: #{if @crm_entry.qualification_verdict, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
             >
               <option value="" selected={is_nil(@crm_entry.qualification_verdict)}>
-                — sin definir —
+                — usar valor del bot —
               </option>
               <%= for {label, value} <- @crm_qualification_verdict_options do %>
                 <option value={value} selected={@crm_entry.qualification_verdict == value}>
@@ -356,6 +376,17 @@
                 </option>
               <% end %>
             </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot: <span style="color: var(--text-main);">{qualification_verdict_label(conv.qualification_verdict) || "—"}</span>
+              <%= if @crm_entry.qualification_verdict do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
           </div>
 
           <%!-- Axis 3: escalation_status (live-agent track) --%>
@@ -372,10 +403,10 @@
               name="escalation_status"
               onchange="this.form.submit()"
               class="w-full rounded-md border px-3 py-2 text-sm"
-              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              style={"background: var(--bg-surface); border-color: #{if @crm_entry.escalation_status, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
             >
               <option value="" selected={is_nil(@crm_entry.escalation_status)}>
-                — sin definir —
+                — usar valor del bot —
               </option>
               <%= for {label, value} <- @crm_escalation_status_options do %>
                 <option value={value} selected={@crm_entry.escalation_status == value}>
@@ -383,6 +414,17 @@
                 </option>
               <% end %>
             </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot: <span style="color: var(--text-main);">{escalation_status_label(conv.escalation_status) || "—"}</span>
+              <%= if @crm_entry.escalation_status do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
           </div>
 
           <%!-- Axis 4: engagement_health (stuck-signal) --%>
@@ -399,10 +441,10 @@
               name="engagement_health"
               onchange="this.form.submit()"
               class="w-full rounded-md border px-3 py-2 text-sm"
-              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              style={"background: var(--bg-surface); border-color: #{if @crm_entry.engagement_health, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
             >
               <option value="" selected={is_nil(@crm_entry.engagement_health)}>
-                — sin definir —
+                — usar valor del bot —
               </option>
               <%= for {label, value} <- @crm_engagement_health_options do %>
                 <option value={value} selected={@crm_entry.engagement_health == value}>
@@ -410,6 +452,17 @@
                 </option>
               <% end %>
             </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot: <span style="color: var(--text-main);">{engagement_health_label(conv.engagement_health) || "—"}</span>
+              <%= if @crm_entry.engagement_health do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
           </div>
 
           <p class="text-xs" style="color: var(--text-muted);">

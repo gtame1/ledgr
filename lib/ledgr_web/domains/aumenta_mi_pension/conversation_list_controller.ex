@@ -125,7 +125,13 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListHTML do
   # (greeting, education, agent_offered, ...) — separate from the
   # operator's four-axis overlay vocabulary, which lives on
   # `Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry`.
+  # `conversations.funnel_stage` is mid-migration to the new four-axis
+  # vocabulary, so this map covers BOTH the legacy values (the bot has
+  # been writing for ~a year) AND the new short-list (intake/qualifying/
+  # terminal/escalating/closed) the bot started writing on 2026-05-23.
+  # During the transition we'll see a mix; both render nicely.
   @funnel_labels %{
+    # Legacy vocabulary (still on most rows pending backfill)
     "greeting" => "Saludo",
     "education" => "Educación",
     "data_collection" => "Recolección de Datos",
@@ -140,7 +146,13 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListHTML do
     "guide_delivered" => "Guía Entregada",
     "guide_paid" => "Guía Pagada",
     "payment_link_sent" => "Link de Pago Enviado",
-    "completed" => "Completada"
+    "completed" => "Completada",
+    # New four-axis vocabulary
+    "intake" => "Intake",
+    "qualifying" => "Calificando",
+    "terminal" => "Veredicto",
+    "escalating" => "Escalando",
+    "closed" => "Cerrado"
   }
 
   @doc """
@@ -157,4 +169,14 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListHTML do
   end
 
   def funnel_stage_label(stage), do: funnel_stage_label(to_string(stage))
+
+  # Thin wrappers for the three other axes' label maps (defined on
+  # CrmEntry). These exist so HEEx templates can call them by short
+  # name — HEEx doesn't allow `alias` inside templates, and threading
+  # them through as assigns clutters the controller.
+  alias Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry
+
+  def qualification_verdict_label(code), do: CrmEntry.qualification_verdict_label(code)
+  def escalation_status_label(code), do: CrmEntry.escalation_status_label(code)
+  def engagement_health_label(code), do: CrmEntry.engagement_health_label(code)
 end

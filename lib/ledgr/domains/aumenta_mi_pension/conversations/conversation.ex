@@ -27,6 +27,14 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations.Conversation do
     field :stall_count, :integer, default: 0
     field :hallucinated_fallback_count, :integer, default: 0
 
+    # Bot's four-axis state model (synced 2026-05-23 after bot migration shipped).
+    # The bot is the canonical writer; Ledgr operators override via the
+    # `conversation_crm` overlay (CrmEntry has the same field names).
+    # Schema management lives on the bot side — these are just mirrors.
+    field :qualification_verdict, :string
+    field :escalation_status, :string
+    field :engagement_health, :string
+
     belongs_to :customer, Ledgr.Domains.AumentaMiPension.Customers.Customer
     has_many :consultations, Ledgr.Domains.AumentaMiPension.Consultations.Consultation
     has_many :messages, Ledgr.Domains.AumentaMiPension.Messages.Message
