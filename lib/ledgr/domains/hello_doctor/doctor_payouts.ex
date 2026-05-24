@@ -91,6 +91,12 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         on: c.patient_id == p.id,
         where:
           c.payment_status in ^@payable_statuses and
+            # Exclude bot test/bypass flows (pi_test_bypass_*, cs_no_payment_*).
+            # Real charges either land in stripe_payments (sp.id non-null) or
+            # at least carry an amount on the consultation. Test/bypass rows
+            # have NULL or zero amount AND no stripe_payment match.
+            (not is_nil(sp.id) or
+               (not is_nil(c.payment_amount) and c.payment_amount > 0)) and
             fragment(
               "COALESCE(?, ?, ?, ?) >= ?",
               sp.paid_at,
