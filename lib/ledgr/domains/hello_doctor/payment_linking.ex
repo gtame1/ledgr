@@ -90,4 +90,50 @@ defmodule Ledgr.Domains.HelloDoctor.PaymentLinking do
     |> order_by(desc: :paid_at)
     |> Repo.all()
   end
+
+  @doc """
+  Backfills `stripe_payments.consultation_id` for any unlinked payment whose
+  `stripe_payment_intent_id` matches a consultation's
+  `stripe_payment_intent_id`.
+
+  Idempotent — only updates rows where `consultation_id` is currently NULL,
+  and only when exactly one consultation matches the PI. Returns
+  `%{matched: n, ambiguous: m, no_match: k}`.
+
+  Run after deploy (and any time you spot a wave of "Pending Stripe sync"
+  badges):
+
+      iex> Ledgr.Domains.HelloDoctor.PaymentLinking.backfill_by_payment_intent()
+  """
+  def backfill_by_payment_intent do
+    unlinked =
+      StripePayment
+      |> where([sp], is_nil(sp.consultation_id) and not is_nil(sp.stripe_payment_intent_id))
+      |> Repo.all()
+
+    Enum.reduce(unlinked, %{matched: 0, ambiguous: 0, no_match: 0}, fn sp, acc ->
+      consultations =
+        Consultation
+        |> where([c], c.stripe_payment_intent_id == ^sp.stripe_payment_intent_id)
+        |> Repo.all()
+
+      case consultations do
+        [consultation] ->
+          # Exactly one match — safe to link.
+          sp
+          |> Ecto.Changeset.change(%{consultation_id: consultation.id})
+          |> Repo.update!()
+
+          %{acc | matched: acc.matched + 1}
+
+        [] ->
+          %{acc | no_match: acc.no_match + 1}
+
+        _multiple ->
+          # Multiple consultations share the same PI — shouldn't happen, but
+          # don't guess. Surface in the count so the operator can investigate.
+          %{acc | ambiguous: acc.ambiguous + 1}
+      end
+    end)
+  end
 end

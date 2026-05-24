@@ -74,8 +74,17 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
     base_query =
       from(c in Consultation,
+        # Most stripe_payments come in without consultation_id set (the bot's
+        # WhatsApp checkout uses static payment links with no metadata). Fall
+        # back to matching on stripe_payment_intent_id, which the bot DOES
+        # write onto the consultation. PaymentLinking.backfill_by_payment_intent/0
+        # promotes these soft matches to hard links on stripe_payments.consultation_id.
         left_join: sp in StripePayment,
-        on: sp.consultation_id == c.id,
+        on:
+          sp.consultation_id == c.id or
+            (is_nil(sp.consultation_id) and
+               not is_nil(c.stripe_payment_intent_id) and
+               sp.stripe_payment_intent_id == c.stripe_payment_intent_id),
         left_join: d in Doctor,
         on: c.doctor_id == d.id,
         left_join: p in Patient,
