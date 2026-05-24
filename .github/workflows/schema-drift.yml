@@ -1,0 +1,71 @@
+name: AMP schema drift
+
+# Catches the class of bug that took down prod on 2026-05-23: the bot
+# service drops/renames a column on a shared table, our Ecto schemas
+# still reference it, every SELECT against that table 500s on next
+# deploy. Runs `mix amp.schema_drift` on every PR + push to main and
+# fails the build when the schemas have fields the DB doesn't (the
+# breaking direction).
+#
+# Setup: add `AUMENTA_MI_PENSION_DATABASE_URL` as a repo secret. Use
+# the same Neon URL Render points at — the task only reads
+# `information_schema.columns`, no row data or writes. Long term,
+# create a `ci_schema_reader` Neon role with SELECT only on
+# `information_schema` and use that URL instead.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  schema-drift:
+    name: Compare Ecto schemas to live AMP DB
+    runs-on: ubuntu-latest
+
+    env:
+      MIX_ENV: dev
+      ELIXIR_VERSION: '1.18'
+      OTP_VERSION: '27'
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir / OTP
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      - name: Cache deps + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-otp${{ env.OTP_VERSION }}-elixir${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-otp${{ env.OTP_VERSION }}-elixir${{ env.ELIXIR_VERSION }}-mix-
+
+      - name: Install Elixir deps
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      - name: Verify secret is configured
+        env:
+          AMP_URL: ${{ secrets.AUMENTA_MI_PENSION_DATABASE_URL }}
+        run: |
+          if [ -z "$AMP_URL" ]; then
+            echo "::error::AUMENTA_MI_PENSION_DATABASE_URL secret is not set."
+            echo "::error::Add it under Settings → Secrets and variables → Actions."
+            echo "::error::Use the same Neon URL Render points at (read-only role recommended)."
+            exit 1
+          fi
+
+      - name: Run schema drift check
+        env:
+          AUMENTA_MI_PENSION_DATABASE_URL: ${{ secrets.AUMENTA_MI_PENSION_DATABASE_URL }}
+        run: mix amp.schema_drift
