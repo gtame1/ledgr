@@ -87,13 +87,42 @@ overlay and reveals the bot's value.
   `/app/aumenta-mi-pension/conversations` when `unknown_in_db` is
   non-empty — catches developers who don't tail logs.
 
+### Lead view + per-lead CRM
+
+- [x] **Unified `/leads` page.** Joins conversations + checkup +
+  calculadora by normalized phone (`Phones.normalize/1`). Grouped
+  index by effective funnel_stage; detail page bundles all source
+  records + identity card + CRM card.
+- [x] **Lift CRM from per-conversation to per-lead.** Migrated
+  `conversation_crm` → `lead_crm` (keyed by phone), backfilled via
+  customer.phone join. Conversation show no longer hosts the CRM
+  card; links to `/leads/:phone` instead.
+- [x] **Effective funnel_stage with overlay-as-override.** Operator
+  overlay wins; legacy bot vocab maps to new lead vocab via a
+  documented mapping table in `Leads`.
+- [ ] **Performance.** Today's `list_leads/1` loads every row from
+  every source on each request, then groups in Elixir. Fine at
+  ~400 leads, will hurt at 10k+. Add a DB-side normalized_phone
+  expression index on each source (`btree(regexp_replace(...))`)
+  or a materialized view when it bites.
+- [ ] **Email-as-secondary-join.** Some leads have email but no
+  phone (calculadora-only). Today they're invisible to the unified
+  view. Add email as a secondary join key with phone-first preference.
+- [ ] **Kanban / drag-drop UI.** Today is grouped-list; full Kanban
+  with drag-between-stages would be an obvious UX upgrade once the
+  team adopts the page.
+- [ ] **Lift `pension_cases` / `consultations` / `agent_chats`** to
+  the lead detail page. They're derivatives of conversations; show
+  them on the lead drill-down too.
+
 ### CRM card — when there's time
 
-- [ ] **Optional `notes` field** on `conversation_crm` for free-text
+- [ ] **Optional `notes` field** on `lead_crm` for free-text
   operator annotations. Currently only structured enums are
   capturable.
 - [ ] **Keyboard shortcut for prev/next** (e.g. `[` / `]`) on the
-  conversation show page.
+  conversation show page — and add prev/next nav on the lead
+  detail page (currently only conversations have it).
 
 ### Schema field rename (bot-coordinated)
 

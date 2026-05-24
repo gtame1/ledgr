@@ -140,6 +140,7 @@ defmodule Ledgr.Domains.AumentaMiPension do
         group: "Main",
         items: [
           %{label: "Dashboard", path: prefix, icon: :dashboard},
+          %{label: "Leads", path: "#{prefix}/leads", icon: :customers},
           %{label: "Calculadora", path: "#{prefix}/calculadora", icon: :reports},
           %{label: "Checkup", path: "#{prefix}/checkup", icon: :reports},
           %{label: "Conversations", path: "#{prefix}/conversations", icon: :receipt},
@@ -165,6 +166,7 @@ defmodule Ledgr.Domains.AumentaMiPension do
   def nav_icons do
     %{
       "Dashboard" => "dashboard",
+      "Leads" => "person_search",
       "Calculadora" => "calculate",
       "Checkup" => "monitor_heart",
       "Conversations" => "chat",

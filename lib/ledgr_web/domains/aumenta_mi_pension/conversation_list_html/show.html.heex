@@ -202,274 +202,36 @@
       <% end %>
 
       <%!--
-        CRM pipeline — operator's traditional contact/sales funnel.
-        Independent of the four-axis state model below; both groups
-        live on the same `conversation_crm` row but track different
-        concerns.
+        Operator CRM annotations were lifted from per-conversation to
+        per-lead on 2026-05-23 — they now live on the Leads page,
+        keyed by normalized phone, so they follow the person across
+        re-engagements. This card just links there.
       --%>
       <div class="hd-card p-5">
         <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
-          CRM
+          Anotaciones del Operador
         </h3>
-        <.form
-          for={%{}}
-          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/crm")}
-          method="post"
-          class="space-y-3"
-        >
-          <input
-            type="hidden"
-            name="_filters"
-            value={String.replace_prefix(@filter_qs, "?", "")}
-          />
-
-          <div>
-            <label
-              for="conv_crm_contact_stage"
-              class="block text-xs font-medium mb-1"
-              style="color: var(--text-muted);"
-            >
-              Etapa de Contacto
-            </label>
-            <select
-              id="conv_crm_contact_stage"
-              name="contact_stage"
-              onchange="this.form.submit()"
-              class="w-full rounded-md border px-3 py-2 text-sm"
-              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            >
-              <option value="" selected={is_nil(@crm_entry.contact_stage)}>
-                — sin definir —
-              </option>
-              <%= for {label, value} <- @crm_contact_stage_options do %>
-                <option value={value} selected={@crm_entry.contact_stage == value}>
-                  {label}
-                </option>
-              <% end %>
-            </select>
-          </div>
-
-          <div>
-            <label
-              for="conv_crm_sales_stage"
-              class="block text-xs font-medium mb-1"
-              style="color: var(--text-muted);"
-            >
-              Etapa de Venta
-            </label>
-            <select
-              id="conv_crm_sales_stage"
-              name="sales_stage"
-              onchange="this.form.submit()"
-              class="w-full rounded-md border px-3 py-2 text-sm"
-              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            >
-              <option value="" selected={is_nil(@crm_entry.sales_stage)}>
-                — sin definir —
-              </option>
-              <%= for {label, value} <- @crm_sales_stage_options do %>
-                <option value={value} selected={@crm_entry.sales_stage == value}>
-                  {label}
-                </option>
-              <% end %>
-            </select>
-          </div>
-
-          <p class="text-xs" style="color: var(--text-muted);">
-            Se guarda automáticamente al cambiar.
+        <%= if @lead_phone do %>
+          <p class="text-sm mb-3" style="color: var(--text-main);">
+            Las etapas de CRM, veredicto, escalación y engagement se
+            editan en la página del lead.
           </p>
-        </.form>
+          <.link
+            navigate={dp(@domain_path_prefix, "/leads/#{@lead_phone}")}
+            class="hd-btn-secondary"
+          >
+            Ver lead →
+          </.link>
+        <% else %>
+          <p class="text-sm" style="color: var(--text-muted);">
+            Esta conversación no tiene un teléfono asociado todavía —
+            las anotaciones de CRM viven a nivel de lead (por teléfono).
+          </p>
+        <% end %>
       </div>
 
-      <%!--
-        Four-axis state model. The bot is the canonical writer (it
-        writes to conversations.qualification_verdict / escalation_status /
-        engagement_health, and is migrating conversations.funnel_stage to
-        the new vocabulary). The operator can override any axis via the
-        `conversation_crm` overlay; the override wins on display.
-
-        UX:
-          * Select edits the OVERLAY value.
-          * Caption below each select shows the bot's current value.
-          * A yellow "Anulado por operador" badge appears when the
-            overlay is set.
-          * Selecting "— usar valor del bot —" clears the overlay
-            (POSTs empty string, which the changeset normalizes to nil),
-            revealing the bot's value again.
-      --%>
-      <div class="hd-card p-5">
-        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
-          Estado de la Conversación
-        </h3>
-        <.form
-          for={%{}}
-          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/crm")}
-          method="post"
-          class="space-y-3"
-        >
-          <input
-            type="hidden"
-            name="_filters"
-            value={String.replace_prefix(@filter_qs, "?", "")}
-          />
-
-          <%!-- Axis 1: funnel_stage (lifecycle position) --%>
-          <div>
-            <label
-              for="conv_crm_funnel_stage"
-              class="block text-xs font-medium mb-1"
-              style="color: var(--text-muted);"
-            >
-              Etapa del Funnel
-            </label>
-            <select
-              id="conv_crm_funnel_stage"
-              name="funnel_stage"
-              onchange="this.form.submit()"
-              class="w-full rounded-md border px-3 py-2 text-sm"
-              style={"background: var(--bg-surface); border-color: #{if @crm_entry.funnel_stage, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
-            >
-              <option value="" selected={is_nil(@crm_entry.funnel_stage)}>
-                — usar valor del bot —
-              </option>
-              <%= for {label, value} <- @crm_funnel_stage_options do %>
-                <option value={value} selected={@crm_entry.funnel_stage == value}>
-                  {label}
-                </option>
-              <% end %>
-            </select>
-            <p class="text-xs mt-1" style="color: var(--text-muted);">
-              Bot: <span style="color: var(--text-main);">{funnel_stage_label(conv.funnel_stage)}</span>
-              <%= if @crm_entry.funnel_stage do %>
-                <span
-                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
-                  style="background: #fef3c7; color: #92400e;"
-                >
-                  Anulado por operador
-                </span>
-              <% end %>
-            </p>
-          </div>
-
-          <%!-- Axis 2: qualification_verdict (diagnostic outcome) --%>
-          <div>
-            <label
-              for="conv_crm_qualification_verdict"
-              class="block text-xs font-medium mb-1"
-              style="color: var(--text-muted);"
-            >
-              Veredicto de Calificación
-            </label>
-            <select
-              id="conv_crm_qualification_verdict"
-              name="qualification_verdict"
-              onchange="this.form.submit()"
-              class="w-full rounded-md border px-3 py-2 text-sm"
-              style={"background: var(--bg-surface); border-color: #{if @crm_entry.qualification_verdict, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
-            >
-              <option value="" selected={is_nil(@crm_entry.qualification_verdict)}>
-                — usar valor del bot —
-              </option>
-              <%= for {label, value} <- @crm_qualification_verdict_options do %>
-                <option value={value} selected={@crm_entry.qualification_verdict == value}>
-                  {label}
-                </option>
-              <% end %>
-            </select>
-            <p class="text-xs mt-1" style="color: var(--text-muted);">
-              Bot: <span style="color: var(--text-main);">{qualification_verdict_label(conv.qualification_verdict) || "—"}</span>
-              <%= if @crm_entry.qualification_verdict do %>
-                <span
-                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
-                  style="background: #fef3c7; color: #92400e;"
-                >
-                  Anulado por operador
-                </span>
-              <% end %>
-            </p>
-          </div>
-
-          <%!-- Axis 3: escalation_status (live-agent track) --%>
-          <div>
-            <label
-              for="conv_crm_escalation_status"
-              class="block text-xs font-medium mb-1"
-              style="color: var(--text-muted);"
-            >
-              Estado de Escalación
-            </label>
-            <select
-              id="conv_crm_escalation_status"
-              name="escalation_status"
-              onchange="this.form.submit()"
-              class="w-full rounded-md border px-3 py-2 text-sm"
-              style={"background: var(--bg-surface); border-color: #{if @crm_entry.escalation_status, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
-            >
-              <option value="" selected={is_nil(@crm_entry.escalation_status)}>
-                — usar valor del bot —
-              </option>
-              <%= for {label, value} <- @crm_escalation_status_options do %>
-                <option value={value} selected={@crm_entry.escalation_status == value}>
-                  {label}
-                </option>
-              <% end %>
-            </select>
-            <p class="text-xs mt-1" style="color: var(--text-muted);">
-              Bot: <span style="color: var(--text-main);">{escalation_status_label(conv.escalation_status) || "—"}</span>
-              <%= if @crm_entry.escalation_status do %>
-                <span
-                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
-                  style="background: #fef3c7; color: #92400e;"
-                >
-                  Anulado por operador
-                </span>
-              <% end %>
-            </p>
-          </div>
-
-          <%!-- Axis 4: engagement_health (stuck-signal) --%>
-          <div>
-            <label
-              for="conv_crm_engagement_health"
-              class="block text-xs font-medium mb-1"
-              style="color: var(--text-muted);"
-            >
-              Salud del Engagement
-            </label>
-            <select
-              id="conv_crm_engagement_health"
-              name="engagement_health"
-              onchange="this.form.submit()"
-              class="w-full rounded-md border px-3 py-2 text-sm"
-              style={"background: var(--bg-surface); border-color: #{if @crm_entry.engagement_health, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
-            >
-              <option value="" selected={is_nil(@crm_entry.engagement_health)}>
-                — usar valor del bot —
-              </option>
-              <%= for {label, value} <- @crm_engagement_health_options do %>
-                <option value={value} selected={@crm_entry.engagement_health == value}>
-                  {label}
-                </option>
-              <% end %>
-            </select>
-            <p class="text-xs mt-1" style="color: var(--text-muted);">
-              Bot: <span style="color: var(--text-main);">{engagement_health_label(conv.engagement_health) || "—"}</span>
-              <%= if @crm_entry.engagement_health do %>
-                <span
-                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
-                  style="background: #fef3c7; color: #92400e;"
-                >
-                  Anulado por operador
-                </span>
-              <% end %>
-            </p>
-          </div>
-
-          <p class="text-xs" style="color: var(--text-muted);">
-            Se guarda automáticamente al cambiar.
-          </p>
-        </.form>
-      </div>
+      <%!-- ORIGINAL CRM + four-axis cards removed; preserved in git
+            history at commit 34366ec. Lifted to /leads/:phone. --%>
 
       <%!-- Conversation Details --%>
       <div class="hd-card p-5">
@@ -490,13 +252,10 @@
             </span>
           </div>
           <%!--
-            The legacy `qualifies` / `recommended_modalidad` /
-            `agent_recommended` / `agent_declined_by_customer` /
-            `resolved_without_agent` columns were dropped from
-            `conversations` on 2026-05-23 — their meaning is now
-            spread across the new four-axis state model. We show
-            the bot's values here (read-only); operator overrides
-            live in the "Estado de la Conversación" card above.
+            Read-only display of the bot's current four-axis state for
+            this conversation. Operator overrides for the **lead**
+            (per phone, not per conversation) live on the lead detail
+            page — see the "Anotaciones del Operador" card above.
           --%>
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Veredicto (Bot)</span>

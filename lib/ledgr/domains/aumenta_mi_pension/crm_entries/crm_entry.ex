@@ -1,9 +1,9 @@
 defmodule Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry do
   @moduledoc """
-  Ledgr-owned operator overlay for an AMP conversation. One row per
-  `conversation_id`. Holds two distinct sets of operator annotations
-  on the same table — they're independent and can be set without
-  each other:
+  Ledgr-owned operator overlay for an AMP lead. One row per normalized
+  10-digit phone (`Ledgr.Domains.AumentaMiPension.Phones.normalize/1`).
+  Holds two distinct sets of operator annotations on the same table —
+  they're independent and can be set without each other:
 
   ## 1. Traditional CRM pipeline (operator's lead funnel)
     * `contact_stage` — where in the contact lifecycle (cold/warm/etc)
@@ -87,8 +87,8 @@ defmodule Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry do
     {"disengaged", "Desconectado"}
   ]
 
-  schema "conversation_crm" do
-    field :conversation_id, :string
+  schema "lead_crm" do
+    field :phone, :string
 
     # CRM pipeline
     field :contact_stage, :string
@@ -104,7 +104,7 @@ defmodule Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry do
   end
 
   @cast_fields ~w(
-    conversation_id
+    phone
     contact_stage
     sales_stage
     funnel_stage
@@ -116,14 +116,14 @@ defmodule Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry do
   def changeset(entry, attrs) do
     entry
     |> cast(normalize(attrs), @cast_fields)
-    |> validate_required([:conversation_id])
+    |> validate_required([:phone])
     |> validate_inclusion(:contact_stage, codes(@contact_stages))
     |> validate_inclusion(:sales_stage, codes(@sales_stages))
     |> validate_inclusion(:funnel_stage, codes(@funnel_stages))
     |> validate_inclusion(:qualification_verdict, codes(@qualification_verdicts))
     |> validate_inclusion(:escalation_status, codes(@escalation_statuses))
     |> validate_inclusion(:engagement_health, codes(@engagement_healths))
-    |> unique_constraint(:conversation_id)
+    |> unique_constraint(:phone)
   end
 
   # Form selects submit "" for the blank option; treat as "clear".

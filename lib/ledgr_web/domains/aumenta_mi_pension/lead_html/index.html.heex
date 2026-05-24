@@ -1,0 +1,170 @@
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Leads</h1>
+    <p class="text-sm" style="color: var(--text-muted);">
+      Joined por teléfono · conversaciones + checkup + calculadora
+    </p>
+  </div>
+
+  <%!-- Filters --%>
+  <div class="hd-card p-4 mb-6">
+    <form
+      method="get"
+      action={dp(@domain_path_prefix, "/leads")}
+      class="flex flex-wrap gap-3 items-end"
+    >
+      <div class="flex-1 min-w-[180px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Etapa del Funnel (efectiva)
+        </label>
+        <select
+          name="funnel_stage"
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        >
+          <option value="">Todas</option>
+          <%= for {label, value} <- @funnel_stage_options do %>
+            <option value={value} selected={@current_funnel_stage == value}>{label}</option>
+          <% end %>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[140px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Fuente
+        </label>
+        <select
+          name="source"
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        >
+          <option value="">Todas</option>
+          <option value="conversation" selected={@current_source == "conversation"}>
+            Conversaciones
+          </option>
+          <option value="checkup" selected={@current_source == "checkup"}>Checkup</option>
+          <option value="calculadora" selected={@current_source == "calculadora"}>
+            Calculadora
+          </option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+          Búsqueda
+        </label>
+        <input
+          type="text"
+          name="search"
+          value={@current_search}
+          placeholder="Nombre, teléfono, email..."
+          class="w-full rounded-md border px-3 py-2 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        />
+      </div>
+      <button type="submit" class="hd-btn-secondary">Filtrar</button>
+    </form>
+  </div>
+
+  <%!-- Grouped lead sections --%>
+  <%= if Enum.all?(@stage_order, fn stage -> Enum.empty?(Map.get(@grouped_leads, stage, [])) end) do %>
+    <div class="hd-card p-8 text-center" style="color: var(--text-muted);">
+      Sin leads que coincidan con los filtros.
+    </div>
+  <% else %>
+    <%= for stage <- @stage_order do %>
+      <% leads_in_stage = Map.get(@grouped_leads, stage, []) %>
+      <%= if leads_in_stage != [] do %>
+        <div class="mb-6">
+          <h2
+            class="text-sm font-bold uppercase mb-3 flex items-center gap-2"
+            style="color: var(--text-muted);"
+          >
+            {section_label(stage)}
+            <span
+              class="px-2 py-0.5 rounded text-xs font-semibold"
+              style="background: var(--bg-accent-soft, #f1f5f9); color: var(--text-main);"
+            >
+              {length(leads_in_stage)}
+            </span>
+          </h2>
+
+          <div class="hd-card overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="hd-table w-full">
+                <thead>
+                  <tr>
+                    <th
+                      class="text-left p-3 text-xs font-medium uppercase"
+                      style="color: var(--text-muted);"
+                    >
+                      Lead
+                    </th>
+                    <th
+                      class="text-left p-3 text-xs font-medium uppercase"
+                      style="color: var(--text-muted);"
+                    >
+                      Fuentes
+                    </th>
+                    <th
+                      class="text-left p-3 text-xs font-medium uppercase"
+                      style="color: var(--text-muted);"
+                    >
+                      Última Actividad
+                    </th>
+                    <th
+                      class="text-right p-3 text-xs font-medium uppercase"
+                      style="color: var(--text-muted);"
+                    >
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for lead <- leads_in_stage do %>
+                    <tr
+                      class="border-t cursor-pointer hover:bg-[rgba(31,59,106,0.04)]"
+                      style="border-color: var(--border-subtle);"
+                      onclick={"window.location='#{dp(@domain_path_prefix, "/leads/#{lead.phone}") <> @filter_qs}';"}
+                    >
+                      <td class="p-3">
+                        <div class="text-sm font-medium" style="color: var(--text-main);">
+                          {lead.display_name || "Sin nombre"}
+                        </div>
+                        <div class="text-xs font-mono" style="color: var(--text-muted);">
+                          {format_phone(lead.phone)}
+                        </div>
+                      </td>
+                      <td class="p-3">
+                        <div class="flex gap-1 flex-wrap">
+                          <%= for source <- MapSet.to_list(lead.sources) do %>
+                            <span
+                              class="px-2 py-0.5 rounded text-xs font-medium"
+                              style="background: var(--bg-accent-soft, #f1f5f9); color: var(--text-main);"
+                            >
+                              {source_label(source)}
+                            </span>
+                          <% end %>
+                        </div>
+                      </td>
+                      <td class="p-3 text-sm" style="color: var(--text-muted);">
+                        {fmt_datetime(lead.last_activity_at) || "---"}
+                      </td>
+                      <td class="p-3 text-right">
+                        <.link
+                          navigate={dp(@domain_path_prefix, "/leads/#{lead.phone}") <> @filter_qs}
+                          class="text-sm font-medium"
+                          style="color: var(--accent);"
+                        >
+                          Ver
+                        </.link>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

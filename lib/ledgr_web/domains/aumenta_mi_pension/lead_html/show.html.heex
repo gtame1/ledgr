@@ -1,0 +1,452 @@
+<% lead = @lead %>
+<% crm = lead.crm_entry %>
+<% latest_conv = lead.latest_conversation %>
+<% {badge_label, badge_style} = funnel_source_badge(@funnel_stage_source) %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link
+      navigate={dp(@domain_path_prefix, "/leads") <> @filter_qs}
+      class="hd-back"
+    >
+      &larr; Volver a Leads
+    </.link>
+  </div>
+
+  <%!-- Header --%>
+  <div class="flex items-center flex-wrap gap-3 mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">
+      {lead.display_name || "Sin nombre"}
+    </h1>
+    <span class="text-sm font-mono" style="color: var(--text-muted);">
+      {format_phone(lead.phone)}
+    </span>
+    <span
+      class="px-2 py-0.5 rounded text-xs font-semibold"
+      style={badge_style}
+    >
+      {funnel_stage_label(@effective_funnel_stage)} · {badge_label}
+    </span>
+    <%= for source <- MapSet.to_list(lead.sources) do %>
+      <span
+        class="px-2 py-0.5 rounded text-xs font-medium"
+        style="background: var(--bg-accent-soft, #f1f5f9); color: var(--text-main);"
+      >
+        {source_label(source)}
+      </span>
+    <% end %>
+  </div>
+
+  <div class="hd-two-col">
+    <%!-- Left column: activity --%>
+    <div class="space-y-6">
+      <%!-- Conversations --%>
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">
+          Conversaciones
+          <span class="text-xs font-normal ml-1">({length(lead.conversations)})</span>
+        </h2>
+        <%= if lead.conversations == [] do %>
+          <p class="text-sm" style="color: var(--text-muted);">
+            Aún no hay conversaciones con este lead.
+          </p>
+        <% else %>
+          <div class="space-y-2">
+            <%= for conv <- lead.conversations do %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/conversations/#{conv.id}")}
+                class="block p-3 rounded-lg hover:bg-[rgba(31,59,106,0.04)] no-underline"
+                style="border: 1px solid var(--border-subtle);"
+              >
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="px-2 py-0.5 rounded text-xs font-medium"
+                      style="background: var(--bg-accent-soft, #f1f5f9); color: var(--text-main);"
+                    >
+                      {funnel_stage_label(conv.funnel_stage)}
+                    </span>
+                    <span class="text-xs" style="color: var(--text-muted);">
+                      {conv.status |> to_string() |> String.capitalize()}
+                    </span>
+                  </div>
+                  <span class="text-xs" style="color: var(--text-muted);">
+                    {fmt_datetime(conv.last_message_at) || "---"}
+                  </span>
+                </div>
+              </.link>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <%!-- Checkup responses --%>
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">
+          Checkups
+          <span class="text-xs font-normal ml-1">({length(lead.checkup_responses)})</span>
+        </h2>
+        <%= if lead.checkup_responses == [] do %>
+          <p class="text-sm" style="color: var(--text-muted);">Sin checkups.</p>
+        <% else %>
+          <div class="space-y-2">
+            <%= for r <- lead.checkup_responses do %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/checkup/#{r.id}")}
+                class="block p-3 rounded-lg hover:bg-[rgba(31,59,106,0.04)] no-underline"
+                style="border: 1px solid var(--border-subtle);"
+              >
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                  <div class="text-sm font-medium" style="color: var(--text-main);">
+                    {r.regimen_classification || "Régimen desconocido"}
+                  </div>
+                  <span class="text-xs" style="color: var(--text-muted);">
+                    {fmt_date(r.created_at) || "---"}
+                  </span>
+                </div>
+                <%= if r.recommended_next_step do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);">
+                    Recomendación: {r.recommended_next_step}
+                  </div>
+                <% end %>
+              </.link>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <%!-- Calculadora submissions --%>
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">
+          Calculadora
+          <span class="text-xs font-normal ml-1">({length(lead.calculadora_submissions)})</span>
+        </h2>
+        <%= if lead.calculadora_submissions == [] do %>
+          <p class="text-sm" style="color: var(--text-muted);">Sin envíos de calculadora.</p>
+        <% else %>
+          <div class="space-y-2">
+            <%= for c <- lead.calculadora_submissions do %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/calculadora/#{c.id}")}
+                class="block p-3 rounded-lg hover:bg-[rgba(31,59,106,0.04)] no-underline"
+                style="border: 1px solid var(--border-subtle);"
+              >
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                  <div class="text-sm font-medium" style="color: var(--text-main);">
+                    Pensión estimada: {c.estimated_pension || "---"}
+                  </div>
+                  <span class="text-xs" style="color: var(--text-muted);">
+                    {fmt_date(c.created_at) || "---"}
+                  </span>
+                </div>
+                <%= if c.payment_preference do %>
+                  <div class="text-xs mt-1" style="color: var(--text-muted);">
+                    Preferencia de pago: {c.payment_preference}
+                  </div>
+                <% end %>
+              </.link>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%!-- Right column: CRM + identity --%>
+    <div class="space-y-6">
+      <%!--
+        CRM pipeline (contact / sales). Independent of the four-axis
+        operator overlay below.
+      --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          CRM
+        </h3>
+        <.form
+          for={%{}}
+          action={dp(@domain_path_prefix, "/leads/#{lead.phone}/crm")}
+          method="post"
+          class="space-y-3"
+        >
+          <input
+            type="hidden"
+            name="_filters"
+            value={String.replace_prefix(@filter_qs, "?", "")}
+          />
+
+          <div>
+            <label
+              for="lead_crm_contact_stage"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Etapa de Contacto
+            </label>
+            <select
+              id="lead_crm_contact_stage"
+              name="contact_stage"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(crm && crm.contact_stage)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_contact_stage_options do %>
+                <option value={value} selected={crm && crm.contact_stage == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <div>
+            <label
+              for="lead_crm_sales_stage"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Etapa de Venta
+            </label>
+            <select
+              id="lead_crm_sales_stage"
+              name="sales_stage"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            >
+              <option value="" selected={is_nil(crm && crm.sales_stage)}>
+                — sin definir —
+              </option>
+              <%= for {label, value} <- @crm_sales_stage_options do %>
+                <option value={value} selected={crm && crm.sales_stage == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <p class="text-xs" style="color: var(--text-muted);">
+            Se guarda automáticamente al cambiar.
+          </p>
+        </.form>
+      </div>
+
+      <%!--
+        Four-axis state overlay. Each select edits the operator overlay
+        for THIS lead. Captions below show the latest conversation's
+        bot value for reference; selecting "— usar valor del bot —"
+        clears the overlay so the bot/derivation wins.
+      --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Estado de la Conversación
+        </h3>
+        <.form
+          for={%{}}
+          action={dp(@domain_path_prefix, "/leads/#{lead.phone}/crm")}
+          method="post"
+          class="space-y-3"
+        >
+          <input
+            type="hidden"
+            name="_filters"
+            value={String.replace_prefix(@filter_qs, "?", "")}
+          />
+
+          <%!-- Axis 1: funnel_stage --%>
+          <div>
+            <label
+              for="lead_crm_funnel_stage"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Etapa del Funnel
+            </label>
+            <select
+              id="lead_crm_funnel_stage"
+              name="funnel_stage"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style={"background: var(--bg-surface); border-color: #{if crm && crm.funnel_stage, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
+            >
+              <option value="" selected={is_nil(crm && crm.funnel_stage)}>
+                — usar valor del bot —
+              </option>
+              <%= for {label, value} <- @crm_funnel_stage_options do %>
+                <option value={value} selected={crm && crm.funnel_stage == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot (última conv.): <span style="color: var(--text-main);">{funnel_stage_label(latest_conv && latest_conv.funnel_stage)}</span>
+              <%= if crm && crm.funnel_stage do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
+          </div>
+
+          <%!-- Axis 2: qualification_verdict --%>
+          <div>
+            <label
+              for="lead_crm_qualification_verdict"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Veredicto de Calificación
+            </label>
+            <select
+              id="lead_crm_qualification_verdict"
+              name="qualification_verdict"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style={"background: var(--bg-surface); border-color: #{if crm && crm.qualification_verdict, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
+            >
+              <option value="" selected={is_nil(crm && crm.qualification_verdict)}>
+                — usar valor del bot —
+              </option>
+              <%= for {label, value} <- @crm_qualification_verdict_options do %>
+                <option value={value} selected={crm && crm.qualification_verdict == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot (última conv.): <span style="color: var(--text-main);">{qualification_verdict_label(latest_conv && latest_conv.qualification_verdict) || "—"}</span>
+              <%= if crm && crm.qualification_verdict do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
+          </div>
+
+          <%!-- Axis 3: escalation_status --%>
+          <div>
+            <label
+              for="lead_crm_escalation_status"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Estado de Escalación
+            </label>
+            <select
+              id="lead_crm_escalation_status"
+              name="escalation_status"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style={"background: var(--bg-surface); border-color: #{if crm && crm.escalation_status, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
+            >
+              <option value="" selected={is_nil(crm && crm.escalation_status)}>
+                — usar valor del bot —
+              </option>
+              <%= for {label, value} <- @crm_escalation_status_options do %>
+                <option value={value} selected={crm && crm.escalation_status == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot (última conv.): <span style="color: var(--text-main);">{escalation_status_label(latest_conv && latest_conv.escalation_status) || "—"}</span>
+              <%= if crm && crm.escalation_status do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
+          </div>
+
+          <%!-- Axis 4: engagement_health --%>
+          <div>
+            <label
+              for="lead_crm_engagement_health"
+              class="block text-xs font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Salud del Engagement
+            </label>
+            <select
+              id="lead_crm_engagement_health"
+              name="engagement_health"
+              onchange="this.form.submit()"
+              class="w-full rounded-md border px-3 py-2 text-sm"
+              style={"background: var(--bg-surface); border-color: #{if crm && crm.engagement_health, do: "#f59e0b", else: "var(--border-subtle)"}; color: var(--text-main);"}
+            >
+              <option value="" selected={is_nil(crm && crm.engagement_health)}>
+                — usar valor del bot —
+              </option>
+              <%= for {label, value} <- @crm_engagement_health_options do %>
+                <option value={value} selected={crm && crm.engagement_health == value}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Bot (última conv.): <span style="color: var(--text-main);">{engagement_health_label(latest_conv && latest_conv.engagement_health) || "—"}</span>
+              <%= if crm && crm.engagement_health do %>
+                <span
+                  class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold"
+                  style="background: #fef3c7; color: #92400e;"
+                >
+                  Anulado por operador
+                </span>
+              <% end %>
+            </p>
+          </div>
+
+          <p class="text-xs" style="color: var(--text-muted);">
+            Se guarda automáticamente al cambiar.
+          </p>
+        </.form>
+      </div>
+
+      <%!-- Identity card --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Identidad
+        </h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Nombre</span>
+            <span style="color: var(--text-main);">{lead.display_name || "—"}</span>
+          </div>
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Teléfono</span>
+            <span class="font-mono" style="color: var(--text-main);">{format_phone(lead.phone)}</span>
+          </div>
+          <%= if lead.customer do %>
+            <%= if lead.customer.curp do %>
+              <div class="flex justify-between">
+                <span style="color: var(--text-muted);">CURP</span>
+                <span class="font-mono text-xs" style="color: var(--text-main);">{lead.customer.curp}</span>
+              </div>
+            <% end %>
+            <%= if lead.customer.nss do %>
+              <div class="flex justify-between">
+                <span style="color: var(--text-muted);">NSS</span>
+                <span class="font-mono text-xs" style="color: var(--text-main);">{lead.customer.nss}</span>
+              </div>
+            <% end %>
+            <%= if lead.customer.date_of_birth do %>
+              <div class="flex justify-between">
+                <span style="color: var(--text-muted);">Fecha de nac.</span>
+                <span style="color: var(--text-main);">{lead.customer.date_of_birth}</span>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

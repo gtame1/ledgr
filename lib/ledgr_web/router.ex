@@ -544,9 +544,11 @@ defmodule LedgrWeb.Router do
     resources "/conversations", Domains.AumentaMiPension.ConversationListController,
       only: [:index, :show]
 
-    post "/conversations/:id/crm",
-         Domains.AumentaMiPension.ConversationListController,
-         :update_crm
+    # Unified leads view (joins conversations / checkup / calculadora by phone).
+    # CRM annotations live here at the lead level, not per-conversation.
+    get "/leads", Domains.AumentaMiPension.LeadController, :index
+    get "/leads/:phone", Domains.AumentaMiPension.LeadController, :show
+    post "/leads/:phone/crm", Domains.AumentaMiPension.LeadController, :update_crm
 
     resources "/agent-chats", Domains.AumentaMiPension.AgentChatController, only: [:index, :show]
 

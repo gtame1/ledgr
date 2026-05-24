@@ -2,20 +2,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.AumentaMiPension.Conversations
-  alias Ledgr.Domains.AumentaMiPension.CrmEntries
-  alias Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry
-
-  # All writeable fields on the CRM overlay — both the CRM pipeline
-  # group and the four-axis state group. The form on the show page
-  # submits any subset of these on each `change`.
-  @crm_fields ~w(
-    contact_stage
-    sales_stage
-    funnel_stage
-    qualification_verdict
-    escalation_status
-    engagement_health
-  )
+  alias Ledgr.Domains.AumentaMiPension.Phones
 
   def index(conn, params) do
     filter_opts = filter_opts(params)
@@ -39,62 +26,22 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListController do
     %{prev_id: prev_id, next_id: next_id} =
       Conversations.neighbors(conversation, filter_opts)
 
-    crm_entry =
-      CrmEntries.get_by_conversation_id(conversation.id) || %CrmEntry{}
+    # CRM annotations now live at the lead level (see Leads context).
+    # Expose the normalized phone so the show template can link to
+    # the lead detail page if we know who this conversation belongs to.
+    lead_phone =
+      if conversation.customer && conversation.customer.phone do
+        Phones.normalize(conversation.customer.phone)
+      end
 
     render(conn, :show,
       conversation: conversation,
-      crm_entry: crm_entry,
-      # CRM pipeline
-      crm_contact_stage_options: CrmEntry.contact_stage_options(),
-      crm_sales_stage_options: CrmEntry.sales_stage_options(),
-      # Four-axis state
-      crm_funnel_stage_options: CrmEntry.funnel_stage_options(),
-      crm_qualification_verdict_options: CrmEntry.qualification_verdict_options(),
-      crm_escalation_status_options: CrmEntry.escalation_status_options(),
-      crm_engagement_health_options: CrmEntry.engagement_health_options(),
+      lead_phone: lead_phone,
       prev_id: prev_id,
       next_id: next_id,
       filter_qs: encode_filter_qs(filter_opts)
     )
   end
-
-  @doc """
-  Auto-save endpoint for the CRM card. Each axis select on the show
-  page submits the whole form on `change`, so every field is sent
-  every time — we just upsert what's there.
-
-  All four axes live on the Ledgr-owned `conversation_crm` overlay
-  table; we do NOT write to the bot-owned `conversations.funnel_stage`
-  column from here. (The bot redesign will eventually make the
-  bot-side state machine match these axes.)
-
-  The hidden `_filters` input round-trips the list-filter query string
-  so the redirect lands back in the same filtered context.
-  """
-  def update_crm(conn, %{"id" => id} = params) do
-    filter_qs = redirect_filter_qs(params["_filters"])
-
-    crm_attrs = Map.take(params, @crm_fields)
-
-    case CrmEntries.upsert(id, crm_attrs) do
-      {:ok, _entry} ->
-        conn
-        |> put_flash(:info, "Guardado")
-        |> redirect(to: dp(conn, "/conversations/#{id}") <> filter_qs)
-
-      {:error, %Ecto.Changeset{} = cs} ->
-        conn
-        |> put_flash(:error, "Error guardando CRM: #{inspect(cs.errors)}")
-        |> redirect(to: dp(conn, "/conversations/#{id}") <> filter_qs)
-    end
-  end
-
-  # The CRM form ships `_filters` as already-encoded query (without the
-  # leading "?"). Re-attach the "?" for the redirect; treat blank as "".
-  defp redirect_filter_qs(nil), do: ""
-  defp redirect_filter_qs(""), do: ""
-  defp redirect_filter_qs(qs) when is_binary(qs), do: "?" <> qs
 
   defp filter_opts(params) do
     [
@@ -119,64 +66,6 @@ end
 
 defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListHTML do
   use LedgrWeb, :html
+  use LedgrWeb.Domains.AumentaMiPension.StateLabels
   embed_templates "conversation_list_html/*"
-
-  # Bot-side funnel_stage label map. This is the *bot's* vocabulary
-  # (greeting, education, agent_offered, ...) — separate from the
-  # operator's four-axis overlay vocabulary, which lives on
-  # `Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry`.
-  # `conversations.funnel_stage` is mid-migration to the new four-axis
-  # vocabulary, so this map covers BOTH the legacy values (the bot has
-  # been writing for ~a year) AND the new short-list (intake/qualifying/
-  # terminal/escalating/closed) the bot started writing on 2026-05-23.
-  # During the transition we'll see a mix; both render nicely.
-  @funnel_labels %{
-    # Legacy vocabulary (still on most rows pending backfill)
-    "greeting" => "Saludo",
-    "education" => "Educación",
-    "data_collection" => "Recolección de Datos",
-    "qualification" => "Calificación",
-    "simulation_sent" => "Simulación Enviada",
-    "agent_offered" => "Agente Ofrecido",
-    "agent_search" => "Búsqueda de Agente",
-    "agent_recommended" => "Agente Recomendado",
-    "consultation_active" => "Consulta Activa",
-    "consultation_complete" => "Consulta Completada",
-    "guide_offered" => "Guía Ofrecida",
-    "guide_delivered" => "Guía Entregada",
-    "guide_paid" => "Guía Pagada",
-    "payment_link_sent" => "Link de Pago Enviado",
-    "completed" => "Completada",
-    # New four-axis vocabulary
-    "intake" => "Intake",
-    "qualifying" => "Calificando",
-    "terminal" => "Veredicto",
-    "escalating" => "Escalando",
-    "closed" => "Cerrado"
-  }
-
-  @doc """
-  Human-readable Spanish label for a **bot** funnel stage. Falls back
-  to a title-cased version of the raw value when an unknown stage
-  shows up.
-  """
-  def funnel_stage_label(nil), do: "---"
-
-  def funnel_stage_label(stage) when is_binary(stage) do
-    Map.get_lazy(@funnel_labels, stage, fn ->
-      stage |> String.replace("_", " ") |> String.capitalize()
-    end)
-  end
-
-  def funnel_stage_label(stage), do: funnel_stage_label(to_string(stage))
-
-  # Thin wrappers for the three other axes' label maps (defined on
-  # CrmEntry). These exist so HEEx templates can call them by short
-  # name — HEEx doesn't allow `alias` inside templates, and threading
-  # them through as assigns clutters the controller.
-  alias Ledgr.Domains.AumentaMiPension.CrmEntries.CrmEntry
-
-  def qualification_verdict_label(code), do: CrmEntry.qualification_verdict_label(code)
-  def escalation_status_label(code), do: CrmEntry.escalation_status_label(code)
-  def engagement_health_label(code), do: CrmEntry.engagement_health_label(code)
 end
