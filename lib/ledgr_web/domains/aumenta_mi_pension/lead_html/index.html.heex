@@ -108,7 +108,25 @@
                       class="text-left p-3 text-xs font-medium uppercase"
                       style="color: var(--text-muted);"
                     >
-                      Última Actividad
+                      Veredicto
+                    </th>
+                    <th
+                      class="text-left p-3 text-xs font-medium uppercase"
+                      style="color: var(--text-muted);"
+                    >
+                      Convs
+                    </th>
+                    <th
+                      class="text-left p-3 text-xs font-medium uppercase"
+                      style="color: var(--text-muted);"
+                    >
+                      Estado conv.
+                    </th>
+                    <th
+                      class="text-left p-3 text-xs font-medium uppercase"
+                      style="color: var(--text-muted);"
+                    >
+                      Última actividad
                     </th>
                     <th
                       class="text-right p-3 text-xs font-medium uppercase"
@@ -120,6 +138,8 @@
                 </thead>
                 <tbody>
                   <%= for lead <- leads_in_stage do %>
+                    <% {verdict_value, verdict_source} = effective_verdict(lead) %>
+                    <% latest_conv = lead.latest_conversation %>
                     <tr
                       class="border-t cursor-pointer hover:bg-[rgba(31,59,106,0.04)]"
                       style="border-color: var(--border-subtle);"
@@ -144,6 +164,43 @@
                             </span>
                           <% end %>
                         </div>
+                      </td>
+                      <td class="p-3">
+                        <%= if verdict_value do %>
+                          <% verdict_style =
+                            case verdict_source do
+                              :operator -> "background: #fef3c7; color: #92400e;"
+                              :bot -> "background: #dbe5f5; color: #1f3b6a;"
+                              _ -> "background: #e5e7eb; color: #374151;"
+                            end %>
+                          <span
+                            class="px-2 py-0.5 rounded text-xs font-medium"
+                            style={verdict_style}
+                            title={"Fuente: #{verdict_source}"}
+                          >
+                            {qualification_verdict_label(verdict_value)}
+                          </span>
+                        <% else %>
+                          <span class="text-xs" style="color: var(--text-muted);">—</span>
+                        <% end %>
+                      </td>
+                      <td class="p-3 text-sm" style="color: var(--text-main);">
+                        {length(lead.conversations)}
+                      </td>
+                      <td class="p-3">
+                        <%= if latest_conv do %>
+                          <% status_class =
+                            case latest_conv.status do
+                              "active" -> "in_progress"
+                              "closed" -> "completed"
+                              _ -> "pending"
+                            end %>
+                          <span class={"hd-badge hd-badge--#{status_class}"}>
+                            {latest_conv.status |> to_string() |> String.capitalize()}
+                          </span>
+                        <% else %>
+                          <span class="text-xs" style="color: var(--text-muted);">—</span>
+                        <% end %>
                       </td>
                       <td class="p-3 text-sm" style="color: var(--text-muted);">
                         {fmt_datetime(lead.last_activity_at) || "---"}

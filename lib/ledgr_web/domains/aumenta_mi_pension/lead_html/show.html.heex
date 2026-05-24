@@ -117,73 +117,197 @@
         <% end %>
       </div>
 
+      <%!-- Pension Case (latest, if any) --%>
+      <% pc = latest_pension_case(lead) %>
+      <%= if pc do %>
+        <div class="hd-card p-5" style="border-left: 4px solid var(--accent);">
+          <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--accent);">
+            Caso de Pensión (Bot)
+          </h2>
+          <%= if pc.ai_summary && pc.ai_summary != "" do %>
+            <p
+              class="text-sm leading-relaxed whitespace-pre-line mb-3"
+              style="color: var(--text-main);"
+            >
+              {pc.ai_summary}
+            </p>
+          <% end %>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div>
+              <div class="text-xs uppercase" style="color: var(--text-muted);">Califica</div>
+              <div class="font-medium" style="color: var(--text-main);">{fmt_bool(pc.qualifies)}</div>
+            </div>
+            <div>
+              <div class="text-xs uppercase" style="color: var(--text-muted);">Modalidad</div>
+              <div class="font-medium" style="color: var(--text-main);">{or_dash(pc.recommended_modalidad)}</div>
+            </div>
+            <%= if pc.current_projected_pension do %>
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">Pensión actual proyectada</div>
+                <div class="font-medium" style="color: var(--text-main);">{fmt_mxn(pc.current_projected_pension)}</div>
+              </div>
+            <% end %>
+            <%= if pc.m40_projected_pension do %>
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">M40 proyectada</div>
+                <div class="font-medium" style="color: var(--text-main);">{fmt_mxn(pc.m40_projected_pension)}</div>
+              </div>
+            <% end %>
+            <%= if pc.m40_target_sbc do %>
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">M40 SBC objetivo</div>
+                <div class="font-medium" style="color: var(--text-main);">{fmt_mxn(pc.m40_target_sbc)}</div>
+              </div>
+            <% end %>
+            <%= if pc.m40_monthly_contribution do %>
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">Aportación mensual M40</div>
+                <div class="font-medium" style="color: var(--text-main);">{fmt_mxn(pc.m40_monthly_contribution)}</div>
+              </div>
+            <% end %>
+            <%= if pc.m40_duration_months do %>
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">Duración M40 (meses)</div>
+                <div class="font-medium" style="color: var(--text-main);">{pc.m40_duration_months}</div>
+              </div>
+            <% end %>
+            <%= if pc.years_to_retirement do %>
+              <div>
+                <div class="text-xs uppercase" style="color: var(--text-muted);">Años a jubilarse</div>
+                <div class="font-medium" style="color: var(--text-main);">{pc.years_to_retirement}</div>
+              </div>
+            <% end %>
+          </div>
+          <%= if pc.qualification_reason && pc.qualification_reason != "" do %>
+            <div class="mt-3 text-xs" style="color: var(--text-muted);">
+              <strong>Motivo:</strong> {pc.qualification_reason}
+            </div>
+          <% end %>
+          <%= if pc.simulation_pdf_url do %>
+            <div class="mt-3">
+              <a
+                href={pc.simulation_pdf_url}
+                target="_blank"
+                class="text-sm font-medium"
+                style="color: var(--accent);"
+              >
+                Ver simulación PDF →
+              </a>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
       <%!-- Checkup responses --%>
+      <% latest_ckp = latest_checkup(lead) %>
       <div class="hd-card p-5">
         <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">
           Checkups
           <span class="text-xs font-normal ml-1">({length(lead.checkup_responses)})</span>
         </h2>
-        <%= if lead.checkup_responses == [] do %>
+        <%= if latest_ckp == nil do %>
           <p class="text-sm" style="color: var(--text-muted);">Sin checkups.</p>
         <% else %>
-          <div class="space-y-2">
-            <%= for r <- lead.checkup_responses do %>
+          <%!-- Latest checkup expanded --%>
+          <div class="p-3 rounded-lg mb-3" style="border: 1px solid var(--border-subtle);">
+            <div class="flex items-center justify-between mb-2">
               <.link
-                navigate={dp(@domain_path_prefix, "/checkup/#{r.id}")}
-                class="block p-3 rounded-lg hover:bg-[rgba(31,59,106,0.04)] no-underline"
-                style="border: 1px solid var(--border-subtle);"
+                navigate={dp(@domain_path_prefix, "/checkup/#{latest_ckp.id}")}
+                class="text-sm font-medium"
+                style="color: var(--accent);"
               >
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                  <div class="text-sm font-medium" style="color: var(--text-main);">
-                    {r.regimen_classification || "Régimen desconocido"}
-                  </div>
-                  <span class="text-xs" style="color: var(--text-muted);">
-                    {fmt_date(r.created_at) || "---"}
-                  </span>
-                </div>
-                <%= if r.recommended_next_step do %>
-                  <div class="text-xs mt-1" style="color: var(--text-muted);">
-                    Recomendación: {r.recommended_next_step}
-                  </div>
-                <% end %>
+                Más reciente · {fmt_date(latest_ckp.created_at) || "---"} →
               </.link>
-            <% end %>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              <div><span style="color: var(--text-muted);">Régimen:</span> {or_dash(latest_ckp.regimen_classification)}</div>
+              <div><span style="color: var(--text-muted);">Tipo:</span> {or_dash(latest_ckp.pension_type)}</div>
+              <div><span style="color: var(--text-muted);">¿Ya pensionado?</span> {fmt_bool(latest_ckp.already_retired)}</div>
+              <div><span style="color: var(--text-muted);">¿Cotizado antes 7/1997?</span> {fmt_bool(latest_ckp.birth_before_july_1997)}</div>
+              <div><span style="color: var(--text-muted);">Semanas:</span> {or_dash(latest_ckp.weeks_contributed)}</div>
+              <div><span style="color: var(--text-muted);">Último año cotizado:</span> {or_dash(latest_ckp.last_year_cotized)}</div>
+              <div><span style="color: var(--text-muted);">Último salario:</span> {fmt_mxn(latest_ckp.last_salary_mxn)}</div>
+              <div><span style="color: var(--text-muted);">Modo salario:</span> {or_dash(latest_ckp.salary_mode)}</div>
+              <div><span style="color: var(--text-muted);">¿AFORE?</span> {fmt_bool(latest_ckp.has_afore)}</div>
+              <div><span style="color: var(--text-muted);">AFORE:</span> {or_dash(latest_ckp.afore_name)}</div>
+              <div><span style="color: var(--text-muted);">Cita IMSS:</span> {or_dash(latest_ckp.imss_appointment_status)}</div>
+              <div><span style="color: var(--text-muted);">Recomendado:</span> {or_dash(latest_ckp.recommended_next_step)}</div>
+              <div><span style="color: var(--text-muted);">Deseado:</span> {or_dash(latest_ckp.desired_next_step)}</div>
+            </div>
           </div>
+
+          <%!-- Older checkups as links --%>
+          <%= if length(lead.checkup_responses) > 1 do %>
+            <div class="space-y-1">
+              <p class="text-xs" style="color: var(--text-muted);">Anteriores:</p>
+              <%= for r <- Enum.drop(lead.checkup_responses, 1) do %>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/checkup/#{r.id}")}
+                  class="block text-xs py-1"
+                  style="color: var(--accent);"
+                >
+                  {fmt_date(r.created_at)} · {or_dash(r.regimen_classification)}
+                </.link>
+              <% end %>
+            </div>
+          <% end %>
         <% end %>
       </div>
 
       <%!-- Calculadora submissions --%>
+      <% latest_c = latest_calc(lead) %>
       <div class="hd-card p-5">
         <h2 class="text-sm font-bold uppercase mb-3" style="color: var(--text-muted);">
           Calculadora
           <span class="text-xs font-normal ml-1">({length(lead.calculadora_submissions)})</span>
         </h2>
-        <%= if lead.calculadora_submissions == [] do %>
+        <%= if latest_c == nil do %>
           <p class="text-sm" style="color: var(--text-muted);">Sin envíos de calculadora.</p>
         <% else %>
-          <div class="space-y-2">
-            <%= for c <- lead.calculadora_submissions do %>
+          <%!-- Latest calc expanded --%>
+          <div class="p-3 rounded-lg mb-3" style="border: 1px solid var(--border-subtle);">
+            <div class="flex items-center justify-between mb-2">
               <.link
-                navigate={dp(@domain_path_prefix, "/calculadora/#{c.id}")}
-                class="block p-3 rounded-lg hover:bg-[rgba(31,59,106,0.04)] no-underline"
-                style="border: 1px solid var(--border-subtle);"
+                navigate={dp(@domain_path_prefix, "/calculadora/#{latest_c.id}")}
+                class="text-sm font-medium"
+                style="color: var(--accent);"
               >
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                  <div class="text-sm font-medium" style="color: var(--text-main);">
-                    Pensión estimada: {c.estimated_pension || "---"}
-                  </div>
-                  <span class="text-xs" style="color: var(--text-muted);">
-                    {fmt_date(c.created_at) || "---"}
-                  </span>
-                </div>
-                <%= if c.payment_preference do %>
-                  <div class="text-xs mt-1" style="color: var(--text-muted);">
-                    Preferencia de pago: {c.payment_preference}
-                  </div>
-                <% end %>
+                Más reciente · {fmt_date(latest_c.created_at) || "---"} →
               </.link>
-            <% end %>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              <div><span style="color: var(--text-muted);">Pensión estimada:</span> {fmt_mxn(latest_c.estimated_monthly_pension_mxn)}</div>
+              <div><span style="color: var(--text-muted);">Sin M40:</span> {fmt_mxn(latest_c.pension_without_m40_mxn)}</div>
+              <div><span style="color: var(--text-muted);">Ganancia 20yr:</span> {fmt_mxn(latest_c.net_gain_20yr_mxn)}</div>
+              <div><span style="color: var(--text-muted);">Total invertido:</span> {fmt_mxn(latest_c.total_invested_mxn)}</div>
+              <div><span style="color: var(--text-muted);">Edad deseada:</span> {or_dash(latest_c.target_retirement_age)}</div>
+              <div><span style="color: var(--text-muted);">Edad óptima:</span> {or_dash(latest_c.optimal_retirement_age)}</div>
+              <div><span style="color: var(--text-muted);">Semanas:</span> {or_dash(latest_c.weeks_contributed)}</div>
+              <div><span style="color: var(--text-muted);">Salario diario IMSS:</span> {fmt_mxn(latest_c.daily_salary_imss_mxn)}</div>
+              <div><span style="color: var(--text-muted);">Ahorros disponibles:</span> {fmt_mxn(latest_c.available_savings_mxn)}</div>
+              <div><span style="color: var(--text-muted);">Pensión deseada:</span> {fmt_mxn(latest_c.desired_monthly_pension_mxn)}</div>
+              <div><span style="color: var(--text-muted);">¿Cónyuge?</span> {fmt_bool(latest_c.has_spouse)}</div>
+              <div><span style="color: var(--text-muted);">UMA:</span> {or_dash(latest_c.uma_level)}</div>
+              <div><span style="color: var(--text-muted);">Modo salario:</span> {or_dash(latest_c.salary_mode)}</div>
+              <div><span style="color: var(--text-muted);">Preferencia pago:</span> {or_dash(latest_c.payment_preference)}</div>
+            </div>
           </div>
+
+          <%!-- Older calcs as links --%>
+          <%= if length(lead.calculadora_submissions) > 1 do %>
+            <div class="space-y-1">
+              <p class="text-xs" style="color: var(--text-muted);">Anteriores:</p>
+              <%= for c <- Enum.drop(lead.calculadora_submissions, 1) do %>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/calculadora/#{c.id}")}
+                  class="block text-xs py-1"
+                  style="color: var(--accent);"
+                >
+                  {fmt_date(c.created_at)} · {fmt_mxn(c.estimated_monthly_pension_mxn)}
+                </.link>
+              <% end %>
+            </div>
+          <% end %>
         <% end %>
       </div>
     </div>
@@ -456,34 +580,108 @@
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Nombre</span>
-            <span style="color: var(--text-main);">{lead.display_name || "—"}</span>
+            <span class="text-right" style="color: var(--text-main);">{or_dash(lead.display_name)}</span>
           </div>
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Teléfono</span>
             <span class="font-mono" style="color: var(--text-main);">{format_phone(lead.phone)}</span>
           </div>
+          <% email = best_email(lead) %>
+          <%= if email do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Email</span>
+              <span class="text-right break-all" style="color: var(--text-main);">{email}</span>
+            </div>
+          <% end %>
+          <% nss = best_nss(lead) %>
+          <%= if nss do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">NSS</span>
+              <span class="font-mono text-xs" style="color: var(--text-main);">{nss}</span>
+            </div>
+          <% end %>
+          <% curp = best_curp(lead) %>
+          <%= if curp do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">CURP</span>
+              <span class="font-mono text-xs" style="color: var(--text-main);">{curp}</span>
+            </div>
+          <% end %>
+          <% dob = best_dob(lead) %>
+          <%= if dob do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Fecha de nac.</span>
+              <span style="color: var(--text-main);">{dob}</span>
+            </div>
+          <% end %>
+          <%= if lead.customer && lead.customer.gender do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Género</span>
+              <span style="color: var(--text-main);">{lead.customer.gender}</span>
+            </div>
+          <% end %>
+          <%= if lead.customer && lead.customer.current_employment_status do %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Empleo actual</span>
+              <span style="color: var(--text-main);">{lead.customer.current_employment_status}</span>
+            </div>
+          <% end %>
           <%= if lead.customer do %>
-            <%= if lead.customer.curp do %>
-              <div class="flex justify-between">
-                <span style="color: var(--text-muted);">CURP</span>
-                <span class="font-mono text-xs" style="color: var(--text-main);">{lead.customer.curp}</span>
-              </div>
-            <% end %>
-            <%= if lead.customer.nss do %>
-              <div class="flex justify-between">
-                <span style="color: var(--text-muted);">NSS</span>
-                <span class="font-mono text-xs" style="color: var(--text-main);">{lead.customer.nss}</span>
-              </div>
-            <% end %>
-            <%= if lead.customer.date_of_birth do %>
-              <div class="flex justify-between">
-                <span style="color: var(--text-muted);">Fecha de nac.</span>
-                <span style="color: var(--text-main);">{lead.customer.date_of_birth}</span>
-              </div>
-            <% end %>
+            <div class="flex justify-between">
+              <span style="color: var(--text-muted);">Términos aceptados</span>
+              <span style="color: var(--text-main);">{fmt_bool(lead.customer.terms_accepted)}</span>
+            </div>
           <% end %>
         </div>
       </div>
+
+      <%!-- Diagnostic snapshot (from customer's bot-collected data) --%>
+      <%= if lead.customer do %>
+        <% cust = lead.customer %>
+        <% has_diagnostic =
+          not is_nil(cust.weeks_contributed) or not is_nil(cust.last_registered_salary) or
+            not is_nil(cust.ley_73) or not is_nil(cust.last_imss_contribution_date) or
+            not is_nil(cust.m40_monthly_budget) %>
+        <%= if has_diagnostic do %>
+          <div class="hd-card p-5">
+            <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+              Diagnóstico
+            </h3>
+            <div class="space-y-2 text-sm">
+              <%= if not is_nil(cust.ley_73) do %>
+                <div class="flex justify-between">
+                  <span style="color: var(--text-muted);">Régimen</span>
+                  <span style="color: var(--text-main);">{if cust.ley_73, do: "Ley 73", else: "Ley 97"}</span>
+                </div>
+              <% end %>
+              <%= if cust.weeks_contributed do %>
+                <div class="flex justify-between">
+                  <span style="color: var(--text-muted);">Semanas cotizadas</span>
+                  <span style="color: var(--text-main);">{cust.weeks_contributed}</span>
+                </div>
+              <% end %>
+              <%= if cust.last_registered_salary do %>
+                <div class="flex justify-between">
+                  <span style="color: var(--text-muted);">Último salario registrado</span>
+                  <span style="color: var(--text-main);">{fmt_mxn(cust.last_registered_salary)}</span>
+                </div>
+              <% end %>
+              <%= if cust.last_imss_contribution_date do %>
+                <div class="flex justify-between">
+                  <span style="color: var(--text-muted);">Última cotización IMSS</span>
+                  <span style="color: var(--text-main);">{cust.last_imss_contribution_date}</span>
+                </div>
+              <% end %>
+              <%= if cust.m40_monthly_budget do %>
+                <div class="flex justify-between">
+                  <span style="color: var(--text-muted);">Presupuesto mensual M40</span>
+                  <span style="color: var(--text-main);">{fmt_mxn(cust.m40_monthly_budget)}</span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
     </div>
   </div>
 </div>

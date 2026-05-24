@@ -87,6 +87,24 @@ defmodule Ledgr.Domains.AumentaMiPension.Leads do
   def effective_funnel_stage(%Lead{}), do: {"intake", :default}
 
   @doc """
+  Same overlay-as-override rule as `effective_funnel_stage/1`, applied
+  to the `qualification_verdict` axis. Returns `{verdict, source}` or
+  `{nil, :none}` when nothing is set on either side. Useful on list /
+  card views that want to surface the verdict at a glance.
+  """
+  def effective_verdict(%Lead{crm_entry: %{qualification_verdict: v}})
+      when is_binary(v) and v != "" do
+    {v, :operator}
+  end
+
+  def effective_verdict(%Lead{latest_conversation: %{qualification_verdict: v}})
+      when is_binary(v) and v != "" do
+    {v, :bot}
+  end
+
+  def effective_verdict(_), do: {nil, :none}
+
+  @doc """
   Lists all leads, with everything we know about each phone loaded.
 
   Options:
@@ -163,31 +181,19 @@ defmodule Ledgr.Domains.AumentaMiPension.Leads do
   end
 
   @doc """
-  Returns the phones of the leads immediately adjacent to `lead` in
-  the same filtered ordering used by `list_leads/1`. Mirrors the
-  conversation show page's `Conversations.neighbors/2` UX:
+  Phones of the leads immediately adjacent to `lead`, computed
+  against a **precomputed** leads list (the caller is expected to
+  already have one from `list_leads/1`).
 
-    * `:prev_phone` — the next-**newer** lead (one row up in the
-      `last_activity_desc` order).
-    * `:next_phone` — the next-**older** lead (one row down).
+  Prefer this over `neighbors/2` whenever the caller is going to use
+  `list_leads/1` anyway — it avoids a second pass over every source
+  table on the same request. The lead show controller uses this
+  to halve its source-table scans.
 
-  Returns nil for either side when the lead is at the edge of the
-  filtered list (or isn't in it at all — e.g. operator typed
-  `/leads/<phone>` directly past whatever filters were active).
-
-  ## Cost
-
-  Re-runs `list_leads/1` to find adjacency. That's a full pass over
-  every source table, same shape as the show controller's existing
-  `get_lead_by_phone/1` call — so each show render does two passes.
-  Acceptable up to a few thousand leads; revisit when (a) it shows
-  up in p95 latency or (b) the leads table crosses ~5k rows.
+  See `neighbors/2` for semantic details (prev = newer, next = older).
   """
-  def neighbors(%Lead{phone: phone}, opts \\ []) do
-    leads = list_leads(opts)
-    index = Enum.find_index(leads, &(&1.phone == phone))
-
-    case index do
+  def neighbors_in(leads, %Lead{phone: phone}) when is_list(leads) do
+    case Enum.find_index(leads, &(&1.phone == phone)) do
       nil ->
         %{prev_phone: nil, next_phone: nil}
 
@@ -200,6 +206,58 @@ defmodule Ledgr.Domains.AumentaMiPension.Leads do
           next_phone: next_lead && next_lead.phone
         }
     end
+  end
+
+  @doc """
+  Convenience: looks up a lead in a precomputed list by phone (any
+  format). Returns nil when the phone doesn't normalize or doesn't
+  appear in the list.
+  """
+  def find_lead_by_phone_in(leads, phone) when is_list(leads) do
+    case Phones.normalize(phone) do
+      nil -> nil
+      normalized -> Enum.find(leads, &(&1.phone == normalized))
+    end
+  end
+
+  @doc """
+  Adds detail-page preloads to a lead's conversations (`:messages`,
+  `:consultations`, `:pension_case`). The index-page `list_leads/1`
+  only preloads `:customer` on conversations — light-touch for the
+  table view. The detail page needs the heavier picture, but only
+  for ONE lead, so we target it here instead of widening the index
+  query.
+
+  No-op for leads with zero conversations (calculadora-only or
+  checkup-only).
+  """
+  def enrich_lead(%Lead{conversations: []} = lead), do: lead
+
+  def enrich_lead(%Lead{conversations: convs} = lead) do
+    conv_ids = Enum.map(convs, & &1.id)
+
+    enriched =
+      from(c in Conversation,
+        where: c.id in ^conv_ids,
+        preload: [:customer, :messages, :consultations, :pension_case],
+        order_by: [desc: c.last_message_at]
+      )
+      |> Repo.all()
+
+    %{lead | conversations: enriched, latest_conversation: List.first(enriched)}
+  end
+
+  @doc """
+  Phones of the leads immediately adjacent to `lead` in the same
+  filtered ordering used by `list_leads/1`. Standalone variant —
+  re-runs `list_leads/1` internally.
+
+  Prefer `neighbors_in/2` when the caller already has the listing
+  in hand. Kept for callers without a precomputed list.
+  """
+  def neighbors(%Lead{} = lead, opts \\ []) do
+    leads = list_leads(opts)
+    neighbors_in(leads, lead)
   end
 
   @doc """
