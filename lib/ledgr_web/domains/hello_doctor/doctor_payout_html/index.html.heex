@@ -45,7 +45,7 @@
           class="hd-input text-sm"
           style="padding: 0.4rem 0.65rem;"
         >
-          <%= for {label, value} <- [{"All status", "all"}, {"Unpaid", "unpaid"}, {"Paid", "paid"}, {"Refunded", "refunded"}] do %>
+          <%= for {label, value} <- [{"Pending payout", "pending"}, {"Unpaid (incl. refunded)", "unpaid"}, {"Paid", "paid"}, {"Refunded", "refunded"}, {"All", "all"}] do %>
             <option value={value} selected={to_string(@status) == value}>{label}</option>
           <% end %>
         </select>
@@ -344,12 +344,16 @@
           <input
             type="number"
             step="0.01"
-            min="0.01"
+            min="0"
             name="amount"
             id="modal-amount"
             class="hd-input w-full"
             required
           />
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Use <strong>$0</strong> to mark as processed without sending money
+            (e.g. refunded consultation, settled offline).
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mb-3">

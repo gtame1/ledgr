@@ -17,7 +17,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
     start_date = parse_date(params["start_date"]) || Date.beginning_of_month(today)
     end_date = parse_date(params["end_date"]) || today
     doctor_id = blank_to_nil(params["doctor_id"])
-    status = params["status"] || "all"
+    status = params["status"] || "pending"
     sort = params["sort"] || "date"
     dir = params["dir"] || default_dir(sort)
 
@@ -297,7 +297,9 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutHTML do
 
     base
     |> Map.merge(Map.new(overrides, fn {k, v} -> {to_string(k), v} end))
-    |> Enum.reject(fn {_, v} -> v in [nil, "", "all"] end)
+    # Only drop truly empty values. Keep explicit "all" / "pending" so that
+    # navigating via sort links preserves the user's filter choice.
+    |> Enum.reject(fn {_, v} -> v in [nil, ""] end)
     |> URI.encode_query()
   end
 

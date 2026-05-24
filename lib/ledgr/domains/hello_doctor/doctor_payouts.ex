@@ -179,6 +179,13 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
   defp apply_status_filter(rows, status) when status in [nil, :all, "all", ""], do: rows
 
+  # `pending` — the actionable list: no payout yet AND not refunded.
+  # This is the default view; "paid" and "refunded" are filtered out so
+  # users see only what still needs to be processed.
+  defp apply_status_filter(rows, status) when status in [:pending, "pending"] do
+    Enum.filter(rows, &(&1.payout_count == 0 and not &1.refunded?))
+  end
+
   defp apply_status_filter(rows, status) when status in [:paid, "paid"] do
     Enum.filter(rows, &(&1.payout_count > 0))
   end
@@ -306,8 +313,22 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
          {:ok, payment_method} <- fetch_payment_method(attrs) do
       transaction_result =
         Repo.transaction(fn ->
-          with {:ok, je} <-
-                 create_journal_entry(doctor, consultation_ids, payout_date, amount_cents, attrs),
+          # $0 payouts represent a "processed" outcome with no cash movement
+          # (e.g. refunded consultation the doctor isn't owed for). Skip the
+          # journal entry — there's nothing to record.
+          je_result =
+            if amount_cents == 0,
+              do: {:ok, nil},
+              else:
+                create_journal_entry(
+                  doctor,
+                  consultation_ids,
+                  payout_date,
+                  amount_cents,
+                  attrs
+                )
+
+          with {:ok, je} <- je_result,
                {:ok, payout} <-
                  insert_payout_row(
                    doctor.id,
@@ -316,7 +337,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                    payment_method,
                    attrs[:reference],
                    attrs[:notes],
-                   je.id
+                   je && je.id
                  ),
                :ok <- insert_payout_joins(payout.id, consultation_ids) do
             Repo.preload(payout, :payout_consultations)
@@ -378,18 +399,19 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
   defp fetch_date(_), do: {:error, "payout_date is required"}
 
-  defp fetch_amount_cents(%{amount_cents: n}) when is_integer(n) and n > 0, do: {:ok, n}
+  # Amounts >= 0 are accepted. Zero means "processed, no cash movement".
+  defp fetch_amount_cents(%{amount_cents: n}) when is_integer(n) and n >= 0, do: {:ok, n}
 
   defp fetch_amount_cents(%{amount: a}) when is_binary(a) do
     case Float.parse(String.trim(a)) do
-      {pesos, ""} when pesos > 0 -> {:ok, round(pesos * 100)}
+      {pesos, ""} when pesos >= 0 -> {:ok, round(pesos * 100)}
       _ -> {:error, "invalid amount"}
     end
   end
 
-  defp fetch_amount_cents(%{amount: a}) when is_float(a) and a > 0, do: {:ok, round(a * 100)}
-  defp fetch_amount_cents(%{amount: a}) when is_integer(a) and a > 0, do: {:ok, a * 100}
-  defp fetch_amount_cents(_), do: {:error, "amount is required and must be > 0"}
+  defp fetch_amount_cents(%{amount: a}) when is_float(a) and a >= 0, do: {:ok, round(a * 100)}
+  defp fetch_amount_cents(%{amount: a}) when is_integer(a) and a >= 0, do: {:ok, a * 100}
+  defp fetch_amount_cents(_), do: {:error, "amount is required and must be >= 0"}
 
   defp fetch_payment_method(%{payment_method: m}) when is_binary(m) do
     if m in DoctorPayout.payment_methods(),

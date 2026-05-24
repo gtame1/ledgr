@@ -32,7 +32,10 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts.DoctorPayout do
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
     |> validate_inclusion(:payment_method, @payment_methods)
-    |> validate_number(:amount_cents, greater_than: 0)
+    # $0 is allowed — represents a payout that was "processed" without any
+    # actual cash movement (e.g. refunded consultation the doctor isn't owed
+    # for, or settled-offline cases). No journal entry is created in that case.
+    |> validate_number(:amount_cents, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:doctor_id)
   end
 
