@@ -55,11 +55,28 @@ overlay and reveals the bot's value.
   legacy `funnel_stage` vocabulary and `NULL` on the new three axes.
   Decide whether to leave them as-is (bot may eventually recompute)
   or write a one-time backfill script projecting legacy → new vocab.
-- [ ] **Drop legacy scattered fields.** `qualifies`,
+- [x] **Drop legacy scattered fields.** Bot dropped `qualifies`,
   `recommended_modalidad`, `agent_recommended`,
-  `agent_declined_by_customer`, `resolved_without_agent` still exist
-  on `conversations`. Bot plan was to subsume them; coordinate
-  removal once the new axes are reliably populated.
+  `agent_declined_by_customer`, `resolved_without_agent` from
+  `conversations` later on 2026-05-23. Took prod down briefly —
+  hotfixed in `07b9199` (schema fields removed, dashboard
+  `qualified_count` switched to `qualification_verdict`, index +
+  show templates re-wired to the new four axes).
+- [x] **CI schema-drift check.** Added `mix amp.schema_drift` +
+  GitHub Actions workflow (`.github/workflows/schema-drift.yml`)
+  to catch bot-owned column drops *before* they hit prod. Compares
+  every Ecto schema in `BotOwnedSchemas.schemas/0` against
+  `information_schema.columns`; fails the build on `missing_in_db`,
+  logs INFO for `extra_in_db`. Local runs against the dev Neon
+  branch report 0 FAIL · 2 INFO (the bot added
+  `docs_service_intake_started_at` / `_completed_at` and
+  `prompt_sha` we don't model — non-breaking).
+- [ ] **Model new bot columns we don't yet read.** The drift check
+  flagged three columns the bot writes that aren't in our Ecto
+  schemas: `conversations.docs_service_intake_started_at`,
+  `conversations.docs_service_intake_completed_at`,
+  `messages.prompt_sha`. Decide if there's product value in
+  exposing them and add to the corresponding schema if so.
 
 ### Funnel stage drift (long-term)
 
