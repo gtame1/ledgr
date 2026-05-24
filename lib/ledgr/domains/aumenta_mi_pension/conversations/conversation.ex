@@ -7,11 +7,6 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations.Conversation do
   schema "conversations" do
     field :status, :string
     field :funnel_stage, :string
-    field :qualifies, :boolean
-    field :recommended_modalidad, :string
-    field :resolved_without_agent, :boolean
-    field :agent_recommended, :boolean
-    field :agent_declined_by_customer, :boolean
     field :consultation_type, :string
     field :stripe_payment_intent_id, :string
     field :recording_consent_accepted_at, :naive_datetime

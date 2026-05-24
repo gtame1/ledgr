@@ -37,10 +37,14 @@ defmodule Ledgr.Domains.AumentaMiPension.DashboardMetrics do
       |> where_date_range(:created_at, start_date, end_date)
       |> Repo.aggregate(:count)
 
+    # Post-2026-05-23 bot migration: `conversations.qualifies` was
+    # dropped and the verdict now lives on `qualification_verdict`.
+    # "Qualified" = any positive verdict. Values are mostly NULL during
+    # the data migration; numbers will recover as the bot backfills.
     qualified_count =
       Conversation
       |> where_date_range(:created_at, start_date, end_date)
-      |> where([c], c.qualifies == true)
+      |> where([c], c.qualification_verdict in ["qualifies_m40", "qualifies_m44"])
       |> Repo.aggregate(:count)
 
     simulation_sent_count =

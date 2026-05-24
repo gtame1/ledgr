@@ -86,7 +86,7 @@
               class="text-center p-3 text-xs font-medium uppercase"
               style="color: var(--text-muted);"
             >
-              Califica
+              Veredicto
             </th>
             <th
               class="text-center p-3 text-xs font-medium uppercase"
@@ -155,16 +155,9 @@
                   </span>
                 </td>
                 <td class="p-3 text-center">
-                  {cond do
-                    conv.qualifies == true ->
-                      Phoenix.HTML.raw(~s(<span style="color: #16a34a;">Sí</span>))
-
-                    conv.qualifies == false ->
-                      Phoenix.HTML.raw(~s(<span style="color: #dc2626;">No</span>))
-
-                    true ->
-                      Phoenix.HTML.raw(~s|<span style="color: var(--text-muted);">-</span>|)
-                  end}
+                  <span class="text-sm" style="color: var(--text-main);">
+                    {qualification_verdict_label(conv.qualification_verdict) || "—"}
+                  </span>
                 </td>
                 <td class="p-3 text-center">
                   <span class="text-sm font-medium" style="color: var(--text-main);">

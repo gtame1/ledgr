@@ -489,40 +489,33 @@
               {funnel_stage_label(conv.funnel_stage)}
             </span>
           </div>
+          <%!--
+            The legacy `qualifies` / `recommended_modalidad` /
+            `agent_recommended` / `agent_declined_by_customer` /
+            `resolved_without_agent` columns were dropped from
+            `conversations` on 2026-05-23 — their meaning is now
+            spread across the new four-axis state model. We show
+            the bot's values here (read-only); operator overrides
+            live in the "Estado de la Conversación" card above.
+          --%>
           <div class="flex justify-between">
-            <span style="color: var(--text-muted);">Califica</span>
+            <span style="color: var(--text-muted);">Veredicto (Bot)</span>
             <span style="color: var(--text-main);">
-              {cond do
-                conv.qualifies == true -> "Sí"
-                conv.qualifies == false -> "No"
-                true -> "---"
-              end}
+              {qualification_verdict_label(conv.qualification_verdict) || "---"}
             </span>
           </div>
-          <%= if conv.recommended_modalidad do %>
-            <div class="flex justify-between">
-              <span style="color: var(--text-muted);">Modalidad Recomendada</span>
-              <span style="color: var(--text-main);">{conv.recommended_modalidad}</span>
-            </div>
-          <% end %>
           <div class="flex justify-between">
-            <span style="color: var(--text-muted);">Agente Recomendado</span>
+            <span style="color: var(--text-muted);">Estado de Escalación (Bot)</span>
             <span style="color: var(--text-main);">
-              {if conv.agent_recommended, do: "Sí", else: "No"}
+              {escalation_status_label(conv.escalation_status) || "---"}
             </span>
           </div>
-          <%= if conv.agent_declined_by_customer do %>
-            <div class="flex justify-between">
-              <span style="color: var(--text-muted);">Cliente rechazó al agente</span>
-              <span style="color: #dc2626;">Sí</span>
-            </div>
-          <% end %>
-          <%= if conv.resolved_without_agent do %>
-            <div class="flex justify-between">
-              <span style="color: var(--text-muted);">Resuelto sin agente</span>
-              <span style="color: var(--accent);">Sí</span>
-            </div>
-          <% end %>
+          <div class="flex justify-between">
+            <span style="color: var(--text-muted);">Salud del Engagement (Bot)</span>
+            <span style="color: var(--text-main);">
+              {engagement_health_label(conv.engagement_health) || "---"}
+            </span>
+          </div>
           <div class="flex justify-between">
             <span style="color: var(--text-muted);">Iniciada</span>
             <span style="color: var(--text-main);">{fmt_datetime(conv.created_at) || "---"}</span>
