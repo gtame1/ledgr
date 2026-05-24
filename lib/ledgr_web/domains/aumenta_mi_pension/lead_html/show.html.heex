@@ -4,13 +4,50 @@
 <% {badge_label, badge_style} = funnel_source_badge(@funnel_stage_source) %>
 
 <div class="hd-page">
-  <div class="mb-4">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <.link
       navigate={dp(@domain_path_prefix, "/leads") <> @filter_qs}
       class="hd-back"
     >
       &larr; Volver a Leads
     </.link>
+
+    <div class="flex items-center gap-2">
+      <%= if @prev_phone do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/leads/#{@prev_phone}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Lead anterior (más reciente)"
+        >
+          &larr; Anterior
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay lead más reciente en la lista filtrada"
+        >
+          &larr; Anterior
+        </span>
+      <% end %>
+      <%= if @next_phone do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/leads/#{@next_phone}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Lead siguiente (más antiguo)"
+        >
+          Siguiente &rarr;
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay lead más antiguo en la lista filtrada"
+        >
+          Siguiente &rarr;
+        </span>
+      <% end %>
+    </div>
   </div>
 
   <%!-- Header --%>

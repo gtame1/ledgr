@@ -52,11 +52,15 @@ defmodule LedgrWeb.Domains.AumentaMiPension.LeadController do
 
       lead ->
         {effective_stage, stage_source} = Leads.effective_funnel_stage(lead)
+        opts = filter_opts(params)
+        %{prev_phone: prev_phone, next_phone: next_phone} = Leads.neighbors(lead, opts)
 
         render(conn, :show,
           lead: lead,
           effective_funnel_stage: effective_stage,
           funnel_stage_source: stage_source,
+          prev_phone: prev_phone,
+          next_phone: next_phone,
           # CRM overlay options (shared with the form selects)
           crm_contact_stage_options: CrmEntry.contact_stage_options(),
           crm_sales_stage_options: CrmEntry.sales_stage_options(),
@@ -64,7 +68,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.LeadController do
           crm_qualification_verdict_options: CrmEntry.qualification_verdict_options(),
           crm_escalation_status_options: CrmEntry.escalation_status_options(),
           crm_engagement_health_options: CrmEntry.engagement_health_options(),
-          filter_qs: encode_filter_qs(filter_opts(params))
+          filter_qs: encode_filter_qs(opts)
         )
     end
   end

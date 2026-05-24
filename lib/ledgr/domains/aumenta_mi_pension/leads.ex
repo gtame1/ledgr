@@ -163,6 +163,46 @@ defmodule Ledgr.Domains.AumentaMiPension.Leads do
   end
 
   @doc """
+  Returns the phones of the leads immediately adjacent to `lead` in
+  the same filtered ordering used by `list_leads/1`. Mirrors the
+  conversation show page's `Conversations.neighbors/2` UX:
+
+    * `:prev_phone` — the next-**newer** lead (one row up in the
+      `last_activity_desc` order).
+    * `:next_phone` — the next-**older** lead (one row down).
+
+  Returns nil for either side when the lead is at the edge of the
+  filtered list (or isn't in it at all — e.g. operator typed
+  `/leads/<phone>` directly past whatever filters were active).
+
+  ## Cost
+
+  Re-runs `list_leads/1` to find adjacency. That's a full pass over
+  every source table, same shape as the show controller's existing
+  `get_lead_by_phone/1` call — so each show render does two passes.
+  Acceptable up to a few thousand leads; revisit when (a) it shows
+  up in p95 latency or (b) the leads table crosses ~5k rows.
+  """
+  def neighbors(%Lead{phone: phone}, opts \\ []) do
+    leads = list_leads(opts)
+    index = Enum.find_index(leads, &(&1.phone == phone))
+
+    case index do
+      nil ->
+        %{prev_phone: nil, next_phone: nil}
+
+      i ->
+        prev_lead = if i > 0, do: Enum.at(leads, i - 1)
+        next_lead = if i < length(leads) - 1, do: Enum.at(leads, i + 1)
+
+        %{
+          prev_phone: prev_lead && prev_lead.phone,
+          next_phone: next_lead && next_lead.phone
+        }
+    end
+  end
+
+  @doc """
   Fetches a single Lead by phone (any format). Returns nil if the
   phone can't be normalized or matches nothing.
   """
