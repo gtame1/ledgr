@@ -21,25 +21,6 @@ end %>
 <% daily = m.daily_series %>
 <% day_labels = Enum.map(daily, fn d -> fmt_date(d.date, "%b %d") end) %>
 
-<% funnel_chart = %{
-  format: "number",
-  labels: ["Conversations", "Doctor Recommended", "Consultations", "Paid"],
-  datasets: [
-    %{
-      label: "Count",
-      data: [
-        m.funnel.conversations,
-        m.funnel.doctor_recommended,
-        m.funnel.consultations,
-        m.funnel.paid
-      ],
-      backgroundColor: [c_primary, c_accent, c_amber, c_red],
-      borderWidth: 0,
-      borderRadius: 6
-    }
-  ]
-} %>
-
 <% doctors_chart = %{
   format: "number",
   indexAxis: "y",
@@ -180,52 +161,149 @@ end %>
     </div>
   </div>
 
-  <%!-- ═══ FUNNEL ═══ --%>
+  <%!-- ═══ FUNNEL BY SEGMENT ═══ --%>
   <div class="mb-8">
     <h2
       class="text-sm font-semibold uppercase mb-3"
       style="color: var(--text-muted); letter-spacing: 0.05em;"
     >
-      Funnel
+      Funnel — split by user type & tenant
+    </h2>
+    <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 70ch;">
+      One table per (user type × tenant). New = patient created in the same
+      calendar month as the conversation. Excludes the dashboard owner's test
+      patient and any bot test/bypass conversations.
+    </p>
+
+    <%= if Enum.empty?(m.funnel_segments) do %>
+      <div class="hd-empty">
+        <div class="hd-empty-icon">📊</div>
+        <p>No conversations in this period.</p>
+      </div>
+    <% else %>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <%= for {{user_type, tenant}, seg} <- Enum.sort(m.funnel_segments) do %>
+          <div class="hd-card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div class="hd-card-title" style="margin-bottom: 0;">
+                {String.capitalize(user_type)} users · {tenant}
+              </div>
+              <span class="text-xs font-semibold" style="color: var(--accent);">
+                {seg.conversations} convs → {seg.completed} completed
+                ({fmt_pct.(seg.overall_conversion)})
+              </span>
+            </div>
+            <table class="w-full text-sm">
+              <thead>
+                <tr style="color: var(--text-muted); border-bottom: 1px solid var(--border-subtle);">
+                  <th class="text-left p-2 text-xs font-medium uppercase">Stage</th>
+                  <th class="text-right p-2 text-xs font-medium uppercase">Count</th>
+                  <th class="text-right p-2 text-xs font-medium uppercase">% of convs</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for {label, count, rate} <- [
+                  {"Conversation", seg.conversations, 100.0},
+                  {"Doctor offered", seg.offered, seg.offered_rate},
+                  {"Accepted", seg.accepted, seg.accepted_rate},
+                  {"Paid", seg.paid, seg.paid_rate},
+                  {"Completed", seg.completed, seg.completed_rate}
+                ] do %>
+                  <tr style="border-bottom: 1px solid var(--border-subtle);">
+                    <td class="p-2" style="color: var(--text-main);">{label}</td>
+                    <td class="p-2 text-right font-medium">{count}</td>
+                    <td class="p-2 text-right" style="color: var(--text-muted);">
+                      {fmt_pct.(rate)}
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <%!-- ═══ USERS ═══ --%>
+  <div class="mb-8">
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Users
     </h2>
 
-    <div class="hd-kpi-grid mb-4">
+    <div class="hd-kpi-grid">
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Conversations</div>
-        <div class="hd-kpi-value">{m.funnel.conversations}</div>
-        <div class="hd-kpi-sub">started in period</div>
+        <div class="hd-kpi-label">New users</div>
+        <div class="hd-kpi-value">{m.user_metrics.new_users}</div>
+        <div class="hd-kpi-sub">created this period</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Doctor Recommended</div>
-        <div class="hd-kpi-value">{m.funnel.doctor_recommended}</div>
-        <div class="hd-kpi-sub">
-          {fmt_pct.(m.funnel.doctor_recommended_rate)} of conversations
-        </div>
+        <div class="hd-kpi-label">Existing users</div>
+        <div class="hd-kpi-value">{m.user_metrics.existing_users}</div>
+        <div class="hd-kpi-sub">existed before period · active this period</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Consultations</div>
-        <div class="hd-kpi-value">{m.funnel.consultations}</div>
-        <div class="hd-kpi-sub">{fmt_pct.(m.funnel.consultation_rate)} of recommended</div>
+        <div class="hd-kpi-label">Conv / existing user</div>
+        <div class="hd-kpi-value">{m.user_metrics.conversations_per_existing}</div>
+        <div class="hd-kpi-sub">avg conversations among existing</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Paid</div>
-        <div class="hd-kpi-value" style="color: #02ba97;">{m.funnel.paid}</div>
-        <div class="hd-kpi-sub">{fmt_pct.(m.funnel.overall_conversion)} overall conversion</div>
+        <div class="hd-kpi-label">Consults / existing user</div>
+        <div class="hd-kpi-value">{m.user_metrics.consultations_per_existing}</div>
+        <div class="hd-kpi-sub">avg consultations among existing</div>
       </div>
     </div>
+  </div>
 
-    <div class="hd-card p-5">
-      <div class="hd-card-title">Conversion Funnel</div>
-      <%= if m.funnel.conversations > 0 do %>
-        <div id="funnel-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
-          <canvas id="funnel-chart" data-chart-data={Jason.encode!(funnel_chart)}></canvas>
+  <%!-- ═══ UNIT ECONOMICS ═══ --%>
+  <div class="mb-8">
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Unit economics
+    </h2>
+
+    <div class="hd-kpi-grid">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Cost per Consultation</div>
+        <div class="hd-kpi-value">
+          {if m.cost_metrics.cost_per_consultation,
+            do: fmt_money.(m.cost_metrics.cost_per_consultation),
+            else: "—"}
         </div>
-      <% else %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">📊</div>
-          <p>No conversations in this period</p>
+        <div class="hd-kpi-sub">
+          MXN · total expenses / {m.cost_metrics.consultations} consult(s)
         </div>
-      <% end %>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Cost per Conversation</div>
+        <div class="hd-kpi-value">
+          {if m.cost_metrics.cost_per_conversation,
+            do: fmt_money.(m.cost_metrics.cost_per_conversation),
+            else: "—"}
+        </div>
+        <div class="hd-kpi-sub">
+          MXN · total expenses / {m.cost_metrics.conversations} conv(s)
+        </div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">CAC</div>
+        <div class="hd-kpi-value">
+          {if m.cost_metrics.cac, do: fmt_money.(m.cost_metrics.cac), else: "—"}
+        </div>
+        <div class="hd-kpi-sub">
+          MXN · acct 6050 / {m.cost_metrics.new_users} new user(s)
+        </div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Total Expenses</div>
+        <div class="hd-kpi-value">{fmt_money.(m.cost_metrics.total_costs_mxn)}</div>
+        <div class="hd-kpi-sub">MXN · all expense GL debits</div>
+      </div>
     </div>
   </div>
 
@@ -259,17 +337,45 @@ end %>
         <div class="hd-kpi-sub">per consultation</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Avg Rating</div>
-        <div class="hd-kpi-value" style="color: #f59e0b;">
-          {if m.operations.avg_rating > 0, do: m.operations.avg_rating, else: "—"}
-          {if m.operations.avg_rating > 0, do: "★", else: ""}
-        </div>
-        <div class="hd-kpi-sub">{m.operations.rated_count} ratings</div>
-      </div>
-      <div class="hd-kpi">
         <div class="hd-kpi-label">Video Adoption</div>
         <div class="hd-kpi-value">{fmt_pct.(m.operations.video_adoption_rate)}</div>
         <div class="hd-kpi-sub">{m.operations.video_count} video calls</div>
+      </div>
+    </div>
+
+    <%!-- Ratings (4 dimensions) --%>
+    <% rm = m.rating_metrics %>
+    <div class="hd-kpi-grid mb-4">
+      <% star = fn r ->
+        case r.avg do
+          nil -> {"—", ""}
+          v -> {:erlang.float_to_binary(v, decimals: 2), "★"}
+        end
+      end %>
+
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Doctor (rated by patient)</div>
+        <% {val, suffix} = star.(rm.doctor) %>
+        <div class="hd-kpi-value" style="color: #f59e0b;">{val} {suffix}</div>
+        <div class="hd-kpi-sub">{rm.doctor.count} ratings</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Patient (rated by doctor)</div>
+        <% {val, suffix} = star.(rm.patient) %>
+        <div class="hd-kpi-value" style="color: #f59e0b;">{val} {suffix}</div>
+        <div class="hd-kpi-sub">{rm.patient.count} ratings</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Platform (by patient)</div>
+        <% {val, suffix} = star.(rm.platform_by_patient) %>
+        <div class="hd-kpi-value" style="color: #f59e0b;">{val} {suffix}</div>
+        <div class="hd-kpi-sub">{rm.platform_by_patient.count} ratings</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Platform (by doctor)</div>
+        <% {val, suffix} = star.(rm.platform_by_doctor) %>
+        <div class="hd-kpi-value" style="color: #f59e0b;">{val} {suffix}</div>
+        <div class="hd-kpi-sub">{rm.platform_by_doctor.count} ratings</div>
       </div>
     </div>
 
@@ -579,97 +685,25 @@ end %>
       </div>
     </div>
 
-    <%!-- Cost detail table --%>
+    <%!--
+      Per-row detail table was here. Removed per feedback — full breakdown
+      lives on the Expenses page (`/app/hello-doctor/expenses`) when you
+      need it. The KPI grid above is the at-a-glance summary.
+    --%>
     <%= if Enum.empty?(m.infrastructure_costs.detail) do %>
       <div class="hd-empty" style="padding: 1rem;">
         <div class="hd-empty-icon">💻</div>
         <p>No cost data — click <strong>Sync costs</strong> to pull from external services.</p>
       </div>
     <% else %>
-      <div class="hd-card mb-4" style="padding: 0; overflow: hidden;">
-        <table class="w-full text-sm">
-          <thead>
-            <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
-              <th
-                class="text-left p-2 pl-4 text-xs font-medium uppercase"
-                style="color: var(--text-muted);"
-              >
-                Service
-              </th>
-              <th
-                class="text-left p-2 text-xs font-medium uppercase"
-                style="color: var(--text-muted);"
-              >
-                Date
-              </th>
-              <th
-                class="text-left p-2 text-xs font-medium uppercase"
-                style="color: var(--text-muted);"
-              >
-                Model / Detail
-              </th>
-              <th
-                class="text-right p-2 text-xs font-medium uppercase"
-                style="color: var(--text-muted);"
-              >
-                Units
-              </th>
-              <th
-                class="text-right p-2 text-xs font-medium uppercase"
-                style="color: var(--text-muted);"
-              >
-                Cost (USD)
-              </th>
-              <th
-                class="text-right p-2 pr-4 text-xs font-medium uppercase"
-                style="color: var(--text-muted);"
-              >
-                GL
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for row <- m.infrastructure_costs.detail do %>
-              <tr style="border-bottom: 1px solid var(--border-subtle);">
-                <td class="p-2 pl-4 font-medium">{row.service}</td>
-                <td class="p-2" style="color: var(--text-muted);">{row.date}</td>
-                <td class="p-2" style="color: var(--text-muted);">{row.model || "—"}</td>
-                <td class="p-2 text-right" style="color: var(--text-muted);">
-                  {if row.units,
-                    do: "#{Float.round(row.units * 1.0, 1)} #{row.unit_type || ""}",
-                    else: "—"}
-                </td>
-                <td class="p-2 text-right font-medium">${Float.round(row.amount_usd, 6)}</td>
-                <td class="p-2 pr-4 text-right">
-                  <%= if row.posted_at do %>
-                    <span class="text-xs font-medium" style="color: var(--accent);">
-                      ✓ JE#{row.journal_entry_id}
-                    </span>
-                  <% else %>
-                    <form
-                      action={dp(@domain_path_prefix, "/billing/post-cost/#{row.id}")}
-                      method="post"
-                      style="display:inline;"
-                    >
-                      <input
-                        type="hidden"
-                        name="_csrf_token"
-                        value={Phoenix.Controller.get_csrf_token()}
-                      />
-                      <button
-                        type="submit"
-                        class="hd-btn-sm"
-                        style="font-size: 0.65rem; padding: 0.15rem 0.5rem;"
-                      >
-                        Post
-                      </button>
-                    </form>
-                  <% end %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+      <div class="text-xs mb-4" style="color: var(--text-muted);">
+        {length(m.infrastructure_costs.detail)} cost row(s) for the period.
+        <.link
+          navigate={dp(@domain_path_prefix, "/expenses")}
+          style="color: var(--accent); margin-left: 0.5rem;"
+        >
+          See breakdown →
+        </.link>
       </div>
     <% end %>
 
