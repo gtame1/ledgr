@@ -6,6 +6,20 @@ end %>
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Consultations</h1>
+    <a
+      href={
+        dp(@domain_path_prefix, "/consultations/download") <>
+          "?" <>
+          URI.encode_query(
+            %{"status" => @current_status, "search" => @current_search}
+            |> Enum.reject(fn {_, v} -> v in [nil, ""] end)
+          )
+      }
+      class="hd-btn-secondary text-sm"
+      style="padding: 0.5rem 0.95rem;"
+    >
+      ⬇ Download CSV
+    </a>
   </div>
 
   <%!-- Filters --%>

@@ -462,6 +462,12 @@ defmodule LedgrWeb.Router do
     resources "/doctor-chats", Domains.HelloDoctor.DoctorChatController, only: [:index, :show]
 
     # Consultations (read-only — bot creates consultations)
+    # Download route comes BEFORE resources so its literal segment isn't
+    # captured by the `:show` :id parameter.
+    get "/consultations/download",
+        Domains.HelloDoctor.ConsultationController,
+        :download
+
     resources "/consultations", Domains.HelloDoctor.ConsultationController, only: [:index, :show]
     post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
 
