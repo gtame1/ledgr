@@ -74,6 +74,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
     SELECT
       'id-' || substr(c.id, 1, 8)                                          AS conv_id,
       c.tenant                                                              AS tn,
+      p.id                                                                  AS patient_id,
       left(COALESCE(p.display_name, p.full_name, '-'), 18)                  AS patient,
       p.phone                                                               AS phone,
       c.created_at::date                                                    AS created,
