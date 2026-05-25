@@ -27,6 +27,14 @@ end %>
       >
         Backfill GL
       </.link>
+      <.link
+        href={dp(@domain_path_prefix, "/payments/backfill-fees")}
+        method="post"
+        class="hd-btn-secondary"
+        data-confirm="Re-fetch Stripe fees for payments where stripe_fee is NULL (typically recent webhook arrivals — Stripe hadn't published the balance_transaction yet). Idempotent; only updates NULL rows. Continue?"
+      >
+        Backfill Fees
+      </.link>
     </div>
   </div>
 

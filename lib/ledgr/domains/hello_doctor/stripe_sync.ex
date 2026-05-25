@@ -82,6 +82,110 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   end
 
   @doc """
+  Re-fetches Stripe fees for `stripe_payments` rows where `stripe_fee` is
+  NULL. Stripe doesn't always have the balance_transaction populated on a
+  charge at `checkout.session.completed` time, so webhook-inserted rows
+  often land with a nil fee. Calling this later (once funds have settled
+  on Stripe's side) backfills them by retrieving the PaymentIntent's
+  latest_charge → balance_transaction → fee.
+
+  Idempotent — only touches rows whose fee is still NULL and whose
+  payment_intent we can look up.
+
+  Returns `%{updated: N, no_fee_yet: N, no_pi: N, errors: N}`.
+  """
+  def backfill_missing_fees do
+    import Ecto.Query, warn: false
+
+    api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
+
+    if is_nil(api_key) do
+      Logger.warning("[HelloDoctor StripeSync] No API key configured for fee backfill")
+      {:error, :no_api_key}
+    else
+      payments =
+        StripePayment
+        |> where([p], is_nil(p.stripe_fee))
+        |> Repo.all()
+
+      Logger.info(
+        "[HelloDoctor StripeSync] Backfilling fees: #{length(payments)} candidate row(s)"
+      )
+
+      result =
+        Enum.reduce(payments, %{updated: 0, no_fee_yet: 0, no_pi: 0, errors: 0}, fn payment, acc ->
+          cond do
+            is_nil(payment.stripe_payment_intent_id) ->
+              %{acc | no_pi: acc.no_pi + 1}
+
+            true ->
+              case fetch_fee_for_payment_intent(payment.stripe_payment_intent_id, api_key) do
+                {:ok, fee_cents} when is_integer(fee_cents) and fee_cents > 0 ->
+                  fee_pesos = fee_cents / 100.0
+
+                  case payment
+                       |> StripePayment.changeset(%{stripe_fee: fee_pesos})
+                       |> Repo.update() do
+                    {:ok, _} ->
+                      Logger.info(
+                        "[HelloDoctor StripeSync] Backfilled fee for payment #{payment.id} " <>
+                          "(session #{payment.stripe_session_id}): $#{fee_pesos} MXN"
+                      )
+
+                      %{acc | updated: acc.updated + 1}
+
+                    {:error, changeset} ->
+                      Logger.error(
+                        "[HelloDoctor StripeSync] Failed to save fee for payment #{payment.id}: " <>
+                          "#{inspect(changeset.errors)}"
+                      )
+
+                      %{acc | errors: acc.errors + 1}
+                  end
+
+                {:ok, _} ->
+                  # Stripe returned but the balance_transaction isn't ready yet.
+                  %{acc | no_fee_yet: acc.no_fee_yet + 1}
+
+                {:error, _} ->
+                  %{acc | errors: acc.errors + 1}
+              end
+          end
+        end)
+
+      Logger.info("[HelloDoctor StripeSync] Fee backfill complete: #{inspect(result)}")
+      {:ok, result}
+    end
+  end
+
+  # Given a payment_intent id, retrieve the latest_charge and its
+  # balance_transaction, returning {:ok, fee_cents} on success or {:error, ...}
+  # on Stripe failure. fee_cents is nil if the BT isn't populated yet.
+  defp fetch_fee_for_payment_intent(pi_id, api_key) do
+    try do
+      case Stripe.PaymentIntent.retrieve(pi_id, %{expand: ["latest_charge"]}, api_key: api_key) do
+        {:ok, pi} ->
+          charge = pi.latest_charge
+          {:ok, fetch_charge_fee(charge, api_key)}
+
+        {:error, reason} ->
+          Logger.warning(
+            "[HelloDoctor StripeSync] Stripe error fetching PI #{pi_id}: #{inspect(reason)}"
+          )
+
+          {:error, reason}
+      end
+    rescue
+      e ->
+        Logger.warning(
+          "[HelloDoctor StripeSync] Exception fetching PI #{pi_id}: #{inspect(e)}"
+        )
+
+        {:error, e}
+    end
+  end
+
+  @doc """
   Creates GL journal entries for any StripePayments that don't already have one.
   Safe to run multiple times — skips payments whose Stripe session ID already
   appears in a journal entry reference.

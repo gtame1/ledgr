@@ -477,6 +477,7 @@ defmodule LedgrWeb.Router do
     post "/payments/sync", Domains.HelloDoctor.PaymentController, :sync
     post "/payments/sync-payouts", Domains.HelloDoctor.PaymentController, :sync_payouts
     post "/payments/backfill-gl", Domains.HelloDoctor.PaymentController, :backfill_gl
+    post "/payments/backfill-fees", Domains.HelloDoctor.PaymentController, :backfill_fees
     post "/payments/:id/refund", Domains.HelloDoctor.PaymentController, :refund
     post "/payments/:id/check-status", Domains.HelloDoctor.PaymentController, :check_status
     get "/payments/:id/link", Domains.HelloDoctor.PaymentController, :link_form
