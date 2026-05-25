@@ -76,6 +76,14 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       c.tenant                                                              AS tn,
       p.id                                                                  AS patient_id,
       left(COALESCE(p.display_name, p.full_name, '-'), 18)                  AS patient,
+      -- New this month vs. already existed (relative to the conversation's
+      -- calendar month, not "now"). Y = patient was created in the same
+      -- calendar month as the conversation. - = pre-existing.
+      CASE
+        WHEN p.id IS NULL THEN '-'
+        WHEN date_trunc('month', p.created_at) = date_trunc('month', c.created_at) THEN 'Y'
+        ELSE '-'
+      END                                                                   AS pnew,
       p.phone                                                               AS phone,
       c.created_at::date                                                    AS created,
       to_char(c.last_message_at, 'MM-DD HH24:MI')                           AS last_msg,
