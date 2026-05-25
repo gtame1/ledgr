@@ -196,12 +196,21 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
   per-doctor summary. Excel and Google Sheets both open this natively.
   """
   def to_csv(%{consultations: consultations, per_doctor: per_doctor, period: {s, e}, totals: t}) do
+    period_label = "#{s} to #{e}"
+
+    # Each row carries the period as its first two columns so the data is
+    # self-describing — survives sorting, merging, or being pasted into a
+    # rolling sheet that combines multiple weeks. Doctors flagged in feedback
+    # that they couldn't tell which week a row belonged to once it left the
+    # original file.
     consult_header = [
+      "Period start",
+      "Period end",
+      "Consultation ID",
       "Completed at",
       "Doctor",
       "Specialty",
       "Patient",
-      "Consultation ID",
       "Type",
       "Duration (min)",
       "Payment status",
@@ -215,11 +224,13 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
     consult_rows =
       Enum.map(consultations, fn r ->
         [
+          "#{s}",
+          "#{e}",
+          r.consultation_id,
           format_naive(r.completed_at),
           r.doctor_name || "",
           r.doctor_specialty || "",
           r.patient_name || "",
-          r.consultation_id,
           r.consultation_type || "",
           r.duration_minutes,
           r.payment_status || "",
@@ -232,6 +243,8 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       end)
 
     doctor_header = [
+      "Period start",
+      "Period end",
       "Doctor",
       "Specialty",
       "Consultations",
@@ -247,6 +260,8 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
     doctor_rows =
       Enum.map(per_doctor, fn r ->
         [
+          "#{s}",
+          "#{e}",
           r.doctor_name,
           r.doctor_specialty || "",
           r.consultations,
@@ -261,13 +276,25 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       end)
 
     sections = [
-      [["HelloDoctor — Weekly Report"], ["Period", "#{s}", "to", "#{e}"], []],
-      [["Per-consultation detail"], consult_header | consult_rows],
-      [[]],
-      [["Per-doctor payout summary"], doctor_header | doctor_rows],
+      [
+        ["HelloDoctor — Weekly Report"],
+        ["Period", "#{s}", "to", "#{e}"],
+        []
+      ],
+      [
+        ["Per-consultation detail — period #{period_label}"],
+        consult_header | consult_rows
+      ],
       [[]],
       [
-        ["Totals"],
+        ["Per-doctor payout summary — period #{period_label}"],
+        doctor_header | doctor_rows
+      ],
+      [[]],
+      [
+        ["Totals — period #{period_label}"],
+        ["Period start", "#{s}"],
+        ["Period end", "#{e}"],
         ["Consultations", t.total_consultations],
         ["Paid consultations", t.paid_consultations],
         ["Unique doctors", t.unique_doctors],
