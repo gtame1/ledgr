@@ -22,12 +22,34 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   @commission_rate 0.15
 
+  # The dashboard owner's own patient row — used for development and
+  # smoke-testing. Excluded from all funnel / cost / user metrics so they
+  # reflect real customer activity only.
+  @test_patient_id "2ed77952-cead-4bc4-bc44-51f5b5052d76"
+
+  # GL account where Marketing & Advertising spend lands (see
+  # hello_doctor_seeds.exs chart of accounts).
+  @cac_account_code "6050"
+
+  # Conversation funnel_stage values that mean the patient has already been
+  # offered a doctor. `doctor_recommended` is the threshold; anything
+  # downstream of it counts as "offered" too.
+  @offered_or_downstream ~w[
+    doctor_recommended consultation_type_set payment_link_sent
+    payment_confirmed data_collected doctor_search doctor_connected
+    consultation_complete consultation_failed
+  ]
+
   # ── Public API ─────────────────────────────────────────────────
 
   @doc "Returns a complete metrics bundle for the dashboard."
   def all(start_date, end_date) do
     %{
       funnel: funnel_metrics(start_date, end_date),
+      funnel_segments: funnel_by_segment(start_date, end_date),
+      cost_metrics: cost_metrics(start_date, end_date),
+      user_metrics: user_metrics(start_date, end_date),
+      rating_metrics: rating_metrics(start_date, end_date),
       operations: operations_metrics(start_date, end_date),
       revenue: revenue_metrics(start_date, end_date),
       top_diagnoses: top_diagnoses(start_date, end_date, 10),
@@ -81,6 +103,386 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       overall_conversion: pct(paid_count, conversations_count)
     }
   end
+
+  # ── Funnel by segment (new/existing user × tenant) ─────────────
+
+  @doc """
+  Returns a per-segment funnel: 4 groups keyed by `{user_type, tenant}`
+  where `user_type` is `"new"` or `"existing"` (new = patient created in
+  the same calendar month as the conversation) and `tenant` is the bot's
+  tenant column (typically `"direct"` or `"mvp"`).
+
+  Each group is a map with five counters plus conversion percentages:
+
+      %{
+        conversations: n,
+        offered: n,           # doctor was recommended
+        accepted: n,          # patient picked a consultation_type
+        paid: n,              # stripe_payment_intent_id set
+        completed: n,         # a consultation row reached completed_at
+        offered_rate, accepted_rate, paid_rate, completed_rate,
+        overall_conversion   # completed / conversations
+      }
+
+  Excludes the dashboard-owner test patient and any conversation tied to
+  a bot test/bypass payment intent.
+  """
+  def funnel_by_segment(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_naive = to_naive_end(end_date)
+
+    sql = """
+    SELECT
+      CASE
+        WHEN p.id IS NULL THEN 'existing'
+        WHEN date_trunc('month', p.created_at) = date_trunc('month', c.created_at)
+          THEN 'new'
+        ELSE 'existing'
+      END AS user_type,
+      COALESCE(c.tenant, 'unknown') AS tenant,
+      COUNT(*) AS conversations,
+      COUNT(*) FILTER (
+        WHERE c.doctor_recommended OR c.funnel_stage = ANY($3::text[])
+      ) AS offered,
+      COUNT(*) FILTER (WHERE c.consultation_type IS NOT NULL) AS accepted,
+      COUNT(*) FILTER (WHERE c.stripe_payment_intent_id IS NOT NULL) AS paid,
+      COUNT(*) FILTER (
+        WHERE EXISTS (
+          SELECT 1 FROM consultations cs
+          WHERE cs.conversation_id = c.id AND cs.completed_at IS NOT NULL
+        )
+      ) AS completed
+    FROM conversations c
+    LEFT JOIN patients p ON p.id = c.patient_id
+    WHERE c.created_at >= $1 AND c.created_at <= $2
+      AND (c.patient_id IS NULL OR c.patient_id != $4)
+      AND (
+        c.stripe_payment_intent_id IS NULL
+        OR (
+          c.stripe_payment_intent_id NOT LIKE 'pi_test_bypass_%'
+          AND c.stripe_payment_intent_id NOT LIKE 'cs_no_payment_%'
+        )
+      )
+    GROUP BY user_type, tenant
+    """
+
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_naive,
+        @offered_or_downstream,
+        @test_patient_id
+      ])
+
+    rows
+    |> Enum.map(fn [user_type, tenant, conv, off, acc, paid, done] ->
+      {{user_type, tenant},
+       %{
+         conversations: conv,
+         offered: off,
+         accepted: acc,
+         paid: paid,
+         completed: done,
+         offered_rate: pct(off, conv),
+         accepted_rate: pct(acc, conv),
+         paid_rate: pct(paid, conv),
+         completed_rate: pct(done, conv),
+         overall_conversion: pct(done, conv)
+       }}
+    end)
+    |> Map.new()
+  end
+
+  # ── Cost metrics: cost per consult/conv, CAC ───────────────────
+
+  @doc """
+  Returns three cost ratios for the period:
+
+    * `cost_per_consultation` = all GL expense debits / consultations
+    * `cost_per_conversation` = all GL expense debits / conversations
+    * `cac` = Marketing & Advertising (acct 6050) debits / new users
+
+  All inputs exclude the dashboard-owner test patient and bot test/bypass
+  consultations. Returned as MXN floats; nil when the denominator is 0.
+  """
+  def cost_metrics(start_date, end_date) do
+    consultations = count_real_consultations(start_date, end_date)
+    conversations = count_real_conversations(start_date, end_date)
+    new_users = count_new_users(start_date, end_date)
+
+    total_costs = expense_total_cents(start_date, end_date, nil) / 100.0
+    marketing_costs = expense_total_cents(start_date, end_date, @cac_account_code) / 100.0
+
+    %{
+      total_costs_mxn: Float.round(total_costs, 2),
+      marketing_costs_mxn: Float.round(marketing_costs, 2),
+      consultations: consultations,
+      conversations: conversations,
+      new_users: new_users,
+      cost_per_consultation: safe_div(total_costs, consultations),
+      cost_per_conversation: safe_div(total_costs, conversations),
+      cac: safe_div(marketing_costs, new_users)
+    }
+  end
+
+  defp count_real_consultations(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_naive = to_naive_end(end_date)
+
+    sql = """
+    SELECT COUNT(*)
+    FROM consultations cs
+    WHERE cs.assigned_at >= $1 AND cs.assigned_at <= $2
+      AND (cs.patient_id IS NULL OR cs.patient_id != $3)
+      AND (
+        cs.stripe_payment_intent_id IS NULL
+        OR (
+          cs.stripe_payment_intent_id NOT LIKE 'pi_test_bypass_%'
+          AND cs.stripe_payment_intent_id NOT LIKE 'cs_no_payment_%'
+        )
+      )
+    """
+
+    %{rows: [[n]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+
+    n
+  end
+
+  defp count_real_conversations(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_naive = to_naive_end(end_date)
+
+    sql = """
+    SELECT COUNT(*)
+    FROM conversations c
+    WHERE c.created_at >= $1 AND c.created_at <= $2
+      AND (c.patient_id IS NULL OR c.patient_id != $3)
+    """
+
+    %{rows: [[n]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+
+    n
+  end
+
+  # Returns the SUM of debit_cents on journal lines in the period,
+  # optionally restricted to a single account code (for CAC).
+  defp expense_total_cents(start_date, end_date, account_code) do
+    base_sql = """
+    SELECT COALESCE(SUM(jl.debit_cents), 0)
+    FROM journal_entries je
+    JOIN journal_lines jl ON jl.journal_entry_id = je.id
+    JOIN accounts a       ON a.id = jl.account_id
+    WHERE je.date >= $1 AND je.date <= $2
+      AND a.type = 'expense'
+    """
+
+    {sql, params} =
+      case account_code do
+        nil -> {base_sql, [start_date, end_date]}
+        code -> {base_sql <> " AND a.code = $3", [start_date, end_date, code]}
+      end
+
+    %{rows: [[n]]} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, params)
+    n
+  end
+
+  # ── User metrics ───────────────────────────────────────────────
+
+  @doc """
+  Returns counts and per-user averages for users active in the period:
+
+    * `new_users`         — patients whose created_at falls inside the period
+    * `existing_users`    — patients created BEFORE the period start
+    * `total_active_users`— unique patients with at least one conversation
+                            in the period (excluding test patient)
+    * `conversations_per_existing` — avg conversations per existing user
+                                     who had ≥1 conversation in the period
+    * `consultations_per_existing` — same but for consultations
+  """
+  def user_metrics(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_naive = to_naive_end(end_date)
+
+    new_users = count_new_users(start_date, end_date)
+    existing_users = count_existing_users_active(start_date, end_date)
+
+    convs_per_existing =
+      avg_per_existing_user(
+        :conversations,
+        start_naive,
+        end_naive,
+        to_naive_start(start_date)
+      )
+
+    consults_per_existing =
+      avg_per_existing_user(
+        :consultations,
+        start_naive,
+        end_naive,
+        to_naive_start(start_date)
+      )
+
+    %{
+      new_users: new_users,
+      existing_users: existing_users,
+      total_active_users: new_users + existing_users,
+      conversations_per_existing: convs_per_existing,
+      consultations_per_existing: consults_per_existing
+    }
+  end
+
+  defp count_new_users(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_naive = to_naive_end(end_date)
+
+    sql = """
+    SELECT COUNT(DISTINCT p.id)
+    FROM patients p
+    JOIN conversations c ON c.patient_id = p.id
+    WHERE c.created_at >= $1 AND c.created_at <= $2
+      AND p.id != $3
+      AND p.created_at >= $1 AND p.created_at <= $2
+    """
+
+    %{rows: [[n]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+
+    n
+  end
+
+  defp count_existing_users_active(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_naive = to_naive_end(end_date)
+
+    sql = """
+    SELECT COUNT(DISTINCT p.id)
+    FROM patients p
+    JOIN conversations c ON c.patient_id = p.id
+    WHERE c.created_at >= $1 AND c.created_at <= $2
+      AND p.id != $3
+      AND p.created_at < $1
+    """
+
+    %{rows: [[n]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+
+    n
+  end
+
+  defp avg_per_existing_user(:conversations, start_naive, end_naive, period_start) do
+    sql = """
+    WITH per_user AS (
+      SELECT p.id, COUNT(c.id) AS n
+      FROM patients p
+      JOIN conversations c ON c.patient_id = p.id
+      WHERE c.created_at >= $1 AND c.created_at <= $2
+        AND p.id != $3
+        AND p.created_at < $4
+      GROUP BY p.id
+    )
+    SELECT COALESCE(AVG(n), 0)::float FROM per_user
+    """
+
+    %{rows: [[avg]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_naive,
+        @test_patient_id,
+        period_start
+      ])
+
+    Float.round(to_float(avg), 2)
+  end
+
+  defp avg_per_existing_user(:consultations, start_naive, end_naive, period_start) do
+    sql = """
+    WITH per_user AS (
+      SELECT p.id, COUNT(cs.id) AS n
+      FROM patients p
+      JOIN consultations cs ON cs.patient_id = p.id
+      WHERE cs.assigned_at >= $1 AND cs.assigned_at <= $2
+        AND p.id != $3
+        AND p.created_at < $4
+        AND (
+          cs.stripe_payment_intent_id IS NULL
+          OR (
+            cs.stripe_payment_intent_id NOT LIKE 'pi_test_bypass_%'
+            AND cs.stripe_payment_intent_id NOT LIKE 'cs_no_payment_%'
+          )
+        )
+      GROUP BY p.id
+    )
+    SELECT COALESCE(AVG(n), 0)::float FROM per_user
+    """
+
+    %{rows: [[avg]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_naive,
+        @test_patient_id,
+        period_start
+      ])
+
+    Float.round(to_float(avg), 2)
+  end
+
+  # ── Rating metrics: 4 dimensions ───────────────────────────────
+
+  @doc """
+  Returns avg ratings on the four dimensions captured by the bot:
+
+    * `:doctor` — patient rating the doctor (consultations.patient_rating)
+    * `:patient` — doctor rating the patient (consultations.doctor_rating)
+    * `:platform_by_patient` — patient rating the platform
+    * `:platform_by_doctor` — doctor rating the platform
+
+  Each value is `%{avg: float|nil, count: int}` so the template can show
+  "—" when there are zero ratings instead of a misleading 0.0.
+
+  Excludes the dashboard-owner test patient.
+  """
+  def rating_metrics(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_naive = to_naive_end(end_date)
+
+    sql = """
+    SELECT
+      AVG(cs.patient_rating)::float          AS doctor_avg,
+      COUNT(cs.patient_rating)               AS doctor_n,
+      AVG(cs.doctor_rating)::float           AS patient_avg,
+      COUNT(cs.doctor_rating)                AS patient_n,
+      AVG(cs.patient_platform_rating)::float AS pp_avg,
+      COUNT(cs.patient_platform_rating)      AS pp_n,
+      AVG(cs.doctor_platform_rating)::float  AS dp_avg,
+      COUNT(cs.doctor_platform_rating)       AS dp_n
+    FROM consultations cs
+    WHERE cs.assigned_at >= $1 AND cs.assigned_at <= $2
+      AND (cs.patient_id IS NULL OR cs.patient_id != $3)
+    """
+
+    %{rows: [[d_avg, d_n, p_avg, p_n, pp_avg, pp_n, dp_avg, dp_n]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+
+    %{
+      doctor: %{avg: rating_round(d_avg), count: d_n},
+      patient: %{avg: rating_round(p_avg), count: p_n},
+      platform_by_patient: %{avg: rating_round(pp_avg), count: pp_n},
+      platform_by_doctor: %{avg: rating_round(dp_avg), count: dp_n}
+    }
+  end
+
+  defp rating_round(nil), do: nil
+  defp rating_round(n), do: Float.round(to_float(n), 2)
+
+  defp safe_div(_n, 0), do: nil
+  defp safe_div(_n, nil), do: nil
+
+  defp safe_div(n, d) when is_number(n) and is_number(d) and d > 0,
+    do: Float.round(n / d, 2)
+
+  defp safe_div(_, _), do: nil
 
   # ── Operations ─────────────────────────────────────────────────
 
