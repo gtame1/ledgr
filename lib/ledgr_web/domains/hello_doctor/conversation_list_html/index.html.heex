@@ -1,6 +1,24 @@
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Conversations</h1>
+    <a
+      href={
+        dp(@domain_path_prefix, "/conversations/download") <>
+          "?" <>
+          URI.encode_query(
+            %{
+              "status" => @current_status,
+              "funnel_stage" => @current_funnel_stage,
+              "search" => @current_search
+            }
+            |> Enum.reject(fn {_, v} -> v in [nil, ""] end)
+          )
+      }
+      class="hd-btn-secondary text-sm"
+      style="padding: 0.5rem 0.95rem;"
+    >
+      ⬇ Download funnel CSV
+    </a>
   </div>
 
   <%!-- Filters --%>

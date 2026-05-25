@@ -449,6 +449,12 @@ defmodule LedgrWeb.Router do
     core_routes_no_customers()
 
     # Conversations (all WhatsApp conversations, including those without consultations)
+    # Download must come BEFORE the resources block so its literal path segment
+    # isn't captured as `:id` by the `:show` route.
+    get "/conversations/download",
+        Domains.HelloDoctor.ConversationListController,
+        :download
+
     resources "/conversations", Domains.HelloDoctor.ConversationListController,
       only: [:index, :show]
 
