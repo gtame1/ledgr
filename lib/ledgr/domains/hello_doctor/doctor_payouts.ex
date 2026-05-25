@@ -96,7 +96,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
             # at least carry an amount on the consultation. Test/bypass rows
             # have NULL or zero amount AND no stripe_payment match.
             (not is_nil(sp.id) or
-               (not is_nil(c.payment_amount) and c.payment_amount > 0)) and
+               (not is_nil(c.payment_amount) and c.payment_amount > 0.0)) and
             fragment(
               "COALESCE(?, ?, ?, ?) >= ?",
               sp.paid_at,
