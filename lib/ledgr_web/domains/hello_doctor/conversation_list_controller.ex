@@ -51,15 +51,24 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
     rescue
       e in Postgrex.Error ->
         # Bot-owned tables / columns may drift faster than our schemas. Surface
-        # the Postgrex error inline instead of a 500 so the team can act on it.
+        # a short reason inline; full message goes to the logs (it includes the
+        # whole SQL query which would blow the session cookie limit).
         require Logger
 
         Logger.error(
           "[HelloDoctor] Conversation funnel export failed: #{Exception.message(e)}"
         )
 
+        short =
+          case e.postgres do
+            %{message: msg} -> msg
+            _ -> "database error"
+          end
+          |> to_string()
+          |> String.slice(0, 200)
+
         conn
-        |> put_flash(:error, "Couldn't generate the funnel CSV: #{Exception.message(e)}")
+        |> put_flash(:error, "Couldn't generate the funnel CSV: #{short}")
         |> redirect(to: dp(conn, "/conversations"))
     end
   end
