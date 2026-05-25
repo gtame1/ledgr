@@ -473,6 +473,10 @@ defmodule LedgrWeb.Router do
 
     resources "/reviews", Domains.HelloDoctor.ReviewController, only: [:index]
 
+    # Bot quality triage — list + mark conversations via the bot's admin API
+    get "/triage", Domains.HelloDoctor.TriageController, :index
+    post "/triage/:id/mark", Domains.HelloDoctor.TriageController, :mark
+
     # Doctors (read-only — bot manages doctors)
     resources "/doctors", Domains.HelloDoctor.DoctorController,
       only: [:index, :show, :new, :create, :edit, :update]

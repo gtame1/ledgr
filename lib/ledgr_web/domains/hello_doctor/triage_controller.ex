@@ -1,0 +1,170 @@
+defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
+  use LedgrWeb, :controller
+
+  alias Ledgr.Domains.HelloDoctor.BotAdmin
+
+  @auto_hints ~w[unmarked likely_bad looks_good safety_review regression abandoned review neutral]
+
+  def index(conn, params) do
+    signal = blank_to_nil(params["signal"]) || "unmarked"
+    tenant = blank_to_nil(params["tenant"])
+    corpus_only = params["corpus_only"] == "true"
+    marker = blank_to_nil(params["marker"]) || get_session(conn, :triage_marker) || ""
+
+    opts =
+      [signal: signal, tenant: tenant, limit: params["limit"] || "50"]
+      |> Keyword.merge(if corpus_only, do: [corpus_candidate: "true"], else: [])
+
+    {conversations, error} =
+      case BotAdmin.list_conversations(opts) do
+        {:ok, list} when is_list(list) -> {list, nil}
+        {:ok, %{"conversations" => list}} when is_list(list) -> {list, nil}
+        {:ok, other} -> {[], "Unexpected response shape: #{inspect(other, limit: 100)}"}
+        {:error, reason} -> {[], reason}
+      end
+
+    conn
+    |> put_session(:triage_marker, marker)
+    |> render(:index,
+      conversations: conversations,
+      signal: signal,
+      tenant: tenant,
+      corpus_only: corpus_only,
+      marker: marker,
+      error: error,
+      auto_hints: @auto_hints
+    )
+  end
+
+  def mark(conn, %{"id" => conv_id} = params) do
+    attrs =
+      %{}
+      |> maybe_put(:signal, blank_to_nil(params["signal"]))
+      |> maybe_put(:corpus_candidate, parse_bool(params["corpus_candidate"]))
+      |> maybe_put(:notes, blank_to_nil(params["notes"]))
+      |> maybe_put(:marked_by, blank_to_nil(params["marker"]))
+
+    {flash_kind, msg} =
+      case BotAdmin.mark_conversation(conv_id, attrs) do
+        {:ok, _} -> {:info, mark_message(attrs)}
+        {:error, reason} -> {:error, "Mark failed: #{reason}"}
+      end
+
+    # Preserve the page state (filters + marker handle) when redirecting back.
+    redirect_query =
+      params
+      |> Map.take(["signal", "tenant", "corpus_only", "marker"])
+      |> Enum.reject(fn {_, v} -> v in [nil, ""] end)
+      |> URI.encode_query()
+
+    redirect_to = dp(conn, "/triage" <> if(redirect_query == "", do: "", else: "?" <> redirect_query))
+
+    conn
+    |> put_flash(flash_kind, msg)
+    |> redirect(to: redirect_to)
+  end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp parse_bool("true"), do: true
+  defp parse_bool("false"), do: false
+  defp parse_bool(_), do: nil
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(v), do: v
+
+  defp mark_message(attrs) do
+    parts =
+      [
+        attrs[:signal] && "signal=#{attrs[:signal]}",
+        attrs[:corpus_candidate] && "corpus_candidate=#{attrs[:corpus_candidate]}"
+      ]
+      |> Enum.reject(&is_nil/1)
+
+    "Marked: " <> Enum.join(parts, ", ")
+  end
+end
+
+defmodule LedgrWeb.Domains.HelloDoctor.TriageHTML do
+  use LedgrWeb, :html
+  embed_templates "triage_html/*"
+
+  @doc """
+  Builds a query string for the triage page with overrides.
+  """
+  def triage_query(assigns, overrides) do
+    base = %{
+      "signal" => assigns.signal,
+      "tenant" => assigns.tenant,
+      "corpus_only" => if(assigns.corpus_only, do: "true", else: nil),
+      "marker" => assigns.marker
+    }
+
+    base
+    |> Map.merge(Map.new(overrides, fn {k, v} -> {to_string(k), v} end))
+    |> Enum.reject(fn {_, v} -> v in [nil, ""] end)
+    |> URI.encode_query()
+  end
+
+  @doc """
+  Renders the auto_hint badge with a color suggestive of severity.
+  """
+  def hint_badge(nil), do: ""
+
+  def hint_badge(hint) do
+    {bg, fg} =
+      case hint do
+        "likely_bad" -> {"#fee2e2", "#991b1b"}
+        "safety_review" -> {"#fef3c7", "#92400e"}
+        "regression" -> {"#fee2e2", "#991b1b"}
+        "abandoned" -> {"#f3f4f6", "#6b7280"}
+        "review" -> {"#fef3c7", "#92400e"}
+        "looks_good" -> {"#d1fae5", "#065f46"}
+        "neutral" -> {"#f3f4f6", "#6b7280"}
+        _ -> {"#f3f4f6", "#6b7280"}
+      end
+
+    Phoenix.HTML.raw(
+      ~s|<span style="background: #{bg}; color: #{fg}; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">#{Phoenix.HTML.html_escape(hint) |> Phoenix.HTML.safe_to_string()}</span>|
+    )
+  end
+
+  @doc """
+  Renders the signal badge (good / bad / unmarked).
+  """
+  def signal_badge(nil), do: hint_badge("unmarked")
+
+  def signal_badge("good") do
+    Phoenix.HTML.raw(
+      ~s|<span style="background: #d1fae5; color: #065f46; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">✓ good</span>|
+    )
+  end
+
+  def signal_badge("bad") do
+    Phoenix.HTML.raw(
+      ~s|<span style="background: #fee2e2; color: #991b1b; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">✗ bad</span>|
+    )
+  end
+
+  def signal_badge(other), do: hint_badge(to_string(other))
+
+  @doc """
+  Pulls a display field from the bot's JSON response, tolerating both
+  string and atom keys.
+  """
+  def get_field(map, key, default \\ "—") do
+    val =
+      cond do
+        is_map(map) -> Map.get(map, to_string(key)) || Map.get(map, key)
+        true -> nil
+      end
+
+    case val do
+      nil -> default
+      "" -> default
+      v -> v
+    end
+  end
+end

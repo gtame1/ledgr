@@ -164,6 +164,15 @@ if key = System.get_env("HELLO_DOCTOR_AWS_SECRET_ACCESS_KEY") do
   config :ledgr, hello_doctor_aws_secret_access_key: key
 end
 
+# HelloDoctor bot admin API — for the Triage page to read/mark quality.
+if url = System.get_env("HELLO_DOCTOR_BOT_URL") do
+  config :ledgr, hello_doctor_bot_url: url
+end
+
+if key = System.get_env("HELLO_DOCTOR_BOT_ADMIN_API_KEY") do
+  config :ledgr, hello_doctor_bot_admin_api_key: key
+end
+
 # Aumenta Mi Pensión Stripe (separate account)
 if amp_stripe_key = System.get_env("AUMENTA_MI_PENSION_STRIPE_SECRET_KEY") do
   config :ledgr, aumenta_mi_pension_stripe_api_key: amp_stripe_key

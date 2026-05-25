@@ -1,0 +1,231 @@
+<div class="hd-page">
+  <%!-- ── Header ── --%>
+  <div class="mb-8">
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);">Triage</h1>
+        <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 65ch;">
+          Bot-side quality review. Default shows
+          <strong>unmarked</strong>
+          conversations with an auto-hint. Click ✓ Good, ✗ Bad, or 📚 Corpus to
+          push a label back to the bot — the row drops off the list once
+          marked.
+        </p>
+      </div>
+
+      <form method="get" class="flex flex-wrap items-center gap-2">
+        <select name="signal" class="hd-input text-sm" style="padding: 0.4rem 0.65rem;">
+          <%= for hint <- @auto_hints do %>
+            <option value={hint} selected={@signal == hint}>{hint}</option>
+          <% end %>
+        </select>
+
+        <input
+          type="text"
+          name="tenant"
+          value={@tenant || ""}
+          placeholder="tenant (e.g. direct)"
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem; width: 11rem;"
+        />
+
+        <label class="text-xs flex items-center gap-1" style="color: var(--text-muted);">
+          <input type="checkbox" name="corpus_only" value="true" checked={@corpus_only} />
+          Corpus only
+        </label>
+
+        <input
+          type="text"
+          name="marker"
+          value={@marker || ""}
+          placeholder="your handle"
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem; width: 8rem;"
+          title="Saved to session and sent as marked_by with every mark."
+        />
+
+        <button type="submit" class="hd-btn-sm">Filter</button>
+      </form>
+    </div>
+  </div>
+
+  <%!-- ── Error from bot API, if any ── --%>
+  <%= if @error do %>
+    <div
+      class="hd-card mb-6 p-4"
+      style="border-left: 3px solid #dc2626; background: #fef2f2; color: #991b1b;"
+    >
+      <strong>Couldn't reach the bot:</strong> {@error}
+      <div style="font-size: 0.75rem; margin-top: 0.5rem; color: #7f1d1d;">
+        Check that <code>HELLO_DOCTOR_BOT_URL</code>
+        and <code>HELLO_DOCTOR_BOT_ADMIN_API_KEY</code>
+        are set in the running environment, and that the bot's
+        <code>/admin/conversations</code>
+        endpoint is reachable.
+      </div>
+    </div>
+  <% end %>
+
+  <%!-- ── Table ── --%>
+  <%= if Enum.empty?(@conversations) and is_nil(@error) do %>
+    <div class="hd-empty">
+      <div class="hd-empty-icon">🎉</div>
+      <p>Nothing to triage right now (filter: <strong>{@signal}</strong>).</p>
+    </div>
+  <% end %>
+
+  <%= unless Enum.empty?(@conversations) do %>
+    <div class="hd-card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              ID
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Patient
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Stage
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Signal
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Auto-hint
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Corpus
+            </th>
+            <th
+              class="p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); text-align: right;"
+            >
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for conv <- @conversations do %>
+            <% conv_id = get_field(conv, :id, "") %>
+            <% corpus_now = get_field(conv, :corpus_candidate, false) %>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="p-3 pl-4" style="font-family: ui-monospace, monospace; font-size: 0.75rem;">
+                <a
+                  href={dp(@domain_path_prefix, "/conversations/#{conv_id}")}
+                  style="color: var(--accent); text-decoration: none;"
+                >
+                  {String.slice(to_string(conv_id), 0, 8)}
+                </a>
+              </td>
+              <td class="p-3" style="color: var(--text-main);">{get_field(conv, :patient_name)}</td>
+              <td class="p-3" style="color: var(--text-muted); font-size: 0.75rem;">
+                {get_field(conv, :funnel_stage)}
+              </td>
+              <td class="p-3">{signal_badge(get_field(conv, :signal, nil))}</td>
+              <td class="p-3">{hint_badge(get_field(conv, :auto_hint, nil))}</td>
+              <td class="p-3">
+                <%= if corpus_now == true or corpus_now == "true" do %>
+                  <span style="color: #16a34a; font-weight: 600;">📚 yes</span>
+                <% else %>
+                  <span style="color: var(--text-muted);">—</span>
+                <% end %>
+              </td>
+              <td class="p-3 pr-4" style="text-align: right; white-space: nowrap;">
+                <form
+                  action={dp(@domain_path_prefix, "/triage/#{conv_id}/mark")}
+                  method="post"
+                  style="display: inline-flex; gap: 0.25rem;"
+                >
+                  <input
+                    type="hidden"
+                    name="_csrf_token"
+                    value={Phoenix.Controller.get_csrf_token()}
+                  />
+                  <input type="hidden" name="signal" value="" disabled />
+                  <input type="hidden" name="marker" value={@marker} />
+                  <input type="hidden" name="signal_for_submit" value="" />
+
+                  <button
+                    type="submit"
+                    name="signal"
+                    value="good"
+                    class="hd-btn-sm"
+                    style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: #d1fae5; color: #065f46;"
+                  >
+                    ✓ Good
+                  </button>
+                  <button
+                    type="submit"
+                    name="signal"
+                    value="bad"
+                    class="hd-btn-sm"
+                    style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: #fee2e2; color: #991b1b;"
+                  >
+                    ✗ Bad
+                  </button>
+                </form>
+
+                <form
+                  action={dp(@domain_path_prefix, "/triage/#{conv_id}/mark")}
+                  method="post"
+                  style="display: inline;"
+                >
+                  <input
+                    type="hidden"
+                    name="_csrf_token"
+                    value={Phoenix.Controller.get_csrf_token()}
+                  />
+                  <input
+                    type="hidden"
+                    name="corpus_candidate"
+                    value={
+                      if corpus_now == true or corpus_now == "true",
+                        do: "false",
+                        else: "true"
+                    }
+                  />
+                  <input type="hidden" name="marker" value={@marker} />
+                  <button
+                    type="submit"
+                    class="hd-btn-sm"
+                    style="font-size: 0.7rem; padding: 0.2rem 0.5rem; margin-left: 0.25rem;"
+                    title="Toggle corpus candidate flag"
+                  >
+                    📚 {if corpus_now == true or corpus_now == "true", do: "un-corpus", else: "Corpus"}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: 0.8rem;">
+      Showing {length(@conversations)} conversation(s).
+      For corpus harvest, use:
+      <code style="font-family: ui-monospace, monospace;">
+        python -m scripts.harvest_persona &lt;8-char-id&gt; --category full_funnel
+      </code>
+    </p>
+  <% end %>
+</div>
