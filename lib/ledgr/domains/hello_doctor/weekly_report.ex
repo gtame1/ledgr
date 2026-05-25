@@ -14,6 +14,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
+  alias Ledgr.Domains.HelloDoctor.DoctorPayouts.DoctorPayoutConsultation
   alias Ledgr.Domains.HelloDoctor.Patients.Patient
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
 
@@ -60,8 +61,21 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
   # ── Per-consultation query ─────────────────────────────────────
 
   @doc """
-  Returns consultations completed in [start_date, end_date], joined with
-  doctor, patient and any linked Stripe payment.
+  Returns consultations that are **pending doctor payout** in
+  [start_date, end_date], joined with doctor, patient and any linked
+  Stripe payment.
+
+  Matches the "Pending payout" filter on the Doctor Payouts page so the
+  report becomes the actionable list to pay out from. Excludes:
+
+    * consultations already linked to a `doctor_payouts` row (paid)
+    * refunded consultations (`payment_status = "refunded"`)
+    * bot test/bypass flows (no Stripe payment AND no consultation amount)
+
+  Joins `stripe_payments` on `consultation_id` first, falling back to
+  `stripe_payment_intent_id` — matches the page's behavior so historical
+  payments still resolve before `PaymentLinking.backfill_by_payment_intent/0`
+  has been re-run.
   """
   def list_attended_consultations(start_date, end_date) do
     start_naive = NaiveDateTime.new!(start_date, ~T[00:00:00])
@@ -69,14 +83,53 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
 
     query =
       from c in Consultation,
+        as: :consultation,
         left_join: d in Doctor,
         on: d.id == c.doctor_id,
         left_join: pt in Patient,
         on: pt.id == c.patient_id,
         left_join: p in StripePayment,
-        on: p.consultation_id == c.id and p.status == "paid",
+        on:
+          (p.consultation_id == c.id or
+             (is_nil(p.consultation_id) and
+                not is_nil(c.stripe_payment_intent_id) and
+                p.stripe_payment_intent_id == c.stripe_payment_intent_id)),
         where: c.status == "completed",
-        where: c.completed_at >= ^start_naive and c.completed_at <= ^end_naive,
+        # Filter on the same billing-date COALESCE as the Doctor Payouts page
+        # so the report shows exactly the rows the page lists under Pending.
+        where:
+          fragment(
+            "COALESCE(?, ?, ?, ?) >= ?",
+            p.paid_at,
+            c.payment_confirmed_at,
+            c.completed_at,
+            c.assigned_at,
+            ^start_naive
+          ) and
+            fragment(
+              "COALESCE(?, ?, ?, ?) <= ?",
+              p.paid_at,
+              c.payment_confirmed_at,
+              c.completed_at,
+              c.assigned_at,
+              ^end_naive
+            ),
+        # Only consultations where revenue exists and the doctor is owed.
+        where: c.payment_status in ^@paid_statuses,
+        # Exclude refunded consultations — match the page's refunded? logic
+        # (Stripe full refund, partial refund, or consultation marked refunded).
+        where: is_nil(p.status) or p.status != "refunded",
+        where: is_nil(p.amount_refunded) or p.amount_refunded == 0.0,
+        # Skip bot test/bypass — match the page filter.
+        where:
+          not is_nil(p.id) or
+            (not is_nil(c.payment_amount) and c.payment_amount > 0.0),
+        # Pending only — exclude consultations already paid out to a doctor.
+        where:
+          not exists(
+            from dpc in DoctorPayoutConsultation,
+              where: dpc.consultation_id == parent_as(:consultation).id
+          ),
         order_by: [asc: c.completed_at],
         select: %{
           consultation_id: c.id,
@@ -277,17 +330,21 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
 
     sections = [
       [
-        ["HelloDoctor — Weekly Report"],
+        ["HelloDoctor — Weekly Pending Doctor Payouts"],
         ["Period", "#{s}", "to", "#{e}"],
+        [
+          "Scope",
+          "Only consultations pending payout — already-paid and refunded excluded."
+        ],
         []
       ],
       [
-        ["Per-consultation detail — period #{period_label}"],
+        ["Pending consultations — period #{period_label}"],
         consult_header | consult_rows
       ],
       [[]],
       [
-        ["Per-doctor payout summary — period #{period_label}"],
+        ["Per-doctor pending payout summary — period #{period_label}"],
         doctor_header | doctor_rows
       ],
       [[]],
