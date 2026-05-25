@@ -32,6 +32,9 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
       {:ok, %Stripe.Event{type: "charge.refunded", data: %{object: charge}}} ->
         handle_refund(conn, charge)
 
+      {:ok, %Stripe.Event{type: "charge.updated", data: %{object: charge}}} ->
+        handle_charge_updated(conn, charge)
+
       {:ok, %Stripe.Event{type: "payout.paid", data: %{object: payout}}} ->
         handle_payout(conn, payout)
 
@@ -132,6 +135,96 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
 
     send_resp(conn, 200, "ok")
   end
+
+  # ── charge.updated ──────────────────────────────────────────────
+  #
+  # Stripe fires `charge.updated` whenever a charge changes — most
+  # importantly, once the balance_transaction (and therefore the fee)
+  # becomes available. checkout.session.completed often runs before the
+  # BT exists, so the initial upsert lands with stripe_fee=NULL. This
+  # handler fills it in.
+  #
+  # IMPORTANT: this requires `charge.updated` to be enabled in the
+  # Stripe webhook endpoint config. Without it, NULL fees still need the
+  # manual /payments/backfill-fees button.
+  #
+  # Idempotent — only updates rows whose stripe_fee is currently NULL,
+  # and silently no-ops when the BT isn't published yet (Stripe will
+  # fire another charge.updated when it is).
+  defp handle_charge_updated(conn, charge) do
+    pi_id = extract_id(Map.get(charge, :payment_intent))
+    bt_id = extract_id(Map.get(charge, :balance_transaction))
+
+    cond do
+      is_nil(pi_id) ->
+        send_resp(conn, 200, "ok — no payment_intent")
+
+      is_nil(bt_id) ->
+        # BT not yet published. Stripe will fire again later.
+        send_resp(conn, 200, "ok — balance_transaction not ready")
+
+      true ->
+        case Ledgr.Repo.get_by(StripePayment, stripe_payment_intent_id: pi_id) do
+          nil ->
+            Logger.debug(
+              "[HelloDoctor] charge.updated for unknown payment_intent #{pi_id} (charge #{charge.id})"
+            )
+
+            send_resp(conn, 200, "ok — unknown payment")
+
+          %StripePayment{stripe_fee: existing_fee} = payment
+          when is_nil(existing_fee) or existing_fee == 0.0 ->
+            populate_fee(conn, payment, bt_id)
+
+          %StripePayment{} ->
+            # Fee already populated — leave it alone.
+            send_resp(conn, 200, "ok — fee already set")
+        end
+    end
+  end
+
+  defp populate_fee(conn, payment, bt_id) do
+    api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
+
+    case Stripe.BalanceTransaction.retrieve(bt_id, %{}, api_key: api_key) do
+      {:ok, %{fee: fee_cents}} when is_integer(fee_cents) and fee_cents > 0 ->
+        fee_pesos = fee_cents / 100.0
+
+        case payment
+             |> StripePayment.changeset(%{stripe_fee: fee_pesos})
+             |> Ledgr.Repo.update() do
+          {:ok, _} ->
+            Logger.info(
+              "[HelloDoctor] charge.updated populated fee for payment #{payment.id}: $#{fee_pesos} MXN"
+            )
+
+            send_resp(conn, 200, "ok")
+
+          {:error, changeset} ->
+            Logger.error(
+              "[HelloDoctor] Failed to save fee for payment #{payment.id}: #{inspect(changeset.errors)}"
+            )
+
+            send_resp(conn, 500, "error")
+        end
+
+      {:ok, _} ->
+        # BT exists but fee is 0 / not yet calculated. Try again on the next event.
+        send_resp(conn, 200, "ok — fee not yet calculated")
+
+      {:error, reason} ->
+        Logger.warning(
+          "[HelloDoctor] Failed to fetch balance_transaction #{bt_id}: #{inspect(reason)}"
+        )
+
+        send_resp(conn, 500, "error")
+    end
+  end
+
+  defp extract_id(nil), do: nil
+  defp extract_id(id) when is_binary(id), do: id
+  defp extract_id(%{id: id}), do: id
+  defp extract_id(_), do: nil
 
   defp handle_payout(conn, payout) do
     Logger.info(
