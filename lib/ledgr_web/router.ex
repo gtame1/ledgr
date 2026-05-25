@@ -459,6 +459,8 @@ defmodule LedgrWeb.Router do
     resources "/consultations", Domains.HelloDoctor.ConsultationController, only: [:index, :show]
     post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
 
+    resources "/reviews", Domains.HelloDoctor.ReviewController, only: [:index]
+
     # Doctors (read-only — bot manages doctors)
     resources "/doctors", Domains.HelloDoctor.DoctorController,
       only: [:index, :show, :new, :create, :edit, :update]

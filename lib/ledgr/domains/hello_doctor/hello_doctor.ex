@@ -132,7 +132,8 @@ defmodule Ledgr.Domains.HelloDoctor do
           %{label: "Consultations", path: "#{prefix}/consultations", icon: :receipt},
           %{label: "Doctor Chats", path: "#{prefix}/doctor-chats", icon: :receipt},
           %{label: "Doctors", path: "#{prefix}/doctors", icon: :customers},
-          %{label: "Patients", path: "#{prefix}/patients", icon: :customers}
+          %{label: "Patients", path: "#{prefix}/patients", icon: :customers},
+          %{label: "Reviews", path: "#{prefix}/reviews", icon: :customers}
         ]
       },
       %{
@@ -172,6 +173,7 @@ defmodule Ledgr.Domains.HelloDoctor do
       "Consultations" => "medical_services",
       "Doctors" => "stethoscope",
       "Patients" => "group",
+      "Reviews" => "reviews",
       "Payments" => "payments",
       "Expenses" => "receipt_long",
       "Doctor Payouts" => "account_balance_wallet",

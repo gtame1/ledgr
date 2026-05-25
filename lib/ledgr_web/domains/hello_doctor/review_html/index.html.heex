@@ -1,0 +1,206 @@
+<div class="hd-page">
+  <%!-- ── Header ── --%>
+  <div class="mb-8">
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);">Reviews</h1>
+        <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 60ch;">
+          Patient feedback on completed consultations — rating (1–5) and free-text
+          comment, both submitted via WhatsApp after the call.
+        </p>
+      </div>
+
+      <form method="get" class="flex flex-wrap items-center gap-2">
+        <input
+          type="date"
+          name="start_date"
+          value={@start_date}
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem;"
+        />
+        <span style="color: var(--text-muted);">→</span>
+        <input
+          type="date"
+          name="end_date"
+          value={@end_date}
+          class="hd-input text-sm"
+          style="padding: 0.4rem 0.65rem;"
+        />
+
+        <select name="doctor_id" class="hd-input text-sm" style="padding: 0.4rem 0.65rem;">
+          <option value="">All doctors</option>
+          <%= for d <- @doctors do %>
+            <option value={d.id} selected={@doctor_id == d.id}>{d.name}</option>
+          <% end %>
+        </select>
+
+        <select name="rating_filter" class="hd-input text-sm" style="padding: 0.4rem 0.65rem;">
+          <%= for {label, value} <- [{"Any rating", ""}, {"5★ only", "5"}, {"4★ and up", "4"}, {"3★ and up", "3"}, {"≤2★ (flag)", "low"}] do %>
+            <option value={value} selected={to_string(@rating_filter || "") == value}>{label}</option>
+          <% end %>
+        </select>
+
+        <label class="text-xs flex items-center gap-1" style="color: var(--text-muted);">
+          <input type="checkbox" name="comments_only" value="true" checked={@comments_only} />
+          With comments only
+        </label>
+
+        <input type="hidden" name="sort" value={@sort} />
+        <input type="hidden" name="dir" value={@dir} />
+
+        <button type="submit" class="hd-btn-sm">Filter</button>
+      </form>
+    </div>
+  </div>
+
+  <%!-- ── KPIs ── --%>
+  <div class="hd-kpi-grid mb-6" style="gap: 1.5rem;">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Total Reviews</div>
+      <div class="hd-kpi-value">{@totals.count}</div>
+      <div class="hd-kpi-sub">in selected period</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Average Rating</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">
+        <%= if @totals.avg_rating do %>
+          {@totals.avg_rating} / 5
+        <% else %>
+          —
+        <% end %>
+      </div>
+      <div class="hd-kpi-sub">across {@totals.count} review(s)</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">With Comment</div>
+      <div class="hd-kpi-value">{@totals.with_comment}</div>
+      <div class="hd-kpi-sub">qualitative feedback</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Rating Mix</div>
+      <div class="hd-kpi-value" style="font-size: 1.1rem; line-height: 1.6;">
+        <%= for {rating, color} <- [{5, "#16a34a"}, {4, "#16a34a"}, {3, "#ca8a04"}, {2, "#dc2626"}, {1, "#dc2626"}] do %>
+          <span style={"color: #{color}; margin-right: 0.5rem;"}>
+            {rating}★ {@totals.by_rating[rating] || 0}
+          </span>
+        <% end %>
+      </div>
+      <div class="hd-kpi-sub">distribution</div>
+    </div>
+  </div>
+
+  <%!-- ── Reviews table ── --%>
+  <%= if Enum.empty?(@rows) do %>
+    <div class="hd-empty">
+      <div class="hd-empty-icon">⭐</div>
+      <p>No reviews in this period.</p>
+    </div>
+  <% else %>
+    <div class="hd-card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              <a
+                href={"?" <> reviews_query(assigns, %{sort: "date", dir: next_dir(@sort, @dir, "date")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Date{sort_arrow(@sort, @dir, "date")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              <a
+                href={"?" <> reviews_query(assigns, %{sort: "rating", dir: next_dir(@sort, @dir, "rating")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Rating{sort_arrow(@sort, @dir, "rating")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              <a
+                href={"?" <> reviews_query(assigns, %{sort: "doctor", dir: next_dir(@sort, @dir, "doctor")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Doctor{sort_arrow(@sort, @dir, "doctor")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Patient
+            </th>
+            <th
+              class="text-left p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Comment
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for row <- @rows do %>
+            <tr
+              data-consultation-url={dp(@domain_path_prefix, "/consultations/#{row.consultation_id}")}
+              style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;"
+              class="review-row"
+            >
+              <td class="p-3 pl-4" style="color: var(--text-muted); white-space: nowrap;">
+                {row.completed_date}
+              </td>
+              <td class="p-3" style="white-space: nowrap;">
+                <span
+                  style={"color: #{star_color(row.rating)}; font-size: 0.95rem; letter-spacing: 0.05em;"}
+                  title={"#{row.rating} / 5"}
+                >
+                  {star_row(row.rating)}
+                </span>
+              </td>
+              <td class="p-3" style="color: var(--text-main);">
+                <%= if row.doctor_id do %>
+                  {row.doctor_name}
+                  <%= if row.doctor_specialty do %>
+                    <div style="color: var(--text-muted); font-size: 0.7rem;">
+                      {row.doctor_specialty}
+                    </div>
+                  <% end %>
+                <% else %>
+                  <span style="color: var(--text-muted); font-style: italic;">Unassigned</span>
+                <% end %>
+              </td>
+              <td class="p-3" style="color: var(--text-main);">{row.patient_name}</td>
+              <td class="p-3 pr-4" style="color: var(--text-main); max-width: 40ch;">
+                <%= if row.comment != "" do %>
+                  {row.comment}
+                <% else %>
+                  <span style="color: var(--text-muted); font-style: italic;">—</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      (function () {
+        document.querySelectorAll('tr.review-row').forEach(tr => {
+          tr.addEventListener('click', e => {
+            if (e.target.closest('a, button, input')) return;
+            const url = tr.dataset.consultationUrl;
+            if (url) window.location.href = url;
+          });
+        });
+      })();
+    </script>
+  <% end %>
+</div>
