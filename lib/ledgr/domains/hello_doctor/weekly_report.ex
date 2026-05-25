@@ -251,16 +251,13 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
   def to_csv(%{consultations: consultations, per_doctor: per_doctor, period: {s, e}, totals: t}) do
     period_label = "#{s} to #{e}"
 
-    # Each row carries the period as its first two columns so the data is
-    # self-describing — survives sorting, merging, or being pasted into a
-    # rolling sheet that combines multiple weeks. Doctors flagged in feedback
-    # that they couldn't tell which week a row belonged to once it left the
-    # original file.
+    # The consultation date (`Consultation date`) is on every per-consultation
+    # row so doctors can see WHEN each consultation happened without leaving
+    # the file. The period itself stays in the banner + section headers; no
+    # need to repeat it on every row.
     consult_header = [
-      "Period start",
-      "Period end",
       "Consultation ID",
-      "Completed at",
+      "Consultation date",
       "Doctor",
       "Specialty",
       "Patient",
@@ -277,8 +274,6 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
     consult_rows =
       Enum.map(consultations, fn r ->
         [
-          "#{s}",
-          "#{e}",
           r.consultation_id,
           format_naive(r.completed_at),
           r.doctor_name || "",
@@ -296,8 +291,6 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       end)
 
     doctor_header = [
-      "Period start",
-      "Period end",
       "Doctor",
       "Specialty",
       "Consultations",
@@ -313,8 +306,6 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
     doctor_rows =
       Enum.map(per_doctor, fn r ->
         [
-          "#{s}",
-          "#{e}",
           r.doctor_name,
           r.doctor_specialty || "",
           r.consultations,
@@ -350,8 +341,6 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       [[]],
       [
         ["Totals — period #{period_label}"],
-        ["Period start", "#{s}"],
-        ["Period end", "#{e}"],
         ["Consultations", t.total_consultations],
         ["Paid consultations", t.paid_consultations],
         ["Unique doctors", t.unique_doctors],
