@@ -57,8 +57,19 @@ defmodule LedgrWeb.ReportController do
     {earliest_date, latest_date} = domain.data_date_range()
 
     summary = Accounting.profit_and_loss(start_date, end_date)
-    # last 6 months including current
-    monthly = Accounting.profit_and_loss_monthly(5)
+    # `months` query param picks the trailing-window size for templates that
+    # render a multi-month spreadsheet (currently HD). 3/6/12; default 6.
+    # `profit_and_loss_monthly/1` argument is "months back from current",
+    # so N total months = call with N - 1.
+    months_window =
+      case params["months"] do
+        "3" -> 3
+        "6" -> 6
+        "12" -> 12
+        _ -> 6
+      end
+
+    monthly = Accounting.profit_and_loss_monthly(months_window - 1)
 
     template =
       cond do
@@ -90,6 +101,7 @@ defmodule LedgrWeb.ReportController do
       [
         summary: summary,
         monthly: monthly,
+        months_window: months_window,
         start_date: start_date,
         end_date: end_date,
         earliest_date: earliest_date,

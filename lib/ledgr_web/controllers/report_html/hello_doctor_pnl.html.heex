@@ -11,7 +11,7 @@ end %>
   already computes for the trailing 6 months — we just take the last 3.
 --%>
 
-<% months = @monthly |> Enum.take(-3) %>
+<% months = @monthly %>
 <% month_labels = Enum.map(months, & &1.label) %>
 
 <%!-- Build a union of accounts across the 3 months, grouped by section. --%>
@@ -77,9 +77,28 @@ end %>
           (no months available)
         <% else %>
           {List.first(months).month_start |> Calendar.strftime("%B %Y")} &mdash;
-          {last_month.month_end |> Calendar.strftime("%B %Y")} · last 3 months
+          {last_month.month_end |> Calendar.strftime("%B %Y")} · last {@months_window} months
         <% end %>
       </p>
+    </div>
+
+    <%!-- Window picker — 3 / 6 / 12 months back from today --%>
+    <div
+      class="flex gap-1 p-1 rounded-lg"
+      style="background: var(--bg-surface); border: 1px solid var(--border-subtle);"
+    >
+      <%= for n <- [3, 6, 12] do %>
+        <% active = @months_window == n %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/reports/pnl?months=#{n}")}
+          class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+          style={
+            if active, do: "background: #02ba97; color: white;", else: "color: var(--text-muted);"
+          }
+        >
+          {n} mo
+        </.link>
+      <% end %>
     </div>
   </div>
 
@@ -344,11 +363,11 @@ end %>
     <%!-- 3-month total KPI cards --%>
     <div class="hd-kpi-grid mt-6">
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Revenue (3-mo)</div>
+        <div class="hd-kpi-label">Revenue ({@months_window}-mo)</div>
         <div class="hd-kpi-value" style="color: #16a34a;">{fmt.(total_revenue)}</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Gross Profit (3-mo)</div>
+        <div class="hd-kpi-label">Gross Profit ({@months_window}-mo)</div>
         <div class="hd-kpi-value" style={"color: #{if total_gross >= 0, do: "#16a34a", else: "#dc2626"};"}>
           {fmt.(total_gross)}
         </div>
@@ -359,11 +378,11 @@ end %>
         </div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Operating Expenses (3-mo)</div>
+        <div class="hd-kpi-label">Operating Expenses ({@months_window}-mo)</div>
         <div class="hd-kpi-value" style="color: #dc2626;">{fmt.(total_opex)}</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Net Income (3-mo)</div>
+        <div class="hd-kpi-label">Net Income ({@months_window}-mo)</div>
         <div class="hd-kpi-value" style={"color: #{if total_net >= 0, do: "#16a34a", else: "#dc2626"};"}>
           {fmt.(total_net)}
         </div>
