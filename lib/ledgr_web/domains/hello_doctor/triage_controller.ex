@@ -1,7 +1,13 @@
 defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
   use LedgrWeb, :controller
 
+  import Ecto.Query, warn: false
+
   alias Ledgr.Domains.HelloDoctor.BotAdmin
+  alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
+  alias Ledgr.Domains.HelloDoctor.Conversations.Conversation
+  alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
+  alias Ledgr.Domains.HelloDoctor.Patients.Patient
 
   @auto_hints ~w[unmarked likely_bad looks_good safety_review regression abandoned review neutral]
 
@@ -17,8 +23,8 @@ defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
 
     {conversations, error} =
       case BotAdmin.list_conversations(opts) do
-        {:ok, list} when is_list(list) -> {list, nil}
-        {:ok, %{"conversations" => list}} when is_list(list) -> {list, nil}
+        {:ok, list} when is_list(list) -> {enrich_with_local(list), nil}
+        {:ok, %{"conversations" => list}} when is_list(list) -> {enrich_with_local(list), nil}
         {:ok, other} -> {[], "Unexpected response shape: #{inspect(other, limit: 100)}"}
         {:error, reason} -> {[], reason}
       end
@@ -34,6 +40,57 @@ defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
       error: error,
       auto_hints: @auto_hints
     )
+  end
+
+  # The bot's /admin/conversations response only carries identifiers + funnel
+  # metadata — no patient or doctor info. We cross-reference each id against
+  # our local conversations table (which the bot writes to the same DB) to
+  # surface patient name / phone and the most recent doctor for the row.
+  #
+  # If the local row is missing (rare — conversation hasn't synced yet) we
+  # leave the enrichment fields nil and the template renders "—".
+  defp enrich_with_local(conversations) do
+    ids = conversations |> Enum.map(&Map.get(&1, "id")) |> Enum.reject(&is_nil/1) |> Enum.uniq()
+
+    if ids == [] do
+      conversations
+    else
+      # Latest consultation per conversation — to find the assigned doctor.
+      latest_consult =
+        from cs in Consultation,
+          distinct: cs.conversation_id,
+          order_by: [asc: cs.conversation_id, desc: cs.assigned_at],
+          where: cs.conversation_id in ^ids,
+          select: %{conversation_id: cs.conversation_id, doctor_id: cs.doctor_id}
+
+      local =
+        from(c in Conversation,
+          left_join: p in Patient,
+          on: p.id == c.patient_id,
+          left_join: lc in subquery(latest_consult),
+          on: lc.conversation_id == c.id,
+          left_join: d in Doctor,
+          on: d.id == lc.doctor_id,
+          where: c.id in ^ids,
+          select: %{
+            id: c.id,
+            patient_name: coalesce(p.full_name, p.display_name),
+            patient_phone: p.phone,
+            doctor_name: d.name
+          }
+        )
+        |> Ledgr.Repo.all()
+        |> Map.new(fn row -> {row.id, row} end)
+
+      Enum.map(conversations, fn conv ->
+        info = Map.get(local, Map.get(conv, "id"), %{})
+
+        conv
+        |> Map.put("patient_name", info[:patient_name])
+        |> Map.put("patient_phone", info[:patient_phone])
+        |> Map.put("doctor_name", info[:doctor_name])
+      end)
+    end
   end
 
   def mark(conn, %{"id" => conv_id} = params) do
@@ -167,4 +224,25 @@ defmodule LedgrWeb.Domains.HelloDoctor.TriageHTML do
       v -> v
     end
   end
+
+  @doc """
+  Renders an ISO-8601 timestamp from the bot as a compact relative time
+  ("3m ago", "2h ago", "5d ago"). Returns "—" when nil or unparseable.
+  """
+  def relative_time(nil), do: "—"
+  def relative_time(""), do: "—"
+
+  def relative_time(iso) when is_binary(iso) do
+    case DateTime.from_iso8601(iso) do
+      {:ok, dt, _offset} -> format_relative(DateTime.diff(DateTime.utc_now(), dt, :second))
+      _ -> iso
+    end
+  end
+
+  def relative_time(_), do: "—"
+
+  defp format_relative(secs) when secs < 60, do: "#{secs}s ago"
+  defp format_relative(secs) when secs < 3600, do: "#{div(secs, 60)}m ago"
+  defp format_relative(secs) when secs < 86_400, do: "#{div(secs, 3600)}h ago"
+  defp format_relative(secs), do: "#{div(secs, 86_400)}d ago"
 end

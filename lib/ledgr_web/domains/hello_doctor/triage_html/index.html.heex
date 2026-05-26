@@ -95,13 +95,25 @@
               class="text-left p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
+              Doctor
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Stage
             </th>
             <th
               class="text-left p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
-              Signal
+              Activity
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Flags
             </th>
             <th
               class="text-left p-3 text-xs font-semibold uppercase"
@@ -127,6 +139,12 @@
           <%= for conv <- @conversations do %>
             <% conv_id = get_field(conv, :id, "") %>
             <% corpus_now = get_field(conv, :corpus_candidate, false) %>
+            <% phone = get_field(conv, :patient_phone, nil) %>
+            <% doctor_name = get_field(conv, :doctor_name, nil) %>
+            <% turn_count = get_field(conv, :turn_count, nil) %>
+            <% last_msg = get_field(conv, :last_message_at, nil) %>
+            <% crit_count = get_field(conv, :critical_count, 0) %>
+            <% warn_count = get_field(conv, :warning_count, 0) %>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td class="p-3 pl-4" style="font-family: ui-monospace, monospace; font-size: 0.75rem;">
                 <a
@@ -136,11 +154,57 @@
                   {String.slice(to_string(conv_id), 0, 8)}
                 </a>
               </td>
-              <td class="p-3" style="color: var(--text-main);">{get_field(conv, :patient_name)}</td>
+              <td class="p-3" style="color: var(--text-main);">
+                {get_field(conv, :patient_name)}
+                <%= if phone do %>
+                  <div style="color: var(--text-muted); font-size: 0.7rem; font-family: ui-monospace, monospace;">
+                    {phone}
+                  </div>
+                <% end %>
+              </td>
+              <td class="p-3" style="color: var(--text-main); font-size: 0.8rem;">
+                <%= if doctor_name do %>
+                  {doctor_name}
+                <% else %>
+                  <span style="color: var(--text-muted);">—</span>
+                <% end %>
+              </td>
               <td class="p-3" style="color: var(--text-muted); font-size: 0.75rem;">
                 {get_field(conv, :funnel_stage)}
               </td>
-              <td class="p-3">{signal_badge(get_field(conv, :signal, nil))}</td>
+              <td class="p-3" style="white-space: nowrap; font-size: 0.75rem;">
+                <%= if turn_count do %>
+                  <span style="color: var(--text-main);">{turn_count} turns</span>
+                  <div style="color: var(--text-muted); font-size: 0.7rem;">
+                    {relative_time(last_msg)}
+                  </div>
+                <% else %>
+                  <span style="color: var(--text-muted);">—</span>
+                <% end %>
+              </td>
+              <td class="p-3" style="white-space: nowrap;">
+                <%= cond do %>
+                  <% crit_count > 0 or warn_count > 0 -> %>
+                    <%= if crit_count > 0 do %>
+                      <span
+                        title={"#{crit_count} critical policing event(s)"}
+                        style="background: #fee2e2; color: #991b1b; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"
+                      >
+                        🔴 {crit_count}
+                      </span>
+                    <% end %>
+                    <%= if warn_count > 0 do %>
+                      <span
+                        title={"#{warn_count} warning event(s)"}
+                        style="background: #fef3c7; color: #92400e; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; margin-left: 0.25rem;"
+                      >
+                        ⚠ {warn_count}
+                      </span>
+                    <% end %>
+                  <% true -> %>
+                    <span style="color: var(--text-muted);">—</span>
+                <% end %>
+              </td>
               <td class="p-3">{hint_badge(get_field(conv, :auto_hint, nil))}</td>
               <td class="p-3">
                 <%= if corpus_now == true or corpus_now == "true" do %>
