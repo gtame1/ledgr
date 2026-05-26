@@ -117,7 +117,7 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
           "[HelloDoctor BotAdmin] #{method} #{url} returned #{status}: #{inspect(body)}"
         )
 
-        {:error, "bot returned HTTP #{status}"}
+        {:error, "bot returned HTTP #{status}: #{summarize_error_body(body)}"}
 
       {:error, exception} ->
         Logger.warning(
@@ -127,4 +127,23 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
         {:error, "network error: #{Exception.message(exception)}"}
     end
   end
+
+  # Pulls a human-readable validation message out of the bot's error body.
+  # FastAPI-style bodies look like %{"detail" => [%{"loc" => [...], "msg" => ...}]}
+  # or %{"detail" => "message"}; fall back to a truncated inspect otherwise.
+  defp summarize_error_body(%{"detail" => detail}) when is_binary(detail), do: detail
+
+  defp summarize_error_body(%{"detail" => items}) when is_list(items) do
+    items
+    |> Enum.map(fn
+      %{"loc" => loc, "msg" => msg} -> "#{Enum.join(List.wrap(loc), ".")}: #{msg}"
+      %{"msg" => msg} -> msg
+      other -> inspect(other)
+    end)
+    |> Enum.join("; ")
+    |> String.slice(0, 300)
+  end
+
+  defp summarize_error_body(body) when is_binary(body), do: String.slice(body, 0, 300)
+  defp summarize_error_body(body), do: body |> inspect() |> String.slice(0, 300)
 end
