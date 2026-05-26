@@ -2,269 +2,377 @@
   cents = cents || 0
   sign = if cents < 0, do: "-", else: ""
   amount = abs(cents) / 100
-  formatted = :erlang.float_to_binary(amount, decimals: 2)
-  "#{sign}$#{formatted}"
+  "#{sign}$#{:erlang.float_to_binary(amount, decimals: 2)}"
 end %>
 
-<% total_revenue = @summary.total_revenue_cents || 0
-total_cogs = @summary.total_cogs_cents || 0
-gross_profit = @summary.gross_profit_cents || 0
-total_opex = @summary.total_opex_cents || 0
-operating_income = @summary.operating_income_cents || 0
-net_income = @summary.net_income_cents || 0 %>
+<%!--
+  Spreadsheet-style P&L: one column per month (last 3) plus a Total column.
+  Backed by `Accounting.profit_and_loss_monthly/1` which the controller
+  already computes for the trailing 6 months — we just take the last 3.
+--%>
+
+<% months = @monthly |> Enum.take(-3) %>
+<% month_labels = Enum.map(months, & &1.label) %>
+
+<%!-- Build a union of accounts across the 3 months, grouped by section. --%>
+<% revenue_codes =
+  months
+  |> Enum.flat_map(& &1.revenue_accounts)
+  |> Enum.uniq_by(& &1.code)
+  |> Enum.sort_by(& &1.code) %>
+<% cogs_codes =
+  months
+  |> Enum.flat_map(& &1.cogs_accounts)
+  |> Enum.uniq_by(& &1.code)
+  |> Enum.sort_by(& &1.code) %>
+<% opex_codes =
+  months
+  |> Enum.flat_map(& &1.operating_expense_accounts)
+  |> Enum.uniq_by(& &1.code)
+  |> Enum.sort_by(& &1.code) %>
+
+<%!--
+  Helper: net_cents for a given account code across all months in order,
+  plus the row total. Returns {[cents_m1, cents_m2, cents_m3], total}.
+--%>
+<% account_row = fn months, section, code ->
+  per_month =
+    Enum.map(months, fn m ->
+      list = Map.get(m, section, [])
+
+      case Enum.find(list, &(&1.code == code)) do
+        nil -> 0
+        acc -> acc.net_cents || 0
+      end
+    end)
+
+  {per_month, Enum.sum(per_month)}
+end %>
+
+<% totals_row = fn months, key ->
+  values = Enum.map(months, fn m -> Map.get(m, key) || 0 end)
+  {values, Enum.sum(values)}
+end %>
+
+<% margin_row = fn months, key ->
+  values = Enum.map(months, fn m -> Map.get(m, key) || 0.0 end)
+  avg = if values == [], do: 0.0, else: Enum.sum(values) / length(values)
+  {values, avg}
+end %>
+
+<% last_month = List.last(months) %>
+<% {_, total_revenue} = totals_row.(months, :total_revenue_cents) %>
+<% {_, total_cogs} = totals_row.(months, :total_cogs_cents) %>
+<% {_, total_opex} = totals_row.(months, :total_opex_cents) %>
+<% {_, total_gross} = totals_row.(months, :gross_profit_cents) %>
+<% {_, total_op_income} = totals_row.(months, :operating_income_cents) %>
+<% {_, total_net} = totals_row.(months, :net_income_cents) %>
 
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Profit & Loss</h1>
       <p class="text-sm mt-1" style="color: var(--text-muted);">
-        {fmt_date(@start_date, "%B %d, %Y")} &mdash; {fmt_date(@end_date, "%B %d, %Y")}
+        <%= if months == [] do %>
+          (no months available)
+        <% else %>
+          {List.first(months).month_start |> Calendar.strftime("%B %Y")} &mdash;
+          {last_month.month_end |> Calendar.strftime("%B %Y")} · last 3 months
+        <% end %>
       </p>
     </div>
   </div>
 
-  <%!-- Date Range Picker --%>
-  <div class="hd-card p-4 mb-6">
-    <form
-      method="get"
-      action={dp(@domain_path_prefix, "/reports/pnl")}
-      class="flex flex-wrap gap-3 items-end"
-    >
-      <div class="flex-1 min-w-[140px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
-          From
-        </label>
-        <input
-          type="date"
-          name="start_date"
-          value={@start_date}
-          class="w-full rounded-md border px-3 py-2 text-sm"
-          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-        />
-      </div>
-      <div class="flex-1 min-w-[140px]">
-        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">To</label>
-        <input
-          type="date"
-          name="end_date"
-          value={@end_date}
-          class="w-full rounded-md border px-3 py-2 text-sm"
-          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-        />
-      </div>
-      <button type="submit" class="hd-btn-secondary">Update</button>
-    </form>
-  </div>
-
-  <%!-- Income Statement (top to bottom) --%>
-  <div class="hd-card overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="hd-table w-full">
-        <%!-- ── Revenue ─────────────────────────────────────── --%>
-        <thead>
-          <tr>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: #02ba97; background: rgba(2, 186, 151, 0.06);"
-              colspan="2"
-            >
-              Revenue
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <%= for row <- @summary.revenue_accounts do %>
-            <tr class="border-t" style="border-color: var(--border-subtle);">
-              <td class="p-3 pl-6 text-sm" style="color: var(--text-main);">
-                {row.code} &mdash; {row.name}
-              </td>
-              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
-                {fmt.(row.net_cents)}
-              </td>
-            </tr>
-          <% end %>
-          <tr style="background: rgba(2, 186, 151, 0.04);">
-            <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total Revenue</td>
-            <td class="p-3 text-sm text-right font-bold" style="color: #16a34a;">
-              {fmt.(total_revenue)}
-            </td>
-          </tr>
-        </tbody>
-
-        <%!-- ── Cost of Goods Sold ──────────────────────────── --%>
-        <%= if @summary.cogs_accounts != [] do %>
+  <%= if months == [] do %>
+    <div class="hd-empty">
+      <div class="hd-empty-icon">📒</div>
+      <p>No journal data available.</p>
+    </div>
+  <% else %>
+    <div class="hd-card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="hd-table w-full text-sm">
           <thead>
-            <tr>
-              <th
-                class="text-left p-3 text-xs font-medium uppercase"
-                style="color: #64748b; background: var(--table-header-bg);"
-                colspan="2"
-              >
-                Cost of Goods Sold
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Account
+              </th>
+              <%= for label <- month_labels do %>
+                <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                  {label}
+                </th>
+              <% end %>
+              <th class="text-right p-3 pr-4 text-xs font-bold uppercase" style="color: var(--text-muted);">
+                Total
               </th>
             </tr>
           </thead>
+
+          <%!-- ── Revenue ────────────────────────────────────── --%>
           <tbody>
-            <%= for row <- @summary.cogs_accounts do %>
-              <tr class="border-t" style="border-color: var(--border-subtle);">
+            <tr>
+              <th
+                colspan={length(month_labels) + 2}
+                class="text-left p-3 text-xs font-medium uppercase"
+                style="color: #02ba97; background: rgba(2, 186, 151, 0.06);"
+              >
+                Revenue
+              </th>
+            </tr>
+            <%= for acc <- revenue_codes do %>
+              <% {per_month, total} = account_row.(months, :revenue_accounts, acc.code) %>
+              <tr style="border-top: 1px solid var(--border-subtle);">
                 <td class="p-3 pl-6 text-sm" style="color: var(--text-main);">
-                  {row.code} &mdash; {row.name}
+                  {acc.code} &mdash; {acc.name}
                 </td>
-                <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
-                  {fmt.(row.net_cents)}
+                <%= for v <- per_month do %>
+                  <td class="p-3 text-right" style="color: var(--text-main);">{fmt.(v)}</td>
+                <% end %>
+                <td class="p-3 pr-4 text-right font-medium" style="color: var(--text-main);">
+                  {fmt.(total)}
                 </td>
               </tr>
             <% end %>
-            <tr style="background: var(--table-header-bg);">
-              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total COGS</td>
-              <td class="p-3 text-sm text-right font-bold" style="color: #dc2626;">
-                {fmt.(total_cogs)}
+            <% {rev_per_month, _} = totals_row.(months, :total_revenue_cents) %>
+            <tr style="background: rgba(2, 186, 151, 0.04); border-top: 1px solid var(--border-subtle);">
+              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total Revenue</td>
+              <%= for v <- rev_per_month do %>
+                <td class="p-3 text-right font-bold" style="color: #16a34a;">{fmt.(v)}</td>
+              <% end %>
+              <td class="p-3 pr-4 text-right font-bold" style="color: #16a34a;">
+                {fmt.(total_revenue)}
               </td>
             </tr>
           </tbody>
-        <% end %>
 
-        <%!-- ── Gross Profit ────────────────────────────────── --%>
-        <tbody>
-          <tr style="background: var(--bg-surface); border-top: 2px solid var(--border-strong, #cbd5e1);">
-            <td class="p-4 text-base font-bold" style="color: var(--text-main);">Gross Profit</td>
-            <td
-              class="p-4 text-base text-right font-bold"
-              style={"color: #{if gross_profit >= 0, do: "#16a34a", else: "#dc2626"};"}
-            >
-              {fmt.(gross_profit)}
-            </td>
-          </tr>
-          <%= if total_revenue > 0 do %>
-            <tr>
-              <td class="px-4 pb-3 text-xs" style="color: var(--text-muted);">Gross Margin</td>
-              <td class="px-4 pb-3 text-xs text-right" style="color: var(--text-muted);">
-                {Float.round((@summary.gross_margin_percent || 0) * 1, 1)}%
+          <%!-- ── COGS (only if any) ─────────────────────────── --%>
+          <%= if cogs_codes != [] do %>
+            <tbody>
+              <tr>
+                <th
+                  colspan={length(month_labels) + 2}
+                  class="text-left p-3 text-xs font-medium uppercase"
+                  style="color: #64748b; background: var(--table-header-bg);"
+                >
+                  Cost of Goods Sold
+                </th>
+              </tr>
+              <%= for acc <- cogs_codes do %>
+                <% {per_month, total} = account_row.(months, :cogs_accounts, acc.code) %>
+                <tr style="border-top: 1px solid var(--border-subtle);">
+                  <td class="p-3 pl-6 text-sm" style="color: var(--text-main);">
+                    {acc.code} &mdash; {acc.name}
+                  </td>
+                  <%= for v <- per_month do %>
+                    <td class="p-3 text-right">{fmt.(v)}</td>
+                  <% end %>
+                  <td class="p-3 pr-4 text-right font-medium">{fmt.(total)}</td>
+                </tr>
+              <% end %>
+              <% {cogs_per_month, _} = totals_row.(months, :total_cogs_cents) %>
+              <tr style="background: var(--table-header-bg); border-top: 1px solid var(--border-subtle);">
+                <td class="p-3 text-sm font-bold" style="color: var(--text-main);">Total COGS</td>
+                <%= for v <- cogs_per_month do %>
+                  <td class="p-3 text-right font-bold" style="color: #dc2626;">{fmt.(v)}</td>
+                <% end %>
+                <td class="p-3 pr-4 text-right font-bold" style="color: #dc2626;">
+                  {fmt.(total_cogs)}
+                </td>
+              </tr>
+            </tbody>
+          <% end %>
+
+          <%!-- ── Gross Profit ───────────────────────────────── --%>
+          <% {gross_per_month, _} = totals_row.(months, :gross_profit_cents) %>
+          <% {gross_margin_per_month, _gross_margin_avg} =
+            margin_row.(months, :gross_margin_percent) %>
+          <tbody>
+            <tr style="background: var(--bg-surface); border-top: 2px solid var(--border-strong, #cbd5e1);">
+              <td class="p-3 text-base font-bold" style="color: var(--text-main);">Gross Profit</td>
+              <%= for v <- gross_per_month do %>
+                <td
+                  class="p-3 text-right font-bold"
+                  style={"color: #{if v >= 0, do: "#16a34a", else: "#dc2626"};"}
+                >
+                  {fmt.(v)}
+                </td>
+              <% end %>
+              <td
+                class="p-3 pr-4 text-right font-bold"
+                style={"color: #{if total_gross >= 0, do: "#16a34a", else: "#dc2626"};"}
+              >
+                {fmt.(total_gross)}
               </td>
             </tr>
-          <% end %>
-        </tbody>
-
-        <%!-- ── Operating Expenses ──────────────────────────── --%>
-        <thead>
-          <tr>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: #dc2626; background: rgba(220, 38, 38, 0.04);"
-              colspan="2"
-            >
-              Operating Expenses
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <%= for row <- @summary.operating_expense_accounts do %>
-            <tr class="border-t" style="border-color: var(--border-subtle);">
-              <td class="p-3 pl-6 text-sm" style="color: var(--text-main);">
-                {row.code} &mdash; {row.name}
+            <tr>
+              <td class="px-4 pb-2 pt-0 text-xs" style="color: var(--text-muted);">
+                Gross Margin
               </td>
-              <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
-                {fmt.(row.net_cents)}
+              <%= for pct <- gross_margin_per_month do %>
+                <td class="px-3 pb-2 pt-0 text-xs text-right" style="color: var(--text-muted);">
+                  {Float.round(pct * 1.0, 1)}%
+                </td>
+              <% end %>
+              <td class="px-4 pb-2 pt-0 pr-4 text-xs text-right" style="color: var(--text-muted);">
+                {if total_revenue > 0,
+                  do: "#{Float.round(total_gross / total_revenue * 100, 1)}%",
+                  else: "—"}
               </td>
             </tr>
-          <% end %>
-          <tr style="background: rgba(220, 38, 38, 0.04);">
-            <td class="p-3 text-sm font-bold" style="color: var(--text-main);">
-              Total Operating Expenses
-            </td>
-            <td class="p-3 text-sm text-right font-bold" style="color: #dc2626;">
-              {fmt.(total_opex)}
-            </td>
-          </tr>
-        </tbody>
+          </tbody>
 
-        <%!-- ── Operating Income ────────────────────────────── --%>
-        <tbody>
-          <tr style="border-top: 2px solid var(--border-strong, #cbd5e1);">
-            <td class="p-4 text-base font-bold" style="color: var(--text-main);">
-              Operating Income
-            </td>
-            <td
-              class="p-4 text-base text-right font-bold"
-              style={"color: #{if operating_income >= 0, do: "#16a34a", else: "#dc2626"};"}
-            >
-              {fmt.(operating_income)}
-            </td>
-          </tr>
-          <%= if total_revenue > 0 do %>
+          <%!-- ── Operating Expenses ─────────────────────────── --%>
+          <tbody>
             <tr>
-              <td class="px-4 pb-3 text-xs" style="color: var(--text-muted);">
+              <th
+                colspan={length(month_labels) + 2}
+                class="text-left p-3 text-xs font-medium uppercase"
+                style="color: #dc2626; background: rgba(220, 38, 38, 0.04);"
+              >
+                Operating Expenses
+              </th>
+            </tr>
+            <%= for acc <- opex_codes do %>
+              <% {per_month, total} = account_row.(months, :operating_expense_accounts, acc.code) %>
+              <tr style="border-top: 1px solid var(--border-subtle);">
+                <td class="p-3 pl-6 text-sm" style="color: var(--text-main);">
+                  {acc.code} &mdash; {acc.name}
+                </td>
+                <%= for v <- per_month do %>
+                  <td class="p-3 text-right">{fmt.(v)}</td>
+                <% end %>
+                <td class="p-3 pr-4 text-right font-medium">{fmt.(total)}</td>
+              </tr>
+            <% end %>
+            <% {opex_per_month, _} = totals_row.(months, :total_opex_cents) %>
+            <tr style="background: rgba(220, 38, 38, 0.04); border-top: 1px solid var(--border-subtle);">
+              <td class="p-3 text-sm font-bold" style="color: var(--text-main);">
+                Total Operating Expenses
+              </td>
+              <%= for v <- opex_per_month do %>
+                <td class="p-3 text-right font-bold" style="color: #dc2626;">{fmt.(v)}</td>
+              <% end %>
+              <td class="p-3 pr-4 text-right font-bold" style="color: #dc2626;">
+                {fmt.(total_opex)}
+              </td>
+            </tr>
+          </tbody>
+
+          <%!-- ── Operating Income ───────────────────────────── --%>
+          <% {opinc_per_month, _} = totals_row.(months, :operating_income_cents) %>
+          <% {opmargin_per_month, _} = margin_row.(months, :operating_margin_percent) %>
+          <tbody>
+            <tr style="border-top: 2px solid var(--border-strong, #cbd5e1);">
+              <td class="p-3 text-base font-bold" style="color: var(--text-main);">
+                Operating Income
+              </td>
+              <%= for v <- opinc_per_month do %>
+                <td
+                  class="p-3 text-right font-bold"
+                  style={"color: #{if v >= 0, do: "#16a34a", else: "#dc2626"};"}
+                >
+                  {fmt.(v)}
+                </td>
+              <% end %>
+              <td
+                class="p-3 pr-4 text-right font-bold"
+                style={"color: #{if total_op_income >= 0, do: "#16a34a", else: "#dc2626"};"}
+              >
+                {fmt.(total_op_income)}
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 pb-2 pt-0 text-xs" style="color: var(--text-muted);">
                 Operating Margin
               </td>
-              <td class="px-4 pb-3 text-xs text-right" style="color: var(--text-muted);">
-                {Float.round((@summary.operating_margin_percent || 0) * 1, 1)}%
+              <%= for pct <- opmargin_per_month do %>
+                <td class="px-3 pb-2 pt-0 text-xs text-right" style="color: var(--text-muted);">
+                  {Float.round(pct * 1.0, 1)}%
+                </td>
+              <% end %>
+              <td class="px-4 pb-2 pt-0 pr-4 text-xs text-right" style="color: var(--text-muted);">
+                {if total_revenue > 0,
+                  do: "#{Float.round(total_op_income / total_revenue * 100, 1)}%",
+                  else: "—"}
               </td>
             </tr>
-          <% end %>
-        </tbody>
+          </tbody>
 
-        <%!-- ── Net Income ──────────────────────────────────── --%>
-        <tbody>
-          <tr style="background: var(--bg-surface); border-top: 3px double var(--border-strong, #cbd5e1);">
-            <td class="p-4" style="color: var(--text-main);">
-              <div class="text-lg font-extrabold">Net Income</div>
-            </td>
-            <td class="p-4 text-right">
-              <div
-                class="text-lg font-extrabold"
-                style={"color: #{if net_income >= 0, do: "#16a34a", else: "#dc2626"};"}
-              >
-                {fmt.(net_income)}
-              </div>
-              <%= if total_revenue > 0 do %>
-                <div class="text-xs mt-0.5" style="color: var(--text-muted);">
-                  Net Margin: {Float.round((@summary.net_margin_percent || 0) * 1, 1)}%
-                </div>
+          <%!-- ── Net Income ─────────────────────────────────── --%>
+          <% {net_per_month, _} = totals_row.(months, :net_income_cents) %>
+          <% {netmargin_per_month, _} = margin_row.(months, :net_margin_percent) %>
+          <tbody>
+            <tr style="background: var(--bg-surface); border-top: 3px double var(--border-strong, #cbd5e1);">
+              <td class="p-3 text-lg font-extrabold" style="color: var(--text-main);">
+                Net Income
+              </td>
+              <%= for v <- net_per_month do %>
+                <td
+                  class="p-3 text-right text-lg font-extrabold"
+                  style={"color: #{if v >= 0, do: "#16a34a", else: "#dc2626"};"}
+                >
+                  {fmt.(v)}
+                </td>
               <% end %>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <td
+                class="p-3 pr-4 text-right text-lg font-extrabold"
+                style={"color: #{if total_net >= 0, do: "#16a34a", else: "#dc2626"};"}
+              >
+                {fmt.(total_net)}
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 pb-3 pt-0 text-xs" style="color: var(--text-muted);">
+                Net Margin
+              </td>
+              <%= for pct <- netmargin_per_month do %>
+                <td class="px-3 pb-3 pt-0 text-xs text-right" style="color: var(--text-muted);">
+                  {Float.round(pct * 1.0, 1)}%
+                </td>
+              <% end %>
+              <td class="px-4 pb-3 pt-0 pr-4 text-xs text-right" style="color: var(--text-muted);">
+                {if total_revenue > 0,
+                  do: "#{Float.round(total_net / total_revenue * 100, 1)}%",
+                  else: "—"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <%!-- Summary KPI Cards --%>
-  <div class="hd-kpi-grid mt-6">
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Revenue</div>
-      <div class="hd-kpi-value" style="color: #16a34a;">{fmt.(total_revenue)}</div>
-    </div>
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Gross Profit</div>
-      <div
-        class="hd-kpi-value"
-        style={"color: #{if gross_profit >= 0, do: "#16a34a", else: "#dc2626"};"}
-      >
-        {fmt.(gross_profit)}
+    <%!-- 3-month total KPI cards --%>
+    <div class="hd-kpi-grid mt-6">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Revenue (3-mo)</div>
+        <div class="hd-kpi-value" style="color: #16a34a;">{fmt.(total_revenue)}</div>
       </div>
-      <div class="hd-kpi-sub">
-        {if total_revenue > 0,
-          do: "#{Float.round((@summary.gross_margin_percent || 0) * 1, 1)}% margin",
-          else: ""}
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Gross Profit (3-mo)</div>
+        <div class="hd-kpi-value" style={"color: #{if total_gross >= 0, do: "#16a34a", else: "#dc2626"};"}>
+          {fmt.(total_gross)}
+        </div>
+        <div class="hd-kpi-sub">
+          {if total_revenue > 0,
+            do: "#{Float.round(total_gross / total_revenue * 100, 1)}% margin",
+            else: ""}
+        </div>
       </div>
-    </div>
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Operating Expenses</div>
-      <div class="hd-kpi-value" style="color: #dc2626;">{fmt.(total_opex)}</div>
-    </div>
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Net Income</div>
-      <div
-        class="hd-kpi-value"
-        style={"color: #{if net_income >= 0, do: "#16a34a", else: "#dc2626"};"}
-      >
-        {fmt.(net_income)}
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Operating Expenses (3-mo)</div>
+        <div class="hd-kpi-value" style="color: #dc2626;">{fmt.(total_opex)}</div>
       </div>
-      <div class="hd-kpi-sub">
-        {if total_revenue > 0,
-          do: "#{Float.round((@summary.net_margin_percent || 0) * 1, 1)}% margin",
-          else: ""}
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Net Income (3-mo)</div>
+        <div class="hd-kpi-value" style={"color: #{if total_net >= 0, do: "#16a34a", else: "#dc2626"};"}>
+          {fmt.(total_net)}
+        </div>
+        <div class="hd-kpi-sub">
+          {if total_revenue > 0,
+            do: "#{Float.round(total_net / total_revenue * 100, 1)}% margin",
+            else: ""}
+        </div>
       </div>
     </div>
-  </div>
+  <% end %>
 </div>
