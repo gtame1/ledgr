@@ -7,12 +7,52 @@ defmodule Ledgr.Domains.AumentaMiPension.CalculadoraSubmissions do
     CalculadoraSubmission
     |> maybe_leads_only(opts[:leads_only])
     |> maybe_search(opts[:search])
-    |> order_by(desc: :created_at)
+    # Order by id, not created_at. These rows are immutable lead
+    # captures, so id (serial, insertion order) == created_at order but
+    # is fully deterministic and immune to the second-precision
+    # truncation of `:utc_datetime` (the column holds milliseconds).
+    # `neighbors/2` walks the same id ordering.
+    |> order_by(desc: :id)
     |> limit(^(opts[:limit] || 200))
     |> Repo.all()
   end
 
   def get_submission!(id), do: Repo.get!(CalculadoraSubmission, id)
+
+  @doc """
+  IDs of the calculadora submissions immediately adjacent to
+  `submission` in `list_submissions/1` ordering (id DESC = newest
+  first), honoring the same `:leads_only` / `:search` filters.
+
+    * `:prev_id` — next-**newer** submission (higher id, one row up).
+    * `:next_id` — next-**older** submission (lower id, one row down).
+
+  Navigation spans the full filtered set, ignoring the display `:limit`.
+  """
+  def neighbors(%CalculadoraSubmission{id: id}, opts \\ []) do
+    base =
+      CalculadoraSubmission
+      |> maybe_leads_only(opts[:leads_only])
+      |> maybe_search(opts[:search])
+
+    prev_id =
+      base
+      |> where([s], s.id > ^id)
+      |> order_by([s], asc: s.id)
+      |> limit(1)
+      |> select([s], s.id)
+      |> Repo.one()
+
+    next_id =
+      base
+      |> where([s], s.id < ^id)
+      |> order_by([s], desc: s.id)
+      |> limit(1)
+      |> select([s], s.id)
+      |> Repo.one()
+
+    %{prev_id: prev_id, next_id: next_id}
+  end
 
   def count(opts \\ []) do
     CalculadoraSubmission

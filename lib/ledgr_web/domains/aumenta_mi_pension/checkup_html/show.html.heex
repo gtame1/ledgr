@@ -1,8 +1,45 @@
 <div class="hd-page">
-  <div class="mb-4">
-    <.link navigate={dp(@domain_path_prefix, "/checkup")} class="hd-back">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <.link navigate={dp(@domain_path_prefix, "/checkup") <> @filter_qs} class="hd-back">
       ← Checkup
     </.link>
+
+    <div class="flex items-center gap-2">
+      <%= if @prev_id do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/checkup/#{@prev_id}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Checkup anterior (más reciente)"
+        >
+          ← Anterior
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay checkup más reciente en la lista filtrada"
+        >
+          ← Anterior
+        </span>
+      <% end %>
+      <%= if @next_id do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/checkup/#{@next_id}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Checkup siguiente (más antiguo)"
+        >
+          Siguiente →
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay checkup más antiguo en la lista filtrada"
+        >
+          Siguiente →
+        </span>
+      <% end %>
+    </div>
   </div>
 
   <h1 class="text-2xl font-bold mb-2" style="color: var(--text-main);">

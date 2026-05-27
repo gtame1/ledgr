@@ -5,10 +5,47 @@
 end %>
 
 <div class="hd-page">
-  <div class="mb-4">
-    <.link navigate={dp(@domain_path_prefix, "/calculadora")} class="hd-back">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <.link navigate={dp(@domain_path_prefix, "/calculadora") <> @filter_qs} class="hd-back">
       ← Calculadora
     </.link>
+
+    <div class="flex items-center gap-2">
+      <%= if @prev_id do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/calculadora/#{@prev_id}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Simulación anterior (más reciente)"
+        >
+          ← Anterior
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay simulación más reciente en la lista filtrada"
+        >
+          ← Anterior
+        </span>
+      <% end %>
+      <%= if @next_id do %>
+        <.link
+          navigate={dp(@domain_path_prefix, "/calculadora/#{@next_id}") <> @filter_qs}
+          class="hd-btn-secondary"
+          title="Simulación siguiente (más antigua)"
+        >
+          Siguiente →
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No hay simulación más antigua en la lista filtrada"
+        >
+          Siguiente →
+        </span>
+      <% end %>
+    </div>
   </div>
 
   <h1 class="text-2xl font-bold mb-6" style="color: var(--text-main);">
