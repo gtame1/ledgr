@@ -3,10 +3,54 @@
 <% messages = conv.messages || [] %>
 
 <div class="hd-page">
-  <div class="mb-4">
-    <.link navigate={dp(@domain_path_prefix, "/conversations")} class="hd-back">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <.link
+      navigate={dp(@domain_path_prefix, "/conversations") <> (assigns[:filter_qs] || "")}
+      class="hd-back"
+    >
       &larr; Back to Conversations
     </.link>
+
+    <div class="flex items-center gap-2">
+      <%= if assigns[:prev_id] do %>
+        <.link
+          navigate={
+            dp(@domain_path_prefix, "/conversations/#{@prev_id}") <> (assigns[:filter_qs] || "")
+          }
+          class="hd-btn-secondary"
+          title="Previous conversation (more recent)"
+        >
+          &larr; Previous
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No more recent conversation in the filtered list"
+        >
+          &larr; Previous
+        </span>
+      <% end %>
+      <%= if assigns[:next_id] do %>
+        <.link
+          navigate={
+            dp(@domain_path_prefix, "/conversations/#{@next_id}") <> (assigns[:filter_qs] || "")
+          }
+          class="hd-btn-secondary"
+          title="Next conversation (older)"
+        >
+          Next &rarr;
+        </.link>
+      <% else %>
+        <span
+          class="hd-btn-secondary opacity-40 cursor-not-allowed"
+          aria-disabled="true"
+          title="No older conversation in the filtered list"
+        >
+          Next &rarr;
+        </span>
+      <% end %>
+    </div>
   </div>
 
   <%!-- Header --%>

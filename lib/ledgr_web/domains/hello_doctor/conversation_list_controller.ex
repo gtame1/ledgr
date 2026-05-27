@@ -5,11 +5,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
   alias Ledgr.Domains.HelloDoctor.ConversationFunnelExport
 
   def index(conn, params) do
-    filters = %{
-      status: params["status"],
-      funnel_stage: params["funnel_stage"],
-      search: params["search"]
-    }
+    filters = filter_opts(params)
 
     conversations = Conversations.list_conversations(filters)
 
@@ -21,10 +17,38 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
     )
   end
 
-  def show(conn, %{"id" => id}) do
+  def show(conn, %{"id" => id} = params) do
     conversation = Conversations.get_conversation!(id)
+    filters = filter_opts(params)
 
-    render(conn, :show, conversation: conversation)
+    %{prev_id: prev_id, next_id: next_id} = Conversations.neighbors(conversation, filters)
+
+    render(conn, :show,
+      conversation: conversation,
+      prev_id: prev_id,
+      next_id: next_id,
+      filter_qs: encode_filter_qs(filters)
+    )
+  end
+
+  defp filter_opts(params) do
+    [
+      status: params["status"],
+      funnel_stage: params["funnel_stage"],
+      search: params["search"]
+    ]
+  end
+
+  # Active filters as a query-string suffix ("?status=active"); "" when empty,
+  # so it's safe to concatenate onto a path.
+  defp encode_filter_qs(filter_opts) do
+    qs =
+      filter_opts
+      |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+      |> Enum.map(fn {k, v} -> {to_string(k), v} end)
+      |> URI.encode_query()
+
+    if qs == "", do: "", else: "?" <> qs
   end
 
   @doc """
