@@ -398,15 +398,27 @@ defmodule Ledgr.Domains.AumentaMiPension.Leads do
   end
 
   defp last_activity(conversations, checkups, calculadoras) do
+    # Normalize every source timestamp to NaiveDateTime. Conversation
+    # last_message_at is already naive; checkup/calc created_at are
+    # :utc_datetime (DateTime). Mixing types in Enum.max would fall back
+    # to Erlang term ordering, which compares struct fields alphabetically
+    # (day before month before year) — chronologically wrong. Comparing
+    # via the NaiveDateTime module fixes that.
     candidates =
-      Enum.map(conversations, & &1.last_message_at) ++
-        Enum.map(checkups, & &1.created_at) ++
-        Enum.map(calculadoras, & &1.created_at)
+      (Enum.map(conversations, & &1.last_message_at) ++
+         Enum.map(checkups, &to_naive(&1.created_at)) ++
+         Enum.map(calculadoras, &to_naive(&1.created_at)))
+      |> Enum.reject(&is_nil/1)
 
-    candidates
-    |> Enum.reject(&is_nil/1)
-    |> Enum.max(fn -> nil end)
+    case candidates do
+      [] -> nil
+      list -> Enum.max(list, NaiveDateTime)
+    end
   end
+
+  defp to_naive(nil), do: nil
+  defp to_naive(%NaiveDateTime{} = dt), do: dt
+  defp to_naive(%DateTime{} = dt), do: DateTime.to_naive(dt)
 
   # ── Filtering / sorting ─────────────────────────────────────────────
 
@@ -460,8 +472,24 @@ defmodule Ledgr.Domains.AumentaMiPension.Leads do
   end
 
   defp sort_leads(leads, :last_activity_desc) do
-    Enum.sort_by(leads, & &1.last_activity_at, {:desc, NaiveDateTime})
+    # Newest-first by last_activity_at, with phone as a deterministic
+    # tiebreaker (phone is the unique lead key). Without the tiebreaker,
+    # leads sharing a last_activity_at (or both nil) would order
+    # non-deterministically across requests, making `neighbors_in/2`
+    # prev/next flap. nils sort last.
+    Enum.sort(leads, fn a, b ->
+      case compare_activity(a.last_activity_at, b.last_activity_at) do
+        :gt -> true
+        :lt -> false
+        :eq -> a.phone >= b.phone
+      end
+    end)
   end
 
   defp sort_leads(leads, _), do: leads
+
+  defp compare_activity(nil, nil), do: :eq
+  defp compare_activity(nil, _), do: :lt
+  defp compare_activity(_, nil), do: :gt
+  defp compare_activity(a, b), do: NaiveDateTime.compare(a, b)
 end

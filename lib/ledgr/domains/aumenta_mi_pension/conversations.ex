@@ -8,7 +8,9 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations do
     |> maybe_filter_status(opts[:status])
     |> maybe_filter_funnel(opts[:funnel_stage])
     |> maybe_search(opts[:search])
-    |> order_by(desc: :last_message_at)
+    # `:id` tiebreaker makes ordering deterministic when last_message_at
+    # ties, matching the (last_message_at, id) key `neighbors/2` walks.
+    |> order_by(desc: :last_message_at, desc: :id)
     |> Repo.all()
     |> Repo.preload([:customer, :consultations])
   end

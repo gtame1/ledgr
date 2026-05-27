@@ -15,7 +15,11 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations.Conversation do
     field :consent_retry_count, :integer
     field :data_review_sent_at, :naive_datetime
     field :created_at, :naive_datetime
-    field :last_message_at, :naive_datetime
+    # usec precision: the DB column is timestamp(6). Loading as plain
+    # :naive_datetime truncates to seconds, which manufactures
+    # same-second ties and breaks `Conversations.neighbors/2` ordering
+    # (off-by-one prev/next). Keep full precision so comparisons are exact.
+    field :last_message_at, :naive_datetime_usec
     field :escalation_offered_at, :utc_datetime
     field :guide_budget_requested_at, :utc_datetime
     field :guide_delivered_at, :utc_datetime
