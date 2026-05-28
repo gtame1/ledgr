@@ -4,10 +4,15 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
   alias Ledgr.Domains.HelloDoctor.Doctors
 
   def index(conn, params) do
+    sort = params["sort"] || "name"
+    dir = params["dir"] || default_dir(sort)
+
     filters = %{
       status: params["status"],
       search: params["search"],
-      deactivated: params["deactivated"]
+      deactivated: params["deactivated"],
+      sort: sort,
+      dir: dir
     }
 
     doctors = Doctors.list_doctors(filters)
@@ -16,9 +21,16 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
       doctors: doctors,
       current_status: params["status"],
       current_search: params["search"],
-      current_deactivated: params["deactivated"]
+      current_deactivated: params["deactivated"],
+      sort: sort,
+      dir: dir
     )
   end
+
+  # `eligibility` sorts descending by default — "show me who's blocked"
+  # is usually the action item. Other columns default to ascending.
+  defp default_dir("eligibility"), do: "desc"
+  defp default_dir(_), do: "asc"
 
   def show(conn, %{"id" => id}) do
     doctor = Doctors.get_doctor!(id)
@@ -210,4 +222,45 @@ end
 defmodule LedgrWeb.Domains.HelloDoctor.DoctorHTML do
   use LedgrWeb, :html
   embed_templates "doctor_html/*"
+
+  @doc """
+  Builds the query string for a doctor-list URL with the given overrides
+  layered on top of the current filter/sort state. Drops empty/nil values
+  so the URL stays tidy.
+  """
+  def doctors_query(assigns, overrides) do
+    base = %{
+      "status" => assigns.current_status,
+      "search" => assigns.current_search,
+      "deactivated" => assigns.current_deactivated,
+      "sort" => assigns.sort,
+      "dir" => assigns.dir
+    }
+
+    base
+    |> Map.merge(Map.new(overrides, fn {k, v} -> {to_string(k), v} end))
+    |> Enum.reject(fn {_, v} -> v in [nil, ""] end)
+    |> URI.encode_query()
+  end
+
+  @doc "Sort indicator (↑ / ↓) for the active sort column; empty otherwise."
+  def sort_arrow(current_sort, current_dir, column) do
+    cond do
+      to_string(current_sort) != to_string(column) -> ""
+      to_string(current_dir) == "asc" -> " ↑"
+      true -> " ↓"
+    end
+  end
+
+  @doc "Direction to toggle to when the user clicks this column's header."
+  def next_dir(current_sort, current_dir, column) do
+    if to_string(current_sort) == to_string(column) do
+      if to_string(current_dir) == "asc", do: "desc", else: "asc"
+    else
+      case to_string(column) do
+        "eligibility" -> "desc"
+        _ -> "asc"
+      end
+    end
+  end
 end

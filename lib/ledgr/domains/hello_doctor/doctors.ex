@@ -10,8 +10,43 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
     |> maybe_filter_specialty(opts[:specialty])
     |> maybe_filter_deactivated(opts[:deactivated])
     |> maybe_search(opts[:search])
-    |> order_by(:name)
+    |> apply_sort(opts[:sort], opts[:dir])
     |> Repo.all()
+  end
+
+  # Sortable column headers on the doctor list. `:name` and `:specialty`
+  # map to plain columns; `:eligibility` derives from the four bot gates
+  # (terms_accepted ∧ is_available ∧ prescrypto_specialty_verified ∧
+  # deactivated_at IS NULL) via a CASE so the sort happens in SQL.
+  # Falls back to name-asc when sort is unrecognised. Name is the
+  # tiebreaker for all non-name sorts.
+  defp apply_sort(query, sort, dir) do
+    direction = if to_string(dir) == "desc", do: :desc, else: :asc
+
+    case to_string(sort) do
+      "specialty" ->
+        order_by(query, [d], [{^direction, d.specialty}, asc: d.name])
+
+      "eligibility" ->
+        order_by(
+          query,
+          [d],
+          [
+            {^direction,
+             fragment(
+               "CASE WHEN ? AND ? AND ? AND ? IS NULL THEN 1 ELSE 0 END",
+               d.terms_accepted,
+               d.is_available,
+               d.prescrypto_specialty_verified,
+               d.deactivated_at
+             )},
+            asc: d.name
+          ]
+        )
+
+      _ ->
+        order_by(query, [d], [{^direction, d.name}])
+    end
   end
 
   def get_doctor!(id) do

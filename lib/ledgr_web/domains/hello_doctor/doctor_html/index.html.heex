@@ -62,53 +62,99 @@
     </form>
   </div>
 
-  <%!-- Doctor Cards Grid --%>
+  <%!-- Doctor Table --%>
   <%= if Enum.empty?(@doctors) do %>
     <div class="hd-card p-8 text-center" style="color: var(--text-muted);">No doctors found.</div>
   <% else %>
-    <div class="hd-doctor-grid">
-      <%= for doctor <- @doctors do %>
-        <% eligible? = Ledgr.Domains.HelloDoctor.Doctors.Doctor.eligible_for_consultations?(doctor) %>
-        <% failures = Ledgr.Domains.HelloDoctor.Doctors.Doctor.eligibility_failures(doctor) %>
-        <.link
-          navigate={dp(@domain_path_prefix, "/doctors/#{doctor.id}")}
-          class="hd-doctor-card block hover:shadow-md transition-shadow"
-          style={
-            if eligible?,
-              do: "",
-              else: "opacity: 0.65;"
-          }
-        >
-          <div class="flex items-start gap-3 p-5">
-            <div class="hd-doctor-avatar flex-shrink-0">
-              {String.first(doctor.name)}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <h3 class="text-sm font-semibold truncate" style="color: var(--text-main);">
-                  {doctor.name}
-                </h3>
-                <%= if eligible? do %>
-                  <span
-                    class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"
-                    title="Eligible for consultations"
-                  >
+    <div class="hd-card" style="padding: 0; overflow: hidden;">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              <a
+                href={"?" <> doctors_query(assigns, %{sort: "name", dir: next_dir(@sort, @dir, "name")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Name{sort_arrow(@sort, @dir, "name")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              <a
+                href={"?" <> doctors_query(assigns, %{sort: "specialty", dir: next_dir(@sort, @dir, "specialty")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Specialty{sort_arrow(@sort, @dir, "specialty")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              <a
+                href={"?" <> doctors_query(assigns, %{sort: "eligibility", dir: next_dir(@sort, @dir, "eligibility")})}
+                style="color: inherit; text-decoration: none;"
+              >
+                Eligibility{sort_arrow(@sort, @dir, "eligibility")}
+              </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Cédula
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Ext. code
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Years exp
+            </th>
+            <th
+              class="text-center p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Video
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for doctor <- @doctors do %>
+            <% eligible? = Ledgr.Domains.HelloDoctor.Doctors.Doctor.eligible_for_consultations?(doctor) %>
+            <% failures = Ledgr.Domains.HelloDoctor.Doctors.Doctor.eligibility_failures(doctor) %>
+            <tr
+              data-doctor-url={dp(@domain_path_prefix, "/doctors/#{doctor.id}")}
+              class="doctor-row hover:bg-gray-50"
+              style={
+                "border-bottom: 1px solid var(--border-subtle); cursor: pointer;" <>
+                  if eligible?, do: "", else: " opacity: 0.65;"
+              }
+            >
+              <td class="p-3 pl-4">
+                <div class="flex items-center gap-2">
+                  <div class="hd-doctor-avatar flex-shrink-0" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;">
+                    {String.first(doctor.name)}
+                  </div>
+                  <span class="font-medium" style="color: var(--text-main);">
+                    {doctor.name}
                   </span>
-                <% else %>
-                  <span
-                    class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
-                    title={"Not eligible: " <> Enum.join(failures, ", ")}
-                  >
-                  </span>
-                <% end %>
-              </div>
-              <div class="flex flex-wrap items-center gap-1 mt-1">
-                <span
-                  class="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                  style="background: rgba(2, 186, 151, 0.1); color: var(--accent);"
-                >
-                  {doctor.specialty}
-                </span>
+                </div>
+              </td>
+              <td class="p-3" style="color: var(--text-main);">
+                {doctor.specialty || "—"}
+              </td>
+              <td class="p-3">
                 <%= if eligible? do %>
                   <span
                     class="hd-badge"
@@ -126,41 +172,36 @@
                     ✗ Not eligible
                   </span>
                 <% end %>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="grid grid-cols-4 gap-2 px-5 pb-4 pt-3 border-t"
-            style="border-color: var(--border-subtle);"
-          >
-            <div class="text-center">
-              <div class="text-xs font-medium" style="color: var(--text-muted);">Cedula</div>
-              <div class="text-xs font-mono mt-1" style="color: var(--text-main);">
-                {doctor.cedula_profesional || "---"}
-              </div>
-            </div>
-            <div class="text-center">
-              <div class="text-xs font-medium" style="color: var(--text-muted);">Ext. Code</div>
-              <div class="text-xs font-mono mt-1" style="color: var(--text-main);">
-                {doctor.extension_code || "---"}
-              </div>
-            </div>
-            <div class="text-center">
-              <div class="text-xs font-medium" style="color: var(--text-muted);">Experience</div>
-              <div class="text-xs mt-1" style="color: var(--text-main);">
-                {if doctor.years_experience, do: "#{doctor.years_experience} yrs", else: "---"}
-              </div>
-            </div>
-            <div class="text-center">
-              <div class="text-xs font-medium" style="color: var(--text-muted);">Video</div>
-              <div class="text-xs mt-1" style="color: var(--text-main);">
+              </td>
+              <td class="p-3 font-mono text-xs" style="color: var(--text-main);">
+                {doctor.cedula_profesional || "—"}
+              </td>
+              <td class="p-3 font-mono text-xs" style="color: var(--text-main);">
+                {doctor.extension_code || "—"}
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-main);">
+                {if doctor.years_experience, do: "#{doctor.years_experience}", else: "—"}
+              </td>
+              <td class="p-3 pr-4 text-center">
                 {if doctor.accepts_video_calls, do: "✅", else: "❌"}
-              </div>
-            </div>
-          </div>
-        </.link>
-      <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
     </div>
+
+    <script>
+      (function () {
+        document.querySelectorAll('tr.doctor-row').forEach(tr => {
+          tr.addEventListener('click', e => {
+            // Don't intercept clicks on real links/buttons inside the row.
+            if (e.target.closest('a, button')) return;
+            const url = tr.dataset.doctorUrl;
+            if (url) window.location.href = url;
+          });
+        });
+      })();
+    </script>
   <% end %>
 </div>
