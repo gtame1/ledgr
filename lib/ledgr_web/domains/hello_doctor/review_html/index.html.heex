@@ -61,15 +61,23 @@
       <div class="hd-kpi-sub">in selected period</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">Average Rating</div>
-      <div class="hd-kpi-value" style="color: var(--accent);">
-        <%= if @totals.avg_rating do %>
-          {@totals.avg_rating} / 5
-        <% else %>
-          —
+      <div class="hd-kpi-label">Average Ratings</div>
+      <div class="hd-kpi-value" style="font-size: 0.85rem; line-height: 1.5;">
+        <%= for {label, val, color} <- [
+          {"Doctor", @totals.avg_doctor_rating, "var(--accent)"},
+          {"Patient→Plat", @totals.avg_patient_platform_rating, "#0ea5e9"},
+          {"Patient", @totals.avg_patient_rating_by_doctor, "#8b5cf6"},
+          {"Doctor→Plat", @totals.avg_doctor_platform_rating, "#0ea5e9"}
+        ] do %>
+          <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
+            <span style="color: var(--text-muted); font-size: 0.7rem;">{label}</span>
+            <span style={"color: #{color}; font-weight: 600;"}>
+              {if val, do: "#{val}", else: "—"}
+            </span>
+          </div>
         <% end %>
       </div>
-      <div class="hd-kpi-sub">across {@totals.count} review(s)</div>
+      <div class="hd-kpi-sub">all out of 5</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">With Comment</div>
@@ -114,13 +122,35 @@
             <th
               class="text-left p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
+              title="Patient rated the doctor"
             >
               <a
                 href={"?" <> reviews_query(assigns, %{sort: "rating", dir: next_dir(@sort, @dir, "rating")})}
                 style="color: inherit; text-decoration: none;"
               >
-                Rating{sort_arrow(@sort, @dir, "rating")}
+                Doctor★{sort_arrow(@sort, @dir, "rating")}
               </a>
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+              title="Patient rated the platform"
+            >
+              Patient-Plat★
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+              title="Doctor rated the patient"
+            >
+              Patient★
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+              title="Doctor rated the platform"
+            >
+              Doctor-Plat★
             </th>
             <th
               class="text-left p-3 text-xs font-semibold uppercase"
@@ -143,7 +173,7 @@
               class="text-left p-3 pr-4 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
-              Comment
+              Comments
             </th>
           </tr>
         </thead>
@@ -157,14 +187,20 @@
               <td class="p-3 pl-4" style="color: var(--text-muted); white-space: nowrap;">
                 {row.completed_date}
               </td>
-              <td class="p-3" style="white-space: nowrap;">
-                <span
-                  style={"color: #{star_color(row.rating)}; font-size: 0.95rem; letter-spacing: 0.05em;"}
-                  title={"#{row.rating} / 5"}
-                >
-                  {star_row(row.rating)}
-                </span>
-              </td>
+              <%= for r <- [row.doctor_rating, row.patient_platform_rating, row.patient_rating_by_doctor, row.doctor_platform_rating] do %>
+                <td class="p-3" style="white-space: nowrap;">
+                  <%= if r do %>
+                    <span
+                      style={"color: #{star_color(r)}; font-size: 0.9rem; letter-spacing: 0.05em;"}
+                      title={"#{r} / 5"}
+                    >
+                      {star_row(r)}
+                    </span>
+                  <% else %>
+                    <span style="color: var(--text-muted);">—</span>
+                  <% end %>
+                </td>
+              <% end %>
               <td class="p-3" style="color: var(--text-main);">
                 <%= if row.doctor_id do %>
                   {row.doctor_name}
@@ -178,11 +214,23 @@
                 <% end %>
               </td>
               <td class="p-3" style="color: var(--text-main);">{row.patient_name}</td>
-              <td class="p-3 pr-4" style="color: var(--text-main); max-width: 40ch;">
-                <%= if row.comment != "" do %>
-                  {row.comment}
-                <% else %>
-                  <span style="color: var(--text-muted); font-style: italic;">—</span>
+              <td class="p-3 pr-4" style="color: var(--text-main); max-width: 40ch; font-size: 0.8rem;">
+                <%= cond do %>
+                  <% row.patient_comment == "" and row.doctor_comment == "" -> %>
+                    <span style="color: var(--text-muted); font-style: italic;">—</span>
+                  <% true -> %>
+                    <%= if row.patient_comment != "" do %>
+                      <div>
+                        <span style="color: var(--text-muted); font-size: 0.7rem;">👤 Patient:</span>
+                        {row.patient_comment}
+                      </div>
+                    <% end %>
+                    <%= if row.doctor_comment != "" do %>
+                      <div style={if row.patient_comment != "", do: "margin-top: 0.25rem;", else: ""}>
+                        <span style="color: var(--text-muted); font-size: 0.7rem;">🩺 Doctor:</span>
+                        {row.doctor_comment}
+                      </div>
+                    <% end %>
                 <% end %>
               </td>
             </tr>
