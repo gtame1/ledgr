@@ -13,8 +13,17 @@
       {String.first(d.name)}
     </div>
     <div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <h1 class="text-2xl font-bold" style="color: var(--text-main);">{d.name}</h1>
+        <%= if d.deactivated_at do %>
+          <span
+            class="hd-badge"
+            style="background: #fee2e2; color: #991b1b;"
+            title={"Deactivated on #{fmt_date(d.deactivated_at)} — bot won't route consultations"}
+          >
+            🚫 Deactivated
+          </span>
+        <% end %>
         <%= if d.is_available do %>
           <span class="hd-badge hd-badge--active">Available</span>
         <% else %>
@@ -35,9 +44,27 @@
       <.link
         href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle-status")}
         method="post"
-        class="hd-btn-primary"
+        class="hd-btn-secondary"
       >
         {if d.is_available, do: "Set Unavailable", else: "Set Available"}
+      </.link>
+      <.link
+        href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle-deactivation")}
+        method="post"
+        class="hd-btn-primary"
+        data-confirm={
+          if d.deactivated_at,
+            do: "Reactivate this doctor? The bot will resume routing new consultations to them.",
+            else:
+              "Deactivate this doctor? The bot will stop routing new consultations to them until reactivated."
+        }
+        style={
+          if d.deactivated_at,
+            do: "background: #16a34a;",
+            else: "background: #dc2626;"
+        }
+      >
+        {if d.deactivated_at, do: "Reactivate", else: "Deactivate"}
       </.link>
     </div>
   </div>

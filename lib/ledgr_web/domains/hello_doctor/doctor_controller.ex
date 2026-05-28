@@ -6,7 +6,8 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
   def index(conn, params) do
     filters = %{
       status: params["status"],
-      search: params["search"]
+      search: params["search"],
+      deactivated: params["deactivated"]
     }
 
     doctors = Doctors.list_doctors(filters)
@@ -14,7 +15,8 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
     render(conn, :index,
       doctors: doctors,
       current_status: params["status"],
-      current_search: params["search"]
+      current_search: params["search"],
+      current_deactivated: params["deactivated"]
     )
   end
 
@@ -179,6 +181,27 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
 
         conn
         |> put_flash(:error, "Failed to update availability: #{inspect(errors)}")
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+    end
+  end
+
+  def toggle_deactivation(conn, %{"id" => id}) do
+    doctor = Doctors.get_doctor!(id)
+
+    case Doctors.toggle_deactivation(doctor) do
+      {:ok, doctor} ->
+        msg =
+          if doctor.deactivated_at,
+            do: "Doctor deactivated — bot will not route new consultations.",
+            else: "Doctor reactivated — eligible for new consultations again."
+
+        conn
+        |> put_flash(:info, msg)
+        |> redirect(to: dp(conn, "/doctors/#{doctor.id}"))
+
+      {:error, changeset} ->
+        conn
+        |> put_flash(:error, "Failed to toggle deactivation: #{inspect(changeset.errors)}")
         |> redirect(to: dp(conn, "/doctors/#{id}"))
     end
   end

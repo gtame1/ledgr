@@ -483,6 +483,10 @@ defmodule LedgrWeb.Router do
 
     post "/doctors/:id/toggle-status", Domains.HelloDoctor.DoctorController, :toggle_status
 
+    post "/doctors/:id/toggle-deactivation",
+         Domains.HelloDoctor.DoctorController,
+         :toggle_deactivation
+
     post "/doctors/:id/retry-prescrypto",
          Domains.HelloDoctor.DoctorController,
          :retry_prescrypto_sync

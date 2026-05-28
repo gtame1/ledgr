@@ -8,6 +8,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
     Doctor
     |> maybe_filter_available(opts[:status])
     |> maybe_filter_specialty(opts[:specialty])
+    |> maybe_filter_deactivated(opts[:deactivated])
     |> maybe_search(opts[:search])
     |> order_by(:name)
     |> Repo.all()
@@ -90,6 +91,20 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
     update_doctor(doctor, %{is_available: !doctor.is_available})
   end
 
+  @doc """
+  Toggles the bot-side block on a doctor: setting `deactivated_at` to now
+  stops the bot from routing new consultations to them; clearing it
+  resumes routing. Distinct from `is_available` (the doctor's own
+  "available right now" flag).
+  """
+  def toggle_deactivation(%Doctor{deactivated_at: nil} = doctor) do
+    update_doctor(doctor, %{deactivated_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+  end
+
+  def toggle_deactivation(%Doctor{} = doctor) do
+    update_doctor(doctor, %{deactivated_at: nil})
+  end
+
   def count_by_status(:active),
     do: Doctor |> where([d], d.is_available == true) |> Repo.aggregate(:count)
 
@@ -130,8 +145,25 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
   defp maybe_filter_available(query, nil), do: query
   defp maybe_filter_available(query, ""), do: query
   defp maybe_filter_available(query, "active"), do: where(query, [d], d.is_available == true)
+  defp maybe_filter_available(query, "available"), do: where(query, [d], d.is_available == true)
   defp maybe_filter_available(query, "inactive"), do: where(query, [d], d.is_available == false)
+
+  defp maybe_filter_available(query, "unavailable"),
+    do: where(query, [d], d.is_available == false)
+
   defp maybe_filter_available(query, _), do: query
+
+  # `:deactivated` filter: nil/""/"all" → no filter; "hide" → only
+  # active (`deactivated_at IS NULL`); "only" → only deactivated rows.
+  defp maybe_filter_deactivated(query, v) when v in [nil, "", "all"], do: query
+
+  defp maybe_filter_deactivated(query, "hide"),
+    do: where(query, [d], is_nil(d.deactivated_at))
+
+  defp maybe_filter_deactivated(query, "only"),
+    do: where(query, [d], not is_nil(d.deactivated_at))
+
+  defp maybe_filter_deactivated(query, _), do: query
 
   defp maybe_filter_specialty(query, nil), do: query
   defp maybe_filter_specialty(query, ""), do: query
