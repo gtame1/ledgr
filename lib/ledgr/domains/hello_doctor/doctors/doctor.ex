@@ -53,4 +53,39 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
       phone -> put_change(changeset, :phone, String.replace(phone, ~r/[^0-9]/, ""))
     end
   end
+
+  @doc """
+  True when the doctor satisfies every gate the bot checks before routing
+  a consultation:
+
+    * `terms_accepted == true`            — set by the doctor in the T&Cs flow
+    * `is_available == true`              — set by the doctor via `/disponible`
+    * `prescrypto_specialty_verified == true` — set by Prescrypto sync
+    * `deactivated_at IS NULL`            — admin-controlled block
+
+  All four must hold. Mirror of the bot's gating logic — if the bot adds
+  another gate, update this and `eligibility_failures/1` in tandem.
+  """
+  def eligible_for_consultations?(%__MODULE__{} = d) do
+    d.terms_accepted == true and
+      d.is_available == true and
+      d.prescrypto_specialty_verified == true and
+      is_nil(d.deactivated_at)
+  end
+
+  @doc """
+  Returns the human-readable list of gates a doctor is currently failing.
+  Empty list means eligible. Used to populate the eligibility-badge tooltip.
+  """
+  def eligibility_failures(%__MODULE__{} = d) do
+    []
+    |> push_if(d.deactivated_at, "deactivated by admin")
+    |> push_if(!d.is_available, "marked themselves unavailable")
+    |> push_if(!d.terms_accepted, "hasn't accepted terms")
+    |> push_if(!d.prescrypto_specialty_verified, "cédula not verified in Prescrypto")
+    |> Enum.reverse()
+  end
+
+  defp push_if(list, falsy, _msg) when falsy in [nil, false], do: list
+  defp push_if(list, _truthy, msg), do: [msg | list]
 end

@@ -68,13 +68,15 @@
   <% else %>
     <div class="hd-doctor-grid">
       <%= for doctor <- @doctors do %>
+        <% eligible? = Ledgr.Domains.HelloDoctor.Doctors.Doctor.eligible_for_consultations?(doctor) %>
+        <% failures = Ledgr.Domains.HelloDoctor.Doctors.Doctor.eligibility_failures(doctor) %>
         <.link
           navigate={dp(@domain_path_prefix, "/doctors/#{doctor.id}")}
           class="hd-doctor-card block hover:shadow-md transition-shadow"
           style={
-            if doctor.deactivated_at,
-              do: "opacity: 0.65;",
-              else: ""
+            if eligible?,
+              do: "",
+              else: "opacity: 0.65;"
           }
         >
           <div class="flex items-start gap-3 p-5">
@@ -86,17 +88,18 @@
                 <h3 class="text-sm font-semibold truncate" style="color: var(--text-main);">
                   {doctor.name}
                 </h3>
-                <%= cond do %>
-                  <% doctor.deactivated_at -> %>
-                    <span
-                      class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
-                      title="Deactivated"
-                    >
-                    </span>
-                  <% doctor.is_available -> %>
-                    <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
-                  <% true -> %>
-                    <span class="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></span>
+                <%= if eligible? do %>
+                  <span
+                    class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"
+                    title="Eligible for consultations"
+                  >
+                  </span>
+                <% else %>
+                  <span
+                    class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
+                    title={"Not eligible: " <> Enum.join(failures, ", ")}
+                  >
+                  </span>
                 <% end %>
               </div>
               <div class="flex flex-wrap items-center gap-1 mt-1">
@@ -106,37 +109,21 @@
                 >
                   {doctor.specialty}
                 </span>
-                <%= if doctor.deactivated_at do %>
+                <%= if eligible? do %>
+                  <span
+                    class="hd-badge"
+                    style="background: #d1fae5; color: #065f46;"
+                    title="terms accepted · marked available · cédula verified · not deactivated"
+                  >
+                    ✓ Eligible
+                  </span>
+                <% else %>
                   <span
                     class="hd-badge"
                     style="background: #fee2e2; color: #991b1b;"
-                    title={"Deactivated #{fmt_date(doctor.deactivated_at)} — bot will not route new consultations"}
+                    title={"Blocked: " <> Enum.join(failures, "; ")}
                   >
-                    🚫 Deactivated
-                  </span>
-                <% end %>
-                <%= if doctor.is_available do %>
-                  <span class="hd-badge hd-badge--active">Available</span>
-                <% else %>
-                  <span class="hd-badge" style="background: #e5e7eb; color: #6b7280;">
-                    Unavailable
-                  </span>
-                <% end %>
-                <%= if doctor.terms_accepted do %>
-                  <span
-                    class="hd-badge"
-                    style="background: rgba(2, 186, 151, 0.1); color: var(--accent);"
-                    title="Terms accepted"
-                  >
-                    ✓ Terms
-                  </span>
-                <% else %>
-                  <span
-                    class="hd-badge"
-                    style="background: rgba(220, 38, 38, 0.1); color: #dc2626;"
-                    title="Terms not accepted"
-                  >
-                    ⚠ Terms
+                    ✗ Not eligible
                   </span>
                 <% end %>
               </div>
