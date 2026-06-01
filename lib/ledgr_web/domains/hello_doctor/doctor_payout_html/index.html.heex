@@ -345,22 +345,40 @@
         <input type="hidden" name="doctor_id" id="modal-doctor-id" />
         <input type="hidden" name="consultation_ids" id="modal-consultation-ids" />
 
-        <div class="mb-3">
-          <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
-            Amount (MXN)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            name="amount"
-            id="modal-amount"
-            class="hd-input w-full"
-            required
-          />
-          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
-            Use <strong>$0</strong> to mark as processed without sending money
-            (e.g. refunded consultation, settled offline).
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+              Amount sent (MXN)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="amount"
+              id="modal-amount"
+              class="hd-input w-full"
+              required
+            />
+            <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.25rem;">
+              What actually leaves the bank.
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+              Retentions (MXN)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="retentions"
+              id="modal-retentions"
+              class="hd-input w-full"
+              value="0"
+            />
+            <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.25rem;">
+              ISR / IVA withheld → 2200 Taxes Payable.
+            </div>
           </div>
         </div>
 
@@ -488,6 +506,7 @@
           document.getElementById('modal-default-amount').textContent =
             '$' + totalShare.toFixed(2);
           document.getElementById('modal-amount').value = totalShare.toFixed(2);
+          document.getElementById('modal-retentions').value = '0.00';
           document.getElementById('modal-reference').value = '';
           document.getElementById('modal-notes').value = '';
 

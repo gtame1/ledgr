@@ -70,6 +70,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
       consultation_ids: consultation_ids,
       payout_date: params["payout_date"],
       amount: params["amount"],
+      retentions: blank_to_nil(params["retentions"]) || "0",
       payment_method: params["payment_method"] || "bank_transfer",
       reference: blank_to_nil(params["reference"]),
       notes: blank_to_nil(params["notes"])
@@ -139,6 +140,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
       consultation_ids: consultation_ids,
       payout_date: params["payout_date"],
       amount: params["amount"],
+      retentions: blank_to_nil(params["retentions"]) || "0",
       payment_method: params["payment_method"] || "bank_transfer",
       reference: blank_to_nil(params["reference"]),
       notes: blank_to_nil(params["notes"])
