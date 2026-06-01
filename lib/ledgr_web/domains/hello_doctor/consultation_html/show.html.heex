@@ -203,14 +203,12 @@ end %>
 
       <%!-- Doctor Notes & Patient Summary --%>
       <%= if c.doctor_notes || c.patient_summary do %>
-        <%
-          # doctor_notes may be a JSON string from the bot — try to decode it
-          parsed_notes =
-            case Jason.decode(c.doctor_notes || "") do
-              {:ok, map} when is_map(map) -> map
-              _ -> nil
-            end
-        %>
+        <% # doctor_notes may be a JSON string from the bot — try to decode it
+        parsed_notes =
+          case Jason.decode(c.doctor_notes || "") do
+            {:ok, map} when is_map(map) -> map
+            _ -> nil
+          end %>
         <div class="hd-card p-5">
           <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
             Doctor's Notes
@@ -219,25 +217,47 @@ end %>
             <div class="space-y-3">
               <%= if v = parsed_notes["diagnostico"] do %>
                 <div>
-                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Diagnosis</div>
+                  <div
+                    class="text-xs uppercase font-medium mb-1"
+                    style="color: var(--text-muted);"
+                  >
+                    Diagnosis
+                  </div>
                   <div class="text-sm" style="color: var(--text-main);">{v}</div>
                 </div>
               <% end %>
               <%= if v = parsed_notes["tratamiento"] do %>
                 <div>
-                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Treatment</div>
-                  <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">{v}</div>
+                  <div
+                    class="text-xs uppercase font-medium mb-1"
+                    style="color: var(--text-muted);"
+                  >
+                    Treatment
+                  </div>
+                  <div class="text-sm whitespace-pre-line" style="color: var(--text-main);">
+                    {v}
+                  </div>
                 </div>
               <% end %>
               <%= if v = parsed_notes["seguimiento"] do %>
                 <div>
-                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Follow-up</div>
+                  <div
+                    class="text-xs uppercase font-medium mb-1"
+                    style="color: var(--text-muted);"
+                  >
+                    Follow-up
+                  </div>
                   <div class="text-sm" style="color: var(--text-main);">{v}</div>
                 </div>
               <% end %>
               <%= if v = parsed_notes["notas_internas"] do %>
                 <div>
-                  <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">Internal Notes</div>
+                  <div
+                    class="text-xs uppercase font-medium mb-1"
+                    style="color: var(--text-muted);"
+                  >
+                    Internal Notes
+                  </div>
                   <div class="text-sm italic" style="color: var(--text-muted);">{v}</div>
                 </div>
               <% end %>
@@ -252,7 +272,14 @@ end %>
             <% end %>
           <% end %>
           <%= if c.patient_summary do %>
-            <div class={"#{if parsed_notes || c.doctor_notes, do: "mt-4 pt-4", else: ""}"} style={if parsed_notes || c.doctor_notes, do: "border-top: 1px solid var(--border-subtle);", else: ""}>
+            <div
+              class={"#{if parsed_notes || c.doctor_notes, do: "mt-4 pt-4", else: ""}"}
+              style={
+                if parsed_notes || c.doctor_notes,
+                  do: "border-top: 1px solid var(--border-subtle);",
+                  else: ""
+              }
+            >
               <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
                 Patient Summary
               </div>
@@ -266,13 +293,11 @@ end %>
 
       <%!-- Prescriptions — deduplicated: keep only the latest per diagnosis --%>
       <%= if c.prescriptions && !Enum.empty?(c.prescriptions) do %>
-        <%
-          deduped_prescriptions =
-            c.prescriptions
-            |> Enum.sort_by(& &1.created_at, {:desc, NaiveDateTime})
-            |> Enum.uniq_by(&(&1.diagnosis || &1.content))
-            |> Enum.sort_by(& &1.created_at, {:asc, NaiveDateTime})
-        %>
+        <% deduped_prescriptions =
+          c.prescriptions
+          |> Enum.sort_by(& &1.created_at, {:desc, NaiveDateTime})
+          |> Enum.uniq_by(&(&1.diagnosis || &1.content))
+          |> Enum.sort_by(& &1.created_at, {:asc, NaiveDateTime}) %>
         <div class="hd-card p-5">
           <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
             Prescriptions
@@ -602,6 +627,75 @@ end %>
               Confirmed: {fmt_datetime(c.payment_confirmed_at)}
             </div>
           <% end %>
+        </div>
+      </div>
+
+      <%!-- Doctor Payout Decision --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Doctor Payout
+        </h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between items-center">
+            <span style="color: var(--text-muted);">Pay doctor for this consultation?</span>
+            <%= if @pay_doctor do %>
+              <span
+                class="hd-badge"
+                style="background: #d1fae5; color: #065f46;"
+                title="Doctor is owed their flat share for this consultation. Default behavior."
+              >
+                ✓ Yes
+              </span>
+            <% else %>
+              <span
+                class="hd-badge"
+                style="background: #fee2e2; color: #991b1b;"
+                title="Doctor is NOT owed for this consultation — the Doctor Payouts page + Weekly Report will skip it."
+              >
+                ✗ No
+              </span>
+            <% end %>
+          </div>
+
+          <%= if @payout_decision do %>
+            <div
+              class="text-xs mt-2 pt-2"
+              style="border-top: 1px solid var(--border-subtle); color: var(--text-muted);"
+            >
+              <%= if @payout_decision.reason do %>
+                <div>Reason: {@payout_decision.reason}</div>
+              <% end %>
+              <%= if @payout_decision.decided_by do %>
+                <div>
+                  Decided by {@payout_decision.decided_by} on {fmt_datetime(
+                    @payout_decision.updated_at
+                  )}
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="text-xs" style="color: var(--text-muted);">
+              No override on file — using the default ("pay the doctor").
+            </div>
+          <% end %>
+
+          <div class="mt-3">
+            <.link
+              href={dp(@domain_path_prefix, "/consultations/#{c.id}/toggle-pay-doctor")}
+              method="post"
+              class="hd-btn-secondary text-xs"
+              data-confirm={
+                if @pay_doctor,
+                  do:
+                    "Flip 'pay doctor' to NO for this consultation? Reports will stop showing it as owed. The ledger is not auto-updated — post a manual JE (Dr 2000 / Cr 4000) if you need it to match.",
+                  else:
+                    "Flip 'pay doctor' to YES for this consultation? Reports will treat the doctor as owed again. The ledger is not auto-updated — post a manual JE (Dr 4000 / Cr 2000, or Dr 6050 / Cr 2000 for a discount consultation) if you need it to match."
+              }
+              title="Override the pay-doctor decision for this consultation"
+            >
+              Flip to {if @pay_doctor, do: "“no”", else: "“yes”"} ⇄
+            </.link>
+          </div>
         </div>
       </div>
 

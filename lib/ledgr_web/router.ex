@@ -471,6 +471,10 @@ defmodule LedgrWeb.Router do
     resources "/consultations", Domains.HelloDoctor.ConsultationController, only: [:index, :show]
     post "/consultations/:id/status", Domains.HelloDoctor.ConsultationController, :update_status
 
+    post "/consultations/:id/toggle-pay-doctor",
+         Domains.HelloDoctor.ConsultationController,
+         :toggle_pay_doctor
+
     resources "/reviews", Domains.HelloDoctor.ReviewController, only: [:index]
 
     # Bot quality triage — list + mark conversations via the bot's admin API

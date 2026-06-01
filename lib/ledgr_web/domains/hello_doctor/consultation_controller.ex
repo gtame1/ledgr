@@ -3,6 +3,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConsultationController do
 
   alias Ledgr.Domains.HelloDoctor.Consultations
   alias Ledgr.Domains.HelloDoctor.ConsultationFunnelExport
+  alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
 
   def index(conn, params) do
     filters = %{
@@ -21,8 +22,48 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConsultationController do
 
   def show(conn, %{"id" => id}) do
     consultation = Consultations.get_consultation!(id)
+    decision = ConsultationPayoutDecisions.get(id)
 
-    render(conn, :show, consultation: consultation)
+    render(conn, :show,
+      consultation: consultation,
+      pay_doctor: if(decision, do: decision.pay_doctor, else: true),
+      payout_decision: decision
+    )
+  end
+
+  @doc """
+  Flips the pay-doctor decision for this consultation. Same semantics
+  as the payment-show toggle, but keyed off the consultation so it
+  works for 100% discount consultations that have no Stripe payment.
+  Ledger is not touched — operator posts a manual JE if needed.
+  """
+  def toggle_pay_doctor(conn, %{"id" => id}) do
+    current = ConsultationPayoutDecisions.pay_doctor?(id)
+    new_value = not current
+
+    case ConsultationPayoutDecisions.upsert(id, new_value,
+           reason: "manual override via consultation page",
+           decided_by: "admin"
+         ) do
+      {:ok, _} ->
+        msg =
+          if new_value,
+            do:
+              "Doctor flagged as payable for this consultation. " <>
+                "Reports will now include it — post a manual JE if the ledger needs to match.",
+            else:
+              "Doctor flagged as NOT payable. Reports will skip this consultation. " <>
+                "Post a manual JE if the ledger needs to match."
+
+        conn
+        |> put_flash(:info, msg)
+        |> redirect(to: dp(conn, "/consultations/#{id}"))
+
+      {:error, changeset} ->
+        conn
+        |> put_flash(:error, "Failed to toggle pay-doctor: #{inspect(changeset.errors)}")
+        |> redirect(to: dp(conn, "/consultations/#{id}"))
+    end
   end
 
   @doc """
@@ -51,9 +92,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConsultationController do
         # a short reason inline; full message goes to logs.
         require Logger
 
-        Logger.error(
-          "[HelloDoctor] Consultation funnel export failed: #{Exception.message(e)}"
-        )
+        Logger.error("[HelloDoctor] Consultation funnel export failed: #{Exception.message(e)}")
 
         short =
           case e.postgres do
