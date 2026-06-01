@@ -4,7 +4,10 @@ defmodule LedgrWeb.Domains.HelloDoctor.PatientController do
   alias Ledgr.Domains.HelloDoctor.Patients
 
   def index(conn, params) do
-    patients = Patients.list_patients(params["search"])
+    # Patients.list_patients/1 takes a keyword list (uses opts[:search] under
+    # the hood). Passing the raw string here crashes Access on any non-empty
+    # search.
+    patients = Patients.list_patients(search: params["search"])
 
     render(conn, :index,
       patients: patients,
