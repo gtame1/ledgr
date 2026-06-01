@@ -131,7 +131,25 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     start_naive = to_naive_start(start_date)
     end_naive = to_naive_end(end_date)
 
+    # Two perf notes:
+    # 1. The "completed" leg used to be a per-row `WHERE EXISTS (...
+    #    FROM consultations ...)` correlated subquery, which Postgres
+    #    re-evaluates for every conversation. Pre-aggregating
+    #    consultations to one row per conversation via a CTE (`conv_done`)
+    #    turns it into a single LEFT JOIN — orders of magnitude faster
+    #    once the table grows.
+    # 2. Bump the pool timeout to 30s. The dashboard runs this on every
+    #    page load and the default 15s wasn't enough during a cold start
+    #    on Neon. The query itself shouldn't take that long after the
+    #    rewrite, but the headroom prevents the page from 500ing during
+    #    Neon autoresume.
     sql = """
+    WITH conv_done AS (
+      SELECT conversation_id,
+             MAX(CASE WHEN completed_at IS NOT NULL THEN 1 ELSE 0 END) AS has_completed
+      FROM consultations
+      GROUP BY conversation_id
+    )
     SELECT
       CASE
         WHEN p.id IS NULL THEN 'existing'
@@ -146,14 +164,10 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       ) AS offered,
       COUNT(*) FILTER (WHERE c.consultation_type IS NOT NULL) AS accepted,
       COUNT(*) FILTER (WHERE c.stripe_payment_intent_id IS NOT NULL) AS paid,
-      COUNT(*) FILTER (
-        WHERE EXISTS (
-          SELECT 1 FROM consultations cs
-          WHERE cs.conversation_id = c.id AND cs.completed_at IS NOT NULL
-        )
-      ) AS completed
+      COUNT(*) FILTER (WHERE cd.has_completed = 1) AS completed
     FROM conversations c
     LEFT JOIN patients p ON p.id = c.patient_id
+    LEFT JOIN conv_done cd ON cd.conversation_id = c.id
     WHERE c.created_at >= $1 AND c.created_at <= $2
       AND (c.patient_id IS NULL OR c.patient_id != $4)
       AND (
@@ -167,12 +181,17 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     """
 
     %{rows: rows} =
-      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
-        start_naive,
-        end_naive,
-        @offered_or_downstream,
-        @test_patient_id
-      ])
+      Ecto.Adapters.SQL.query!(
+        Repo.active_repo(),
+        sql,
+        [
+          start_naive,
+          end_naive,
+          @offered_or_downstream,
+          @test_patient_id
+        ],
+        timeout: 30_000
+      )
 
     rows
     |> Enum.map(fn [user_type, tenant, conv, off, acc, paid, done] ->
