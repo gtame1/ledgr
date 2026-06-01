@@ -29,6 +29,12 @@ end %>
         {if p.gender, do: " - #{p.gender |> to_string() |> String.capitalize()}"}
       </div>
     </div>
+    <.link
+      navigate={dp(@domain_path_prefix, "/patients/#{p.id}/edit")}
+      class="hd-btn-secondary"
+    >
+      Edit Patient
+    </.link>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

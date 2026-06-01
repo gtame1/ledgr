@@ -491,8 +491,10 @@ defmodule LedgrWeb.Router do
          Domains.HelloDoctor.DoctorController,
          :retry_prescrypto_sync
 
-    # Patients (read-only — bot manages patients)
-    resources "/patients", Domains.HelloDoctor.PatientController, only: [:index, :show]
+    # Patients (mostly bot-managed; the admin UI can edit a curated subset
+    # of demographic fields — see Patient.editable_fields/0).
+    resources "/patients", Domains.HelloDoctor.PatientController,
+      only: [:index, :show, :edit, :update]
 
     # Payments (queries consultations with payment data)
     resources "/payments", Domains.HelloDoctor.PaymentController, only: [:index, :show]

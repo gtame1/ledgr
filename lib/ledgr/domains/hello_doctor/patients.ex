@@ -28,9 +28,23 @@ defmodule Ledgr.Domains.HelloDoctor.Patients do
     |> Repo.update()
   end
 
+  @doc """
+  Admin-side update. Uses `Patient.editable_changeset/2` so the changeset
+  is restricted to fields the bot doesn't normally touch — see
+  `Patient.editable_fields/0`.
+  """
+  def update_patient_editable(%Patient{} = patient, attrs) do
+    patient
+    |> Patient.editable_changeset(attrs)
+    |> Repo.update()
+  end
+
   def delete_patient(%Patient{} = patient), do: Repo.delete(patient)
 
   def change_patient(%Patient{} = patient, attrs \\ %{}), do: Patient.changeset(patient, attrs)
+
+  def change_patient_editable(%Patient{} = patient, attrs \\ %{}),
+    do: Patient.editable_changeset(patient, attrs)
 
   def patient_options do
     Patient

@@ -20,6 +20,29 @@ defmodule LedgrWeb.Domains.HelloDoctor.PatientController do
 
     render(conn, :show, patient: patient)
   end
+
+  def edit(conn, %{"id" => id}) do
+    patient = Patients.get_patient!(id)
+    changeset = Patients.change_patient_editable(patient)
+
+    render(conn, :edit, patient: patient, changeset: changeset)
+  end
+
+  def update(conn, %{"id" => id, "patient" => patient_params}) do
+    patient = Patients.get_patient!(id)
+
+    case Patients.update_patient_editable(patient, patient_params) do
+      {:ok, updated} ->
+        conn
+        |> put_flash(:info, "Patient updated.")
+        |> redirect(to: dp(conn, "/patients/#{updated.id}"))
+
+      {:error, changeset} ->
+        conn
+        |> put_flash(:error, "Failed to update patient.")
+        |> render(:edit, patient: patient, changeset: changeset)
+    end
+  end
 end
 
 defmodule LedgrWeb.Domains.HelloDoctor.PatientHTML do

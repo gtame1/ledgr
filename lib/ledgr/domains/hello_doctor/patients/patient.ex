@@ -41,6 +41,32 @@ defmodule Ledgr.Domains.HelloDoctor.Patients.Patient do
     |> validate_required(@required)
   end
 
+  # Fields safe to edit from the admin UI without racing the bot. The bot
+  # primarily writes phone, terms_accepted/_at, is_dependent, and
+  # managed_by_id — keep those locked. Everything else is demographic
+  # info that's free to amend manually.
+  @editable ~w[
+    full_name display_name
+    date_of_birth gender blood_type
+    weight_kg height_cm
+    emergency_contact_name emergency_contact_phone
+    insurance_provider
+    relationship
+  ]a
+
+  @doc """
+  Changeset restricted to fields the admin UI may edit. Bot-managed
+  fields (phone, terms_accepted/_at, is_dependent, managed_by_id) are
+  not castable here.
+  """
+  def editable_changeset(patient, attrs) do
+    patient
+    |> cast(attrs, @editable)
+  end
+
+  @doc "Fields the admin UI may edit (for templates / form generators)."
+  def editable_fields, do: @editable
+
   def name(%__MODULE__{full_name: full_name, display_name: display_name}) do
     full_name || display_name || "Unknown"
   end
