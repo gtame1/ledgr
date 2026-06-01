@@ -487,6 +487,10 @@ defmodule LedgrWeb.Router do
          Domains.HelloDoctor.DoctorController,
          :toggle_deactivation
 
+    post "/doctors/:id/toggle-rfc",
+         Domains.HelloDoctor.DoctorController,
+         :toggle_correct_rfc
+
     post "/doctors/:id/retry-prescrypto",
          Domains.HelloDoctor.DoctorController,
          :retry_prescrypto_sync

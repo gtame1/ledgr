@@ -24,6 +24,9 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     field :prescrypto_specialty_no, :string
     field :prescrypto_specialty_verified, :boolean, default: false
     field :prescrypto_synced_at, :utc_datetime
+    # Admin-confirmed: do we have the doctor's correct RFC on file for
+    # CFDI invoicing? Flipped from the doctor show page.
+    field :has_correct_rfc, :boolean, default: false
     # When set, the bot will not route new consultations to this doctor. Set
     # by admins via the Deactivate button on the doctor show page; cleared
     # via Reactivate. Distinct from `is_available` (doctor's own
@@ -37,7 +40,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   end
 
   @required ~w[id phone name specialty is_available]a
-  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at]a
+  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at has_correct_rfc]a
 
   def changeset(doctor, attrs) do
     doctor

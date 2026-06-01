@@ -140,6 +140,14 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
     update_doctor(doctor, %{deactivated_at: nil})
   end
 
+  @doc """
+  Flips the admin-managed `has_correct_rfc` flag. No eligibility impact —
+  the flag exists for CFDI / invoicing readiness reporting only.
+  """
+  def toggle_correct_rfc(%Doctor{} = doctor) do
+    update_doctor(doctor, %{has_correct_rfc: !doctor.has_correct_rfc})
+  end
+
   def count_by_status(:active),
     do: Doctor |> where([d], d.is_available == true) |> Repo.aggregate(:count)
 

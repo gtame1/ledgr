@@ -154,6 +154,27 @@
               <% end %>
             </div>
           </div>
+          <div>
+            <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+              RFC
+            </div>
+            <div class="text-sm flex items-center gap-2" style="color: var(--text-main);">
+              <%= if d.has_correct_rfc do %>
+                <span style="color: #065f46;">✅ Verified</span>
+              <% else %>
+                <span style="color: #92400e;">⚠ Not verified</span>
+              <% end %>
+              <.link
+                href={dp(@domain_path_prefix, "/doctors/#{d.id}/toggle-rfc")}
+                method="post"
+                class="hd-btn-sm"
+                style="font-size: 0.7rem; padding: 0.15rem 0.5rem;"
+                title="Toggle whether we've confirmed the doctor's RFC on file"
+              >
+                {if d.has_correct_rfc, do: "Unmark", else: "Mark verified"}
+              </.link>
+            </div>
+          </div>
         </div>
       </div>
 

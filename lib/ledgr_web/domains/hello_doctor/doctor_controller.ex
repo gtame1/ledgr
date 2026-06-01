@@ -217,6 +217,27 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
         |> redirect(to: dp(conn, "/doctors/#{id}"))
     end
   end
+
+  def toggle_correct_rfc(conn, %{"id" => id}) do
+    doctor = Doctors.get_doctor!(id)
+
+    case Doctors.toggle_correct_rfc(doctor) do
+      {:ok, doctor} ->
+        msg =
+          if doctor.has_correct_rfc,
+            do: "RFC marked as verified.",
+            else: "RFC verification cleared."
+
+        conn
+        |> put_flash(:info, msg)
+        |> redirect(to: dp(conn, "/doctors/#{doctor.id}"))
+
+      {:error, changeset} ->
+        conn
+        |> put_flash(:error, "Failed to toggle RFC flag: #{inspect(changeset.errors)}")
+        |> redirect(to: dp(conn, "/doctors/#{id}"))
+    end
+  end
 end
 
 defmodule LedgrWeb.Domains.HelloDoctor.DoctorHTML do
