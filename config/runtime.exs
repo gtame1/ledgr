@@ -77,7 +77,15 @@ if hello_doctor_url = System.get_env("HELLO_DOCTOR_DATABASE_URL") do
       server_name_indication: to_charlist(db_uri.host || "")
     ],
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
-    priv: "priv/repos/hello_doctor"
+    priv: "priv/repos/hello_doctor",
+    # Neon free-tier compute autosuspends; the first connection after a
+    # cold period can take 5-10s while the host wakes. The defaults
+    # (connect_timeout 15s, queue_target 50ms) sometimes drop the
+    # migrator's checkout before Neon is ready and the deploy 500s.
+    # Bumping both gives deploys / cold pages a wider window.
+    connect_timeout: 30_000,
+    queue_target: 10_000,
+    queue_interval: 10_000
 end
 
 if aumenta_mi_pension_url = System.get_env("AUMENTA_MI_PENSION_DATABASE_URL") do

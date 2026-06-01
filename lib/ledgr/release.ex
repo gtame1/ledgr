@@ -48,17 +48,7 @@ defmodule Ledgr.Release do
       Enum.map(repos(), fn repo ->
         if repo_configured?(repo) do
           IO.puts("    Migrating #{inspect(repo)}...")
-
-          try do
-            {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
-            IO.puts("    #{inspect(repo)} — done.")
-            {:ok, repo}
-          rescue
-            e ->
-              IO.puts("    ⚠  #{inspect(repo)} FAILED: #{Exception.message(e)}")
-              IO.puts("       Skipping this repo — other repos will still migrate.")
-              {:error, repo, e}
-          end
+          migrate_with_retry(repo)
         else
           IO.puts("    Skipping #{inspect(repo)} — no database URL configured.")
           {:skipped, repo}
@@ -74,6 +64,40 @@ defmodule Ledgr.Release do
       IO.puts("==> Migrations finished with warnings. The following repos could not be migrated:")
       Enum.each(failed, fn repo -> IO.puts("      • #{inspect(repo)}") end)
       IO.puts("    Check the database URL and connectivity for these repos.")
+    end
+  end
+
+  # Tries to run the migration up to 3 times, sleeping 5s between attempts.
+  # The cold Neon compute that backs HelloDoctor needs ~5-10s to wake on the
+  # first connection attempt of a deploy; without a retry the migrator gives
+  # up before Neon is ready and the deploy ships without applied migrations.
+  # Connection errors are transient — retry. Anything else (schema error, FK
+  # violation, etc.) fails fast on the first attempt.
+  defp migrate_with_retry(repo, attempts_left \\ 3, sleep_ms \\ 5_000) do
+    try do
+      {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+      IO.puts("    #{inspect(repo)} — done.")
+      {:ok, repo}
+    rescue
+      e in DBConnection.ConnectionError ->
+        if attempts_left > 1 do
+          IO.puts(
+            "    #{inspect(repo)} connection not ready (#{Exception.message(e)}). " <>
+              "Sleeping #{sleep_ms}ms and retrying (#{attempts_left - 1} left)..."
+          )
+
+          Process.sleep(sleep_ms)
+          migrate_with_retry(repo, attempts_left - 1, sleep_ms)
+        else
+          IO.puts("    ⚠  #{inspect(repo)} FAILED after retries: #{Exception.message(e)}")
+          IO.puts("       Skipping this repo — other repos will still migrate.")
+          {:error, repo, e}
+        end
+
+      e ->
+        IO.puts("    ⚠  #{inspect(repo)} FAILED: #{Exception.message(e)}")
+        IO.puts("       Skipping this repo — other repos will still migrate.")
+        {:error, repo, e}
     end
   end
 
