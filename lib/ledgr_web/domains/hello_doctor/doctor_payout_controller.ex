@@ -107,6 +107,72 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
     end
   end
 
+  # ── Edit / update an existing payout ───────────────────────────
+
+  def edit(conn, %{"id" => id}) do
+    payout = DoctorPayouts.get_payout!(id)
+    doctor = Ledgr.Repo.get!(Ledgr.Domains.HelloDoctor.Doctors.Doctor, payout.doctor_id)
+    candidates = DoctorPayouts.list_payout_edit_candidates(payout)
+    amount_pesos = (payout.amount_cents || 0) / 100.0
+
+    render(conn, :edit,
+      payout: payout,
+      doctor: doctor,
+      candidates: candidates,
+      amount_pesos: amount_pesos,
+      payment_methods:
+        Ledgr.Domains.HelloDoctor.DoctorPayouts.DoctorPayout.payment_methods()
+    )
+  end
+
+  def update(conn, %{"id" => id} = params) do
+    payout = DoctorPayouts.get_payout!(id)
+
+    consultation_ids =
+      case params["consultation_ids"] do
+        list when is_list(list) -> list
+        str when is_binary(str) and str != "" -> String.split(str, ",", trim: true)
+        _ -> []
+      end
+
+    attrs = %{
+      consultation_ids: consultation_ids,
+      payout_date: params["payout_date"],
+      amount: params["amount"],
+      payment_method: params["payment_method"] || "bank_transfer",
+      reference: blank_to_nil(params["reference"]),
+      notes: blank_to_nil(params["notes"])
+    }
+
+    case DoctorPayouts.update_payout(payout, attrs) do
+      {:ok, updated} ->
+        amount_pesos = updated.amount_cents / 100.0
+
+        conn
+        |> put_flash(
+          :info,
+          "Payout updated — $#{:erlang.float_to_binary(amount_pesos, decimals: 2)} MXN across " <>
+            "#{length(consultation_ids)} consultation(s)."
+        )
+        |> redirect(to: dp(conn, "/doctor-payouts"))
+
+      {:error, reason} when is_binary(reason) ->
+        conn
+        |> put_flash(:error, "Failed to update payout: #{reason}")
+        |> redirect(to: dp(conn, "/doctor-payouts/#{id}/edit"))
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn
+        |> put_flash(:error, "Failed to update payout: #{format_errors(changeset)}")
+        |> redirect(to: dp(conn, "/doctor-payouts/#{id}/edit"))
+
+      {:error, other} ->
+        conn
+        |> put_flash(:error, "Failed to update payout: #{inspect(other)}")
+        |> redirect(to: dp(conn, "/doctor-payouts/#{id}/edit"))
+    end
+  end
+
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(v), do: v

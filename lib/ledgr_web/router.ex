@@ -546,6 +546,15 @@ defmodule LedgrWeb.Router do
          Domains.HelloDoctor.DoctorPayoutController,
          :record_payout
 
+    # Edit / update an existing payout
+    get "/doctor-payouts/:id/edit",
+        Domains.HelloDoctor.DoctorPayoutController,
+        :edit
+
+    post "/doctor-payouts/:id/update",
+         Domains.HelloDoctor.DoctorPayoutController,
+         :update
+
     # Weekly consultations & payout report
     get "/reports/weekly", Domains.HelloDoctor.WeeklyReportController, :index
     get "/reports/weekly/download", Domains.HelloDoctor.WeeklyReportController, :download

@@ -258,6 +258,14 @@
                     </span>
                   <% end %>
                   <%= cond do %>
+                    <% row.payout_count > 0 and row.last_payout_id -> %>
+                      <a
+                        href={dp(@domain_path_prefix, "/doctor-payouts/#{row.last_payout_id}/edit")}
+                        title="Edit this payout"
+                        style="background: #d1fae5; color: #065f46; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; text-decoration: none;"
+                      >
+                        Paid · {row.last_payout_date} ✎
+                      </a>
                     <% row.payout_count > 0 -> %>
                       <span style="background: #d1fae5; color: #065f46; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">
                         Paid · {row.last_payout_date}

@@ -1,0 +1,186 @@
+<% p = @payout %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/doctor-payouts")} class="hd-back">
+      &larr; Back to Doctor Payouts
+    </.link>
+  </div>
+
+  <h1 class="text-2xl font-bold mb-2" style="color: var(--text-main);">Edit payout</h1>
+  <p class="text-sm mb-6" style="color: var(--text-muted); max-width: 65ch;">
+    Editing the payout to
+    <strong>{@doctor.name}</strong>. Changing the amount will rewrite the
+    underlying journal entry; un-checking a consultation removes it from
+    this payout (and frees it up to be paid again). Doctor is not
+    editable — to attribute to a different doctor, void this payout and
+    create a new one.
+  </p>
+
+  <form
+    action={dp(@domain_path_prefix, "/doctor-payouts/#{p.id}/update")}
+    method="post"
+    class="hd-card p-6"
+  >
+    <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+      <div>
+        <label class="block text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+          Amount (MXN)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          name="amount"
+          value={:erlang.float_to_binary(@amount_pesos, decimals: 2)}
+          class="hd-input w-full"
+          required
+        />
+        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
+          Use <strong>$0</strong> to mark as processed without sending money.
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+          Payout date
+        </label>
+        <input
+          type="date"
+          name="payout_date"
+          value={p.payout_date}
+          class="hd-input w-full"
+          required
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+          Payment method
+        </label>
+        <select name="payment_method" class="hd-input w-full">
+          <%= for m <- @payment_methods do %>
+            <option value={m} selected={p.payment_method == m}>{humanize_method(m)}</option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+          Reference (transfer ID, optional)
+        </label>
+        <input
+          type="text"
+          name="reference"
+          value={p.reference || ""}
+          class="hd-input w-full"
+        />
+      </div>
+
+      <div class="sm:col-span-2">
+        <label class="block text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+          Notes (optional)
+        </label>
+        <textarea name="notes" rows="2" class="hd-input w-full">{p.notes || ""}</textarea>
+      </div>
+    </div>
+
+    <%!-- ── Linked consultations ─────────────────────────────────── --%>
+    <div class="mb-4">
+      <h2 class="text-base font-semibold mb-1" style="color: var(--text-main);">
+        Linked consultations
+      </h2>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        Currently-linked rows are pre-checked. Other rows are pending
+        consultations for {@doctor.name} in the same 90-day window —
+        check to add. Rows already paid out via a different payout are
+        disabled.
+      </p>
+
+      <%= if Enum.empty?(@candidates) do %>
+        <div style="color: var(--text-muted); font-size: 0.8rem;">
+          No consultations found in the window. Widen the window in code if
+          you need older rows.
+        </div>
+      <% else %>
+        <div
+          class="hd-card"
+          style="padding: 0; max-height: 24rem; overflow-y: auto; border: 1px solid var(--border-subtle);"
+        >
+          <table class="w-full text-sm">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+                <th class="p-2 pl-3" style="width: 2rem;"></th>
+                <th class="text-left p-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+                  Date
+                </th>
+                <th class="text-left p-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+                  Patient
+                </th>
+                <th class="text-right p-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+                  Billed
+                </th>
+                <th class="text-left p-2 pr-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for row <- @candidates do %>
+                <% linked? = row.linked_to_this_payout? %>
+                <% paid_elsewhere? = row.payout_count > 0 and not linked? %>
+                <tr style="border-bottom: 1px solid var(--border-subtle);">
+                  <td class="p-2 pl-3">
+                    <input
+                      type="checkbox"
+                      name="consultation_ids[]"
+                      value={row.consultation_id}
+                      checked={linked?}
+                      disabled={paid_elsewhere?}
+                    />
+                  </td>
+                  <td class="p-2" style="color: var(--text-muted); white-space: nowrap;">
+                    {row.paid_date}
+                  </td>
+                  <td class="p-2" style="color: var(--text-main);">{row.patient_name}</td>
+                  <td class="p-2 text-right" style="color: var(--text-main);">
+                    ${:erlang.float_to_binary(row.amount + 0.0, decimals: 2)}
+                  </td>
+                  <td class="p-2 pr-3" style="font-size: 0.75rem;">
+                    <%= cond do %>
+                      <% linked? -> %>
+                        <span style="background: #d1fae5; color: #065f46; padding: 0.1rem 0.4rem; border-radius: 0.25rem;">
+                          ✓ Linked here
+                        </span>
+                      <% paid_elsewhere? -> %>
+                        <span style="background: #f3f4f6; color: #6b7280; padding: 0.1rem 0.4rem; border-radius: 0.25rem;">
+                          Paid (other payout)
+                        </span>
+                      <% row.refunded? -> %>
+                        <span style="background: #fee2e2; color: #991b1b; padding: 0.1rem 0.4rem; border-radius: 0.25rem;">
+                          Refunded
+                        </span>
+                      <% true -> %>
+                        <span style="background: var(--bg-secondary); color: var(--text-muted); padding: 0.1rem 0.4rem; border-radius: 0.25rem;">
+                          Pending
+                        </span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="flex justify-end gap-2 mt-6">
+      <.link navigate={dp(@domain_path_prefix, "/doctor-payouts")} class="hd-btn-secondary">
+        Cancel
+      </.link>
+      <button type="submit" class="hd-btn-primary">Save changes</button>
+    </div>
+  </form>
+</div>

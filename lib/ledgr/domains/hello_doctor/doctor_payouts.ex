@@ -161,7 +161,12 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       refunded = to_float(row.amount_refunded)
       fee = to_float(row.stripe_fee)
       hd_net = billed - fee - share - refunded
-      summary = Map.get(payout_index, row.consultation_id, %{count: 0, last_date: nil})
+      summary =
+        Map.get(payout_index, row.consultation_id, %{
+          count: 0,
+          last_date: nil,
+          last_payout_id: nil
+        })
 
       refunded? =
         row.stripe_status == "refunded" or refunded > 0 or
@@ -185,7 +190,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         doctor_share: Float.round(share, 2),
         hd_net: Float.round(hd_net, 2),
         payout_count: summary.count,
-        last_payout_date: summary.last_date
+        last_payout_date: summary.last_date,
+        last_payout_id: summary[:last_payout_id]
       }
     end)
     |> apply_status_filter(opts[:status])
@@ -288,15 +294,36 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   defp payout_summary_for([]), do: %{}
 
   defp payout_summary_for(consultation_ids) do
-    from(j in DoctorPayoutConsultation,
-      join: p in DoctorPayout,
-      on: p.id == j.doctor_payout_id,
-      where: j.consultation_id in ^consultation_ids,
-      group_by: j.consultation_id,
-      select: {j.consultation_id, count(j.id), max(p.payout_date)}
-    )
-    |> Repo.all()
-    |> Map.new(fn {cid, n, max_date} -> {cid, %{count: n, last_date: max_date}} end)
+    # For each consultation, we want the count of payouts, the latest
+    # payout_date, AND the id of the most recent payout (so the "Paid"
+    # badge on the listing page can link to the edit form). We do this in
+    # one round trip with DISTINCT ON ordered by payout_date desc.
+    counts =
+      from(j in DoctorPayoutConsultation,
+        join: p in DoctorPayout,
+        on: p.id == j.doctor_payout_id,
+        where: j.consultation_id in ^consultation_ids,
+        group_by: j.consultation_id,
+        select: {j.consultation_id, count(j.id), max(p.payout_date)}
+      )
+      |> Repo.all()
+      |> Map.new(fn {cid, n, max_date} -> {cid, %{count: n, last_date: max_date}} end)
+
+    last_payouts =
+      from(j in DoctorPayoutConsultation,
+        join: p in DoctorPayout,
+        on: p.id == j.doctor_payout_id,
+        where: j.consultation_id in ^consultation_ids,
+        distinct: j.consultation_id,
+        order_by: [asc: j.consultation_id, desc: p.payout_date, desc: p.id],
+        select: {j.consultation_id, p.id}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    Map.new(counts, fn {cid, summary} ->
+      {cid, Map.put(summary, :last_payout_id, Map.get(last_payouts, cid))}
+    end)
   end
 
   # ── Write: record a payout for one or more consultations ────────
@@ -368,6 +395,200 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     end
   end
 
+  @doc "Fetches a payout with its consultation join rows preloaded."
+  def get_payout!(id) do
+    DoctorPayout
+    |> Repo.get!(id)
+    |> Repo.preload(:payout_consultations)
+  end
+
+  @doc """
+  Updates a payout. Same accepted fields as `create_payout/1` except
+  `:doctor_id` — that's locked to the existing payout's doctor.
+
+  Performs the edit atomically:
+
+    * Recomputes the journal entry. Old/new amount-zero combinations
+      are handled (create, update, delete, or no-op).
+    * Replaces the consultation joins with the new set.
+    * Updates the payout row's amount / date / method / reference / notes
+      and `journal_entry_id`.
+
+  Returns `{:ok, payout}` (with `:payout_consultations` preloaded) or
+  `{:error, reason}`.
+  """
+  def update_payout(%DoctorPayout{} = payout, attrs) do
+    with {:ok, consultation_ids} <- fetch_consultation_ids(attrs),
+         :ok <- validate_consultations_belong_to_doctor(consultation_ids, payout.doctor_id),
+         {:ok, payout_date} <- fetch_date(attrs),
+         {:ok, amount_cents} <- fetch_amount_cents(attrs),
+         {:ok, payment_method} <- fetch_payment_method(attrs),
+         {:ok, doctor} <- fetch_doctor(%{doctor_id: payout.doctor_id}) do
+      transaction_result =
+        Repo.transaction(fn ->
+          with {:ok, new_je_id} <-
+                 sync_journal_entry(
+                   payout,
+                   doctor,
+                   consultation_ids,
+                   payout_date,
+                   amount_cents,
+                   attrs
+                 ),
+               {:ok, updated} <-
+                 update_payout_row(payout, %{
+                   payout_date: payout_date,
+                   amount_cents: amount_cents,
+                   payment_method: payment_method,
+                   reference: attrs[:reference],
+                   notes: attrs[:notes],
+                   journal_entry_id: new_je_id
+                 }),
+               :ok <- replace_payout_joins(payout.id, consultation_ids) do
+            Repo.preload(updated, :payout_consultations, force: true)
+          else
+            {:error, reason} -> Repo.rollback(reason)
+          end
+        end)
+
+      case transaction_result do
+        {:ok, p} -> {:ok, p}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  # Reconciles the journal entry with the new amount. Returns
+  # `{:ok, new_je_id_or_nil}`.
+  defp sync_journal_entry(
+         %DoctorPayout{journal_entry_id: old_je_id},
+         doctor,
+         consultation_ids,
+         payout_date,
+         amount_cents,
+         attrs
+       ) do
+    cond do
+      # No-op: both old and new are $0
+      amount_cents == 0 and is_nil(old_je_id) ->
+        {:ok, nil}
+
+      # $0 now: delete the existing JE
+      amount_cents == 0 ->
+        :ok = delete_journal_entry(old_je_id)
+        {:ok, nil}
+
+      # Was $0, now non-zero: create a new JE
+      is_nil(old_je_id) ->
+        case create_journal_entry(doctor, consultation_ids, payout_date, amount_cents, attrs) do
+          {:ok, je} -> {:ok, je.id}
+          {:error, reason} -> {:error, reason}
+        end
+
+      # Both non-zero: update the existing JE in place
+      true ->
+        case update_journal_entry(
+               old_je_id,
+               doctor,
+               consultation_ids,
+               payout_date,
+               amount_cents,
+               attrs
+             ) do
+          {:ok, je} -> {:ok, je.id}
+          {:error, reason} -> {:error, reason}
+        end
+    end
+  end
+
+  defp delete_journal_entry(je_id) do
+    Repo.delete_all(
+      from jl in Ledgr.Core.Accounting.JournalLine, where: jl.journal_entry_id == ^je_id
+    )
+
+    Repo.delete_all(from je in Ledgr.Core.Accounting.JournalEntry, where: je.id == ^je_id)
+    :ok
+  end
+
+  defp update_journal_entry(je_id, doctor, consultation_ids, payout_date, amount_cents, attrs) do
+    entry = Repo.get!(Ledgr.Core.Accounting.JournalEntry, je_id)
+    {entry_attrs, lines} = journal_entry_payload(doctor, consultation_ids, payout_date, amount_cents, attrs)
+
+    case Accounting.update_journal_entry_with_lines(entry, entry_attrs, lines) do
+      {:ok, updated} ->
+        {:ok, updated}
+
+      {:error, changeset} ->
+        Logger.error(
+          "[HelloDoctor] Failed to update journal entry for doctor payout: #{inspect(changeset)}"
+        )
+
+        {:error, "failed to update journal entry"}
+    end
+  end
+
+  defp update_payout_row(%DoctorPayout{} = payout, attrs) do
+    payout
+    |> DoctorPayout.changeset(attrs)
+    |> Repo.update()
+  end
+
+  defp replace_payout_joins(payout_id, consultation_ids) do
+    Repo.delete_all(
+      from j in DoctorPayoutConsultation, where: j.doctor_payout_id == ^payout_id
+    )
+
+    insert_payout_joins(payout_id, consultation_ids)
+  end
+
+  @doc """
+  For the edit page: returns consultations to show as checkboxes. Includes
+  every consultation linked to *this* payout plus the doctor's other
+  recent consultations (last 90 days around `payout_date`). Each row has
+  `:linked_to_this_payout?` set so the template can default checkboxes
+  and label "already paid out elsewhere" rows clearly.
+  """
+  def list_payout_edit_candidates(%DoctorPayout{} = payout) do
+    linked_ids =
+      payout
+      |> Map.get(:payout_consultations, [])
+      |> Enum.map(& &1.consultation_id)
+      |> MapSet.new()
+
+    start_date = Date.add(payout.payout_date, -90)
+    end_date = Date.add(payout.payout_date, 90)
+
+    rows =
+      list_consultations_with_payouts(start_date, end_date, doctor_id: payout.doctor_id)
+
+    # Make sure any linked consultations outside the 90-day window still appear.
+    extra_ids =
+      MapSet.difference(linked_ids, MapSet.new(rows, & &1.consultation_id))
+      |> MapSet.to_list()
+
+    extra_rows =
+      case extra_ids do
+        [] ->
+          []
+
+        ids ->
+          # Pull just these by fetching with a wide enough window.
+          all_rows =
+            list_consultations_with_payouts(~D[2000-01-01], ~D[2100-01-01],
+              doctor_id: payout.doctor_id
+            )
+
+          Enum.filter(all_rows, &(&1.consultation_id in ids))
+      end
+
+    (rows ++ extra_rows)
+    |> Enum.uniq_by(& &1.consultation_id)
+    |> Enum.map(fn r ->
+      Map.put(r, :linked_to_this_payout?, MapSet.member?(linked_ids, r.consultation_id))
+    end)
+    |> Enum.sort_by(& &1.paid_at || ~N[1970-01-01 00:00:00], :desc)
+  end
+
   defp fetch_doctor(%{doctor_id: id}) when is_binary(id) and id != "" do
     case Repo.get(Doctor, id) do
       nil -> {:error, "unknown doctor_id"}
@@ -437,6 +658,25 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   defp fetch_payment_method(_), do: {:ok, "bank_transfer"}
 
   defp create_journal_entry(doctor, consultation_ids, payout_date, amount_cents, attrs) do
+    {entry_attrs, lines} =
+      journal_entry_payload(doctor, consultation_ids, payout_date, amount_cents, attrs)
+
+    case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
+      {:ok, entry} ->
+        {:ok, entry}
+
+      {:error, changeset} ->
+        Logger.error(
+          "[HelloDoctor] Failed to create journal entry for doctor payout: #{inspect(changeset)}"
+        )
+
+        {:error, "failed to record journal entry"}
+    end
+  end
+
+  # Shared payload-builder used by both create and update so the JE body
+  # stays in lockstep across the two paths.
+  defp journal_entry_payload(doctor, consultation_ids, payout_date, amount_cents, attrs) do
     doctor_payable = Accounting.get_account_by_code!(@doctor_payable_code)
     bank_mxn = Accounting.get_account_by_code!(@bank_mxn_code)
 
@@ -467,17 +707,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       }
     ]
 
-    case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
-      {:ok, entry} ->
-        {:ok, entry}
-
-      {:error, changeset} ->
-        Logger.error(
-          "[HelloDoctor] Failed to create journal entry for doctor payout: #{inspect(changeset)}"
-        )
-
-        {:error, "failed to record journal entry"}
-    end
+    {entry_attrs, lines}
   end
 
   defp insert_payout_row(
