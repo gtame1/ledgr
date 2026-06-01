@@ -2,16 +2,22 @@
   <%!-- ── Header ── --%>
   <div class="mb-8">
     <div class="mb-4">
-      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Weekly Report</h1>
-      <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 60ch;">
-        Consultations attended and per-doctor payout for the selected week.
-        Doctors are paid <strong>${:erlang.float_to_binary(@doctor_share + 0.0, decimals: 2)} MXN</strong>
-        per paid consultation; HelloDoctor keeps the rest minus Stripe fees.
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Weekly Doctor Payouts</h1>
+      <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 70ch;">
+        Per-consultation view of what's still owed to each doctor for the
+        selected week. Doctor share is a flat
+        <strong>${:erlang.float_to_binary(@doctor_share + 0.0, decimals: 2)} MXN</strong>
+        per consultation; ISR retention is <strong>2.5%</strong>
+        if the doctor's RFC is verified, otherwise <strong>20%</strong>.
+        <em>Net payment pending</em>
+        nets out what we've already paid out and the retentions we've already
+        applied. Rows with <code>net_payment_pending = 0</code>
+        are hidden by default.
       </p>
     </div>
 
-    <div class="flex flex-wrap items-center gap-3">
-      <form method="get" class="flex items-center gap-2">
+    <form method="get" class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
         <input
           type="date"
           name="start_date"
@@ -27,27 +33,45 @@
           class="hd-input text-sm"
           style="padding: 0.4rem 0.65rem;"
         />
-        <button type="submit" class="hd-btn-sm">Filter</button>
-      </form>
+      </div>
+
+      <label
+        class="flex items-center gap-2 text-sm"
+        style="color: var(--text-main); cursor: pointer;"
+      >
+        <input
+          type="checkbox"
+          name="include_settled"
+          value="true"
+          checked={@include_settled?}
+        /> Show settled rows (net pending = 0)
+      </label>
+
+      <button type="submit" class="hd-btn-sm">Filter</button>
 
       <a
         href={
-          dp(@domain_path_prefix, "/reports/weekly/download?start_date=#{@start_date}&end_date=#{@end_date}")
+          dp(
+            @domain_path_prefix,
+            "/reports/weekly/download?start_date=#{@start_date}&end_date=#{@end_date}#{if @include_settled?, do: "&include_settled=true", else: ""}"
+          )
         }
         class="hd-btn-primary text-sm"
         style="padding: 0.5rem 0.95rem;"
       >
         ⬇ Download CSV
       </a>
-    </div>
+    </form>
   </div>
 
   <%!-- ── KPI summary ── --%>
   <div class="hd-kpi-grid mb-8" style="gap: 1.5rem;">
     <div class="hd-kpi">
-      <div class="hd-kpi-label">Consultations attended</div>
+      <div class="hd-kpi-label">Consultations</div>
       <div class="hd-kpi-value">{@report.totals.total_consultations}</div>
-      <div class="hd-kpi-sub">{@report.totals.paid_consultations} paid</div>
+      <div class="hd-kpi-sub">
+        {@report.totals.paid_to_doctor_count} already paid to doctor
+      </div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Doctors</div>
@@ -55,25 +79,41 @@
       <div class="hd-kpi-sub">with at least one consultation</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">Total billed</div>
+      <div class="hd-kpi-label">Doctor share total</div>
       <div class="hd-kpi-value">
-        ${:erlang.float_to_binary(@report.totals.total_billed + 0.0, decimals: 2)}
-      </div>
-      <div class="hd-kpi-sub">MXN gross revenue</div>
-    </div>
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Doctor payouts</div>
-      <div class="hd-kpi-value" style="color: #dc2626;">
         ${:erlang.float_to_binary(@report.totals.total_doctor_share + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">MXN owed to doctors</div>
+      <div class="hd-kpi-sub">MXN — gross obligation</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">HD net</div>
-      <div class="hd-kpi-value" style="color: var(--accent);">
-        ${:erlang.float_to_binary(@report.totals.total_hd_net + 0.0, decimals: 2)}
+      <div class="hd-kpi-label">Paid out</div>
+      <div class="hd-kpi-value">
+        ${:erlang.float_to_binary(@report.totals.total_paid_out + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">MXN, after doctor + Stripe fees</div>
+      <div class="hd-kpi-sub">MXN — already disbursed</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Owed to doctor</div>
+      <div class="hd-kpi-value" style="color: #dc2626;">
+        ${:erlang.float_to_binary(@report.totals.total_owed_to_doctor + 0.0, decimals: 2)}
+      </div>
+      <div class="hd-kpi-sub">MXN — pre-retention</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Net payment pending</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">
+        ${:erlang.float_to_binary(@report.totals.total_net_payment_pending + 0.0, decimals: 2)}
+      </div>
+      <div class="hd-kpi-sub">MXN — after ISR/IVA retention math</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">ISR to apply (Σ)</div>
+      <div class="hd-kpi-value" style="color: #92400e;">
+        ${:erlang.float_to_binary(@report.totals.total_isr_to_apply + 0.0, decimals: 2)}
+      </div>
+      <div class="hd-kpi-sub">
+        {:erlang.float_to_binary(@report.totals.total_isr_applied + 0.0, decimals: 2)} already applied
+      </div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Avg patient rating</div>
@@ -89,43 +129,88 @@
   </div>
 
   <%!-- ── Per-doctor summary ── --%>
-  <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">Per-doctor payout</h2>
+  <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">Per-doctor summary</h2>
 
   <%= if Enum.empty?(@report.per_doctor) do %>
     <div class="hd-empty">
       <div class="hd-empty-icon">📋</div>
-      <p>No completed consultations in this period.</p>
+      <p>
+        <%= if @include_settled? do %>
+          No completed consultations in this period.
+        <% else %>
+          No consultations with net payment pending in this period. Try toggling “Show settled rows” to see fully-paid consultations.
+        <% end %>
+      </p>
     </div>
   <% else %>
     <div class="hd-card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
       <table class="w-full text-sm">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
-            <th class="text-left p-3 pl-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Doctor
             </th>
-            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Specialty
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Consultations
+            <th
+              class="text-center p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              RFC
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Paid
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Consults
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Total billed
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Doctor share
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Stripe fees
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Paid out
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Doctor payout
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              ISR to apply
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              HD net
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              ISR applied
             </th>
-            <th class="text-right p-3 pr-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Owed
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Net pending
+            </th>
+            <th
+              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Avg rating
             </th>
           </tr>
@@ -133,21 +218,35 @@
         <tbody>
           <%= for row <- @report.per_doctor do %>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
-              <td class="p-3 pl-4 font-medium" style="color: var(--text-main);">{row.doctor_name}</td>
+              <td class="p-3 pl-4 font-medium" style="color: var(--text-main);">
+                {row.doctor_name}
+              </td>
               <td class="p-3" style="color: var(--text-muted);">{row.doctor_specialty || "—"}</td>
+              <td class="p-3 text-center">
+                <%= if row.has_correct_rfc do %>
+                  <span style="color: #065f46;" title="RFC verified — ISR at 2.5%">✓</span>
+                <% else %>
+                  <span style="color: #92400e;" title="RFC not verified — ISR at 20%">✗</span>
+                <% end %>
+              </td>
               <td class="p-3 text-right">{row.consultations}</td>
-              <td class="p-3 text-right">{row.paid_consultations}</td>
               <td class="p-3 text-right">
-                ${:erlang.float_to_binary(row.total_billed + 0.0, decimals: 2)}
-              </td>
-              <td class="p-3 text-right" style="color: var(--text-muted);">
-                ${:erlang.float_to_binary(row.stripe_fees + 0.0, decimals: 2)}
-              </td>
-              <td class="p-3 text-right font-semibold" style="color: #dc2626;">
                 ${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)}
               </td>
-              <td class="p-3 text-right" style="color: var(--accent);">
-                ${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                ${:erlang.float_to_binary(row.paid_out_amount + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right" style="color: #92400e;">
+                ${:erlang.float_to_binary(row.isr_retention_to_apply + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                ${:erlang.float_to_binary(row.isr_retentions_applied + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right font-semibold" style="color: #dc2626;">
+                ${:erlang.float_to_binary(row.owed_to_doctor + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right font-semibold" style="color: var(--accent);">
+                ${:erlang.float_to_binary(row.net_payment_pending + 0.0, decimals: 2)}
               </td>
               <td class="p-3 pr-4 text-right" style="color: #f59e0b;">
                 <%= if row.avg_rating do %>
@@ -164,20 +263,27 @@
         </tbody>
         <tfoot>
           <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
-            <td class="p-3 pl-4 font-bold" colspan="2">Totals</td>
+            <td class="p-3 pl-4 font-bold" colspan="3">Totals</td>
             <td class="p-3 text-right font-bold">{@report.totals.total_consultations}</td>
-            <td class="p-3 text-right font-bold">{@report.totals.paid_consultations}</td>
             <td class="p-3 text-right font-bold">
-              ${:erlang.float_to_binary(@report.totals.total_billed + 0.0, decimals: 2)}
-            </td>
-            <td class="p-3 text-right font-bold">
-              ${:erlang.float_to_binary(@report.totals.total_stripe_fees + 0.0, decimals: 2)}
-            </td>
-            <td class="p-3 text-right font-bold" style="color: #dc2626;">
               ${:erlang.float_to_binary(@report.totals.total_doctor_share + 0.0, decimals: 2)}
             </td>
+            <td class="p-3 text-right font-bold">
+              ${:erlang.float_to_binary(@report.totals.total_paid_out + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold" style="color: #92400e;">
+              ${:erlang.float_to_binary(@report.totals.total_isr_to_apply + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold">
+              ${:erlang.float_to_binary(@report.totals.total_isr_applied + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold" style="color: #dc2626;">
+              ${:erlang.float_to_binary(@report.totals.total_owed_to_doctor + 0.0, decimals: 2)}
+            </td>
             <td class="p-3 text-right font-bold" style="color: var(--accent);">
-              ${:erlang.float_to_binary(@report.totals.total_hd_net + 0.0, decimals: 2)}
+              ${:erlang.float_to_binary(@report.totals.total_net_payment_pending + 0.0,
+                decimals: 2
+              )}
             </td>
             <td class="p-3 pr-4 text-right font-bold" style="color: #f59e0b;">
               <%= if @report.totals.avg_rating do %>
@@ -196,41 +302,80 @@
       Consultation detail
     </h2>
 
-    <div class="hd-card" style="padding: 0; overflow: hidden;">
+    <div class="hd-card" style="padding: 0; overflow: auto;">
       <table class="w-full text-sm">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
-            <th class="text-left p-3 pl-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Completed
             </th>
-            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Doctor
             </th>
-            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            <th
+              class="text-center p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              RFC
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Patient
             </th>
-            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Type
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Doctor share
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Duration
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              ISR to apply
             </th>
-            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Payment
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Paid out
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Billed
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              ISR applied
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Stripe fee
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Owed
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              Doctor
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Net pending
             </th>
-            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">
-              HD net
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Payout
             </th>
-            <th class="text-right p-3 pr-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+            <th
+              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
               Rating
             </th>
           </tr>
@@ -241,28 +386,44 @@
               <td class="p-3 pl-4" style="color: var(--text-muted); white-space: nowrap;">
                 {row.completed_at && Calendar.strftime(row.completed_at, "%Y-%m-%d %H:%M")}
               </td>
-              <td class="p-3 font-medium" style="color: var(--text-main);">{row.doctor_name || "—"}</td>
+              <td class="p-3 font-medium" style="color: var(--text-main);">
+                {row.doctor_name || "—"}
+              </td>
+              <td class="p-3 text-center">
+                <%= if row.has_correct_rfc do %>
+                  <span style="color: #065f46;" title="RFC verified — ISR at 2.5%">✓</span>
+                <% else %>
+                  <span style="color: #92400e;" title="RFC not verified — ISR at 20%">✗</span>
+                <% end %>
+              </td>
               <td class="p-3" style="color: var(--text-muted);">{row.patient_name || "—"}</td>
-              <td class="p-3" style="color: var(--text-muted);">{row.consultation_type || "—"}</td>
-              <td class="p-3 text-right">{row.duration_minutes || "—"}</td>
-              <td class="p-3">
-                <span style={
-                  "color: " <> if(row.paid?, do: "var(--accent)", else: "var(--text-muted)") <> ";"
-                }>
-                  {row.payment_status || "—"}
-                </span>
-              </td>
               <td class="p-3 text-right">
-                ${:erlang.float_to_binary(row.billed + 0.0, decimals: 2)}
-              </td>
-              <td class="p-3 text-right" style="color: var(--text-muted);">
-                ${:erlang.float_to_binary(row.stripe_fee + 0.0, decimals: 2)}
-              </td>
-              <td class="p-3 text-right" style="color: #dc2626;">
                 ${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)}
               </td>
-              <td class="p-3 text-right" style="color: var(--accent);">
-                ${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}
+              <td class="p-3 text-right" style="color: #92400e;">
+                ${:erlang.float_to_binary(row.isr_retention_to_apply + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                ${:erlang.float_to_binary(row.paid_out_amount + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                ${:erlang.float_to_binary(row.isr_retentions_applied + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right" style="color: #dc2626;">
+                ${:erlang.float_to_binary(row.owed_to_doctor + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3 text-right font-semibold" style="color: var(--accent);">
+                ${:erlang.float_to_binary(row.net_payment_pending + 0.0, decimals: 2)}
+              </td>
+              <td class="p-3" style="color: var(--text-muted); white-space: nowrap;">
+                <%= cond do %>
+                  <% row.is_paid_to_doctor && row.payout_date -> %>
+                    <span title="Paid out on this date">✓ {row.payout_date}</span>
+                  <% row.is_paid_to_doctor -> %>
+                    <span>✓ paid</span>
+                  <% true -> %>
+                    <span>—</span>
+                <% end %>
               </td>
               <td class="p-3 pr-4 text-right" style="color: #f59e0b; white-space: nowrap;">
                 <%= if row.patient_rating do %>
