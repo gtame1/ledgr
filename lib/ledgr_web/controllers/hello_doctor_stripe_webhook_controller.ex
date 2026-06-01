@@ -111,14 +111,23 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
           full_refund? = amount_refunded_cents >= original_cents
           new_status = if full_refund?, do: "refunded", else: "partially_refunded"
 
+          # Refund-via-webhook (typically Stripe-dashboard-initiated) has no
+          # UI for the "Still pay doctor" override — so default to false on
+          # a full refund, matching the JE-side default. Partial refunds
+          # always leave pay_doctor as-is (doctor performed the work).
+          pay_doctor_update =
+            if full_refund?, do: %{pay_doctor: false}, else: %{}
+
           # Update amount_refunded + status (idempotent — same values on retry).
           # The refund JE creator is itself idempotent via the reference check.
           {:ok, updated} =
             payment
-            |> StripePayment.changeset(%{
-              status: new_status,
-              amount_refunded: amount_refunded_pesos
-            })
+            |> StripePayment.changeset(
+              Map.merge(
+                %{status: new_status, amount_refunded: amount_refunded_pesos},
+                pay_doctor_update
+              )
+            )
             |> Ledgr.Repo.update()
 
           StripeRefunds.create_refund_journal_entry(updated)
@@ -247,9 +256,7 @@ defmodule LedgrWeb.HelloDoctorStripeWebhookController do
         send_resp(conn, 200, "ok")
 
       {:error, reason} ->
-        Logger.error(
-          "[HelloDoctor] Failed to record payout #{payout.id}: #{inspect(reason)}"
-        )
+        Logger.error("[HelloDoctor] Failed to record payout #{payout.id}: #{inspect(reason)}")
 
         send_resp(conn, 500, "error")
     end

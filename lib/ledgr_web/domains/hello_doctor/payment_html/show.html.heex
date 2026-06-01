@@ -31,15 +31,42 @@ end %>
         </.link>
       <% end %>
       <%= if pay.status == "paid" && pay.stripe_payment_intent_id do %>
-        <.link
-          href={dp(@domain_path_prefix, "/payments/#{pay.id}/refund")}
+        <form
+          action={dp(@domain_path_prefix, "/payments/#{pay.id}/refund")}
           method="post"
-          class="hd-btn-danger"
-          data-confirm="Are you sure you want to refund this payment? This will issue a full refund of #{fmt.(pay.amount)} MXN via Stripe and cannot be undone."
+          class="flex items-center gap-2"
+          data-confirm={"Refund #{fmt.(pay.amount)} MXN via Stripe? This cannot be undone."}
         >
-          Refund Payment
-        </.link>
+          <input
+            type="hidden"
+            name="_csrf_token"
+            value={Plug.CSRFProtection.get_csrf_token()}
+          />
+          <label
+            class="flex items-center gap-1.5 text-xs"
+            style="color: var(--text-muted); cursor: pointer; white-space: nowrap;"
+            title="Reverse the patient charge but leave the doctor's payable intact — HD absorbs the loss. Useful when the patient's complaint isn't the doctor's fault."
+          >
+            <input type="checkbox" name="pay_doctor" value="true" /> Still pay doctor
+          </label>
+          <button type="submit" class="hd-btn-danger">Refund Payment</button>
+        </form>
       <% end %>
+      <.link
+        href={dp(@domain_path_prefix, "/payments/#{pay.id}/toggle-pay-doctor")}
+        method="post"
+        class="hd-btn-secondary text-xs"
+        data-confirm={
+          if pay.pay_doctor,
+            do:
+              "Flip 'pay doctor' to NO for this consultation? The Weekly Report and Doctor Payouts page will stop showing it as owed. (Ledger is not auto-updated — post a manual JE if needed.)",
+            else:
+              "Flip 'pay doctor' to YES for this consultation? The Weekly Report and Doctor Payouts page will treat the doctor as owed again. (Ledger is not auto-updated — post a manual JE if needed.)"
+        }
+        title="Override the pay-doctor flag for this consultation (does not change the ledger)"
+      >
+        Pay doctor: {if pay.pay_doctor, do: "yes", else: "no"} ⇄
+      </.link>
     </div>
   </div>
 

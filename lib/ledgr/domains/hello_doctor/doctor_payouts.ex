@@ -91,12 +91,12 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         on: c.doctor_id == d.id,
         left_join: p in Patient,
         on: c.patient_id == p.id,
+        # Exclude bot test/bypass flows (pi_test_bypass_*, cs_no_payment_*).
+        # Real charges either land in stripe_payments (sp.id non-null) or
+        # at least carry an amount on the consultation. Test/bypass rows
+        # have NULL or zero amount AND no stripe_payment match.
         where:
           c.payment_status in ^@payable_statuses and
-            # Exclude bot test/bypass flows (pi_test_bypass_*, cs_no_payment_*).
-            # Real charges either land in stripe_payments (sp.id non-null) or
-            # at least carry an amount on the consultation. Test/bypass rows
-            # have NULL or zero amount AND no stripe_payment match.
             (not is_nil(sp.id) or
                (not is_nil(c.payment_amount) and c.payment_amount > 0.0)) and
             fragment(
@@ -137,7 +137,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
           stripe_fee: sp.stripe_fee,
           stripe_status: sp.status,
           consultation_status: c.status,
-          consultation_payment_status: c.payment_status
+          consultation_payment_status: c.payment_status,
+          pay_doctor: sp.pay_doctor
         }
       )
 
@@ -163,6 +164,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       refunded = to_float(row.amount_refunded)
       fee = to_float(row.stripe_fee)
       hd_net = billed - fee - share - refunded
+
       summary =
         Map.get(payout_index, row.consultation_id, %{
           count: 0,
@@ -173,6 +175,12 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       refunded? =
         row.stripe_status == "refunded" or refunded > 0 or
           row.consultation_payment_status == "refunded"
+
+      # `pay_doctor` is the source of truth for whether the doctor is
+      # owed for this consultation. Defaults to true for consultations
+      # without a linked stripe_payment (e.g., free/bypass — none today,
+      # but defensive).
+      pay_doctor? = row.pay_doctor != false
 
       %{
         consultation_id: row.consultation_id,
@@ -189,7 +197,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         consultation_status: row.consultation_status,
         stripe_synced?: stripe_synced?,
         refunded?: refunded?,
-        doctor_share: Float.round(share, 2),
+        pay_doctor?: pay_doctor?,
+        doctor_share: Float.round(if(pay_doctor?, do: share, else: 0.0), 2),
         hd_net: Float.round(hd_net, 2),
         payout_count: summary.count,
         last_payout_date: summary.last_date,
@@ -202,11 +211,13 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
   defp apply_status_filter(rows, status) when status in [nil, :all, "all", ""], do: rows
 
-  # `pending` — the actionable list: no payout yet AND not refunded.
-  # This is the default view; "paid" and "refunded" are filtered out so
-  # users see only what still needs to be processed.
+  # `pending` — the actionable list: no payout yet AND we still owe
+  # the doctor (pay_doctor flag). A refunded consultation with the
+  # "Still pay doctor" override stays pending; a refunded one without
+  # it drops out. This is the default view; "paid" and "refunded" are
+  # filtered out so users see only what still needs processing.
   defp apply_status_filter(rows, status) when status in [:pending, "pending"] do
-    Enum.filter(rows, &(&1.payout_count == 0 and not &1.refunded?))
+    Enum.filter(rows, &(&1.payout_count == 0 and &1.pay_doctor?))
   end
 
   defp apply_status_filter(rows, status) when status in [:paid, "paid"] do
@@ -582,9 +593,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   end
 
   defp replace_payout_joins(payout_id, consultation_ids) do
-    Repo.delete_all(
-      from j in DoctorPayoutConsultation, where: j.doctor_payout_id == ^payout_id
-    )
+    Repo.delete_all(from j in DoctorPayoutConsultation, where: j.doctor_payout_id == ^payout_id)
 
     insert_payout_joins(payout_id, consultation_ids)
   end
@@ -634,7 +643,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     |> Enum.map(fn r ->
       Map.put(r, :linked_to_this_payout?, MapSet.member?(linked_ids, r.consultation_id))
     end)
-    |> Enum.sort_by(& &1.paid_at || ~N[1970-01-01 00:00:00], :desc)
+    |> Enum.sort_by(&(&1.paid_at || ~N[1970-01-01 00:00:00]), :desc)
   end
 
   defp fetch_doctor(%{doctor_id: id}) when is_binary(id) and id != "" do
@@ -667,8 +676,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         :ok
 
       _ ->
-        {:error,
-         "consultations don't belong to doctor #{doctor_id}: #{Enum.join(bad, ", ")}"}
+        {:error, "consultations don't belong to doctor #{doctor_id}: #{Enum.join(bad, ", ")}"}
     end
   end
 

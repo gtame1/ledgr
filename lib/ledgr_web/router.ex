@@ -507,14 +507,18 @@ defmodule LedgrWeb.Router do
     post "/payments/backfill-gl", Domains.HelloDoctor.PaymentController, :backfill_gl
     post "/payments/backfill-fees", Domains.HelloDoctor.PaymentController, :backfill_fees
     post "/payments/:id/refund", Domains.HelloDoctor.PaymentController, :refund
+
+    post "/payments/:id/toggle-pay-doctor",
+         Domains.HelloDoctor.PaymentController,
+         :toggle_pay_doctor
+
     post "/payments/:id/check-status", Domains.HelloDoctor.PaymentController, :check_status
     get "/payments/:id/link", Domains.HelloDoctor.PaymentController, :link_form
     post "/payments/:id/link", Domains.HelloDoctor.PaymentController, :save_link
     post "/payments/:id/unlink", Domains.HelloDoctor.PaymentController, :unlink
 
     # Specialties — synced from Prescrypto catalog on every page load
-    resources "/specialties", Domains.HelloDoctor.SpecialtyController,
-      only: [:index, :delete]
+    resources "/specialties", Domains.HelloDoctor.SpecialtyController, only: [:index, :delete]
 
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
 
@@ -611,8 +615,7 @@ defmodule LedgrWeb.Router do
     resources "/calculadora", Domains.AumentaMiPension.CalculadoraController,
       only: [:index, :show]
 
-    resources "/checkup", Domains.AumentaMiPension.CheckupController,
-      only: [:index, :show]
+    resources "/checkup", Domains.AumentaMiPension.CheckupController, only: [:index, :show]
 
     resources "/payments", Domains.AumentaMiPension.PaymentController, only: [:index, :show]
     post "/payments/sync", Domains.AumentaMiPension.PaymentController, :sync

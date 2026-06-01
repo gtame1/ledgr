@@ -155,10 +155,22 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       sp.amount                                            AS stripe_amount,
       sp.stripe_fee                                        AS stripe_fee,
       sp.paid_at                                           AS stripe_paid_at,
-      $5::float8                                           AS doctor_share,
-      $6::float8                                           AS iva_retention_to_apply,
-      CASE WHEN COALESCE(d.has_correct_rfc, FALSE)
-           THEN $7::float8 ELSE $8::float8 END             AS isr_retention_to_apply,
+      -- Treat consultations without a linked payment as "pay the doctor"
+      -- (they're typically just not refunded). Refunded payments will
+      -- have pay_doctor=false unless an operator overrode it.
+      COALESCE(sp.pay_doctor, TRUE)                        AS pay_doctor,
+      -- Doctor share + retentions all zero out when pay_doctor=false so
+      -- totals and net_payment_pending stay accurate without special-
+      -- casing downstream. Retentions are applied against the doctor
+      -- share — no share, no retention.
+      CASE WHEN COALESCE(sp.pay_doctor, TRUE)
+           THEN $5::float8 ELSE 0::float8 END              AS doctor_share,
+      CASE WHEN COALESCE(sp.pay_doctor, TRUE)
+           THEN $6::float8 ELSE 0::float8 END              AS iva_retention_to_apply,
+      CASE WHEN COALESCE(sp.pay_doctor, TRUE) THEN
+        CASE WHEN COALESCE(d.has_correct_rfc, FALSE)
+             THEN $7::float8 ELSE $8::float8 END
+        ELSE 0::float8 END                                 AS isr_retention_to_apply,
       (COALESCE(pot.paid_out_cents, 0)::float8 / 100.0)    AS paid_out_amount,
       (COALESCE(pot.iva_applied_cents, 0)::float8 / 100.0) AS iva_retentions_applied,
       (COALESCE(pot.isr_applied_cents, 0)::float8 / 100.0) AS isr_retentions_applied,
@@ -255,6 +267,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
         doctor_specialty: sample.doctor_specialty,
         has_correct_rfc: sample.has_correct_rfc,
         consultations: length(rows),
+        skipped_count: Enum.count(rows, &(&1.pay_doctor == false)),
         paid_to_doctor_count: Enum.count(rows, & &1.is_paid_to_doctor),
         doctor_share: sum_round(rows, :doctor_share),
         paid_out_amount: sum_round(rows, :paid_out_amount),
@@ -329,6 +342,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       "Patient",
       "Type",
       "Duration (min)",
+      "Pay doctor?",
       "Doctor share (MXN)",
       "IVA retention to apply",
       "ISR retention to apply",
@@ -353,6 +367,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
           r.patient_name || "",
           r.consultation_type || "",
           r.duration_minutes,
+          yes_no(r.pay_doctor),
           r.doctor_share,
           r.iva_retention_to_apply,
           r.isr_retention_to_apply,

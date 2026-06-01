@@ -331,6 +331,13 @@
               Patient
             </th>
             <th
+              class="text-center p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+              title="Whether this consultation contributes to the doctor's payout. Flips to ✗ on refund unless overridden."
+            >
+              Pay?
+            </th>
+            <th
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
             >
@@ -397,6 +404,20 @@
                 <% end %>
               </td>
               <td class="p-3" style="color: var(--text-muted);">{row.patient_name || "—"}</td>
+              <td class="p-3 text-center">
+                <%= if row.pay_doctor do %>
+                  <span style="color: #065f46;" title="Doctor will be paid for this consultation">
+                    ✓
+                  </span>
+                <% else %>
+                  <span
+                    style="color: #92400e;"
+                    title="Doctor will NOT be paid for this consultation (typically: refunded without override)"
+                  >
+                    ✗
+                  </span>
+                <% end %>
+              </td>
               <td class="p-3 text-right">
                 ${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)}
               </td>

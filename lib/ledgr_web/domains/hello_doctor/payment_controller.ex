@@ -155,16 +155,60 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     end
   end
 
-  def refund(conn, %{"id" => id}) do
+  @doc """
+  Flips the `pay_doctor` flag on a stripe_payment. Useful for
+  after-the-fact corrections — e.g. you refunded without the override
+  and decided later to pay the doctor anyway. This does NOT post any
+  journal entries; if the JE needs to match, post a manual one (see
+  StripeRefunds docs).
+  """
+  def toggle_pay_doctor(conn, %{"id" => id}) do
     payment = Repo.get!(StripePayment, id)
+    new_value = not payment.pay_doctor
 
-    case Ledgr.Domains.HelloDoctor.StripeRefunds.refund_payment(payment) do
-      {:ok, updated_payment} ->
+    case payment
+         |> Ecto.Changeset.change(%{pay_doctor: new_value})
+         |> Repo.update() do
+      {:ok, _} ->
+        msg =
+          if new_value,
+            do:
+              "Doctor flagged as payable for this consultation. " <>
+                "Reports will now include it — post a manual JE if the ledger needs to match.",
+            else:
+              "Doctor flagged as NOT payable. Reports will skip this consultation. " <>
+                "Post a manual JE if the ledger needs to match."
+
         conn
-        |> put_flash(
-          :info,
-          "Payment refunded successfully ($#{:erlang.float_to_binary(updated_payment.amount, decimals: 2)} MXN)."
-        )
+        |> put_flash(:info, msg)
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+
+      {:error, changeset} ->
+        conn
+        |> put_flash(:error, "Failed to toggle pay_doctor: #{inspect(changeset.errors)}")
+        |> redirect(to: dp(conn, "/payments/#{id}"))
+    end
+  end
+
+  def refund(conn, %{"id" => id} = params) do
+    payment = Repo.get!(StripePayment, id)
+    pay_doctor? = params["pay_doctor"] in ["true", "1", "on", "yes"]
+
+    case Ledgr.Domains.HelloDoctor.StripeRefunds.refund_payment(payment,
+           pay_doctor: pay_doctor?
+         ) do
+      {:ok, updated_payment} ->
+        amount_str = :erlang.float_to_binary(updated_payment.amount, decimals: 2)
+
+        flash_msg =
+          if pay_doctor? do
+            "Payment refunded ($#{amount_str} MXN) — doctor still owed (override applied)."
+          else
+            "Payment refunded ($#{amount_str} MXN) — doctor payable reversed."
+          end
+
+        conn
+        |> put_flash(:info, flash_msg)
         |> redirect(to: dp(conn, "/payments/#{updated_payment.id}"))
 
       {:error, reason} ->
