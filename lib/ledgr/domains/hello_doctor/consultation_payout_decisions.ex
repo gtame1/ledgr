@@ -2,7 +2,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions do
   @moduledoc """
   Override layer that controls whether a consultation produces a
   doctor payable. Single source of truth — both the Doctor Payouts
-  page and the Weekly Report consult this table.
+  page and the Monthly Report consult this table.
 
   The default is **always "pay the doctor"** — i.e., a consultation
   without a row here is treated as `pay_doctor = true`. Rows only

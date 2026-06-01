@@ -1,91 +1,131 @@
-defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
+defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
   @moduledoc """
-  Weekly doctor payouts report — per-consultation rows showing what's
-  still owed to each doctor net of payouts already made and retentions
-  due / applied.
+  Monthly doctor-payout report — one row per consultation in the
+  selected month, showing what's still owed to each doctor net of
+  payouts already made and retentions due / applied.
 
   Per consultation:
 
-      doctor_share              = flat 100 MXN (per-consult fee)
-      iva_retention_to_apply    = 0 (IVA rate currently 0 for honorarios)
+      doctor_share              = 100 MXN when pay_to_doc; 0 otherwise
+      iva_retention_to_apply    = 0 (no IVA retention on honorarios)
       isr_retention_to_apply    = 2.5 if doctor.has_correct_rfc, else 20
 
-      paid_out_amount           = Σ doctor_payouts.amount_cents
-      iva_retentions_applied    = Σ doctor_payouts.iva_retention_cents
-      isr_retentions_applied    = Σ doctor_payouts.isr_retention_cents
-        (all summed across the consultation's linked doctor_payouts)
+      paid_out_amount           = doctor_payouts.amount_cents / 100
+      iva_retentions_applied    = doctor_payouts.iva_retention_cents / 100
+      isr_retentions_applied    = doctor_payouts.isr_retention_cents / 100
 
       owed_to_doctor       = doctor_share - paid_out_amount
       net_payment_pending  = owed_to_doctor
                            - (iva_retention_to_apply - iva_retentions_applied)
                            - (isr_retention_to_apply - isr_retentions_applied)
 
-  Rows with `net_payment_pending == 0` are filtered out by default —
-  pass `include_settled: true` (or `?include_settled=true` on the URL)
-  to keep them in the listing.
+  Rows with `net_payment_pending == 0` are filtered out by default.
+  Pass `include_settled: true` (`?include_settled=true`) to keep them.
 
-  Excludes:
-    * test patient (`@test_patient_id`)
-    * test doctor (`@test_doctor_id`)
+  The query excludes refunded consultations *unless* they have an
+  explicit `pay_doctor=true` override in `consultation_payout_decisions`.
+  Test patient + test doctor are hardcoded out.
 
-  Period defaults to the previous full week (Mon–Sun) in Mexico City
-  time.
+  Period defaults to the previous calendar month in Mexico City time.
   """
 
   alias Ledgr.Repo
 
   @doctor_share_mxn 100.0
 
-  # Mexican payroll retention rates. ISR depends on whether we've
-  # verified the doctor's RFC (registered honorarios get the lower
-  # 2.5% retention rate; otherwise we hold back the 20% default).
-  # Stored as percentage points so the value matches the report column.
+  # Mexican payroll retention rates expressed as percentage points so
+  # they line up with the report column ("2.5" / "20").
   @iva_rate_pct 0.0
   @isr_rate_with_rfc_pct 2.5
   @isr_rate_without_rfc_pct 20.0
 
-  # Excluded from every report — Guillermo's test patient + a test
-  # doctor account. Both bot-managed, so we can't tag them in-schema;
-  # hardcoded here is the simplest gate.
+  # Hard-coded exclusions — both are bot-managed so we can't tag them
+  # in-schema; gating here is the simplest approach.
   @test_patient_id "2ed77952-cead-4bc4-bc44-51f5b5052d76"
   @test_doctor_id "03f3b382-3ae3-4c0c-8d8e-2382b241b1d8"
 
   # ── Period helpers ─────────────────────────────────────────────
 
-  @doc "Returns {start_date, end_date} for the previous Mon–Sun week."
-  def last_week_range do
+  @doc "Returns {first_day, last_day} of the previous calendar month."
+  def last_month_range do
     today = Ledgr.Domains.HelloDoctor.today()
-    monday_this_week = Date.beginning_of_week(today, :monday)
-    start_date = Date.add(monday_this_week, -7)
-    end_date = Date.add(start_date, 6)
-    {start_date, end_date}
+    last_month_range(today)
+  end
+
+  def last_month_range(today) do
+    today
+    |> Date.beginning_of_month()
+    |> Date.add(-1)
+    |> month_range()
+  end
+
+  @doc "Returns {first_day, last_day} of the month containing `date`."
+  def month_range(date) do
+    first = Date.beginning_of_month(date)
+    last = Date.end_of_month(first)
+    {first, last}
+  end
+
+  @doc "Returns the {start, end} of the month for a YYYY-MM string, or nil on bad input."
+  def parse_month(nil), do: nil
+  def parse_month(""), do: nil
+
+  def parse_month(<<year::binary-size(4), "-", month::binary-size(2)>>) do
+    with {y, ""} <- Integer.parse(year),
+         {m, ""} <- Integer.parse(month),
+         {:ok, date} <- Date.new(y, m, 1) do
+      month_range(date)
+    else
+      _ -> nil
+    end
+  end
+
+  def parse_month(_), do: nil
+
+  @doc "Adds `n` months to the first day of `date`'s month."
+  def shift_month(date, n) when is_integer(n) do
+    Date.beginning_of_month(date) |> shift_month_by(n)
+  end
+
+  defp shift_month_by(date, 0), do: date
+
+  defp shift_month_by(date, n) when n > 0 do
+    date |> Date.end_of_month() |> Date.add(1) |> shift_month_by(n - 1)
+  end
+
+  defp shift_month_by(date, n) when n < 0 do
+    date |> Date.add(-1) |> Date.beginning_of_month() |> shift_month_by(n + 1)
+  end
+
+  @doc "Returns a list of {label, YYYY-MM} for the last `n` months (most recent first)."
+  def month_options(n \\ 12) do
+    today = Ledgr.Domains.HelloDoctor.today()
+    first_of_this_month = Date.beginning_of_month(today)
+
+    0..(n - 1)
+    |> Enum.map(fn i -> shift_month_by(first_of_this_month, -i) end)
+    |> Enum.map(fn d ->
+      label = Calendar.strftime(d, "%B %Y")
+      key = Calendar.strftime(d, "%Y-%m")
+      {label, key}
+    end)
   end
 
   # ── Main API ───────────────────────────────────────────────────
 
   @doc """
-  Generates the weekly report for the given period.
+  Generates the monthly report for the given period.
 
   Options:
-    * `:include_settled` — when `true`, includes consultations with
-      `net_payment_pending == 0`. Defaults to `false` (filter them out).
-
-  Returns a map:
-
-      %{
-        period: {start_date, end_date},
-        include_settled?: boolean,
-        consultations: [...],   # one row per attended consultation
-        per_doctor:    [...],   # aggregated by doctor
-        totals: %{...}
-      }
+    * `:include_settled` — when `true`, keeps rows with
+      `net_payment_pending == 0`. Defaults to `false`.
   """
   def generate(start_date, end_date, opts \\ []) do
     include_settled? = Keyword.get(opts, :include_settled, false)
 
     consultations =
       start_date
-      |> list_attended_consultations(end_date)
+      |> list_consultations(end_date)
       |> maybe_filter_settled(include_settled?)
 
     per_doctor = aggregate_by_doctor(consultations)
@@ -108,101 +148,93 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
   # ── Per-consultation query ─────────────────────────────────────
 
   @doc """
-  Returns one row per completed consultation in
-  `[start_date, end_date]` (by `completed_at`), with the full
-  per-consultation payout picture: doctor share, retentions to apply,
-  amounts already paid out, retentions already applied, and the
-  derived `owed_to_doctor` / `net_payment_pending`.
+  One row per consultation whose `completed_at` falls in
+  `[start_date, end_date]`. Refunded consultations are excluded
+  unless they have a `pay_doctor=true` override.
 
-  Excludes the test patient + test doctor account.
-
-  Multi-payout per consultation is handled by aggregating
-  `doctor_payouts` in a CTE before joining, so each consultation
-  appears at most once (modulo multiple `stripe_payments` rows, which
-  remain a degenerate case we accept).
+  Driven directly from `doctor_payout_consultations → doctor_payouts`
+  with no aggregation CTE — consultations have at most one payout via
+  the unique constraint on `doctor_payout_consultations`.
   """
-  def list_attended_consultations(start_date, end_date) do
+  def list_consultations(start_date, end_date) do
     start_naive = NaiveDateTime.new!(start_date, ~T[00:00:00])
     end_naive = NaiveDateTime.new!(end_date, ~T[23:59:59])
 
     sql = """
-    WITH payout_totals AS (
+    WITH main AS (
       SELECT
-        dpc.consultation_id,
-        SUM(dp.amount_cents)::bigint                       AS paid_out_cents,
-        SUM(COALESCE(dp.iva_retention_cents, 0))::bigint   AS iva_applied_cents,
-        SUM(COALESCE(dp.isr_retention_cents, 0))::bigint   AS isr_applied_cents,
-        MAX(dp.payout_date)                                AS payout_date
-      FROM doctor_payout_consultations dpc
-      JOIN doctor_payouts dp ON dp.id = dpc.doctor_payout_id
-      GROUP BY dpc.consultation_id
+        c.id                                       AS consultation_id,
+        c.completed_at,
+        c.assigned_at,
+        c.duration_minutes,
+        c.consultation_type,
+        c.status                                   AS consultation_status,
+        p.status                                   AS payment_status,
+        c.payment_amount,
+        c.patient_rating,
+        d.id                                       AS doctor_id,
+        d.name                                     AS doctor_name,
+        d.specialty                                AS doctor_specialty,
+        COALESCE(d.has_correct_rfc, FALSE)         AS has_correct_rfc,
+        pt.id                                      AS patient_id,
+        COALESCE(pt.full_name, pt.display_name)    AS patient_name,
+        p.amount                                   AS stripe_amount,
+        p.stripe_fee,
+        p.paid_at                                  AS stripe_paid_at,
+        COALESCE(cpd.pay_doctor, TRUE)             AS pay_to_doc,
+        -- HD commission is the gross above the doctor's flat share.
+        -- NULL when there's no Stripe payment (e.g. discount).
+        (p.amount - $3::float8)                    AS hd_commission,
+        CASE WHEN COALESCE(cpd.pay_doctor, TRUE)
+             THEN $3::float8 ELSE 0::float8 END    AS doctor_share,
+        $4::float8                                 AS iva_retention_to_apply,
+        CASE WHEN COALESCE(d.has_correct_rfc, FALSE)
+             THEN $5::float8 ELSE $6::float8 END   AS isr_retention_to_apply,
+        (dp.id IS NOT NULL)                        AS is_paid_to_doctor,
+        dp.payout_date                             AS payout_date,
+        COALESCE(ROUND(dp.amount_cents / 100.0, 2)::float8, 0::float8)
+                                                    AS paid_out_amount,
+        COALESCE(ROUND(dp.iva_retention_cents / 100.0, 2)::float8, 0::float8)
+                                                    AS iva_retentions_applied,
+        COALESCE(ROUND(dp.isr_retention_cents / 100.0, 2)::float8, 0::float8)
+                                                    AS isr_retentions_applied
+      FROM consultations c
+      LEFT JOIN doctors  d  ON d.id = c.doctor_id
+      LEFT JOIN patients pt ON pt.id = c.patient_id
+      LEFT JOIN doctor_payout_consultations dpc ON dpc.consultation_id = c.id
+      LEFT JOIN doctor_payouts dp              ON dp.id = dpc.doctor_payout_id
+      LEFT JOIN consultation_payout_decisions cpd ON cpd.consultation_id = c.id
+      LEFT JOIN stripe_payments p ON (
+        p.consultation_id = c.id
+        OR (p.consultation_id IS NULL
+            AND c.stripe_payment_intent_id IS NOT NULL
+            AND p.stripe_payment_intent_id = c.stripe_payment_intent_id)
+      )
+      WHERE c.completed_at BETWEEN $1 AND $2
+        AND (p.status IS DISTINCT FROM 'refunded'
+             OR COALESCE(cpd.pay_doctor, TRUE) = TRUE)
+        AND (pt.id IS DISTINCT FROM $7)
+        AND (d.id  IS DISTINCT FROM $8)
     )
     SELECT
-      c.id                                                 AS consultation_id,
-      c.completed_at,
-      c.assigned_at,
-      c.duration_minutes,
-      c.consultation_type,
-      c.payment_status,
-      c.payment_amount,
-      c.patient_rating,
-      d.id                                                 AS doctor_id,
-      d.name                                               AS doctor_name,
-      d.specialty                                          AS doctor_specialty,
-      COALESCE(d.has_correct_rfc, FALSE)                   AS has_correct_rfc,
-      pt.id                                                AS patient_id,
-      COALESCE(pt.full_name, pt.display_name)              AS patient_name,
-      sp.amount                                            AS stripe_amount,
-      sp.stripe_fee                                        AS stripe_fee,
-      sp.paid_at                                           AS stripe_paid_at,
-      -- Default = "pay the doctor". A row in consultation_payout_decisions
-      -- overrides; absence = TRUE.
-      COALESCE(cpd.pay_doctor, TRUE)                       AS pay_doctor,
-      -- Doctor share + retentions all zero out when pay_doctor=false so
-      -- totals and net_payment_pending stay accurate without special-
-      -- casing downstream. Retentions are applied against the doctor
-      -- share — no share, no retention.
-      CASE WHEN COALESCE(cpd.pay_doctor, TRUE)
-           THEN $5::float8 ELSE 0::float8 END              AS doctor_share,
-      CASE WHEN COALESCE(cpd.pay_doctor, TRUE)
-           THEN $6::float8 ELSE 0::float8 END              AS iva_retention_to_apply,
-      CASE WHEN COALESCE(cpd.pay_doctor, TRUE) THEN
-        CASE WHEN COALESCE(d.has_correct_rfc, FALSE)
-             THEN $7::float8 ELSE $8::float8 END
-        ELSE 0::float8 END                                 AS isr_retention_to_apply,
-      (COALESCE(pot.paid_out_cents, 0)::float8 / 100.0)    AS paid_out_amount,
-      (COALESCE(pot.iva_applied_cents, 0)::float8 / 100.0) AS iva_retentions_applied,
-      (COALESCE(pot.isr_applied_cents, 0)::float8 / 100.0) AS isr_retentions_applied,
-      pot.payout_date                                      AS payout_date,
-      (pot.consultation_id IS NOT NULL)                    AS is_paid_to_doctor
-    FROM consultations c
-    LEFT JOIN doctors d  ON d.id = c.doctor_id
-    LEFT JOIN patients pt ON pt.id = c.patient_id
-    LEFT JOIN stripe_payments sp ON (
-      sp.consultation_id = c.id
-      OR (sp.consultation_id IS NULL
-          AND c.stripe_payment_intent_id IS NOT NULL
-          AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id)
-    )
-    LEFT JOIN consultation_payout_decisions cpd ON cpd.consultation_id = c.id
-    LEFT JOIN payout_totals pot ON pot.consultation_id = c.id
-    WHERE c.status = 'completed'
-      AND c.completed_at >= $1
-      AND c.completed_at <= $2
-      AND (c.patient_id IS DISTINCT FROM $3)
-      AND (c.doctor_id  IS DISTINCT FROM $4)
-    ORDER BY c.completed_at ASC
+      main.*,
+      (doctor_share - paid_out_amount)                 AS owed_to_doctor,
+      ((doctor_share - paid_out_amount)
+       - (iva_retention_to_apply - iva_retentions_applied)
+       - (isr_retention_to_apply - isr_retentions_applied)) AS net_payment_pending
+    FROM main
+    ORDER BY completed_at ASC
     """
 
     params = [
       start_naive,
       end_naive,
-      @test_patient_id,
-      @test_doctor_id,
       @doctor_share_mxn,
       @iva_rate_pct,
       @isr_rate_with_rfc_pct,
-      @isr_rate_without_rfc_pct
+      @isr_rate_without_rfc_pct,
+      @test_patient_id,
+      @test_doctor_id
     ]
 
     result = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, params)
@@ -210,39 +242,28 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
 
     result.rows
     |> Enum.map(fn row -> columns |> Enum.zip(row) |> Map.new() end)
-    |> Enum.map(&derive_pending/1)
+    |> Enum.map(&round_money/1)
   end
 
-  # Computes `owed_to_doctor` and `net_payment_pending` in Elixir so
-  # we only have to maintain the formula in one place. Rounds money
-  # columns to 2 decimals to avoid `1.0500000001`-style display noise.
-  defp derive_pending(row) do
-    doctor_share = to_float(row.doctor_share)
-    paid_out = to_float(row.paid_out_amount)
-    iva_to_apply = to_float(row.iva_retention_to_apply)
-    isr_to_apply = to_float(row.isr_retention_to_apply)
-    iva_applied = to_float(row.iva_retentions_applied)
-    isr_applied = to_float(row.isr_retentions_applied)
-
-    owed_to_doctor = doctor_share - paid_out
-
-    net_payment_pending =
-      owed_to_doctor -
-        (iva_to_apply - iva_applied) -
-        (isr_to_apply - isr_applied)
-
+  # Postgres returns numeric and float8 a mix of Decimal and float
+  # depending on the operation. Normalize money columns to 2-decimal
+  # floats so display + filter math is consistent.
+  defp round_money(row) do
     row
-    |> Map.put(:doctor_share, Float.round(doctor_share, 2))
-    |> Map.put(:paid_out_amount, Float.round(paid_out, 2))
-    |> Map.put(:iva_retention_to_apply, Float.round(iva_to_apply, 2))
-    |> Map.put(:isr_retention_to_apply, Float.round(isr_to_apply, 2))
-    |> Map.put(:iva_retentions_applied, Float.round(iva_applied, 2))
-    |> Map.put(:isr_retentions_applied, Float.round(isr_applied, 2))
-    |> Map.put(:owed_to_doctor, Float.round(owed_to_doctor, 2))
-    |> Map.put(:net_payment_pending, Float.round(net_payment_pending, 2))
+    |> Map.update!(:doctor_share, &to_round/1)
+    |> Map.update!(:iva_retention_to_apply, &to_round/1)
+    |> Map.update!(:isr_retention_to_apply, &to_round/1)
+    |> Map.update!(:paid_out_amount, &to_round/1)
+    |> Map.update!(:iva_retentions_applied, &to_round/1)
+    |> Map.update!(:isr_retentions_applied, &to_round/1)
+    |> Map.update!(:owed_to_doctor, &to_round/1)
+    |> Map.update!(:net_payment_pending, &to_round/1)
     |> Map.put(:stripe_amount, round_or_nil(row[:stripe_amount]))
     |> Map.put(:stripe_fee, round_or_nil(row[:stripe_fee]))
+    |> Map.put(:hd_commission, round_or_nil(row[:hd_commission]))
   end
+
+  defp to_round(v), do: v |> to_float() |> Float.round(2)
 
   # ── Per-doctor aggregation ─────────────────────────────────────
 
@@ -251,7 +272,6 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
     |> Enum.group_by(& &1.doctor_id)
     |> Enum.map(fn {doctor_id, rows} ->
       sample = List.first(rows)
-
       rated = Enum.filter(rows, &is_integer(&1.patient_rating))
       rated_count = length(rated)
 
@@ -267,9 +287,10 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
         doctor_specialty: sample.doctor_specialty,
         has_correct_rfc: sample.has_correct_rfc,
         consultations: length(rows),
-        skipped_count: Enum.count(rows, &(&1.pay_doctor == false)),
         paid_to_doctor_count: Enum.count(rows, & &1.is_paid_to_doctor),
+        skipped_count: Enum.count(rows, &(&1.pay_to_doc == false)),
         doctor_share: sum_round(rows, :doctor_share),
+        hd_commission: sum_round_nilable(rows, :hd_commission),
         paid_out_amount: sum_round(rows, :paid_out_amount),
         iva_retention_to_apply: sum_round(rows, :iva_retention_to_apply),
         isr_retention_to_apply: sum_round(rows, :isr_retention_to_apply),
@@ -299,6 +320,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       paid_to_doctor_count: Enum.count(consultations, & &1.is_paid_to_doctor),
       unique_doctors: length(per_doctor),
       total_doctor_share: sum_round(consultations, :doctor_share),
+      total_hd_commission: sum_round_nilable(consultations, :hd_commission),
       total_paid_out: sum_round(consultations, :paid_out_amount),
       total_iva_to_apply: sum_round(consultations, :iva_retention_to_apply),
       total_isr_to_apply: sum_round(consultations, :isr_retention_to_apply),
@@ -317,13 +339,22 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
     |> Float.round(2)
   end
 
+  # Sum but ignore nil values (e.g. hd_commission is nil when no Stripe
+  # payment exists — don't count those as zero, which would be wrong;
+  # treat as missing).
+  defp sum_round_nilable(rows, key) do
+    rows
+    |> Enum.reduce(0.0, fn r, acc ->
+      case Map.get(r, key) do
+        nil -> acc
+        v -> acc + to_float(v)
+      end
+    end)
+    |> Float.round(2)
+  end
+
   # ── CSV export ─────────────────────────────────────────────────
 
-  @doc """
-  Builds a CSV string with three sections: header banner,
-  per-consultation detail, and per-doctor summary. Excel + Google
-  Sheets both open it natively.
-  """
   def to_csv(%{
         consultations: consultations,
         per_doctor: per_doctor,
@@ -342,6 +373,11 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       "Patient",
       "Type",
       "Duration (min)",
+      "Consultation status",
+      "Stripe payment status",
+      "Stripe amount",
+      "Stripe fee",
+      "HD commission",
       "Pay doctor?",
       "Doctor share (MXN)",
       "IVA retention to apply",
@@ -367,7 +403,12 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
           r.patient_name || "",
           r.consultation_type || "",
           r.duration_minutes,
-          yes_no(r.pay_doctor),
+          r.consultation_status || "",
+          r.payment_status || "",
+          r.stripe_amount,
+          r.stripe_fee,
+          r.hd_commission,
+          yes_no(r.pay_to_doc),
           r.doctor_share,
           r.iva_retention_to_apply,
           r.isr_retention_to_apply,
@@ -389,6 +430,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       "Consultations",
       "Paid to doctor",
       "Doctor share (MXN)",
+      "HD commission (MXN)",
       "Paid out (MXN)",
       "ISR to apply",
       "ISR applied",
@@ -407,6 +449,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
           r.consultations,
           r.paid_to_doctor_count,
           r.doctor_share,
+          r.hd_commission,
           r.paid_out_amount,
           r.isr_retention_to_apply,
           r.isr_retentions_applied,
@@ -419,12 +462,12 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
 
     scope_line =
       if include_settled?,
-        do: "All completed consultations (including settled with net pending = 0).",
-        else: "Only consultations with net payment pending ≠ 0."
+        do: "All rows (incl. net pending = 0).",
+        else: "Only rows with net payment pending ≠ 0."
 
     sections = [
       [
-        ["HelloDoctor — Weekly Doctor Payout Report"],
+        ["HelloDoctor — Monthly Doctor Payout Report"],
         ["Period", "#{s}", "to", "#{e}"],
         ["Scope", scope_line],
         []
@@ -445,6 +488,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
         ["Paid to doctor (count)", t.paid_to_doctor_count],
         ["Unique doctors", t.unique_doctors],
         ["Doctor share total (MXN)", t.total_doctor_share],
+        ["HD commission total (MXN)", t.total_hd_commission],
         ["Paid out total (MXN)", t.total_paid_out],
         ["IVA to apply total", t.total_iva_to_apply],
         ["ISR to apply total", t.total_isr_to_apply],

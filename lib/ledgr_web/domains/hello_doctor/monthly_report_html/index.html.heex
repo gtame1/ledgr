@@ -1,67 +1,102 @@
 <div class="hd-page">
   <%!-- ── Header ── --%>
-  <div class="mb-8">
-    <div class="mb-4">
-      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Weekly Doctor Payouts</h1>
-      <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 70ch;">
-        Per-consultation view of what's still owed to each doctor for the
-        selected week. Doctor share is a flat
+  <div class="mb-6">
+    <div class="flex items-baseline justify-between gap-4 flex-wrap mb-2">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">
+        Monthly Doctor Payouts
+      </h1>
+      <div class="text-sm" style="color: var(--text-muted);">
+        Doctor share:
         <strong>${:erlang.float_to_binary(@doctor_share + 0.0, decimals: 2)} MXN</strong>
-        per consultation; ISR retention is <strong>2.5%</strong>
-        if the doctor's RFC is verified, otherwise <strong>20%</strong>.
-        <em>Net payment pending</em>
-        nets out what we've already paid out and the retentions we've already
-        applied. Rows with <code>net_payment_pending = 0</code>
-        are hidden by default.
-      </p>
+        · ISR: <strong>2.5%</strong>
+        if RFC verified, otherwise <strong>20%</strong>
+      </div>
     </div>
+    <p class="text-sm" style="color: var(--text-muted); max-width: 80ch;">
+      One row per consultation completed in the month. Refunded consultations
+      are excluded unless an operator chose "still pay doctor" on the refund.
+      Rows where <code>net_payment_pending = 0</code> are hidden by default.
+    </p>
+  </div>
 
-    <form method="get" class="flex flex-wrap items-center gap-3">
+  <%!-- ── Month navigator + filters ── --%>
+  <div class="hd-card p-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <%!-- Month navigator: ← Apr 2026 → with jump-to dropdown --%>
       <div class="flex items-center gap-2">
-        <input
-          type="date"
-          name="start_date"
-          value={@start_date}
-          class="hd-input text-sm"
-          style="padding: 0.4rem 0.65rem;"
-        />
-        <span style="color: var(--text-muted);">→</span>
-        <input
-          type="date"
-          name="end_date"
-          value={@end_date}
-          class="hd-input text-sm"
-          style="padding: 0.4rem 0.65rem;"
-        />
+        <.link
+          navigate={dp(@domain_path_prefix, "/reports/monthly?month=#{@prev_month}")}
+          class="hd-btn-sm"
+          title="Previous month"
+        >
+          ←
+        </.link>
+
+        <form method="get" class="flex items-center gap-2">
+          <select
+            name="month"
+            class="hd-input text-sm font-semibold"
+            style="padding: 0.4rem 0.65rem; min-width: 12rem;"
+            onchange="this.form.submit()"
+          >
+            <%= for {label, key} <- @month_options do %>
+              <option value={key} selected={key == @month_key}>{label}</option>
+            <% end %>
+          </select>
+          <%= if @include_settled? do %>
+            <input type="hidden" name="include_settled" value="true" />
+          <% end %>
+        </form>
+
+        <.link
+          navigate={dp(@domain_path_prefix, "/reports/monthly?month=#{@next_month}")}
+          class="hd-btn-sm"
+          title="Next month"
+        >
+          →
+        </.link>
       </div>
 
-      <label
-        class="flex items-center gap-2 text-sm"
-        style="color: var(--text-main); cursor: pointer;"
-      >
-        <input
-          type="checkbox"
-          name="include_settled"
-          value="true"
-          checked={@include_settled?}
-        /> Show settled rows (net pending = 0)
-      </label>
+      <%!-- Quick chips: This month / Last month --%>
+      <div class="flex flex-wrap items-center gap-2">
+        <.link
+          navigate={dp(@domain_path_prefix, "/reports/monthly?month=#{@this_month}")}
+          class={"hd-btn-sm #{if @month_key == @this_month, do: "hd-btn-primary", else: ""}"}
+        >
+          This month
+        </.link>
+        <.link
+          navigate={dp(@domain_path_prefix, "/reports/monthly?month=#{@last_month}")}
+          class={"hd-btn-sm #{if @month_key == @last_month, do: "hd-btn-primary", else: ""}"}
+        >
+          Last month
+        </.link>
 
-      <button type="submit" class="hd-btn-sm">Filter</button>
+        <form method="get" class="flex items-center gap-2 ml-2">
+          <input type="hidden" name="month" value={@month_key} />
+          <label
+            class="flex items-center gap-1.5 text-sm"
+            style="color: var(--text-main); cursor: pointer;"
+          >
+            <input
+              type="checkbox"
+              name="include_settled"
+              value="true"
+              checked={@include_settled?}
+              onchange="this.form.submit()"
+            /> Show settled rows
+          </label>
+        </form>
 
-      <a
-        href={
-          dp(
-            @domain_path_prefix,
-            "/reports/weekly/download?start_date=#{@start_date}&end_date=#{@end_date}#{if @include_settled?, do: "&include_settled=true", else: ""}"
-          )
-        }
-        class="hd-btn-primary text-sm"
-        style="padding: 0.5rem 0.95rem;"
-      >
-        ⬇ Download CSV
-      </a>
-    </form>
+        <a
+          href={dp(@domain_path_prefix, csv_href("", assigns))}
+          class="hd-btn-primary text-sm"
+          style="padding: 0.4rem 0.95rem;"
+        >
+          ⬇ CSV
+        </a>
+      </div>
+    </div>
   </div>
 
   <%!-- ── KPI summary ── --%>
@@ -76,7 +111,7 @@
     <div class="hd-kpi">
       <div class="hd-kpi-label">Doctors</div>
       <div class="hd-kpi-value">{@report.totals.unique_doctors}</div>
-      <div class="hd-kpi-sub">with at least one consultation</div>
+      <div class="hd-kpi-sub">with ≥1 consultation</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Doctor share total</div>
@@ -84,6 +119,13 @@
         ${:erlang.float_to_binary(@report.totals.total_doctor_share + 0.0, decimals: 2)}
       </div>
       <div class="hd-kpi-sub">MXN — gross obligation</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">HD commission</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">
+        ${:erlang.float_to_binary(@report.totals.total_hd_commission + 0.0, decimals: 2)}
+      </div>
+      <div class="hd-kpi-sub">MXN — Stripe amount − doctor share</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Paid out</div>
@@ -104,7 +146,7 @@
       <div class="hd-kpi-value" style="color: var(--accent);">
         ${:erlang.float_to_binary(@report.totals.total_net_payment_pending + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">MXN — after ISR/IVA retention math</div>
+      <div class="hd-kpi-sub">MXN — after ISR/IVA math</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">ISR to apply (Σ)</div>
@@ -114,17 +156,6 @@
       <div class="hd-kpi-sub">
         {:erlang.float_to_binary(@report.totals.total_isr_applied + 0.0, decimals: 2)} already applied
       </div>
-    </div>
-    <div class="hd-kpi">
-      <div class="hd-kpi-label">Avg patient rating</div>
-      <div class="hd-kpi-value" style="color: #f59e0b;">
-        <%= if @report.totals.avg_rating do %>
-          ★ {:erlang.float_to_binary(@report.totals.avg_rating + 0.0, decimals: 2)}
-        <% else %>
-          <span style="color: var(--text-muted);">—</span>
-        <% end %>
-      </div>
-      <div class="hd-kpi-sub">{@report.totals.rated_count} rated</div>
     </div>
   </div>
 
@@ -136,9 +167,9 @@
       <div class="hd-empty-icon">📋</div>
       <p>
         <%= if @include_settled? do %>
-          No completed consultations in this period.
+          No consultations in this period.
         <% else %>
-          No consultations with net payment pending in this period. Try toggling “Show settled rows” to see fully-paid consultations.
+          No consultations with net payment pending in this period. Try toggling "Show settled rows" to see fully-paid consultations.
         <% end %>
       </p>
     </div>
@@ -176,6 +207,12 @@
               style="color: var(--text-muted);"
             >
               Doctor share
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              HD comm.
             </th>
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
@@ -233,6 +270,9 @@
               <td class="p-3 text-right">
                 ${:erlang.float_to_binary(row.doctor_share + 0.0, decimals: 2)}
               </td>
+              <td class="p-3 text-right" style="color: var(--accent);">
+                ${:erlang.float_to_binary(row.hd_commission + 0.0, decimals: 2)}
+              </td>
               <td class="p-3 text-right" style="color: var(--text-muted);">
                 ${:erlang.float_to_binary(row.paid_out_amount + 0.0, decimals: 2)}
               </td>
@@ -267,6 +307,9 @@
             <td class="p-3 text-right font-bold">{@report.totals.total_consultations}</td>
             <td class="p-3 text-right font-bold">
               ${:erlang.float_to_binary(@report.totals.total_doctor_share + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold" style="color: var(--accent);">
+              ${:erlang.float_to_binary(@report.totals.total_hd_commission + 0.0, decimals: 2)}
             </td>
             <td class="p-3 text-right font-bold">
               ${:erlang.float_to_binary(@report.totals.total_paid_out + 0.0, decimals: 2)}
@@ -333,9 +376,20 @@
             <th
               class="text-center p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
-              title="Whether this consultation contributes to the doctor's payout. Flips to ✗ on refund unless overridden."
             >
               Pay?
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Stripe amt
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              HD comm.
             </th>
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
@@ -391,7 +445,13 @@
           <%= for row <- @report.consultations do %>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td class="p-3 pl-4" style="color: var(--text-muted); white-space: nowrap;">
-                {row.completed_at && Calendar.strftime(row.completed_at, "%Y-%m-%d %H:%M")}
+                <.link
+                  navigate={dp(@domain_path_prefix, "/consultations/#{row.consultation_id}")}
+                  style="color: inherit; text-decoration: none;"
+                  title={"Open consultation #{row.consultation_id}"}
+                >
+                  {row.completed_at && Calendar.strftime(row.completed_at, "%Y-%m-%d %H:%M")}
+                </.link>
               </td>
               <td class="p-3 font-medium" style="color: var(--text-main);">
                 {row.doctor_name || "—"}
@@ -405,17 +465,29 @@
               </td>
               <td class="p-3" style="color: var(--text-muted);">{row.patient_name || "—"}</td>
               <td class="p-3 text-center">
-                <%= if row.pay_doctor do %>
-                  <span style="color: #065f46;" title="Doctor will be paid for this consultation">
-                    ✓
-                  </span>
+                <%= if row.pay_to_doc do %>
+                  <span style="color: #065f46;" title="Doctor will be paid">✓</span>
                 <% else %>
                   <span
                     style="color: #92400e;"
-                    title="Doctor will NOT be paid for this consultation (typically: refunded without override)"
+                    title="Doctor will NOT be paid (refund / override)"
                   >
                     ✗
                   </span>
+                <% end %>
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                <%= if row.stripe_amount do %>
+                  ${:erlang.float_to_binary(row.stripe_amount + 0.0, decimals: 2)}
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="p-3 text-right" style="color: var(--accent);">
+                <%= if row.hd_commission do %>
+                  ${:erlang.float_to_binary(row.hd_commission + 0.0, decimals: 2)}
+                <% else %>
+                  —
                 <% end %>
               </td>
               <td class="p-3 text-right">

@@ -568,8 +568,8 @@ defmodule LedgrWeb.Router do
          :update
 
     # Weekly consultations & payout report
-    get "/reports/weekly", Domains.HelloDoctor.WeeklyReportController, :index
-    get "/reports/weekly/download", Domains.HelloDoctor.WeeklyReportController, :download
+    get "/reports/monthly", Domains.HelloDoctor.MonthlyReportController, :index
+    get "/reports/monthly/download", Domains.HelloDoctor.MonthlyReportController, :download
   end
 
   # ── Aumenta Mi Pensión: public auth routes ─────────────────────────
