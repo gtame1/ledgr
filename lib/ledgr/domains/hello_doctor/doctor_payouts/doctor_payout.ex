@@ -10,11 +10,15 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts.DoctorPayout do
   schema "doctor_payouts" do
     field :payout_date, :date
     field :amount_cents, :integer
-    # Tax retentions (ISR / IVA retenciones) held back from the doctor for
-    # remittance to SAT. Bookkept against 2200 Taxes Payable. The doctor's
-    # gross owed is (amount_cents + retentions_cents); `amount_cents` is what
-    # actually leaves the bank.
-    field :retentions_cents, :integer, default: 0
+    # Tax retentions (retenciones) held back from the doctor for SAT
+    # remittance. Split by tax type so reporting can break them out:
+    #   * `iva_retention_cents` — IVA withheld
+    #   * `isr_retention_cents` — ISR withheld
+    # Both credit 2200 Taxes Payable on the journal entry side. The
+    # doctor's gross obligation is amount + iva_retention + isr_retention;
+    # `amount_cents` is what actually leaves the bank.
+    field :iva_retention_cents, :integer, default: 0
+    field :isr_retention_cents, :integer, default: 0
     field :payment_method, :string, default: "bank_transfer"
     field :reference, :string
     field :notes, :string
@@ -30,7 +34,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts.DoctorPayout do
   end
 
   @required ~w[doctor_id payout_date amount_cents payment_method]a
-  @optional ~w[retentions_cents reference notes journal_entry_id]a
+  @optional ~w[iva_retention_cents isr_retention_cents reference notes journal_entry_id]a
 
   def changeset(payout, attrs) do
     payout
@@ -41,7 +45,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts.DoctorPayout do
     # actual cash movement (e.g. refunded consultation the doctor isn't owed
     # for, or settled-offline cases). No journal entry is created in that case.
     |> validate_number(:amount_cents, greater_than_or_equal_to: 0)
-    |> validate_number(:retentions_cents, greater_than_or_equal_to: 0)
+    |> validate_number(:iva_retention_cents, greater_than_or_equal_to: 0)
+    |> validate_number(:isr_retention_cents, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:doctor_id)
   end
 

@@ -354,15 +354,16 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
          :ok <- validate_consultations_belong_to_doctor(consultation_ids, doctor.id),
          {:ok, payout_date} <- fetch_date(attrs),
          {:ok, amount_cents} <- fetch_amount_cents(attrs),
-         {:ok, retentions_cents} <- fetch_retentions_cents(attrs),
+         {:ok, iva_cents} <- fetch_retention_cents(attrs, :iva),
+         {:ok, isr_cents} <- fetch_retention_cents(attrs, :isr),
          {:ok, payment_method} <- fetch_payment_method(attrs) do
       transaction_result =
         Repo.transaction(fn ->
           # A JE is only worth creating when there's actually money moving
-          # somewhere — to the bank, or being retained for SAT. Both zero
+          # somewhere — to the bank, or being retained for SAT. All zero
           # → "processed without any cash movement" → skip the JE.
           je_result =
-            if amount_cents == 0 and retentions_cents == 0,
+            if amount_cents == 0 and iva_cents == 0 and isr_cents == 0,
               do: {:ok, nil},
               else:
                 create_journal_entry(
@@ -370,7 +371,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                   consultation_ids,
                   payout_date,
                   amount_cents,
-                  retentions_cents,
+                  iva_cents,
+                  isr_cents,
                   attrs
                 )
 
@@ -380,7 +382,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                    doctor.id,
                    payout_date,
                    amount_cents,
-                   retentions_cents,
+                   iva_cents,
+                   isr_cents,
                    payment_method,
                    attrs[:reference],
                    attrs[:notes],
@@ -427,7 +430,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
          :ok <- validate_consultations_belong_to_doctor(consultation_ids, payout.doctor_id),
          {:ok, payout_date} <- fetch_date(attrs),
          {:ok, amount_cents} <- fetch_amount_cents(attrs),
-         {:ok, retentions_cents} <- fetch_retentions_cents(attrs),
+         {:ok, iva_cents} <- fetch_retention_cents(attrs, :iva),
+         {:ok, isr_cents} <- fetch_retention_cents(attrs, :isr),
          {:ok, payment_method} <- fetch_payment_method(attrs),
          {:ok, doctor} <- fetch_doctor(%{doctor_id: payout.doctor_id}) do
       transaction_result =
@@ -439,14 +443,16 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                    consultation_ids,
                    payout_date,
                    amount_cents,
-                   retentions_cents,
+                   iva_cents,
+                   isr_cents,
                    attrs
                  ),
                {:ok, updated} <-
                  update_payout_row(payout, %{
                    payout_date: payout_date,
                    amount_cents: amount_cents,
-                   retentions_cents: retentions_cents,
+                   iva_retention_cents: iva_cents,
+                   isr_retention_cents: isr_cents,
                    payment_method: payment_method,
                    reference: attrs[:reference],
                    notes: attrs[:notes],
@@ -468,17 +474,18 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
   # Reconciles the journal entry with the new amount + retentions. Returns
   # `{:ok, new_je_id_or_nil}`. The JE only exists when there's actual
-  # bookkeeping to record (bank transfer OR retentions held).
+  # bookkeeping to record (bank transfer OR either retention held).
   defp sync_journal_entry(
          %DoctorPayout{journal_entry_id: old_je_id},
          doctor,
          consultation_ids,
          payout_date,
          amount_cents,
-         retentions_cents,
+         iva_cents,
+         isr_cents,
          attrs
        ) do
-    has_movement? = amount_cents > 0 or retentions_cents > 0
+    has_movement? = amount_cents > 0 or iva_cents > 0 or isr_cents > 0
 
     cond do
       # No-op: nothing to book, no JE existed
@@ -497,7 +504,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                consultation_ids,
                payout_date,
                amount_cents,
-               retentions_cents,
+               iva_cents,
+               isr_cents,
                attrs
              ) do
           {:ok, je} -> {:ok, je.id}
@@ -512,7 +520,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                consultation_ids,
                payout_date,
                amount_cents,
-               retentions_cents,
+               iva_cents,
+               isr_cents,
                attrs
              ) do
           {:ok, je} -> {:ok, je.id}
@@ -536,7 +545,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
          consultation_ids,
          payout_date,
          amount_cents,
-         retentions_cents,
+         iva_cents,
+         isr_cents,
          attrs
        ) do
     entry = Repo.get!(Ledgr.Core.Accounting.JournalEntry, je_id)
@@ -547,7 +557,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         consultation_ids,
         payout_date,
         amount_cents,
-        retentions_cents,
+        iva_cents,
+        isr_cents,
         attrs
       )
 
@@ -686,21 +697,40 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   defp fetch_amount_cents(%{amount: a}) when is_integer(a) and a >= 0, do: {:ok, a * 100}
   defp fetch_amount_cents(_), do: {:error, "amount is required and must be >= 0"}
 
-  # Retentions are optional — default 0 when not supplied so existing
-  # callers / forms keep working unchanged. Accepts the same shape as
-  # `:amount` (cents int, pesos float, or string pesos).
-  defp fetch_retentions_cents(%{retentions_cents: n}) when is_integer(n) and n >= 0, do: {:ok, n}
+  # Per-retention parser — accepts both `:iva_retention_cents`/`:iva` and
+  # the equivalent ISR keys. Cents int, pesos float, or string pesos all
+  # work, mirroring the `:amount` parser. Defaults to 0 when absent so
+  # forms can omit the field.
+  defp fetch_retention_cents(attrs, :iva),
+    do: fetch_retention_cents_one(attrs, :iva_retention_cents, :iva)
 
-  defp fetch_retentions_cents(%{retentions: r}) when is_binary(r) do
-    case Float.parse(String.trim(r)) do
-      {pesos, ""} when pesos >= 0 -> {:ok, round(pesos * 100)}
-      _ -> {:error, "invalid retentions"}
+  defp fetch_retention_cents(attrs, :isr),
+    do: fetch_retention_cents_one(attrs, :isr_retention_cents, :isr)
+
+  defp fetch_retention_cents_one(attrs, cents_key, pesos_key) do
+    cents_value = Map.get(attrs, cents_key)
+    pesos_value = Map.get(attrs, pesos_key)
+
+    cond do
+      is_integer(cents_value) and cents_value >= 0 ->
+        {:ok, cents_value}
+
+      is_binary(pesos_value) ->
+        case Float.parse(String.trim(pesos_value)) do
+          {pesos, ""} when pesos >= 0 -> {:ok, round(pesos * 100)}
+          _ -> {:error, "invalid #{pesos_key}"}
+        end
+
+      is_float(pesos_value) and pesos_value >= 0 ->
+        {:ok, round(pesos_value * 100)}
+
+      is_integer(pesos_value) and pesos_value >= 0 ->
+        {:ok, pesos_value * 100}
+
+      true ->
+        {:ok, 0}
     end
   end
-
-  defp fetch_retentions_cents(%{retentions: r}) when is_float(r) and r >= 0, do: {:ok, round(r * 100)}
-  defp fetch_retentions_cents(%{retentions: r}) when is_integer(r) and r >= 0, do: {:ok, r * 100}
-  defp fetch_retentions_cents(_), do: {:ok, 0}
 
   defp fetch_payment_method(%{payment_method: m}) when is_binary(m) do
     if m in DoctorPayout.payment_methods(),
@@ -715,7 +745,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
          consultation_ids,
          payout_date,
          amount_cents,
-         retentions_cents,
+         iva_cents,
+         isr_cents,
          attrs
        ) do
     {entry_attrs, lines} =
@@ -724,7 +755,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         consultation_ids,
         payout_date,
         amount_cents,
-        retentions_cents,
+        iva_cents,
+        isr_cents,
         attrs
       )
 
@@ -744,20 +776,21 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   # Shared payload-builder used by both create and update so the JE body
   # stays in lockstep across the two paths.
   #
-  # The doctor's gross obligation = amount_cents + retentions_cents. The JE
+  # Gross obligation = amount + iva_retention + isr_retention. The JE
   # always clears that full gross from Doctor Payable; the credits split
-  # between Bank (the cash actually sent) and Taxes Payable (the retention
-  # held back for SAT). Either credit leg is omitted when its amount is
-  # zero so we don't write a $0 line.
+  # between Bank (cash sent) and Taxes Payable (one line per retention
+  # type, so SAT-side reporting can break IVA from ISR via the line
+  # description). Any credit leg with a zero amount is omitted.
   defp journal_entry_payload(
          doctor,
          consultation_ids,
          payout_date,
          amount_cents,
-         retentions_cents,
+         iva_cents,
+         isr_cents,
          attrs
        ) do
-    gross_cents = amount_cents + retentions_cents
+    gross_cents = amount_cents + iva_cents + isr_cents
 
     doctor_payable = Accounting.get_account_by_code!(@doctor_payable_code)
     bank_mxn = Accounting.get_account_by_code!(@bank_mxn_code)
@@ -795,30 +828,49 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         []
       end
 
-    retentions_line =
-      if retentions_cents > 0 do
-        taxes_payable = Accounting.get_account_by_code!(@taxes_payable_code)
+    # Fetch the Taxes Payable account at most once — only when we'll need it.
+    taxes_payable_id =
+      if iva_cents > 0 or isr_cents > 0 do
+        Accounting.get_account_by_code!(@taxes_payable_code).id
+      end
 
+    iva_line =
+      if iva_cents > 0 do
         [
           %{
-            account_id: taxes_payable.id,
+            account_id: taxes_payable_id,
             debit_cents: 0,
-            credit_cents: retentions_cents,
-            description: "Retenciones held back from #{doctor.name}"
+            credit_cents: iva_cents,
+            description: "IVA retention held back from #{doctor.name}"
           }
         ]
       else
         []
       end
 
-    {entry_attrs, [debit_line] ++ bank_line ++ retentions_line}
+    isr_line =
+      if isr_cents > 0 do
+        [
+          %{
+            account_id: taxes_payable_id,
+            debit_cents: 0,
+            credit_cents: isr_cents,
+            description: "ISR retention held back from #{doctor.name}"
+          }
+        ]
+      else
+        []
+      end
+
+    {entry_attrs, [debit_line] ++ bank_line ++ iva_line ++ isr_line}
   end
 
   defp insert_payout_row(
          doctor_id,
          payout_date,
          amount_cents,
-         retentions_cents,
+         iva_cents,
+         isr_cents,
          payment_method,
          reference,
          notes,
@@ -829,7 +881,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       doctor_id: doctor_id,
       payout_date: payout_date,
       amount_cents: amount_cents,
-      retentions_cents: retentions_cents,
+      iva_retention_cents: iva_cents,
+      isr_retention_cents: isr_cents,
       payment_method: payment_method,
       reference: reference,
       notes: notes,

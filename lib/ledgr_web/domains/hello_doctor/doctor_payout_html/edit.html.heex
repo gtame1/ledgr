@@ -45,18 +45,35 @@
 
       <div>
         <label class="block text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
-          Retentions (MXN)
+          IVA retention (MXN)
         </label>
         <input
           type="number"
           step="0.01"
           min="0"
-          name="retentions"
-          value={:erlang.float_to_binary((p.retentions_cents || 0) / 100.0, decimals: 2)}
+          name="iva"
+          value={:erlang.float_to_binary((p.iva_retention_cents || 0) / 100.0, decimals: 2)}
           class="hd-input w-full"
         />
         <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
-          ISR / IVA withheld → 2200 Taxes Payable. Gross owed = amount + retentions.
+          IVA withheld → 2200 Taxes Payable.
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
+          ISR retention (MXN)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          name="isr"
+          value={:erlang.float_to_binary((p.isr_retention_cents || 0) / 100.0, decimals: 2)}
+          class="hd-input w-full"
+        />
+        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
+          ISR withheld → 2200 Taxes Payable. Gross owed = amount + IVA + ISR.
         </div>
       </div>
 

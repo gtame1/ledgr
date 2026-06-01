@@ -345,7 +345,7 @@
         <input type="hidden" name="doctor_id" id="modal-doctor-id" />
         <input type="hidden" name="consultation_ids" id="modal-consultation-ids" />
 
-        <div class="grid grid-cols-2 gap-3 mb-3">
+        <div class="grid grid-cols-3 gap-3 mb-3">
           <div>
             <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
               Amount sent (MXN)
@@ -360,24 +360,41 @@
               required
             />
             <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.25rem;">
-              What actually leaves the bank.
+              What leaves the bank.
             </div>
           </div>
           <div>
             <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
-              Retentions (MXN)
+              IVA retention (MXN)
             </label>
             <input
               type="number"
               step="0.01"
               min="0"
-              name="retentions"
-              id="modal-retentions"
+              name="iva"
+              id="modal-iva"
               class="hd-input w-full"
               value="0"
             />
             <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.25rem;">
-              ISR / IVA withheld → 2200 Taxes Payable.
+              IVA withheld → 2200.
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
+              ISR retention (MXN)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="isr"
+              id="modal-isr"
+              class="hd-input w-full"
+              value="0"
+            />
+            <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.25rem;">
+              ISR withheld → 2200.
             </div>
           </div>
         </div>
@@ -506,7 +523,8 @@
           document.getElementById('modal-default-amount').textContent =
             '$' + totalShare.toFixed(2);
           document.getElementById('modal-amount').value = totalShare.toFixed(2);
-          document.getElementById('modal-retentions').value = '0.00';
+          document.getElementById('modal-iva').value = '0.00';
+          document.getElementById('modal-isr').value = '0.00';
           document.getElementById('modal-reference').value = '';
           document.getElementById('modal-notes').value = '';
 
