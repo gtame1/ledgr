@@ -106,8 +106,7 @@
   >
     <div class="text-sm" style="color: var(--text-main);">
       <strong id="bulk-count">0</strong>
-      consultation(s) selected
-      <span id="bulk-doctor" style="color: var(--text-muted);"></span>
+      consultation(s) selected <span id="bulk-doctor" style="color: var(--text-muted);"></span>
       <span
         id="bulk-warn"
         style="color: #dc2626; margin-left: 0.75rem; display: none; font-weight: 500;"
@@ -215,7 +214,9 @@
               data-doctor-name={row.doctor_name}
               data-patient-name={row.patient_name}
               data-doctor-share={row.doctor_share}
-              data-consultation-url={dp(@domain_path_prefix, "/consultations/#{row.consultation_id}")}
+              data-consultation-url={
+                dp(@domain_path_prefix, "/consultations/#{row.consultation_id}")
+              }
               style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;"
             >
               <td class="p-3 pl-4">
@@ -249,7 +250,23 @@
                       Refunded
                     </span>
                   <% end %>
-                  <%= if not row.stripe_synced? do %>
+                  <%= if row.refunded? and row.pay_doctor? do %>
+                    <span
+                      title="Refund applied but doctor is still owed (override)."
+                      style="background: #ede9fe; color: #5b21b6; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"
+                    >
+                      Pay-doctor override
+                    </span>
+                  <% end %>
+                  <%= if row.discount_consultation? do %>
+                    <span
+                      title="100% discount consultation. Before recording the payout, post a manual JE: Dr 6050 Marketing & Advertising / Cr 2000 Doctor Payable for $100."
+                      style="background: #fef3c7; color: #92400e; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"
+                    >
+                      Discount · post Dr 6050 / Cr 2000
+                    </span>
+                  <% end %>
+                  <%= if not row.stripe_synced? and not row.discount_consultation? do %>
                     <span
                       title="No Stripe payment row yet — fees/exact amounts will populate after the next sync."
                       style="background: #fef3c7; color: #92400e; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"
@@ -260,7 +277,9 @@
                   <%= cond do %>
                     <% row.payout_count > 0 and row.last_payout_id -> %>
                       <a
-                        href={dp(@domain_path_prefix, "/doctor-payouts/#{row.last_payout_id}/edit")}
+                        href={
+                          dp(@domain_path_prefix, "/doctor-payouts/#{row.last_payout_id}/edit")
+                        }
                         title="Edit this payout"
                         style="background: #d1fae5; color: #065f46; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; text-decoration: none;"
                       >
@@ -299,7 +318,9 @@
                 <%= if row.stripe_synced? do %>
                   ${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}
                 <% else %>
-                  <span title="Awaits Stripe fee data">~${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}</span>
+                  <span title="Awaits Stripe fee data">
+                    ~${:erlang.float_to_binary(row.hd_net + 0.0, decimals: 2)}
+                  </span>
                 <% end %>
               </td>
               <td class="p-3 pr-4 text-right">

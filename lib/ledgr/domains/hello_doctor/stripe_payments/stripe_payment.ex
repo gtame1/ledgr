@@ -15,17 +15,12 @@ defmodule Ledgr.Domains.HelloDoctor.StripePayments.StripePayment do
     field :stripe_fee, :float
     field :product_name, :string
     field :paid_at, :naive_datetime
-    # When `false`, this payment's consultation is excluded from doctor
-    # payout calculations (Weekly Report + Doctor Payouts page). Flipped
-    # to `false` on refund unless the operator chose "Still pay doctor".
-    # Defaults to true on insert.
-    field :pay_doctor, :boolean, default: true
 
     timestamps()
   end
 
   @required ~w[stripe_session_id amount status paid_at]a
-  @optional ~w[stripe_payment_intent_id amount_refunded currency customer_email customer_name consultation_id stripe_fee product_name pay_doctor]a
+  @optional ~w[stripe_payment_intent_id amount_refunded currency customer_email customer_name consultation_id stripe_fee product_name]a
 
   def changeset(payment, attrs) do
     payment

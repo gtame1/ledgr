@@ -22,6 +22,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   alias Ledgr.Core.Accounting
   alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
   alias Ledgr.Domains.HelloDoctor.Patients.Patient
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
@@ -95,10 +96,15 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         # Real charges either land in stripe_payments (sp.id non-null) or
         # at least carry an amount on the consultation. Test/bypass rows
         # have NULL or zero amount AND no stripe_payment match.
+        # `>= 0` lets through 100% discount consultations (the bot
+        # writes them with payment_amount=0 + cs_no_payment_*
+        # stripe_payment_intent_id; no stripe_payments row exists).
+        # `not is_nil` still excludes bot test/bypass flows that
+        # have NULL amount.
         where:
           c.payment_status in ^@payable_statuses and
             (not is_nil(sp.id) or
-               (not is_nil(c.payment_amount) and c.payment_amount > 0.0)) and
+               (not is_nil(c.payment_amount) and c.payment_amount >= 0.0)) and
             fragment(
               "COALESCE(?, ?, ?, ?) >= ?",
               sp.paid_at,
@@ -137,8 +143,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
           stripe_fee: sp.stripe_fee,
           stripe_status: sp.status,
           consultation_status: c.status,
-          consultation_payment_status: c.payment_status,
-          pay_doctor: sp.pay_doctor
+          consultation_payment_status: c.payment_status
         }
       )
 
@@ -151,6 +156,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
     consultation_ids = Enum.map(rows, & &1.consultation_id) |> Enum.reject(&is_nil/1)
     payout_index = payout_summary_for(consultation_ids)
+    pay_doctor_index = ConsultationPayoutDecisions.pay_doctor_map(consultation_ids)
 
     rows
     |> Enum.map(fn row ->
@@ -176,11 +182,18 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         row.stripe_status == "refunded" or refunded > 0 or
           row.consultation_payment_status == "refunded"
 
-      # `pay_doctor` is the source of truth for whether the doctor is
-      # owed for this consultation. Defaults to true for consultations
-      # without a linked stripe_payment (e.g., free/bypass — none today,
-      # but defensive).
-      pay_doctor? = row.pay_doctor != false
+      # `pay_doctor?` is the source of truth for whether the doctor is
+      # owed for this consultation. Defaults to true when the
+      # consultation has no entry in consultation_payout_decisions
+      # (the "no override" case).
+      pay_doctor? = Map.get(pay_doctor_index, row.consultation_id, true)
+
+      # A 100% discount consultation — bot-tagged with `cs_no_payment_*`
+      # on consultations.stripe_payment_intent_id and no Stripe charge.
+      # We still owe the doctor $100, but the GL has nothing in Doctor
+      # Payable yet — operator must post a manual `Dr 6050 / Cr 2000`
+      # before recording the payout so the books balance.
+      discount_consultation? = not stripe_synced? and billed == 0.0
 
       %{
         consultation_id: row.consultation_id,
@@ -198,6 +211,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         stripe_synced?: stripe_synced?,
         refunded?: refunded?,
         pay_doctor?: pay_doctor?,
+        discount_consultation?: discount_consultation?,
         doctor_share: Float.round(if(pay_doctor?, do: share, else: 0.0), 2),
         hd_net: Float.round(hd_net, 2),
         payout_count: summary.count,

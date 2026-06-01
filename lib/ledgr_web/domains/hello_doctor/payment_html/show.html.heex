@@ -52,21 +52,23 @@ end %>
           <button type="submit" class="hd-btn-danger">Refund Payment</button>
         </form>
       <% end %>
-      <.link
-        href={dp(@domain_path_prefix, "/payments/#{pay.id}/toggle-pay-doctor")}
-        method="post"
-        class="hd-btn-secondary text-xs"
-        data-confirm={
-          if pay.pay_doctor,
-            do:
-              "Flip 'pay doctor' to NO for this consultation? The Weekly Report and Doctor Payouts page will stop showing it as owed. (Ledger is not auto-updated — post a manual JE if needed.)",
-            else:
-              "Flip 'pay doctor' to YES for this consultation? The Weekly Report and Doctor Payouts page will treat the doctor as owed again. (Ledger is not auto-updated — post a manual JE if needed.)"
-        }
-        title="Override the pay-doctor flag for this consultation (does not change the ledger)"
-      >
-        Pay doctor: {if pay.pay_doctor, do: "yes", else: "no"} ⇄
-      </.link>
+      <%= if not is_nil(@pay_doctor) do %>
+        <.link
+          href={dp(@domain_path_prefix, "/payments/#{pay.id}/toggle-pay-doctor")}
+          method="post"
+          class="hd-btn-secondary text-xs"
+          data-confirm={
+            if @pay_doctor,
+              do:
+                "Flip 'pay doctor' to NO for this consultation? The Weekly Report and Doctor Payouts page will stop showing it as owed. (Ledger is not auto-updated — post a manual JE if needed.)",
+              else:
+                "Flip 'pay doctor' to YES for this consultation? The Weekly Report and Doctor Payouts page will treat the doctor as owed again. (Ledger is not auto-updated — post a manual JE if needed.)"
+          }
+          title="Override the pay-doctor flag for this consultation (does not change the ledger)"
+        >
+          Pay doctor: {if @pay_doctor, do: "yes", else: "no"} ⇄
+        </.link>
+      <% end %>
     </div>
   </div>
 

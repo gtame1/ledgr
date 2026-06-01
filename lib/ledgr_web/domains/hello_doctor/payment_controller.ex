@@ -26,7 +26,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
 
   def show(conn, %{"id" => id}) do
     payment = Repo.get!(StripePayment, id)
-    render(conn, :show, payment: payment)
+
+    pay_doctor? =
+      if payment.consultation_id do
+        Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions.pay_doctor?(payment.consultation_id)
+      else
+        # No consultation to attach a decision to — toggle is disabled
+        # in the template via this nil sentinel.
+        nil
+      end
+
+    render(conn, :show, payment: payment, pay_doctor: pay_doctor?)
   end
 
   def sync(conn, _params) do
@@ -156,37 +166,54 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
   end
 
   @doc """
-  Flips the `pay_doctor` flag on a stripe_payment. Useful for
-  after-the-fact corrections — e.g. you refunded without the override
-  and decided later to pay the doctor anyway. This does NOT post any
-  journal entries; if the JE needs to match, post a manual one (see
-  StripeRefunds docs).
+  Flips the pay-doctor decision on this payment's consultation.
+  Useful for after-the-fact corrections — e.g. you refunded without
+  the override and decided later to pay the doctor anyway. This does
+  NOT post any journal entries; if the JE needs to match, post a
+  manual one (see StripeRefunds docs).
   """
   def toggle_pay_doctor(conn, %{"id" => id}) do
+    alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
     payment = Repo.get!(StripePayment, id)
-    new_value = not payment.pay_doctor
 
-    case payment
-         |> Ecto.Changeset.change(%{pay_doctor: new_value})
-         |> Repo.update() do
-      {:ok, _} ->
-        msg =
-          if new_value,
-            do:
-              "Doctor flagged as payable for this consultation. " <>
-                "Reports will now include it — post a manual JE if the ledger needs to match.",
-            else:
-              "Doctor flagged as NOT payable. Reports will skip this consultation. " <>
-                "Post a manual JE if the ledger needs to match."
-
+    cond do
+      is_nil(payment.consultation_id) ->
         conn
-        |> put_flash(:info, msg)
+        |> put_flash(
+          :error,
+          "This payment isn't linked to a consultation — nothing to toggle."
+        )
         |> redirect(to: dp(conn, "/payments/#{id}"))
 
-      {:error, changeset} ->
-        conn
-        |> put_flash(:error, "Failed to toggle pay_doctor: #{inspect(changeset.errors)}")
-        |> redirect(to: dp(conn, "/payments/#{id}"))
+      true ->
+        current = ConsultationPayoutDecisions.pay_doctor?(payment.consultation_id)
+        new_value = not current
+
+        case ConsultationPayoutDecisions.upsert(
+               payment.consultation_id,
+               new_value,
+               reason: "manual override via payment-show page",
+               decided_by: "admin"
+             ) do
+          {:ok, _} ->
+            msg =
+              if new_value,
+                do:
+                  "Doctor flagged as payable for this consultation. " <>
+                    "Reports will now include it — post a manual JE if the ledger needs to match.",
+                else:
+                  "Doctor flagged as NOT payable. Reports will skip this consultation. " <>
+                    "Post a manual JE if the ledger needs to match."
+
+            conn
+            |> put_flash(:info, msg)
+            |> redirect(to: dp(conn, "/payments/#{id}"))
+
+          {:error, changeset} ->
+            conn
+            |> put_flash(:error, "Failed to toggle pay-doctor: #{inspect(changeset.errors)}")
+            |> redirect(to: dp(conn, "/payments/#{id}"))
+        end
     end
   end
 

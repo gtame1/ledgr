@@ -24,6 +24,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Accounting.JournalEntry
@@ -60,15 +61,28 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
                 payment
                 |> Ecto.Changeset.change(%{
                   status: "refunded",
-                  amount_refunded: payment.amount,
-                  # Column mirrors the JE-side decision so reports filter
-                  # consistently with the ledger.
-                  pay_doctor: pay_doctor?
+                  amount_refunded: payment.amount
                 })
 
               case Repo.update(changeset) do
                 {:ok, updated} ->
-                  # 3. Create reversal journal entry, respecting the
+                  # 3. Record the pay-doctor decision (sidecar table).
+                  # `pay_doctor?=true` means "still pay" (the override);
+                  # `false` means default behavior on refund.
+                  if updated.consultation_id do
+                    ConsultationPayoutDecisions.upsert(
+                      updated.consultation_id,
+                      pay_doctor?,
+                      reason:
+                        if(pay_doctor?,
+                          do: "refund_override: still pay doctor",
+                          else: "refund: doctor payable reversed"
+                        ),
+                      decided_by: "system"
+                    )
+                  end
+
+                  # 4. Create reversal journal entry, respecting the
                   # pay_doctor override (only meaningful for full refunds).
                   create_refund_journal_entry(updated, pay_doctor: pay_doctor?)
                   updated

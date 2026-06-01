@@ -155,19 +155,18 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
       sp.amount                                            AS stripe_amount,
       sp.stripe_fee                                        AS stripe_fee,
       sp.paid_at                                           AS stripe_paid_at,
-      -- Treat consultations without a linked payment as "pay the doctor"
-      -- (they're typically just not refunded). Refunded payments will
-      -- have pay_doctor=false unless an operator overrode it.
-      COALESCE(sp.pay_doctor, TRUE)                        AS pay_doctor,
+      -- Default = "pay the doctor". A row in consultation_payout_decisions
+      -- overrides; absence = TRUE.
+      COALESCE(cpd.pay_doctor, TRUE)                       AS pay_doctor,
       -- Doctor share + retentions all zero out when pay_doctor=false so
       -- totals and net_payment_pending stay accurate without special-
       -- casing downstream. Retentions are applied against the doctor
       -- share — no share, no retention.
-      CASE WHEN COALESCE(sp.pay_doctor, TRUE)
+      CASE WHEN COALESCE(cpd.pay_doctor, TRUE)
            THEN $5::float8 ELSE 0::float8 END              AS doctor_share,
-      CASE WHEN COALESCE(sp.pay_doctor, TRUE)
+      CASE WHEN COALESCE(cpd.pay_doctor, TRUE)
            THEN $6::float8 ELSE 0::float8 END              AS iva_retention_to_apply,
-      CASE WHEN COALESCE(sp.pay_doctor, TRUE) THEN
+      CASE WHEN COALESCE(cpd.pay_doctor, TRUE) THEN
         CASE WHEN COALESCE(d.has_correct_rfc, FALSE)
              THEN $7::float8 ELSE $8::float8 END
         ELSE 0::float8 END                                 AS isr_retention_to_apply,
@@ -185,6 +184,7 @@ defmodule Ledgr.Domains.HelloDoctor.WeeklyReport do
           AND c.stripe_payment_intent_id IS NOT NULL
           AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id)
     )
+    LEFT JOIN consultation_payout_decisions cpd ON cpd.consultation_id = c.id
     LEFT JOIN payout_totals pot ON pot.consultation_id = c.id
     WHERE c.status = 'completed'
       AND c.completed_at >= $1
