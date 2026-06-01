@@ -14,7 +14,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
 
   def index(conn, params) do
     today = Ledgr.Domains.HelloDoctor.today()
-    start_date = parse_date(params["start_date"]) || Date.beginning_of_month(today)
+    start_date = parse_date(params["start_date"]) || default_start_date(today)
     end_date = parse_date(params["end_date"]) || today
     doctor_id = blank_to_nil(params["doctor_id"])
     status = params["status"] || "pending"
@@ -281,7 +281,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
   """
   def bulk_template(conn, params) do
     today = Ledgr.Domains.HelloDoctor.today()
-    start_date = parse_date(params["start_date"]) || Date.beginning_of_month(today)
+    start_date = parse_date(params["start_date"]) || default_start_date(today)
     end_date = parse_date(params["end_date"]) || today
 
     report = DashboardMetrics.doctor_payout_report(start_date, end_date)
@@ -329,6 +329,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorPayoutController do
   defp csv_field(other), do: csv_field(to_string(other))
 
   # ── Helpers ─────────────────────────────────────────────────────
+
+  # Default range covers last month + this month so the page lands on
+  # something useful for "what do we still owe doctors right now" — a
+  # full month of catch-up plus the running current month. Users can
+  # still narrow via the date inputs.
+  defp default_start_date(today) do
+    today
+    |> Date.beginning_of_month()
+    |> Date.add(-1)
+    |> Date.beginning_of_month()
+  end
 
   defp parse_date(nil), do: nil
   defp parse_date(""), do: nil
