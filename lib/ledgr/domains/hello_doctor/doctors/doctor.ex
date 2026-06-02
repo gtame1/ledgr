@@ -32,16 +32,12 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     # via Reactivate. Distinct from `is_available` (doctor's own
     # "I'm available now" toggle).
     field :deactivated_at, :utc_datetime
-    # Per-doctor consultation fee in centavos. NULL = use the global
-    # default ($100 MXN). The field is informational today —
-    # ConsultationAccounting / MonthlyReport / DoctorPayouts continue
-    # to use the hardcoded default until a follow-up wires it through.
-    field :consultation_fee_cents, :integer
-
-    # Virtual field — the create/edit forms bind to this in pesos
-    # (e.g. "150" or "150.00"); the changeset converts to cents on
-    # save so we don't surface centavos to the operator.
-    field :consultation_fee_pesos, :string, virtual: true
+    # Per-doctor consultation fee in whole MXN pesos. Owned by the bot
+    # for the "direct" consultation flow; the value 0 means "no
+    # per-doctor fee set — use the global default" (currently $100 MXN
+    # for the "mvp"/"now" flow). The field is editable from the
+    # doctor edit/new pages.
+    field :consultation_fee_mxn, :integer, default: 0
 
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation
     has_many :prescriptions, Ledgr.Domains.HelloDoctor.Prescriptions.Prescription
@@ -50,51 +46,26 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   end
 
   @required ~w[id phone name specialty is_available]a
-  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at has_correct_rfc consultation_fee_cents consultation_fee_pesos]a
+  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at has_correct_rfc consultation_fee_mxn]a
 
   def changeset(doctor, attrs) do
     doctor
     |> cast(attrs, @required ++ @optional)
     |> normalize_phone()
-    |> apply_consultation_fee_pesos()
-    |> validate_number(:consultation_fee_cents, greater_than_or_equal_to: 0)
+    |> validate_number(:consultation_fee_mxn, greater_than_or_equal_to: 0)
     |> validate_required(@required)
     |> unique_constraint(:phone)
   end
 
-  # If the form sent a pesos value, convert it to cents and stash it
-  # on the changeset. Empty string clears the field (back to default).
-  defp apply_consultation_fee_pesos(changeset) do
-    case get_change(changeset, :consultation_fee_pesos) do
-      nil ->
-        changeset
-
-      "" ->
-        put_change(changeset, :consultation_fee_cents, nil)
-
-      raw ->
-        case raw |> to_string() |> String.trim() |> Float.parse() do
-          {pesos, _rest} ->
-            put_change(changeset, :consultation_fee_cents, round(pesos * 100))
-
-          :error ->
-            add_error(
-              changeset,
-              :consultation_fee_pesos,
-              "must be a number (e.g. 150 or 150.50)"
-            )
-        end
-    end
-  end
-
   @doc """
-  Returns the doctor's consultation fee in MXN as a float. Falls back
-  to the global default when no per-doctor fee is set.
+  Returns the doctor's effective consultation fee in MXN. `0` (the
+  unset default) falls back to the global $100; otherwise returns
+  the stored per-doctor amount.
   """
-  def consultation_fee_mxn(%__MODULE__{consultation_fee_cents: nil}), do: 100.0
+  def effective_consultation_fee_mxn(%__MODULE__{consultation_fee_mxn: v}) when v in [nil, 0],
+    do: 100
 
-  def consultation_fee_mxn(%__MODULE__{consultation_fee_cents: cents}),
-    do: cents / 100.0
+  def effective_consultation_fee_mxn(%__MODULE__{consultation_fee_mxn: v}), do: v
 
   defp normalize_phone(changeset) do
     case get_change(changeset, :phone) do

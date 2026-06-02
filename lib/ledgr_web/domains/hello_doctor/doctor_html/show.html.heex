@@ -122,13 +122,13 @@
             <div
               class="text-xs uppercase font-medium mb-1"
               style="color: var(--text-muted);"
-              title="Not yet wired into payouts/reports — informational for now."
+              title="Used by the bot for the 'direct' consultation flow. 'mvp'/'now' consultations stay on the default."
             >
               Consultation Fee
             </div>
             <div class="text-sm" style="color: var(--text-main);">
-              <%= if d.consultation_fee_cents do %>
-                ${:erlang.float_to_binary(d.consultation_fee_cents / 100.0, decimals: 2)} MXN
+              <%= if d.consultation_fee_mxn && d.consultation_fee_mxn > 0 do %>
+                ${d.consultation_fee_mxn} MXN
               <% else %>
                 <span style="color: var(--text-muted);">Default ($100 MXN)</span>
               <% end %>
