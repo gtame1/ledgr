@@ -145,6 +145,41 @@
               placeholder="5"
             />
           </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+              Consultation Fee (MXN)
+            </label>
+            <input
+              type="number"
+              name="doctor[consultation_fee_pesos]"
+              value={
+                cond do
+                  v = Ecto.Changeset.get_change(@changeset, :consultation_fee_pesos) ->
+                    v
+
+                  cents = Ecto.Changeset.get_field(@changeset, :consultation_fee_cents) ->
+                    :erlang.float_to_binary(cents / 100.0, decimals: 2)
+
+                  true ->
+                    ""
+                end
+              }
+              min="0"
+              step="0.01"
+              class="w-full rounded-lg border px-4 py-2.5 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              placeholder="100.00"
+            />
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Leave blank to use the default ($100 MXN). Not yet wired into payouts/reports.
+            </p>
+            <%= if @changeset.action && @changeset.errors[:consultation_fee_pesos] do %>
+              <p class="text-xs mt-1" style="color: #dc2626;">
+                {elem(@changeset.errors[:consultation_fee_pesos], 0)}
+              </p>
+            <% end %>
+          </div>
         </div>
 
         <div>

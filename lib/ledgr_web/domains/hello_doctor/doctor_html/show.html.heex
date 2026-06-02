@@ -119,6 +119,22 @@
             </div>
           </div>
           <div>
+            <div
+              class="text-xs uppercase font-medium mb-1"
+              style="color: var(--text-muted);"
+              title="Not yet wired into payouts/reports — informational for now."
+            >
+              Consultation Fee
+            </div>
+            <div class="text-sm" style="color: var(--text-main);">
+              <%= if d.consultation_fee_cents do %>
+                ${:erlang.float_to_binary(d.consultation_fee_cents / 100.0, decimals: 2)} MXN
+              <% else %>
+                <span style="color: var(--text-muted);">Default ($100 MXN)</span>
+              <% end %>
+            </div>
+          </div>
+          <div>
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
               Specialty
             </div>
@@ -206,14 +222,18 @@
               <% is_nil(d.prescrypto_medic_id) -> %>
                 <span class="text-sm" style="color: var(--text-muted);">—</span>
               <% d.prescrypto_specialty_verified -> %>
-                <span class="inline-flex items-center gap-1 text-sm font-medium"
-                  style="color: #065f46;">
+                <span
+                  class="inline-flex items-center gap-1 text-sm font-medium"
+                  style="color: #065f46;"
+                >
                   ✅ Verified
                 </span>
               <% true -> %>
-                <span class="inline-flex items-center gap-1 text-sm font-medium"
+                <span
+                  class="inline-flex items-center gap-1 text-sm font-medium"
                   style="color: #92400e;"
-                  title="Prescrypto staff verify cédulas asynchronously. Click Refresh to check current status.">
+                  title="Prescrypto staff verify cédulas asynchronously. Click Refresh to check current status."
+                >
                   ⏳ Pending verification
                 </span>
             <% end %>
@@ -228,26 +248,33 @@
           </div>
         </div>
         <div class="mt-5">
-          <%
-            # Only email + cédula profesional are strictly required by us
-            # (Prescrypto only requires email/name/password). Specialty cédula is optional.
-            missing = Enum.reject([
-              (if is_nil(d.email), do: "email", else: nil),
-              (if is_nil(d.cedula_profesional), do: "Cédula Profesional", else: nil)
-            ], &is_nil/1)
-          %>
+          <% # Only email + cédula profesional are strictly required by us
+          # (Prescrypto only requires email/name/password). Specialty cédula is optional.
+          missing =
+            Enum.reject(
+              [
+                if(is_nil(d.email), do: "email", else: nil),
+                if(is_nil(d.cedula_profesional), do: "Cédula Profesional", else: nil)
+              ],
+              &is_nil/1
+            ) %>
           <%= cond do %>
             <% missing != [] -> %>
-              <div class="flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm"
-                style="background: #fef9c3; border: 1px solid #fde68a; color: #92400e;">
+              <div
+                class="flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm"
+                style="background: #fef9c3; border: 1px solid #fde68a; color: #92400e;"
+              >
                 <span class="mt-0.5">⚠️</span>
                 <div>
                   <span class="font-medium">Can't sync to Prescrypto.</span>
                   Missing: {Enum.join(missing, ", ")}.
-                  <.link navigate={dp(@domain_path_prefix, "/doctors/#{d.id}/edit")}
-                    style="color: #92400e; text-decoration: underline;">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/doctors/#{d.id}/edit")}
+                    style="color: #92400e; text-decoration: underline;"
+                  >
                     Edit doctor
-                  </.link> to add these fields.
+                  </.link>
+                  to add these fields.
                 </div>
               </div>
             <% is_nil(d.prescrypto_medic_id) -> %>
