@@ -181,9 +181,14 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         p.amount                                   AS stripe_amount,
         p.stripe_fee,
         p.paid_at                                  AS stripe_paid_at,
+        -- ADR-046. "stripe" = patient paid via Stripe; "corporate" =
+        -- employer-paid, no Stripe row but doctor IS owed; "test" =
+        -- /prueba bypass, excluded by the WHERE clause below.
+        COALESCE(c.payment_source, 'stripe')       AS payment_source,
+        c.corporate_account_id                     AS corporate_account_id,
         COALESCE(cpd.pay_doctor, TRUE)             AS pay_to_doc,
         -- HD commission is the gross above the doctor's flat share.
-        -- NULL when there's no Stripe payment (e.g. discount).
+        -- NULL when there's no Stripe payment (e.g. discount or corporate).
         (p.amount - $3::float8)                    AS hd_commission,
         CASE WHEN COALESCE(cpd.pay_doctor, TRUE)
              THEN $3::float8 ELSE 0::float8 END    AS doctor_share,
@@ -213,6 +218,8 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       WHERE c.completed_at BETWEEN $1 AND $2
         AND (p.status IS DISTINCT FROM 'refunded'
              OR COALESCE(cpd.pay_doctor, TRUE) = TRUE)
+        -- ADR-046: /prueba test bypass rows are not doctor-payable; hide them.
+        AND COALESCE(c.payment_source, 'stripe') <> 'test'
         AND (pt.id IS DISTINCT FROM $7)
         AND (d.id  IS DISTINCT FROM $8)
     )
@@ -374,6 +381,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       "Type",
       "Duration (min)",
       "Consultation status",
+      "Payment source",
       "Stripe payment status",
       "Stripe amount",
       "Stripe fee",
@@ -404,6 +412,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
           r.consultation_type || "",
           r.duration_minutes,
           r.consultation_status || "",
+          r.payment_source || "",
           r.payment_status || "",
           r.stripe_amount,
           r.stripe_fee,

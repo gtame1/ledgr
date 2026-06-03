@@ -376,6 +376,13 @@
             <th
               class="text-center p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
+              title="ADR-046: 'stripe' = patient-paid, 'corporate' = employer-paid. 'test' rows are hidden."
+            >
+              Source
+            </th>
+            <th
+              class="text-center p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
             >
               Pay?
             </th>
@@ -464,6 +471,27 @@
                 <% end %>
               </td>
               <td class="p-3" style="color: var(--text-muted);">{row.patient_name || "—"}</td>
+              <td class="p-3 text-center">
+                <%= case row.payment_source do %>
+                  <% "corporate" -> %>
+                    <span
+                      class="hd-badge"
+                      style="background: #ede9fe; color: #5b21b6; font-size: 0.7rem; padding: 0.1rem 0.5rem;"
+                      title="Employer-paid; doctor IS payable. No Stripe row."
+                    >
+                      corp
+                    </span>
+                  <% src when src in [nil, "", "stripe"] -> %>
+                    <span style="color: var(--text-muted); font-size: 0.75rem;">stripe</span>
+                  <% other -> %>
+                    <span
+                      class="hd-badge"
+                      style="background: var(--bg-secondary); color: var(--text-muted); font-size: 0.7rem; padding: 0.1rem 0.5rem;"
+                    >
+                      {other}
+                    </span>
+                <% end %>
+              </td>
               <td class="p-3 text-center">
                 <%= if row.pay_to_doc do %>
                   <span style="color: #065f46;" title="Doctor will be paid">✓</span>

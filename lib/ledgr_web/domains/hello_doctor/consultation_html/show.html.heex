@@ -610,6 +610,40 @@ end %>
               <span style="color: var(--text-muted);">---</span>
             <% end %>
           </div>
+          <div class="flex justify-between text-sm">
+            <span
+              style="color: var(--text-muted);"
+              title="ADR-046: stripe = patient-paid, corporate = employer-paid, test = /prueba bypass."
+            >
+              Source
+            </span>
+            <span style="color: var(--text-main);">
+              <%= case c.payment_source do %>
+                <% "corporate" -> %>
+                  <span
+                    class="hd-badge"
+                    style="background: #ede9fe; color: #5b21b6;"
+                    title="Employer-paid; doctor IS payable. Invoiced monthly."
+                  >
+                    Corporate
+                  </span>
+                <% "test" -> %>
+                  <span class="hd-badge" style="background: #fef3c7; color: #92400e;">
+                    Test bypass
+                  </span>
+                <% _ -> %>
+                  Stripe
+              <% end %>
+            </span>
+          </div>
+          <%= if c.corporate_account_id do %>
+            <div class="flex justify-between text-sm">
+              <span style="color: var(--text-muted);">Corporate Account</span>
+              <span class="font-mono text-xs" style="color: var(--text-main);">
+                {c.corporate_account_id}
+              </span>
+            </div>
+          <% end %>
           <%= if c.payment_amount do %>
             <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-subtle);">
               <div class="flex justify-between text-xs mb-1">

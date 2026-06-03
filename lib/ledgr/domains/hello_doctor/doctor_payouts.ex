@@ -143,7 +143,10 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
           stripe_fee: sp.stripe_fee,
           stripe_status: sp.status,
           consultation_status: c.status,
-          consultation_payment_status: c.payment_status
+          consultation_payment_status: c.payment_status,
+          # ADR-046: drives payable/discount/corporate disambiguation.
+          payment_source: c.payment_source,
+          corporate_account_id: c.corporate_account_id
         }
       )
 
@@ -188,12 +191,23 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       # (the "no override" case).
       pay_doctor? = Map.get(pay_doctor_index, row.consultation_id, true)
 
+      # ADR-046: payment_source is the authoritative signal.
+      #   "stripe"    — normal flow (patient paid Stripe)
+      #   "corporate" — employer-paid (no Stripe row; doctor IS payable)
+      #   "test"      — /prueba bypass (not payable; filtered by caller)
+      payment_source = row.payment_source || "stripe"
+
+      corporate_consultation? = payment_source == "corporate"
+
       # A 100% discount consultation — bot-tagged with `cs_no_payment_*`
       # on consultations.stripe_payment_intent_id and no Stripe charge.
       # We still owe the doctor $100, but the GL has nothing in Doctor
       # Payable yet — operator must post a manual `Dr 6050 / Cr 2000`
-      # before recording the payout so the books balance.
-      discount_consultation? = not stripe_synced? and billed == 0.0
+      # before recording the payout so the books balance. The
+      # payment_source=='stripe' guard keeps corporate consultations
+      # (also stripe-less with billed=0) from getting this badge.
+      discount_consultation? =
+        payment_source == "stripe" and not stripe_synced? and billed == 0.0
 
       %{
         consultation_id: row.consultation_id,
@@ -211,6 +225,9 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         stripe_synced?: stripe_synced?,
         refunded?: refunded?,
         pay_doctor?: pay_doctor?,
+        payment_source: payment_source,
+        corporate_account_id: row.corporate_account_id,
+        corporate_consultation?: corporate_consultation?,
         discount_consultation?: discount_consultation?,
         doctor_share: Float.round(if(pay_doctor?, do: share, else: 0.0), 2),
         hd_net: Float.round(hd_net, 2),
@@ -219,6 +236,9 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         last_payout_id: summary[:last_payout_id]
       }
     end)
+    # ADR-046: /prueba test rows are never doctor-payable — hide them
+    # from every status filter.
+    |> Enum.reject(&(&1.payment_source == "test"))
     |> apply_status_filter(opts[:status])
     |> apply_sort(opts[:sort], opts[:dir])
   end

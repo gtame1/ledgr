@@ -30,6 +30,13 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations.Consultation do
     field :rejected_by_doctors, :string
     field :consultation_type, :string, default: "messaging"
     field :targeted_doctor_id, :string
+    # Bot-owned (ADR-046). Mirrored from the conversation at broadcast.
+    # One of "stripe", "corporate", "test". Drives doctor-payable gating
+    # in our reports — we pay for ("stripe","corporate"); exclude "test".
+    field :payment_source, :string, default: "stripe"
+    # Bot-owned. NULL unless payment_source = "corporate". Mirrored from
+    # the conversation at broadcast; the monthly-invoice join key.
+    field :corporate_account_id, :string
 
     belongs_to :patient, Ledgr.Domains.HelloDoctor.Patients.Patient
     belongs_to :doctor, Ledgr.Domains.HelloDoctor.Doctors.Doctor
@@ -44,7 +51,7 @@ defmodule Ledgr.Domains.HelloDoctor.Consultations.Consultation do
   @payment_statuses ~w[pending paid confirmed failed refunded]
 
   @required ~w[id conversation_id patient_id status payment_status assigned_at]a
-  @optional ~w[doctor_id accepted_at completed_at duration_minutes doctor_notes payment_amount payment_confirmed_at audit_json patient_summary patient_rating patient_comment patient_platform_rating doctor_rating doctor_comment doctor_platform_rating inactivity_ping_sent_at stripe_payment_intent_id last_broadcast_at rejected_by_doctors consultation_type targeted_doctor_id]a
+  @optional ~w[doctor_id accepted_at completed_at duration_minutes doctor_notes payment_amount payment_confirmed_at audit_json patient_summary patient_rating patient_comment patient_platform_rating doctor_rating doctor_comment doctor_platform_rating inactivity_ping_sent_at stripe_payment_intent_id last_broadcast_at rejected_by_doctors consultation_type targeted_doctor_id payment_source corporate_account_id]a
 
   def changeset(consultation, attrs) do
     consultation

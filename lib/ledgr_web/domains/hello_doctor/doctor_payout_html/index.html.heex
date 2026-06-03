@@ -258,6 +258,14 @@
                       Pay-doctor override
                     </span>
                   <% end %>
+                  <%= if row.corporate_consultation? do %>
+                    <span
+                      title="Employer-paid (ADR-046). No Stripe charge; the employer is invoiced monthly. Doctor IS payable normally."
+                      style="background: #ede9fe; color: #5b21b6; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"
+                    >
+                      Corporate · invoiced
+                    </span>
+                  <% end %>
                   <%= if row.discount_consultation? do %>
                     <span
                       title="100% discount consultation. Before recording the payout, post a manual JE: Dr 6050 Marketing & Advertising / Cr 2000 Doctor Payable for $100."
@@ -266,7 +274,7 @@
                       Discount · post Dr 6050 / Cr 2000
                     </span>
                   <% end %>
-                  <%= if not row.stripe_synced? and not row.discount_consultation? do %>
+                  <%= if not row.stripe_synced? and not row.discount_consultation? and not row.corporate_consultation? do %>
                     <span
                       title="No Stripe payment row yet — fees/exact amounts will populate after the next sync."
                       style="background: #fef3c7; color: #92400e; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"

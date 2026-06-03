@@ -273,6 +273,22 @@
             </span>
           </div>
           <div class="flex justify-between">
+            <span
+              style="color: var(--text-muted);"
+              title="ADR-046: stripe = patient-paid, corporate = employer-paid, test = /prueba bypass."
+            >
+              Payment source
+            </span>
+            <span style="color: var(--text-main);">
+              {conv.payment_source || "stripe"}
+              <%= if conv.corporate_account_id do %>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">
+                  · {conv.corporate_account_id}
+                </span>
+              <% end %>
+            </span>
+          </div>
+          <div class="flex justify-between">
             <span style="color: var(--text-muted);">Doctor Recommended</span>
             <span style="color: var(--text-main);">
               {if conv.doctor_recommended, do: "Yes", else: "No"}

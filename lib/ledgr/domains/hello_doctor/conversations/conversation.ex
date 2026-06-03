@@ -18,6 +18,13 @@ defmodule Ledgr.Domains.HelloDoctor.Conversations.Conversation do
     # flow). "direct" is reserved for the upcoming patient-picks-doctor
     # flow, where the doctor's own consultation_fee_mxn drives pricing.
     field :tenant, :string
+    # Bot-owned (ADR-046). One of "stripe" (default — patient-paid via
+    # Stripe), "corporate" (employer-paid, no Stripe charge), or "test"
+    # (the /prueba bypass — not doctor-payable).
+    field :payment_source, :string, default: "stripe"
+    # Bot-owned. References corporate_accounts.id when payment_source =
+    # "corporate"; NULL otherwise. The monthly-invoice join key.
+    field :corporate_account_id, :string
 
     belongs_to :patient, Ledgr.Domains.HelloDoctor.Patients.Patient
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation
