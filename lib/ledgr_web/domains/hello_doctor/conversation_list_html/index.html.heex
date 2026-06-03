@@ -117,6 +117,13 @@
             <th
               class="text-center p-3 text-xs font-medium uppercase"
               style="color: var(--text-muted);"
+              title="Bot-side flow: 'mvp' = on-demand routing, 'direct' = patient picked the doctor."
+            >
+              Tenant
+            </th>
+            <th
+              class="text-center p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
             >
               Doctor Rec.
             </th>
@@ -149,7 +156,7 @@
         <tbody>
           <%= if Enum.empty?(@conversations) do %>
             <tr>
-              <td colspan="8" class="p-8 text-center" style="color: var(--text-muted);">
+              <td colspan="9" class="p-8 text-center" style="color: var(--text-muted);">
                 <div class="text-3xl mb-2 opacity-30">💬</div>
                 No conversations found.
               </td>
@@ -189,6 +196,28 @@
                     |> String.replace("_", " ")
                     |> String.capitalize()}
                   </span>
+                </td>
+                <td class="p-3 text-center">
+                  <%= cond do %>
+                    <% conv.tenant in [nil, ""] -> %>
+                      <span style="color: var(--text-muted);">—</span>
+                    <% conv.tenant == "direct" -> %>
+                      <span
+                        class="hd-badge"
+                        style="background: #ede9fe; color: #5b21b6; font-size: 0.7rem; padding: 0.1rem 0.5rem;"
+                        title="Patient picked a specific doctor; uses that doctor's consultation_fee_mxn."
+                      >
+                        direct
+                      </span>
+                    <% true -> %>
+                      <span
+                        class="hd-badge"
+                        style="background: var(--bg-secondary); color: var(--text-muted); font-size: 0.7rem; padding: 0.1rem 0.5rem;"
+                        title={"Bot-side flow: " <> conv.tenant}
+                      >
+                        {conv.tenant}
+                      </span>
+                  <% end %>
                 </td>
                 <td class="p-3 text-center">
                   <%= if conv.doctor_recommended do %>

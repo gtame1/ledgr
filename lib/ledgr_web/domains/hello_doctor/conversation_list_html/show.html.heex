@@ -68,6 +68,25 @@
     <span class="text-sm" style="color: var(--text-muted);">
       {conv.funnel_stage |> to_string() |> String.replace("_", " ") |> String.capitalize()}
     </span>
+    <%= cond do %>
+      <% conv.tenant in [nil, ""] -> %>
+      <% conv.tenant == "direct" -> %>
+        <span
+          class="hd-badge"
+          style="background: #ede9fe; color: #5b21b6;"
+          title="Patient picked a specific doctor; uses that doctor's consultation_fee_mxn."
+        >
+          direct
+        </span>
+      <% true -> %>
+        <span
+          class="hd-badge"
+          style="background: var(--bg-secondary); color: var(--text-muted);"
+          title={"Bot-side flow: " <> conv.tenant}
+        >
+          {conv.tenant}
+        </span>
+    <% end %>
   </div>
 
   <div class="hd-two-col">
@@ -240,6 +259,17 @@
             <span style="color: var(--text-muted);">Funnel Stage</span>
             <span style="color: var(--text-main);">
               {conv.funnel_stage |> to_string() |> String.replace("_", " ") |> String.capitalize()}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span
+              style="color: var(--text-muted);"
+              title="Bot-side flow: 'mvp' = on-demand routing, 'direct' = patient picked the doctor."
+            >
+              Tenant
+            </span>
+            <span style="color: var(--text-main);">
+              {conv.tenant || "—"}
             </span>
           </div>
           <div class="flex justify-between">

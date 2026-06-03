@@ -14,6 +14,10 @@ defmodule Ledgr.Domains.HelloDoctor.Conversations.Conversation do
     field :last_message_at, :naive_datetime
     field :stripe_payment_intent_id, :string
     field :consultation_type, :string
+    # Bot-owned. Values seen today: "mvp" (the bot-routed / on-demand
+    # flow). "direct" is reserved for the upcoming patient-picks-doctor
+    # flow, where the doctor's own consultation_fee_mxn drives pricing.
+    field :tenant, :string
 
     belongs_to :patient, Ledgr.Domains.HelloDoctor.Patients.Patient
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation
