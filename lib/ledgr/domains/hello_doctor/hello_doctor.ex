@@ -143,6 +143,7 @@ defmodule Ledgr.Domains.HelloDoctor do
           %{label: "Payments", path: "#{prefix}/payments", icon: :expenses},
           %{label: "Expenses", path: "#{prefix}/expenses", icon: :expenses},
           %{label: "Doctor Payouts", path: "#{prefix}/doctor-payouts", icon: :expenses},
+          %{label: "Corporate", path: "#{prefix}/corporate", icon: :customers},
           %{label: "Monthly Report", path: "#{prefix}/reports/monthly", icon: :reports},
           %{label: "Balance Sheet", path: "#{prefix}/reports/balance_sheet", icon: :reports},
           %{label: "P&L", path: "#{prefix}/reports/pnl", icon: :reports}
@@ -179,6 +180,7 @@ defmodule Ledgr.Domains.HelloDoctor do
       "Payments" => "payments",
       "Expenses" => "receipt_long",
       "Doctor Payouts" => "account_balance_wallet",
+      "Corporate" => "business",
       "Monthly Report" => "calendar_month",
       "Balance Sheet" => "account_balance",
       "P&L" => "bar_chart",

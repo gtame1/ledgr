@@ -1,0 +1,263 @@
+<% a = @account %>
+
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/corporate")} class="hd-back">
+      &larr; Back to Corporate
+    </.link>
+  </div>
+
+  <%!-- Header --%>
+  <div class="flex items-center gap-3 mb-6 flex-wrap">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">{a["name"]}</h1>
+    <span class="hd-badge" style="background: rgba(2, 186, 151, 0.1); color: var(--accent);">
+      {a["slug"]}
+    </span>
+    <%= case a["status"] do %>
+      <% "active" -> %>
+        <span class="hd-badge" style="background: #d1fae5; color: #065f46;">Active</span>
+      <% "suspended" -> %>
+        <span class="hd-badge" style="background: #fef3c7; color: #92400e;">Suspended</span>
+      <% other -> %>
+        <span class="hd-badge" style="background: var(--bg-secondary);">{other}</span>
+    <% end %>
+
+    <div class="ml-auto flex items-center gap-2">
+      <.link
+        navigate={dp(@domain_path_prefix, "/corporate/#{a["slug"]}/invoice")}
+        class="hd-btn-secondary"
+      >
+        📄 Invoice
+      </.link>
+      <.link
+        href={dp(@domain_path_prefix, "/corporate/#{a["slug"]}/toggle-status")}
+        method="post"
+        class="hd-btn-secondary"
+        data-confirm={
+          if a["status"] == "active",
+            do:
+              "Suspend this account? The bot will resume charging affected phones for new consultations (members stay on file).",
+            else:
+              "Reactivate this account? The bot will resume bypassing payments for all active members."
+        }
+      >
+        {if a["status"] == "active", do: "Suspend", else: "Reactivate"}
+      </.link>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <%!-- Left: account info + edit --%>
+    <div class="lg:col-span-1 flex flex-col gap-6">
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Account
+        </h2>
+        <form
+          action={dp(@domain_path_prefix, "/corporate/#{a["slug"]}/update")}
+          method="post"
+          class="space-y-4"
+        >
+          <input
+            type="hidden"
+            name="_csrf_token"
+            value={Plug.CSRFProtection.get_csrf_token()}
+          />
+
+          <div>
+            <label
+              class="block text-xs uppercase font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Name
+            </label>
+            <input
+              type="text"
+              name="account[name]"
+              value={a["name"]}
+              class="w-full rounded-lg border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            />
+          </div>
+
+          <div>
+            <label
+              class="block text-xs uppercase font-medium mb-1"
+              style="color: var(--text-muted);"
+            >
+              Rate per consultation (MXN)
+            </label>
+            <input
+              type="number"
+              name="account[consultation_rate_mxn]"
+              value={a["consultation_rate_mxn"]}
+              min="0"
+              step="1"
+              class="w-full rounded-lg border px-3 py-2 text-sm"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+              placeholder="(off-platform)"
+            />
+          </div>
+
+          <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.4rem 0.95rem;">
+            Save
+          </button>
+        </form>
+
+        <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);">
+          <div class="text-xs" style="color: var(--text-muted);">Account ID</div>
+          <div class="text-xs font-mono mt-1" style="color: var(--text-main);">{a["id"]}</div>
+        </div>
+      </div>
+
+      <%!-- Add members --%>
+      <div class="hd-card p-5">
+        <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Add members
+        </h2>
+        <form
+          action={dp(@domain_path_prefix, "/corporate/#{a["slug"]}/members")}
+          method="post"
+          class="space-y-3"
+        >
+          <input
+            type="hidden"
+            name="_csrf_token"
+            value={Plug.CSRFProtection.get_csrf_token()}
+          />
+          <textarea
+            name="phones"
+            rows="6"
+            class="w-full rounded-lg border px-3 py-2 text-sm font-mono"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="+52 1 55 1234 5678&#10;+52 1 55 8765 4321&#10;..."
+          ></textarea>
+          <p class="text-xs" style="color: var(--text-muted);">
+            One phone per line (or comma-separated). The bot normalizes formats —
+            paste however you have them. Duplicates and blanks are silently skipped.
+          </p>
+          <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.4rem 0.95rem;">
+            Add to roster
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <%!-- Right: member roster --%>
+    <div class="lg:col-span-2">
+      <div class="hd-card" style="padding: 0; overflow: hidden;">
+        <div
+          class="p-4 flex items-center justify-between"
+          style="border-bottom: 1px solid var(--border-subtle);"
+        >
+          <div>
+            <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+              Members ({@member_count})
+            </h3>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <%= if @include_removed? do %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/corporate/#{a["slug"]}")}
+                class="hd-btn-sm"
+              >
+                Hide removed
+              </.link>
+            <% else %>
+              <.link
+                navigate={dp(@domain_path_prefix, "/corporate/#{a["slug"]}?include_removed=true")}
+                class="hd-btn-sm"
+              >
+                Show removed
+              </.link>
+            <% end %>
+          </div>
+        </div>
+
+        <%= if @members == [] do %>
+          <div class="p-8 text-center" style="color: var(--text-muted);">
+            <div class="text-3xl opacity-30 mb-2">📱</div>
+            No members yet. Paste phones in the form to enroll employees.
+          </div>
+        <% else %>
+          <table class="w-full text-sm">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+                <th
+                  class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Phone
+                </th>
+                <th
+                  class="text-center p-3 text-xs font-semibold uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Status
+                </th>
+                <th
+                  class="text-left p-3 text-xs font-semibold uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Added
+                </th>
+                <th
+                  class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for m <- @members do %>
+                <tr style="border-bottom: 1px solid var(--border-subtle);">
+                  <td class="p-3 pl-4 font-mono" style="color: var(--text-main);">
+                    {m["phone"]}
+                  </td>
+                  <td class="p-3 text-center">
+                    <%= case m["status"] do %>
+                      <% "active" -> %>
+                        <span class="hd-badge" style="background: #d1fae5; color: #065f46;">
+                          Active
+                        </span>
+                      <% "removed" -> %>
+                        <span class="hd-badge" style="background: #fee2e2; color: #991b1b;">
+                          Removed
+                        </span>
+                      <% other -> %>
+                        <span class="hd-badge" style="background: var(--bg-secondary);">
+                          {other}
+                        </span>
+                    <% end %>
+                  </td>
+                  <td class="p-3" style="color: var(--text-muted);">{fmt_iso(m["added_at"])}</td>
+                  <td class="p-3 pr-4 text-right">
+                    <%= if m["status"] == "active" do %>
+                      <.link
+                        href={
+                          dp(
+                            @domain_path_prefix,
+                            "/corporate/#{a["slug"]}/members/#{URI.encode_www_form(m["phone"])}/remove"
+                          )
+                        }
+                        method="post"
+                        class="hd-btn-sm"
+                        style="color: #dc2626;"
+                        data-confirm={"Remove #{m["phone"]} from #{a["name"]}? The bot will stop bypassing payments for this phone. (Soft delete; kept for audit.)"}
+                      >
+                        Remove
+                      </.link>
+                    <% else %>
+                      <span style="color: var(--text-muted); font-size: 0.75rem;">—</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

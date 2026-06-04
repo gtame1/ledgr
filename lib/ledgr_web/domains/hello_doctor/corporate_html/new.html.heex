@@ -1,0 +1,93 @@
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/corporate")} class="hd-back">
+      &larr; Back to Corporate
+    </.link>
+  </div>
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">New corporate account</h1>
+    <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 60ch;">
+      Once created, paste employee phones on the detail page. The bot starts
+      bypassing payments for those phones immediately.
+    </p>
+  </div>
+
+  <div class="hd-form">
+    <div class="hd-card p-6">
+      <form
+        action={dp(@domain_path_prefix, "/corporate")}
+        method="post"
+        class="space-y-5"
+      >
+        <input
+          type="hidden"
+          name="_csrf_token"
+          value={Plug.CSRFProtection.get_csrf_token()}
+        />
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Slug <span style="color: #dc2626;">*</span>
+          </label>
+          <input
+            type="text"
+            name="account[slug]"
+            value={@form["slug"]}
+            required
+            minlength="2"
+            maxlength="32"
+            pattern="[a-z0-9-]+"
+            class="w-full rounded-lg border px-4 py-2.5 text-sm font-mono"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="acme-co"
+          />
+          <p class="text-xs mt-1" style="color: var(--text-muted);">
+            Lowercase, alphanumeric + dashes, 2–32 chars. Used in URLs and the invoice join.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Name <span style="color: #dc2626;">*</span>
+          </label>
+          <input
+            type="text"
+            name="account[name]"
+            value={@form["name"]}
+            required
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="Acme Co"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Rate per consultation (MXN)
+          </label>
+          <input
+            type="number"
+            name="account[consultation_rate_mxn]"
+            value={@form["consultation_rate_mxn"]}
+            min="0"
+            step="1"
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="120"
+          />
+          <p class="text-xs mt-1" style="color: var(--text-muted);">
+            Leave blank if pricing is settled off-platform.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 pt-3">
+          <button type="submit" class="hd-btn-primary">Create</button>
+          <.link navigate={dp(@domain_path_prefix, "/corporate")} class="hd-btn-secondary">
+            Cancel
+          </.link>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

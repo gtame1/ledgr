@@ -1,0 +1,113 @@
+<div class="hd-page">
+  <div class="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Corporate Accounts</h1>
+      <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 70ch;">
+        Employers whose employees use Hello Doctor for free; invoiced monthly.
+        Adding a phone here marks that patient as employer-paid in the bot —
+        no Stripe charge fires for their consultations. Doctors still get
+        paid normally.
+      </p>
+    </div>
+    <.link navigate={dp(@domain_path_prefix, "/corporate/new")} class="hd-btn-primary">
+      + New company
+    </.link>
+  </div>
+
+  <%= if @accounts == [] do %>
+    <div class="hd-empty">
+      <div class="hd-empty-icon">🏢</div>
+      <p>No corporate accounts yet. Create one to enroll employees.</p>
+    </div>
+  <% else %>
+    <div class="hd-card" style="padding: 0; overflow: hidden;">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Name
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Slug
+            </th>
+            <th
+              class="text-center p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Status
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Rate
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Members
+            </th>
+            <th
+              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for acc <- @accounts do %>
+            <tr
+              style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;"
+              onclick={"window.location='#{dp(@domain_path_prefix, "/corporate/#{acc["slug"]}")}';"}
+            >
+              <td class="p-3 pl-4 font-medium" style="color: var(--text-main);">
+                {acc["name"]}
+              </td>
+              <td class="p-3 font-mono text-xs" style="color: var(--text-muted);">
+                {acc["slug"]}
+              </td>
+              <td class="p-3 text-center">
+                <%= case acc["status"] do %>
+                  <% "active" -> %>
+                    <span class="hd-badge" style="background: #d1fae5; color: #065f46;">
+                      Active
+                    </span>
+                  <% "suspended" -> %>
+                    <span class="hd-badge" style="background: #fef3c7; color: #92400e;">
+                      Suspended
+                    </span>
+                  <% other -> %>
+                    <span class="hd-badge" style="background: var(--bg-secondary);">{other}</span>
+                <% end %>
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-main);">
+                {render_rate(acc["consultation_rate_mxn"])}
+              </td>
+              <td class="p-3 text-right" style="color: var(--text-main);">
+                {acc["member_count"] || 0}
+              </td>
+              <td class="p-3 pr-4 text-right">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/corporate/#{acc["slug"]}")}
+                  class="text-sm"
+                  style="color: var(--accent);"
+                >
+                  Open →
+                </.link>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs mt-3" style="color: var(--text-muted);">{@count} account(s)</p>
+  <% end %>
+</div>

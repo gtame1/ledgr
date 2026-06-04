@@ -1,0 +1,149 @@
+<div class="hd-page">
+  <div class="mb-4">
+    <.link navigate={dp(@domain_path_prefix, "/corporate/#{@slug}")} class="hd-back">
+      &larr; Back to {@account_name || @slug}
+    </.link>
+  </div>
+
+  <div class="flex items-baseline justify-between gap-4 flex-wrap mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">
+      Invoice — {@account_name || @slug}
+    </h1>
+    <a
+      href={dp(@domain_path_prefix, "/corporate/#{@slug}/invoice/download?month=#{@month}")}
+      class="hd-btn-primary text-sm"
+      style="padding: 0.4rem 0.95rem;"
+    >
+      ⬇ CSV
+    </a>
+  </div>
+
+  <%!-- Month picker --%>
+  <form method="get" class="hd-card p-4 mb-6 flex flex-wrap items-center gap-3">
+    <label class="text-sm" style="color: var(--text-main);">
+      Month
+      <input
+        type="month"
+        name="month"
+        value={@month}
+        class="hd-input text-sm ml-2"
+        style="padding: 0.4rem 0.65rem;"
+        onchange="this.form.submit()"
+      />
+    </label>
+    <button type="submit" class="hd-btn-sm">Reload</button>
+  </form>
+
+  <%!-- Summary --%>
+  <div class="hd-kpi-grid mb-6" style="gap: 1.5rem;">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Consultations</div>
+      <div class="hd-kpi-value">{@count}</div>
+      <div class="hd-kpi-sub">in {@month}</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Rate per consult</div>
+      <div class="hd-kpi-value">{render_rate(@rate)}</div>
+      <div class="hd-kpi-sub">MXN</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Subtotal</div>
+      <div class="hd-kpi-value">
+        <%= if @rate do %>
+          ${@count * @rate} MXN
+        <% else %>
+          <span style="color: var(--text-muted);">—</span>
+        <% end %>
+      </div>
+      <div class="hd-kpi-sub">count × rate (no discounts)</div>
+    </div>
+  </div>
+
+  <p class="text-xs mb-3" style="color: var(--text-muted);">
+    The line items include every consultation attributed to this account in the period,
+    including refunded / cancelled rows. Sort or filter in the CSV before sending it
+    to billing.
+  </p>
+
+  <%= if @items == [] do %>
+    <div class="hd-empty">
+      <div class="hd-empty-icon">📋</div>
+      <p>No consultations attributed to this account in {@month}.</p>
+    </div>
+  <% else %>
+    <div class="hd-card" style="padding: 0; overflow: hidden;">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Date
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Consultation
+            </th>
+            <th
+              class="text-left p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Type
+            </th>
+            <th
+              class="text-center p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Status
+            </th>
+            <th
+              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+            >
+              Rate
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for item <- @items do %>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="p-3 pl-4" style="color: var(--text-muted); white-space: nowrap;">
+                {fmt_iso(item["date"])}
+              </td>
+              <td class="p-3">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/consultations/#{item["consultation_id"]}")}
+                  class="font-mono text-xs"
+                  style="color: var(--accent);"
+                >
+                  {item["consultation_id"]}
+                </.link>
+              </td>
+              <td class="p-3" style="color: var(--text-main);">
+                {item["consultation_type"] || "—"}
+              </td>
+              <td class="p-3 text-center">
+                <%= case item["status"] do %>
+                  <% "completed" -> %>
+                    <span class="hd-badge hd-badge--completed">Completed</span>
+                  <% "cancelled" -> %>
+                    <span class="hd-badge" style="background: #fee2e2; color: #991b1b;">
+                      Cancelled
+                    </span>
+                  <% other -> %>
+                    <span class="hd-badge" style="background: var(--bg-secondary);">{other}</span>
+                <% end %>
+              </td>
+              <td class="p-3 pr-4 text-right" style="color: var(--text-main);">
+                {render_rate(item["rate_mxn"])}
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

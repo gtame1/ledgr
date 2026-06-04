@@ -570,6 +570,34 @@ defmodule LedgrWeb.Router do
     # Weekly consultations & payout report
     get "/reports/monthly", Domains.HelloDoctor.MonthlyReportController, :index
     get "/reports/monthly/download", Domains.HelloDoctor.MonthlyReportController, :download
+
+    # Corporate accounts admin (proxies the bot's /admin/corporate API)
+    get "/corporate", Domains.HelloDoctor.CorporateController, :index
+    get "/corporate/new", Domains.HelloDoctor.CorporateController, :new
+    post "/corporate", Domains.HelloDoctor.CorporateController, :create
+    get "/corporate/:slug", Domains.HelloDoctor.CorporateController, :show
+
+    post "/corporate/:slug/update",
+         Domains.HelloDoctor.CorporateController,
+         :update
+
+    post "/corporate/:slug/toggle-status",
+         Domains.HelloDoctor.CorporateController,
+         :toggle_status
+
+    post "/corporate/:slug/members",
+         Domains.HelloDoctor.CorporateController,
+         :add_members
+
+    post "/corporate/:slug/members/:phone/remove",
+         Domains.HelloDoctor.CorporateController,
+         :remove_member
+
+    get "/corporate/:slug/invoice", Domains.HelloDoctor.CorporateController, :invoice
+
+    get "/corporate/:slug/invoice/download",
+        Domains.HelloDoctor.CorporateController,
+        :invoice_csv
   end
 
   # ── Aumenta Mi Pensión: public auth routes ─────────────────────────
