@@ -38,6 +38,11 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     # for the "mvp"/"now" flow). The field is editable from the
     # doctor edit/new pages.
     field :consultation_fee_mxn, :integer, default: 0
+    # Bot-owned. Precomputed `wa.me` click-to-chat deep link embedding
+    # the doctor's `extension_code` (DR-XXXX). Used as the shareable
+    # patient-onboarding link. NULL when the bot's
+    # whatsapp_business_number is unconfigured. Read-only from Ledgr.
+    field :referral_link, :string
 
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation
     has_many :prescriptions, Ledgr.Domains.HelloDoctor.Prescriptions.Prescription

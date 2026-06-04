@@ -78,6 +78,57 @@
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <%!-- Left column: Info + Prescrypto --%>
     <div class="lg:col-span-2 flex flex-col gap-6">
+      <%!-- Shareable link --%>
+      <%= if d.referral_link do %>
+        <div class="hd-card p-5" style="border-left: 4px solid var(--accent);">
+          <div class="flex items-baseline justify-between gap-3 mb-2">
+            <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+              Shareable patient link
+            </h2>
+            <%= if d.extension_code do %>
+              <span
+                class="font-mono text-xs"
+                style="color: var(--text-muted);"
+                title="Extension code embedded in the link as DR-{code}"
+              >
+                DR-{d.extension_code}
+              </span>
+            <% end %>
+          </div>
+          <p class="text-xs mb-3" style="color: var(--text-muted);">
+            Patients who open this link land in WhatsApp with a pre-filled message that
+            attributes the consultation to this doctor via the bot's "direct" flow.
+          </p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              value={d.referral_link}
+              readonly
+              id="doctor-referral-link"
+              class="flex-1 min-w-0 rounded-lg border px-3 py-2 text-xs font-mono"
+              style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main); min-width: 16rem;"
+            />
+            <button
+              type="button"
+              class="hd-btn-secondary text-xs"
+              style="padding: 0.4rem 0.75rem;"
+              onclick="navigator.clipboard.writeText(document.getElementById('doctor-referral-link').value).then(() => { this.textContent='✓ Copied'; setTimeout(() => this.textContent='Copy', 1500) })"
+            >
+              Copy
+            </button>
+            <a
+              href={d.referral_link}
+              target="_blank"
+              rel="noopener"
+              class="hd-btn-primary text-xs"
+              style="padding: 0.4rem 0.75rem;"
+            >
+              Open ↗
+            </a>
+          </div>
+        </div>
+      <% end %>
+
       <%!-- Info Card --%>
       <div class="hd-card p-6">
         <h2 class="text-lg font-semibold mb-5" style="color: var(--text-main);">
