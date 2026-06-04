@@ -141,6 +141,7 @@ defmodule Ledgr.Domains.AumentaMiPension do
         items: [
           %{label: "Dashboard", path: prefix, icon: :dashboard},
           %{label: "Leads", path: "#{prefix}/leads", icon: :customers},
+          %{label: "Traspaso Coverage", path: "#{prefix}/traspaso-coverage", icon: :reports},
           %{label: "Calculadora", path: "#{prefix}/calculadora", icon: :reports},
           %{label: "Checkup", path: "#{prefix}/checkup", icon: :reports},
           %{label: "Conversations", path: "#{prefix}/conversations", icon: :receipt},
@@ -167,6 +168,7 @@ defmodule Ledgr.Domains.AumentaMiPension do
     %{
       "Dashboard" => "dashboard",
       "Leads" => "person_search",
+      "Traspaso Coverage" => "fact_check",
       "Calculadora" => "calculate",
       "Checkup" => "monitor_heart",
       "Conversations" => "chat",

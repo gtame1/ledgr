@@ -1,0 +1,148 @@
+<% m = @metrics %>
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-2">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Cobertura de datos · Traspaso AFORE</h1>
+  </div>
+  <p class="text-sm mb-6" style="color: var(--text-muted);">
+    Calidad de datos de leads frente a los 5 requisitos del traspaso. En vivo, recalculado en cada carga.
+  </p>
+
+  <%!-- KPI Cards --%>
+  <div class="hd-kpi-grid mb-6">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Leads totales</div>
+      <div class="hd-kpi-value">{m.total_leads}</div>
+      <div class="hd-kpi-sub">teléfono único entre las 3 fuentes</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Con NSS + CURP</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">{m.with_nss_and_curp}</div>
+      <div class="hd-kpi-sub">{pct(m.with_nss_and_curp, m.total_leads)}% · pool validable</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Casi calificados</div>
+      <div class="hd-kpi-value">{m.with_all_three}</div>
+      <div class="hd-kpi-sub">{pct(m.with_all_three, m.total_leads)}% · NSS + CURP + AFORE</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Requisitos sin dato</div>
+      <div class="hd-kpi-value">2/5</div>
+      <div class="hd-kpi-sub">cambio de AFORE · lista de exclusión</div>
+    </div>
+  </div>
+
+  <%!-- Coverage by requirement --%>
+  <div class="hd-card p-5 mb-6">
+    <h2 class="text-sm font-semibold uppercase mb-4" style="color: var(--text-muted); letter-spacing: .05em;">
+      Cobertura por requisito
+    </h2>
+    <%= for r <- requirements(m) do %>
+      <div class="flex gap-3 py-3 border-t first:border-t-0" style="border-color: var(--border-subtle);">
+        <div
+          class="shrink-0 w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
+          style="background: var(--primary-soft); color: var(--primary);"
+        >
+          {r.idx}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold" style="color: var(--text-main);">{r.title}</div>
+          <div class="text-xs font-mono mb-2" style="color: var(--text-muted);">{r.field}</div>
+          <div class="flex items-center gap-3">
+            <div
+              class="flex-1 h-2.5 rounded-full overflow-hidden"
+              style="background: var(--border-strong);"
+            >
+              <div
+                class="h-full rounded-full"
+                style={"width: #{max(pct(r.count, m.total_leads), if(r.count > 0, do: 2, else: 0))}%; background: #{status_color(r.status)};"}
+              >
+              </div>
+            </div>
+            <div class="text-right text-sm tabular-nums shrink-0" style="min-width: 110px;">
+              <%= case r.status do %>
+                <% :missing -> %>
+                  <span class="font-semibold" style={"color: #{status_color(:missing)};"}>sin datos</span>
+                <% :proxy -> %>
+                  <span class="font-semibold" style={"color: #{status_color(:proxy)};"}>
+                    ~{r.count} (proxy)
+                  </span>
+                <% _ -> %>
+                  <span style="color: var(--text-main);">
+                    <b>{r.count}</b> · {pct(r.count, m.total_leads)}%
+                  </span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <%!-- AFORE breakdown --%>
+    <div class="hd-card p-5">
+      <h2 class="text-sm font-semibold uppercase mb-1" style="color: var(--text-muted); letter-spacing: .05em;">
+        AFORE actual declarada
+      </h2>
+      <p class="text-xs mb-4" style="color: var(--text-muted);">
+        Solo capturado en el checkup web (<span class="font-mono">afore_name</span>).
+      </p>
+      <% amax = Enum.reduce(m.afore_breakdown, 1, fn a, acc -> max(a.count, acc) end) %>
+      <%= if Enum.empty?(m.afore_breakdown) do %>
+        <p class="text-sm" style="color: var(--text-muted);">Sin AFOREs declaradas.</p>
+      <% else %>
+        <%= for a <- m.afore_breakdown do %>
+          <div class="flex items-center gap-3 my-2 text-sm">
+            <div style="width: 150px; color: var(--text-main);">{a.name}</div>
+            <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--border-strong);">
+              <div class="h-full rounded-full" style={"width: #{round(a.count / amax * 100)}%; background: var(--primary);"}></div>
+            </div>
+            <div class="w-7 text-right" style="color: var(--text-muted);">{a.count}</div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <%!-- Per-source --%>
+    <div class="hd-card p-5">
+      <h2 class="text-sm font-semibold uppercase mb-1" style="color: var(--text-muted); letter-spacing: .05em;">
+        Por fuente (antes de deduplicar)
+      </h2>
+      <p class="text-xs mb-4" style="color: var(--text-muted);">
+        Un lead = teléfono normalizado (10 dígitos) único entre las tres fuentes.
+      </p>
+      <table class="hd-table w-full text-sm">
+        <thead>
+          <tr>
+            <th class="text-left p-2 text-xs uppercase" style="color: var(--text-muted);">Fuente</th>
+            <th class="text-right p-2 text-xs uppercase" style="color: var(--text-muted);">Filas</th>
+            <th class="text-right p-2 text-xs uppercase" style="color: var(--text-muted);">c/ tel.</th>
+            <th class="text-right p-2 text-xs uppercase" style="color: var(--text-muted);">NSS</th>
+            <th class="text-right p-2 text-xs uppercase" style="color: var(--text-muted);">CURP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for s <- m.sources do %>
+            <tr class="border-t" style="border-color: var(--border-subtle);">
+              <td class="p-2 font-mono text-xs" style="color: var(--text-main);">{s.src}</td>
+              <td class="p-2 text-right tabular-nums" style="color: var(--text-main);">{s.rows}</td>
+              <td class="p-2 text-right tabular-nums" style="color: var(--text-main);">{s.phone}</td>
+              <td class="p-2 text-right tabular-nums" style="color: var(--text-muted);">{s.nss || "—"}</td>
+              <td class="p-2 text-right tabular-nums" style="color: var(--text-muted);">{s.curp || "—"}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%!-- Gaps note --%>
+  <div class="hd-card p-5" style="border-left: 3px solid #B07D2B;">
+    <h2 class="text-sm font-semibold mb-2" style="color: var(--text-main);">Brechas conocidas</h2>
+    <ul class="text-sm space-y-1" style="color: var(--text-muted);">
+      <li>• No existe ningún campo para <b style="color: var(--text-main);">"último cambio de AFORE > 1 año"</b> (req. 2) ni para la <b style="color: var(--text-main);">lista de exclusión</b> (req. 4). Se verifican por fuera, por lead.</li>
+      <li>• Los <b style="color: var(--text-main);">documentos</b> (req. 5) no están estructurados; solo hay <span class="font-mono">pension_cases.media_analyses</span> ({m.media_cases} de {m.total_cases} casos) como proxy aproximado.</li>
+      <li>• La <b style="color: var(--text-main);">AFORE actual</b> (req. 1) solo se captura en el checkup web, no en WhatsApp.</li>
+    </ul>
+  </div>
+</div>

@@ -624,6 +624,9 @@ defmodule LedgrWeb.Router do
     get "/leads/:phone", Domains.AumentaMiPension.LeadController, :show
     post "/leads/:phone/crm", Domains.AumentaMiPension.LeadController, :update_crm
 
+    # Live data-quality dashboard: lead coverage vs. AFORE traspaso requirements.
+    get "/traspaso-coverage", Domains.AumentaMiPension.TraspasoCoverageController, :index
+
     resources "/agent-chats", Domains.AumentaMiPension.AgentChatController, only: [:index, :show]
 
     resources "/consultations", Domains.AumentaMiPension.ConsultationController,
