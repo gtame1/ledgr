@@ -626,6 +626,7 @@ defmodule LedgrWeb.Router do
 
     # Live data-quality dashboard: lead coverage vs. AFORE traspaso requirements.
     get "/traspaso-coverage", Domains.AumentaMiPension.TraspasoCoverageController, :index
+    get "/traspaso-coverage/export", Domains.AumentaMiPension.TraspasoCoverageController, :export
 
     resources "/agent-chats", Domains.AumentaMiPension.AgentChatController, only: [:index, :show]
 

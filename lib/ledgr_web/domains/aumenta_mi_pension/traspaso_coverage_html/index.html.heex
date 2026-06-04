@@ -2,6 +2,9 @@
 <div class="hd-page">
   <div class="flex items-center justify-between mb-2">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Cobertura de datos · Traspaso AFORE</h1>
+    <a href={dp(@domain_path_prefix, "/traspaso-coverage/export")} class="hd-btn-secondary">
+      ↓ Descargar CSV
+    </a>
   </div>
   <p class="text-sm mb-6" style="color: var(--text-muted);">
     Calidad de datos de leads frente a los 5 requisitos del traspaso. En vivo, recalculado en cada carga.
@@ -29,6 +32,20 @@
       <div class="hd-kpi-value">2/5</div>
       <div class="hd-kpi-sub">cambio de AFORE · lista de exclusión</div>
     </div>
+  </div>
+
+  <%!-- Eligibility KPI Cards --%>
+  <h2 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted); letter-spacing: .05em;">
+    Perfil de elegibilidad
+  </h2>
+  <div class="hd-kpi-grid mb-6">
+    <%= for e <- eligibility(m) do %>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">{e.title}</div>
+        <div class="hd-kpi-value" style="color: var(--primary);">{e.count}</div>
+        <div class="hd-kpi-sub">{pct(e.count, e.known)}% de {e.known} con dato</div>
+      </div>
+    <% end %>
   </div>
 
   <%!-- Coverage by requirement --%>
@@ -78,13 +95,13 @@
     <% end %>
   </div>
 
-  <%!-- Eligibility signals --%>
+  <%!-- Eligibility signals (detail with field provenance) --%>
   <div class="hd-card p-5 mb-6">
     <h2 class="text-sm font-semibold uppercase mb-1" style="color: var(--text-muted); letter-spacing: .05em;">
-      Perfil de elegibilidad
+      Perfil de elegibilidad · detalle por señal
     </h2>
     <p class="text-xs mb-4" style="color: var(--text-muted);">
-      Señales de pensión, contadas sobre los leads con ese dato conocido (la cobertura es parcial).
+      Cada señal contada sobre los leads con ese dato conocido (la cobertura es parcial). Descarga el detalle por lead en CSV ↑.
     </p>
     <%= for e <- eligibility(m) do %>
       <div class="flex gap-3 py-3 border-t first:border-t-0" style="border-color: var(--border-subtle);">

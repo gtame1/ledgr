@@ -6,6 +6,15 @@ defmodule LedgrWeb.Domains.AumentaMiPension.TraspasoCoverageController do
   def index(conn, _params) do
     render(conn, :index, metrics: TraspasoCoverage.coverage())
   end
+
+  def export(conn, _params) do
+    filename = "amp_traspaso_leads_#{Date.to_iso8601(Date.utc_today())}.csv"
+
+    conn
+    |> put_resp_content_type("text/csv")
+    |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+    |> send_resp(200, TraspasoCoverage.export_csv())
+  end
 end
 
 defmodule LedgrWeb.Domains.AumentaMiPension.TraspasoCoverageHTML do
@@ -99,6 +108,12 @@ defmodule LedgrWeb.Domains.AumentaMiPension.TraspasoCoverageHTML do
         field: "última cotización > 1 año · last_imss_contribution_date / last_year_cotized",
         count: m.inactive_1yr,
         known: m.activity_known
+      },
+      %{
+        title: "Estatus: no activo / baja",
+        field: "current_employment_status ≈ no cotiza / baja / desempleado / jubilado",
+        count: m.emp_inactive,
+        known: m.emp_known
       }
     ]
   end
