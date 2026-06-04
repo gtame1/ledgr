@@ -75,6 +75,35 @@ defmodule LedgrWeb.Domains.AumentaMiPension.TraspasoCoverageHTML do
   end
 
   @doc """
+  Pension-eligibility signals (independent of the 5 traspaso requisites).
+  Each is a count of leads matching a profile, paired with the count of
+  leads for which we actually know that signal (the honest denominator,
+  since coverage is sparse).
+  """
+  def eligibility(m) do
+    [
+      %{
+        title: "Mayores de 60 años",
+        field: "edad > 60 · de date_of_birth / contact_birth_date / pension_cases.age",
+        count: m.over_60,
+        known: m.age_known
+      },
+      %{
+        title: "Más de 850 semanas cotizadas",
+        field: "weeks_contributed > 850 · máx. entre customers / checkup / pension_cases",
+        count: m.weeks_over_850,
+        known: m.weeks_known
+      },
+      %{
+        title: "1+ año sin cotizar / trabajar",
+        field: "última cotización > 1 año · last_imss_contribution_date / last_year_cotized",
+        count: m.inactive_1yr,
+        known: m.activity_known
+      }
+    ]
+  end
+
+  @doc """
   Inline bar/label color for a requirement status, mapped to the AMP
   brand palette (Brand Manual v1.1 — verde bosque + crema + tierra):
 

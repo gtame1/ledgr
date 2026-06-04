@@ -78,6 +78,39 @@
     <% end %>
   </div>
 
+  <%!-- Eligibility signals --%>
+  <div class="hd-card p-5 mb-6">
+    <h2 class="text-sm font-semibold uppercase mb-1" style="color: var(--text-muted); letter-spacing: .05em;">
+      Perfil de elegibilidad
+    </h2>
+    <p class="text-xs mb-4" style="color: var(--text-muted);">
+      Señales de pensión, contadas sobre los leads con ese dato conocido (la cobertura es parcial).
+    </p>
+    <%= for e <- eligibility(m) do %>
+      <div class="flex gap-3 py-3 border-t first:border-t-0" style="border-color: var(--border-subtle);">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold" style="color: var(--text-main);">{e.title}</div>
+          <div class="text-xs font-mono mb-2" style="color: var(--text-muted);">{e.field}</div>
+          <div class="flex items-center gap-3">
+            <div class="flex-1 h-2.5 rounded-full overflow-hidden" style="background: var(--border-strong);">
+              <div
+                class="h-full rounded-full"
+                style={"width: #{max(pct(e.count, e.known), if(e.count > 0, do: 2, else: 0))}%; background: var(--primary);"}
+              >
+              </div>
+            </div>
+            <div class="text-right text-sm tabular-nums shrink-0" style="min-width: 150px; color: var(--text-main);">
+              <b>{e.count}</b>
+              <span style="color: var(--text-muted);">
+                · {pct(e.count, e.known)}% de {e.known} con dato
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <%!-- AFORE breakdown --%>
     <div class="hd-card p-5">

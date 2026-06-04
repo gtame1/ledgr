@@ -27,28 +27,62 @@ defmodule Ledgr.Domains.AumentaMiPension.TraspasoCoverage do
   field → requirement mapping.
   """
   def coverage do
-    [[total, with_nss, with_curp, with_afore, nss_and_curp, all_three]] =
+    [
+      [
+        total,
+        with_nss,
+        with_curp,
+        with_afore,
+        nss_and_curp,
+        all_three,
+        over_60,
+        age_known,
+        weeks_over_850,
+        weeks_known,
+        inactive_1yr,
+        activity_known
+      ]
+    ] =
       query!("""
       WITH norm AS (
         SELECT right(regexp_replace(coalesce(phone,''),'[^0-9]','','g'),10) AS p,
-               nullif(nss,'') AS nss, nullif(curp,'') AS curp, NULL::text AS afore
+               nullif(nss,'') AS nss, nullif(curp,'') AS curp, NULL::text AS afore,
+               CASE WHEN date_of_birth ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+                    THEN to_date(date_of_birth,'YYYY-MM-DD') END AS birth,
+               NULL::int AS age_int,
+               weeks_contributed AS weeks,
+               CASE WHEN last_imss_contribution_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+                    THEN to_date(last_imss_contribution_date,'YYYY-MM-DD')
+                    WHEN last_imss_contribution_date ~ '^[0-9]{4}-[0-9]{2}$'
+                    THEN to_date(last_imss_contribution_date||'-01','YYYY-MM-DD') END AS activity
         FROM customers WHERE phone IS NOT NULL
         UNION ALL
         SELECT right(regexp_replace(coalesce(contact_phone,''),'[^0-9]','','g'),10),
                nullif(contact_nss,''), nullif(contact_curp,''),
                CASE WHEN has_afore IS TRUE OR nullif(afore_name,'') IS NOT NULL
-                    THEN coalesce(nullif(afore_name,''),'(unknown)') END
+                    THEN coalesce(nullif(afore_name,''),'(unknown)') END,
+               contact_birth_date, NULL, weeks_contributed,
+               CASE WHEN last_year_cotized = 'working' THEN current_date
+                    WHEN last_year_cotized ~ '^[0-9]{4}$' THEN make_date(last_year_cotized::int,12,31) END
         FROM checkup_responses WHERE contact_phone IS NOT NULL
         UNION ALL
         SELECT right(regexp_replace(coalesce(contact_phone,''),'[^0-9]','','g'),10),
-               NULL, NULL, NULL
+               NULL, NULL, NULL, birth_date, NULL, weeks_contributed, NULL
         FROM calculadora_submissions WHERE contact_phone IS NOT NULL
+        UNION ALL
+        SELECT right(regexp_replace(coalesce(c.phone,''),'[^0-9]','','g'),10),
+               NULL, NULL, NULL, NULL, pc.age, pc.weeks_contributed, NULL
+        FROM pension_cases pc JOIN customers c ON pc.customer_id = c.id
+        WHERE c.phone IS NOT NULL
       ),
       leads AS (
         SELECT p,
                bool_or(nss IS NOT NULL)  AS has_nss,
                bool_or(curp IS NOT NULL) AS has_curp,
-               bool_or(afore IS NOT NULL) AS has_afore
+               bool_or(afore IS NOT NULL) AS has_afore,
+               greatest(max(age_int), max(extract(year from age(current_date, birth))::int)) AS age,
+               max(weeks) AS weeks,
+               max(activity) AS last_activity
         FROM norm WHERE p <> '' AND length(p) = 10 GROUP BY p
       )
       SELECT count(*),
@@ -56,7 +90,13 @@ defmodule Ledgr.Domains.AumentaMiPension.TraspasoCoverage do
              count(*) FILTER (WHERE has_curp),
              count(*) FILTER (WHERE has_afore),
              count(*) FILTER (WHERE has_nss AND has_curp),
-             count(*) FILTER (WHERE has_nss AND has_curp AND has_afore)
+             count(*) FILTER (WHERE has_nss AND has_curp AND has_afore),
+             count(*) FILTER (WHERE age > 60),
+             count(*) FILTER (WHERE age IS NOT NULL),
+             count(*) FILTER (WHERE weeks > 850),
+             count(*) FILTER (WHERE weeks IS NOT NULL),
+             count(*) FILTER (WHERE last_activity < current_date - interval '1 year'),
+             count(*) FILTER (WHERE last_activity IS NOT NULL)
       FROM leads
       """)
 
@@ -93,6 +133,12 @@ defmodule Ledgr.Domains.AumentaMiPension.TraspasoCoverage do
       with_afore: with_afore,
       with_nss_and_curp: nss_and_curp,
       with_all_three: all_three,
+      over_60: over_60,
+      age_known: age_known,
+      weeks_over_850: weeks_over_850,
+      weeks_known: weeks_known,
+      inactive_1yr: inactive_1yr,
+      activity_known: activity_known,
       afore_breakdown: afore,
       sources: sources,
       total_cases: total_cases,
