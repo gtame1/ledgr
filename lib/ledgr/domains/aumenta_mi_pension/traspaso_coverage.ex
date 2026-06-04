@@ -39,11 +39,31 @@ defmodule Ledgr.Domains.AumentaMiPension.TraspasoCoverage do
   # free-form, so this is a heuristic, not authoritative.
   @emp_inactive_re "(no trab|no cotiz|no est|baja|desemple|sin trab|sin cotiz|not_work|jubilad|pensionad)"
 
-  @export_headers ~w(
-    telefono nombre email nss curp afore edad semanas_cotizadas
-    ultima_cotizacion estatus_empleo mayor_60 semanas_mayor_850
-    inactivo_1anio estatus_no_activo
-  )
+  # Source tables that make up a lead, in CSV column order. Each lead row
+  # takes the *latest* record per source (per normalized phone). `join` is
+  # "" for tables that carry the phone directly, or a JOIN onto
+  # `customers c` for tables that reference it via `customer_id`.
+  @export_sources [
+    %{prefix: "customers", table: "customers", phone: "t.phone", join: ""},
+    %{prefix: "checkup", table: "checkup_responses", phone: "t.contact_phone", join: ""},
+    %{prefix: "calculadora", table: "calculadora_submissions", phone: "t.contact_phone", join: ""},
+    %{
+      prefix: "pension_case",
+      table: "pension_cases",
+      phone: "c.phone",
+      join: "JOIN customers c ON t.customer_id = c.id"
+    },
+    %{
+      prefix: "conversation",
+      table: "conversations",
+      phone: "c.phone",
+      join: "JOIN customers c ON t.customer_id = c.id"
+    },
+    %{prefix: "crm", table: "lead_crm", phone: "t.phone", join: ""}
+  ]
+
+  # Preferred "latest row" tiebreaker columns, best first.
+  @order_pref ~w(last_message_at updated_at created_at inserted_at)
 
   @doc """
   Returns the full coverage + eligibility snapshot as a map.
@@ -146,43 +166,83 @@ defmodule Ledgr.Domains.AumentaMiPension.TraspasoCoverage do
 
   @doc """
   Builds the full per-lead export as a UTF-8 CSV string (BOM-prefixed so
-  Excel reads accents correctly). One row per lead, ordered with the most
-  qualified-looking leads first (most weeks).
+  Excel reads accents correctly). One row per lead (normalized phone),
+  with **every column** from each source table — taking the latest record
+  per source. Columns are prefixed by source (`customers.*`, `checkup.*`,
+  `calculadora.*`, `pension_case.*`, `conversation.*`, `crm.*`).
+
+  Column lists are read from `information_schema` on each call, so new
+  bot-added columns appear in the export automatically.
   """
   def export_csv do
-    rows =
-      query!("WITH #{norm_cte()},
-      leads AS (
-        SELECT p AS telefono,
-               max(name) AS nombre,
-               max(email) AS email,
-               max(nss) AS nss,
-               max(curp) AS curp,
-               max(afore) AS afore,
-               greatest(max(age_int), max(extract(year from age(current_date, birth))::int)) AS edad,
-               max(weeks) AS semanas,
-               max(activity) AS ultima,
-               max(emp) AS estatus,
-               bool_or(emp ~* '#{@emp_inactive_re}') AS estatus_no_activo
-        FROM norm WHERE p <> '' AND length(p) = 10 GROUP BY p
-      )
-      SELECT telefono, nombre, email, nss, curp, afore, edad, semanas,
-             to_char(ultima,'YYYY-MM-DD'), estatus,
-             (edad > 60),
-             (semanas > 850),
-             (ultima < current_date - interval '1 year'),
-             estatus_no_activo
-      FROM leads
-      ORDER BY (semanas > 850) DESC NULLS LAST, semanas DESC NULLS LAST, telefono")
+    {headers, rows} = build_export()
 
     body =
-      [@export_headers | rows]
+      [headers | rows]
       |> Enum.map_join("\r\n", fn row -> Enum.map_join(row, ",", &csv_field/1) end)
 
     "﻿" <> body <> "\r\n"
   end
 
   # ── internals ──────────────────────────────────────────────────────
+
+  defp build_export do
+    table_list = Enum.map_join(@export_sources, ",", fn s -> "'#{s.table}'" end)
+
+    cols_by_table =
+      query!("""
+      SELECT table_name, column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name IN (#{table_list})
+      ORDER BY table_name, ordinal_position
+      """)
+      |> Enum.reduce(%{}, fn [t, c], acc -> Map.update(acc, t, [c], &(&1 ++ [c])) end)
+
+    sources =
+      Enum.map(@export_sources, fn s ->
+        cols = Map.get(cols_by_table, s.table, [])
+        Map.merge(s, %{cols: cols, order: Enum.find(@order_pref, &(&1 in cols))})
+      end)
+
+    union =
+      Enum.map_join(sources, "\nUNION ALL\n", fn s ->
+        "SELECT #{normp(s.phone)} AS p FROM #{s.table} t #{s.join} WHERE #{s.phone} IS NOT NULL"
+      end)
+
+    joins =
+      Enum.map_join(sources, "\n", fn s ->
+        collist = Enum.map_join(s.cols, ", ", fn c -> ~s|t."#{c}" AS "#{s.prefix}__#{c}"| end)
+        order = if s.order, do: ~s|, t."#{s.order}" DESC NULLS LAST|, else: ""
+
+        ~s|LEFT JOIN (SELECT DISTINCT ON (#{normp(s.phone)}) #{normp(s.phone)} AS p, #{collist} | <>
+          ~s|FROM #{s.table} t #{s.join} WHERE #{s.phone} IS NOT NULL | <>
+          ~s|ORDER BY #{normp(s.phone)}#{order}) #{s.prefix} ON #{s.prefix}.p = base.p|
+      end)
+
+    out_cols =
+      Enum.flat_map(sources, fn s ->
+        Enum.map(s.cols, fn c -> ~s|#{s.prefix}."#{s.prefix}__#{c}"| end)
+      end)
+
+    select_tail = if out_cols == [], do: "", else: ",\n" <> Enum.join(out_cols, ",\n")
+
+    sql = """
+    WITH base AS (
+      SELECT DISTINCT p FROM (#{union}) u WHERE p <> '' AND length(p) = 10
+    )
+    SELECT base.p AS telefono#{select_tail}
+    FROM base
+    #{joins}
+    ORDER BY base.p
+    """
+
+    headers =
+      ["telefono"] ++
+        Enum.flat_map(sources, fn s -> Enum.map(s.cols, &"#{s.prefix}.#{&1}") end)
+
+    {headers, query!(sql)}
+  end
+
+  defp normp(expr), do: "right(regexp_replace(coalesce(#{expr},''),'[^0-9]','','g'),10)"
 
   # Shared `norm` CTE body (without the leading "WITH"): one normalized
   # row per source record, carrying every field both queries need.
@@ -236,6 +296,11 @@ defmodule Ledgr.Domains.AumentaMiPension.TraspasoCoverage do
   defp csv_field(true), do: "sí"
   defp csv_field(false), do: "no"
   defp csv_field(%Decimal{} = d), do: Decimal.to_string(d)
+  defp csv_field(%Date{} = d), do: Date.to_iso8601(d)
+  defp csv_field(%DateTime{} = d), do: DateTime.to_iso8601(d)
+  defp csv_field(%NaiveDateTime{} = d), do: NaiveDateTime.to_iso8601(d)
+  defp csv_field(%Time{} = t), do: Time.to_iso8601(t)
+  defp csv_field(v) when is_map(v) or is_list(v), do: csv_field(Jason.encode!(v))
 
   defp csv_field(v) when is_binary(v) do
     if String.contains?(v, [",", "\"", "\n", "\r"]) do
