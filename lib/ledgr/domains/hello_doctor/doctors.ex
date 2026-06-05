@@ -63,6 +63,10 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
 
     case result do
       {:ok, doctor} ->
+        # Stamp extension_code + referral_link immediately so the doctor
+        # is patient-shareable without waiting for the bot's next
+        # startup-time backfill. Mirrors the bot's doctor_codes module.
+        doctor = Ledgr.Domains.HelloDoctor.DoctorCodes.stamp_missing!(doctor)
         doctor = maybe_sync_prescrypto(doctor)
         {:ok, doctor}
 

@@ -149,6 +149,14 @@ if hd_webhook_secret = System.get_env("HELLO_DOCTOR_STRIPE_WEBHOOK_SECRET") do
   config :ledgr, hello_doctor_stripe_webhook_secret: hd_webhook_secret
 end
 
+# Dialable WhatsApp business number used when Ledgr stamps a doctor's
+# referral_link at create time (mirrors the bot's WHATSAPP_BUSINESS_NUMBER).
+# Bare international digits, no "+". Default matches the bot's config default;
+# set the env var to override if the line moves.
+if num = System.get_env("HELLO_DOCTOR_WHATSAPP_BUSINESS_NUMBER") do
+  config :ledgr, hello_doctor_whatsapp_business_number: num
+end
+
 # HelloDoctor external billing API keys
 if key = System.get_env("HELLO_DOCTOR_OPENAI_API_KEY") do
   config :ledgr, hello_doctor_openai_api_key: key
@@ -214,8 +222,7 @@ end
 # to +34 623 75 84 18; CallMeBot replies with the API key.
 # If CALLMEBOT_API_KEY is missing the integration silently no-ops and
 # logs a warning so the rest of the app keeps working.
-config :ledgr, :callmebot,
-  api_key: System.get_env("CALLMEBOT_API_KEY")
+config :ledgr, :callmebot, api_key: System.get_env("CALLMEBOT_API_KEY")
 
 # MrMunchMe alert recipient (E.164, with or without leading +). Must be
 # the same phone that authorized the CallMeBot API key above. Defaults
