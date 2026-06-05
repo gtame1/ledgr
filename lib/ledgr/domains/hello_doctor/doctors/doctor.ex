@@ -51,7 +51,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   end
 
   @required ~w[id phone name specialty is_available]a
-  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at has_correct_rfc consultation_fee_mxn]a
+  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at has_correct_rfc consultation_fee_mxn referral_link]a
 
   def changeset(doctor, attrs) do
     doctor
