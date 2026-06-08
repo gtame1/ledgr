@@ -571,6 +571,9 @@ defmodule LedgrWeb.Router do
     get "/reports/monthly", Domains.HelloDoctor.MonthlyReportController, :index
     get "/reports/monthly/download", Domains.HelloDoctor.MonthlyReportController, :download
 
+    # Acquisition / Meta ad attribution dashboard
+    get "/acquisition", Domains.HelloDoctor.AcquisitionController, :index
+
     # Corporate accounts admin (proxies the bot's /admin/corporate API)
     get "/corporate", Domains.HelloDoctor.CorporateController, :index
     get "/corporate/new", Domains.HelloDoctor.CorporateController, :new

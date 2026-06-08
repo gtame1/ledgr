@@ -1,0 +1,315 @@
+<div class="hd-page">
+  <%!-- ── Header ── --%>
+  <div class="mb-6">
+    <div class="flex items-baseline justify-between gap-4 flex-wrap mb-2">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">
+        Acquisition
+      </h1>
+      <div class="text-sm" style="color: var(--text-muted);">
+        Meta Ads → WhatsApp · attribution by emoji + welcome-message phrase
+      </div>
+    </div>
+    <p class="text-sm" style="color: var(--text-muted); max-width: 80ch;">
+      Each campaign sets a distinct emoji + welcome message in its WhatsApp
+      click-to-chat link. We attribute a conversation to a campaign when its
+      first inbound user message contains both. Scoped to the <code>mvp</code>
+      tenant (the on-demand bot-routed flow); <code>direct</code>
+      consultations enter via a separate patient-picks-doctor path and
+      aren't ad-driven.
+    </p>
+  </div>
+
+  <%!-- ── Date filter ── --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" class="flex flex-wrap items-center gap-3">
+      <label class="text-sm" style="color: var(--text-main);">
+        From
+        <input
+          type="date"
+          name="start_date"
+          value={@start_date}
+          class="hd-input text-sm ml-1"
+          style="padding: 0.4rem 0.65rem;"
+        />
+      </label>
+      <label class="text-sm" style="color: var(--text-main);">
+        To
+        <input
+          type="date"
+          name="end_date"
+          value={@end_date}
+          class="hd-input text-sm ml-1"
+          style="padding: 0.4rem 0.65rem;"
+        />
+      </label>
+      <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.4rem 0.95rem;">
+        Apply
+      </button>
+      <div class="ml-auto text-xs" style="color: var(--text-muted);">
+        Default range: last 30 days
+      </div>
+    </form>
+  </div>
+
+  <%!-- ── KPI summary ── --%>
+  <div class="hd-kpi-grid mb-8" style="gap: 1.5rem;">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Leads</div>
+      <div class="hd-kpi-value">{@report.totals.leads}</div>
+      <div class="hd-kpi-sub">attributed conversations</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Unique patients</div>
+      <div class="hd-kpi-value">{@report.totals.unique_patients}</div>
+      <div class="hd-kpi-sub">distinct phones</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Triaged</div>
+      <div class="hd-kpi-value">{@report.totals.triaged}</div>
+      <div class="hd-kpi-sub">past initial triage</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Doctor matched</div>
+      <div class="hd-kpi-value">{@report.totals.doctor_matched}</div>
+      <div class="hd-kpi-sub">routed to a doctor</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Paid</div>
+      <div class="hd-kpi-value" style="color: #16a34a;">{@report.totals.paid}</div>
+      <div class="hd-kpi-sub">{fmt_pct(@report.totals.lead_to_paid)} of leads</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Completed</div>
+      <div class="hd-kpi-value" style="color: var(--accent);">{@report.totals.completed}</div>
+      <div class="hd-kpi-sub">consultations</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Revenue</div>
+      <div class="hd-kpi-value">{fmt_money(@report.totals.revenue_mxn)}</div>
+      <div class="hd-kpi-sub">gross, paid Stripe lines</div>
+    </div>
+  </div>
+
+  <%!-- ── Daily trend (stacked SVG bars) ── --%>
+  <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">Daily leads</h2>
+  <div class="hd-card p-5 mb-8">
+    <% daily = @report.daily %>
+    <% max_total = daily |> Enum.map(& &1.total) |> Enum.max(fn -> 1 end) |> max(1) %>
+    <% chart_h = 180 %>
+    <% bar_w = 16 %>
+    <% gap = 4 %>
+    <% chart_w = length(daily) * (bar_w + gap) %>
+
+    <%= if Enum.all?(daily, &(&1.total == 0)) do %>
+      <div
+        class="text-sm text-center py-8"
+        style="color: var(--text-muted);"
+      >
+        No campaign-attributed leads in this period yet — once an ad runs and a patient
+        clicks through with one of the welcome-message templates, bars will appear here.
+      </div>
+    <% else %>
+      <div style="overflow-x: auto; padding-bottom: 0.5rem;">
+        <svg
+          width={chart_w}
+          height={chart_h + 30}
+          xmlns="http://www.w3.org/2000/svg"
+          style="display: block; min-width: 100%;"
+        >
+          <%= for {row, i} <- Enum.with_index(daily) do %>
+            <% x = i * (bar_w + gap) %>
+            <%= for seg <- day_segments(row, @report.per_campaign, max_total, chart_h) do %>
+              <rect x={x} y={seg.y_top} width={bar_w} height={seg.height} fill={seg.color}>
+                <title>
+                  {Calendar.strftime(row.date, "%b %d")} · {seg.emoji} {seg.ad_set}: {seg.count} lead(s)
+                </title>
+              </rect>
+            <% end %>
+
+            <%!-- Day label every 5 days, plus the last column --%>
+            <%= if rem(i, 5) == 0 or i == length(daily) - 1 do %>
+              <text
+                x={x + bar_w / 2}
+                y={chart_h + 14}
+                font-size="10"
+                fill="var(--text-muted)"
+                text-anchor="middle"
+              >
+                {Calendar.strftime(row.date, "%b %d")}
+              </text>
+            <% end %>
+          <% end %>
+        </svg>
+      </div>
+
+      <%!-- Legend --%>
+      <div class="flex flex-wrap items-center gap-3 mt-4 text-xs">
+        <%= for entry <- @report.per_campaign do %>
+          <%= if entry.leads > 0 do %>
+            <div class="flex items-center gap-1.5">
+              <span style={"display:inline-block;width:10px;height:10px;background:#{campaign_color(entry.campaign.id)};border-radius:2px;"}>
+              </span>
+              <span style="color: var(--text-main);">
+                {entry.campaign.emoji} {entry.campaign.ad_set}
+                <span style="color: var(--text-muted);">({entry.leads})</span>
+              </span>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <%!-- ── Per-campaign funnel table ── --%>
+  <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">Per-campaign funnel</h2>
+  <div class="hd-card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+          <th
+            class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Campaign
+          </th>
+          <th
+            class="text-left p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Pain
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Leads
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Patients
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Triaged
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Matched
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Paid
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Completed
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Lead→Paid
+          </th>
+          <th
+            class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+            style="color: var(--text-muted);"
+          >
+            Revenue
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for entry <- @report.per_campaign do %>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td class="p-3 pl-4 font-medium" style="color: var(--text-main); white-space: nowrap;">
+              <span style={"display:inline-block;width:8px;height:8px;background:#{campaign_color(entry.campaign.id)};border-radius:50%;margin-right:0.4rem;vertical-align:middle;"}>
+              </span>
+              {entry.campaign.emoji} {entry.campaign.ad_set}
+              <div class="text-xs mt-0.5" style="color: var(--text-muted);">
+                {entry.campaign.campaign_set}
+              </div>
+            </td>
+            <td class="p-3 text-xs" style="color: var(--text-muted);">{entry.campaign.pain}</td>
+            <td class="p-3 text-right font-semibold">{entry.leads}</td>
+            <td class="p-3 text-right">{entry.unique_patients}</td>
+            <td class="p-3 text-right">{entry.triaged}</td>
+            <td class="p-3 text-right">{entry.doctor_matched}</td>
+            <td class="p-3 text-right" style="color: #16a34a;">{entry.paid}</td>
+            <td class="p-3 text-right" style="color: var(--accent);">{entry.completed}</td>
+            <td class="p-3 text-right" style="color: var(--text-muted);">
+              {fmt_pct(entry.lead_to_paid)}
+            </td>
+            <td class="p-3 pr-4 text-right font-semibold">
+              {fmt_money(entry.revenue_mxn)}
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
+          <td class="p-3 pl-4 font-bold" colspan="2">Totals</td>
+          <td class="p-3 text-right font-bold">{@report.totals.leads}</td>
+          <td class="p-3 text-right font-bold">{@report.totals.unique_patients}</td>
+          <td class="p-3 text-right font-bold">{@report.totals.triaged}</td>
+          <td class="p-3 text-right font-bold">{@report.totals.doctor_matched}</td>
+          <td class="p-3 text-right font-bold" style="color: #16a34a;">{@report.totals.paid}</td>
+          <td class="p-3 text-right font-bold" style="color: var(--accent);">
+            {@report.totals.completed}
+          </td>
+          <td class="p-3 text-right font-bold">{fmt_pct(@report.totals.lead_to_paid)}</td>
+          <td class="p-3 pr-4 text-right font-bold">{fmt_money(@report.totals.revenue_mxn)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <%!-- ── Welcome-message reference ── --%>
+  <details class="hd-card p-5" style="margin-bottom: 2rem;">
+    <summary class="text-sm font-semibold cursor-pointer" style="color: var(--text-muted);">
+      Campaign welcome-message reference
+    </summary>
+    <p class="text-xs mt-3" style="color: var(--text-muted);">
+      Each campaign's WhatsApp click-to-chat link prefills the message below.
+      Attribution requires the patient to send the message essentially intact —
+      both the emoji AND a distinctive phrase from the template must appear.
+    </p>
+    <table class="w-full text-sm mt-3">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <th class="text-left p-2 text-xs uppercase" style="color: var(--text-muted);">Emoji</th>
+          <th class="text-left p-2 text-xs uppercase" style="color: var(--text-muted);">
+            Ad Set
+          </th>
+          <th class="text-left p-2 text-xs uppercase" style="color: var(--text-muted);">Pain</th>
+          <th class="text-left p-2 text-xs uppercase" style="color: var(--text-muted);">
+            Phrase match
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for entry <- @report.per_campaign do %>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td class="p-2 text-lg">{entry.campaign.emoji}</td>
+            <td class="p-2 font-mono text-xs" style="color: var(--text-main);">
+              {entry.campaign.ad_set}
+            </td>
+            <td class="p-2 text-xs" style="color: var(--text-muted);">{entry.campaign.pain}</td>
+            <td class="p-2 text-xs font-mono" style="color: var(--text-main);">
+              "{entry.campaign.phrase}"
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </details>
+</div>

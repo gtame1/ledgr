@@ -150,6 +150,12 @@ defmodule Ledgr.Domains.HelloDoctor do
         ]
       },
       %{
+        group: "Marketing",
+        items: [
+          %{label: "Acquisition", path: "#{prefix}/acquisition", icon: :reports}
+        ]
+      },
+      %{
         group: "Settings",
         items: [
           %{label: "Specialties", path: "#{prefix}/specialties", icon: :customers},
@@ -181,6 +187,7 @@ defmodule Ledgr.Domains.HelloDoctor do
       "Expenses" => "receipt_long",
       "Doctor Payouts" => "account_balance_wallet",
       "Corporate" => "business",
+      "Acquisition" => "trending_up",
       "Monthly Report" => "calendar_month",
       "Balance Sheet" => "account_balance",
       "P&L" => "bar_chart",
