@@ -12,10 +12,14 @@
     <p class="text-sm" style="color: var(--text-muted); max-width: 80ch;">
       Each campaign sets a distinct emoji + welcome message in its WhatsApp
       click-to-chat link. We attribute a conversation to a campaign when its
-      first inbound user message contains both. Scoped to the <code>mvp</code>
-      tenant (the on-demand bot-routed flow); <code>direct</code>
-      consultations enter via a separate patient-picks-doctor path and
-      aren't ad-driven.
+      first inbound user message contains both. Doctor-referral
+      (<code>DR-XXXX</code>) clicks are excluded — those are a separate
+      acquisition path. Ad-driven patients may land in either
+      <code>mvp</code>
+      or <code>direct</code>
+      tenant depending on how the bot routes them; the "Stuck in
+      <code>awaiting_code</code>" KPI flags direct-pipe leads the bot has no
+      handler for.
     </p>
   </div>
 
