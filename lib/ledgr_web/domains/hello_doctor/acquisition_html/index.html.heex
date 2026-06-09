@@ -73,6 +73,20 @@
       <div class="hd-kpi-value">{@report.totals.doctor_matched}</div>
       <div class="hd-kpi-sub">routed to a doctor</div>
     </div>
+    <%= if @report.totals.stuck_in_awaiting_code > 0 do %>
+      <div class="hd-kpi" style="border-left: 4px solid #f59e0b;">
+        <div class="hd-kpi-label" style="color: #92400e;">⚠ Stuck in awaiting_code</div>
+        <div class="hd-kpi-value" style="color: #b45309;">
+          {@report.totals.stuck_in_awaiting_code}
+        </div>
+        <div
+          class="hd-kpi-sub"
+          title="Ad-attributed clicks that landed in the bot's direct-pipe awaiting_code stage with no DR-XXXX code — the bot has no handler for this path. Funnel leak."
+        >
+          {fmt_pct(@report.totals.stuck_pct)} of leads · bot funnel leak
+        </div>
+      </div>
+    <% end %>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Paid</div>
       <div class="hd-kpi-value" style="color: #16a34a;">{@report.totals.paid}</div>
@@ -204,6 +218,13 @@
           </th>
           <th
             class="text-right p-3 text-xs font-semibold uppercase"
+            style="color: #92400e;"
+            title="Ad clicks the bot funneled into direct-pipe awaiting_code with no DR-XXXX code on file. Bot has no handler — leads are stuck."
+          >
+            ⚠ Stuck
+          </th>
+          <th
+            class="text-right p-3 text-xs font-semibold uppercase"
             style="color: var(--text-muted);"
           >
             Paid
@@ -244,6 +265,16 @@
             <td class="p-3 text-right">{entry.unique_patients}</td>
             <td class="p-3 text-right">{entry.triaged}</td>
             <td class="p-3 text-right">{entry.doctor_matched}</td>
+            <td
+              class="p-3 text-right"
+              style={
+                if entry.stuck_in_awaiting_code > 0,
+                  do: "color: #b45309; font-weight: 600;",
+                  else: "color: var(--text-muted);"
+              }
+            >
+              {entry.stuck_in_awaiting_code}
+            </td>
             <td class="p-3 text-right" style="color: #16a34a;">{entry.paid}</td>
             <td class="p-3 text-right" style="color: var(--accent);">{entry.completed}</td>
             <td class="p-3 text-right" style="color: var(--text-muted);">
@@ -262,6 +293,9 @@
           <td class="p-3 text-right font-bold">{@report.totals.unique_patients}</td>
           <td class="p-3 text-right font-bold">{@report.totals.triaged}</td>
           <td class="p-3 text-right font-bold">{@report.totals.doctor_matched}</td>
+          <td class="p-3 text-right font-bold" style="color: #b45309;">
+            {@report.totals.stuck_in_awaiting_code}
+          </td>
           <td class="p-3 text-right font-bold" style="color: #16a34a;">{@report.totals.paid}</td>
           <td class="p-3 text-right font-bold" style="color: var(--accent);">
             {@report.totals.completed}

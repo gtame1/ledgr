@@ -8,9 +8,20 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   then joins through to consultations / stripe_payments for the
   downstream funnel + revenue numbers.
 
-  All metrics are scoped to `tenant = 'mvp'` (the only flow currently
-  driven by ads). Date range filters the conversation's
-  `first_message_at` (the moment the patient clicked the ad).
+  Attribution is content-based (emoji + phrase in the first user
+  message), so it does NOT filter on `conversations.tenant`. Many
+  ad-driven patients end up in `tenant = 'direct'` because the bot
+  routes anything not explicitly tagged as MVP into the direct
+  pipe — even when there's no DR-XXXX code (those get stuck in
+  `awaiting_code`, which the dashboard surfaces as a funnel-leak
+  warning).
+
+  DR-XXXX referral_link clicks (the per-doctor wa.me from the
+  doctor show page) are excluded explicitly — they're a separate
+  acquisition path, not ad-attributable.
+
+  Date range filters on `first_message_at` — the moment the patient
+  hit the WhatsApp click-to-chat.
   """
 
   alias Ledgr.Repo
@@ -78,11 +89,14 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         fm.first_msg_at,
         c.patient_id,
         c.funnel_stage,
+        c.tenant,
         #{detection} AS campaign_id
       FROM first_msg fm
       JOIN conversations c ON c.id = fm.conversation_id
-      WHERE c.tenant = 'mvp'
-        AND fm.first_msg_at BETWEEN $1 AND $2
+      WHERE fm.first_msg_at BETWEEN $1 AND $2
+        -- DR-XXXX referral_link clicks (per-doctor wa.me from the doctor
+        -- show page) aren't ad-attributable. Same prefix the bot uses.
+        AND fm.content NOT ILIKE '%mi doctor: dr-%'
     )
     SELECT
       a.campaign_id,
@@ -94,6 +108,12 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       COUNT(*) FILTER (
         WHERE a.funnel_stage IN ('doctor_assigned','consultation_active','completed')
       ) AS doctor_matched,
+      -- Funnel-leak: ad clicks stuck in the bot's direct-pipe awaiting_code
+      -- with no DR-XXXX code on file. The bot's routing doesn't know what
+      -- to do with these; they hang.
+      COUNT(*) FILTER (
+        WHERE a.tenant = 'direct' AND a.funnel_stage = 'awaiting_code'
+      ) AS stuck_in_awaiting_code,
       COUNT(DISTINCT cons.id) FILTER (
         WHERE cons.payment_status IN ('paid','confirmed')
       ) AS paid,
@@ -126,6 +146,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       unique_patients: 0,
       triaged: 0,
       doctor_matched: 0,
+      stuck_in_awaiting_code: 0,
       paid: 0,
       completed: 0,
       revenue_mxn: 0
@@ -140,12 +161,14 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       unique_patients: row.unique_patients || 0,
       triaged: row.triaged || 0,
       doctor_matched: row.doctor_matched || 0,
+      stuck_in_awaiting_code: row[:stuck_in_awaiting_code] || 0,
       paid: row.paid || 0,
       completed: row.completed || 0,
       revenue_mxn: to_float(row.revenue_mxn),
       lead_to_triage: pct(row.triaged, leads),
       lead_to_paid: pct(row.paid, leads),
-      lead_to_completed: pct(row.completed, leads)
+      lead_to_completed: pct(row.completed, leads),
+      stuck_pct: pct(row[:stuck_in_awaiting_code] || 0, leads)
     })
   end
 
@@ -164,6 +187,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       :unique_patients,
       :triaged,
       :doctor_matched,
+      :stuck_in_awaiting_code,
       :paid,
       :completed,
       :revenue_mxn
@@ -182,6 +206,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     summed
     |> Map.put(:lead_to_paid, pct(summed.paid, summed.leads))
     |> Map.put(:lead_to_completed, pct(summed.completed, summed.leads))
+    |> Map.put(:stuck_pct, pct(summed.stuck_in_awaiting_code, summed.leads))
   end
 
   # ── Daily trend ──────────────────────────────────────────────────
@@ -205,8 +230,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         #{detection} AS campaign_id
       FROM first_msg fm
       JOIN conversations c ON c.id = fm.conversation_id
-      WHERE c.tenant = 'mvp'
-        AND fm.first_msg_at BETWEEN $1 AND $2
+      WHERE fm.first_msg_at BETWEEN $1 AND $2
+        AND fm.content NOT ILIKE '%mi doctor: dr-%'
     )
     SELECT day, campaign_id, COUNT(*) AS leads
     FROM attributed
