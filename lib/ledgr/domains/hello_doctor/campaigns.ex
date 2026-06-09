@@ -100,6 +100,15 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "LPC-01",
         pain: "From /consulta landing page",
         phrase: "busco una consulta médica"
+      },
+      %__MODULE__{
+        id: "lph_01",
+        label: "General — Home page CTA",
+        emoji: "🏠",
+        campaign_set: "General",
+        ad_set: "LPH-01",
+        pain: "From the home page CTA",
+        phrase: "me interesa una consulta"
       }
     ]
   end

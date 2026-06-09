@@ -52,7 +52,8 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
     "gen_01_thinking" => "#10b981",
     "gen_01_smile" => "#14b8a6",
     "awr_01" => "#ef4444",
-    "lpc_01" => "#6366f1"
+    "lpc_01" => "#6366f1",
+    "lph_01" => "#ec4899"
   }
 
   def campaign_color(id), do: Map.get(@palette, id, "#94a3b8")
