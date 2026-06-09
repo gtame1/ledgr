@@ -91,6 +91,15 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "AWR-01",
         pain: "Video views",
         phrase: "vi su video, quiero info"
+      },
+      %__MODULE__{
+        id: "lpc_01",
+        label: "General — /consulta landing",
+        emoji: "🩺",
+        campaign_set: "General",
+        ad_set: "LPC-01",
+        pain: "From /consulta landing page",
+        phrase: "busco una consulta médica"
       }
     ]
   end
