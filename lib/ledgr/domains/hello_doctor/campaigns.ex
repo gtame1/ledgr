@@ -104,7 +104,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
       %__MODULE__{
         id: "lph_01",
         label: "General — Home page CTA",
-        emoji: "🏠",
+        emoji: "🙏",
         campaign_set: "General",
         ad_set: "LPH-01",
         pain: "From the home page CTA",
