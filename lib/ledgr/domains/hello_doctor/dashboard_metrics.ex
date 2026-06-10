@@ -129,7 +129,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   """
   def funnel_by_segment(start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     # Two perf notes:
     # 1. The "completed" leg used to be a per-row `WHERE EXISTS (...
@@ -168,7 +168,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     FROM conversations c
     LEFT JOIN patients p ON p.id = c.patient_id
     LEFT JOIN conv_done cd ON cd.conversation_id = c.id
-    WHERE c.created_at >= $1 AND c.created_at <= $2
+    WHERE c.created_at >= $1 AND c.created_at < $2
       AND (c.patient_id IS NULL OR c.patient_id != $4)
       AND (
         c.stripe_payment_intent_id IS NULL
@@ -186,7 +186,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         sql,
         [
           start_naive,
-          end_naive,
+          end_exclusive,
           @offered_or_downstream,
           @test_patient_id
         ],
@@ -246,12 +246,12 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   defp count_real_consultations(start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     sql = """
     SELECT COUNT(*)
     FROM consultations cs
-    WHERE cs.assigned_at >= $1 AND cs.assigned_at <= $2
+    WHERE cs.assigned_at >= $1 AND cs.assigned_at < $2
       AND (cs.patient_id IS NULL OR cs.patient_id != $3)
       AND (
         cs.stripe_payment_intent_id IS NULL
@@ -263,24 +263,32 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     """
 
     %{rows: [[n]]} =
-      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_exclusive,
+        @test_patient_id
+      ])
 
     n
   end
 
   defp count_real_conversations(start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     sql = """
     SELECT COUNT(*)
     FROM conversations c
-    WHERE c.created_at >= $1 AND c.created_at <= $2
+    WHERE c.created_at >= $1 AND c.created_at < $2
       AND (c.patient_id IS NULL OR c.patient_id != $3)
     """
 
     %{rows: [[n]]} =
-      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_exclusive,
+        @test_patient_id
+      ])
 
     n
   end
@@ -322,7 +330,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   """
   def user_metrics(start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     new_users = count_new_users(start_date, end_date)
     existing_users = count_existing_users_active(start_date, end_date)
@@ -331,7 +339,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       avg_per_existing_user(
         :conversations,
         start_naive,
-        end_naive,
+        end_exclusive,
         to_naive_start(start_date)
       )
 
@@ -339,7 +347,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       avg_per_existing_user(
         :consultations,
         start_naive,
-        end_naive,
+        end_exclusive,
         to_naive_start(start_date)
       )
 
@@ -354,49 +362,57 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   defp count_new_users(start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     sql = """
     SELECT COUNT(DISTINCT p.id)
     FROM patients p
     JOIN conversations c ON c.patient_id = p.id
-    WHERE c.created_at >= $1 AND c.created_at <= $2
+    WHERE c.created_at >= $1 AND c.created_at < $2
       AND p.id != $3
-      AND p.created_at >= $1 AND p.created_at <= $2
+      AND p.created_at >= $1 AND p.created_at < $2
     """
 
     %{rows: [[n]]} =
-      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_exclusive,
+        @test_patient_id
+      ])
 
     n
   end
 
   defp count_existing_users_active(start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     sql = """
     SELECT COUNT(DISTINCT p.id)
     FROM patients p
     JOIN conversations c ON c.patient_id = p.id
-    WHERE c.created_at >= $1 AND c.created_at <= $2
+    WHERE c.created_at >= $1 AND c.created_at < $2
       AND p.id != $3
       AND p.created_at < $1
     """
 
     %{rows: [[n]]} =
-      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_exclusive,
+        @test_patient_id
+      ])
 
     n
   end
 
-  defp avg_per_existing_user(:conversations, start_naive, end_naive, period_start) do
+  defp avg_per_existing_user(:conversations, start_naive, end_exclusive, period_start) do
     sql = """
     WITH per_user AS (
       SELECT p.id, COUNT(c.id) AS n
       FROM patients p
       JOIN conversations c ON c.patient_id = p.id
-      WHERE c.created_at >= $1 AND c.created_at <= $2
+      WHERE c.created_at >= $1 AND c.created_at < $2
         AND p.id != $3
         AND p.created_at < $4
       GROUP BY p.id
@@ -407,7 +423,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     %{rows: [[avg]]} =
       Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
         start_naive,
-        end_naive,
+        end_exclusive,
         @test_patient_id,
         period_start
       ])
@@ -415,13 +431,13 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     Float.round(to_float(avg), 2)
   end
 
-  defp avg_per_existing_user(:consultations, start_naive, end_naive, period_start) do
+  defp avg_per_existing_user(:consultations, start_naive, end_exclusive, period_start) do
     sql = """
     WITH per_user AS (
       SELECT p.id, COUNT(cs.id) AS n
       FROM patients p
       JOIN consultations cs ON cs.patient_id = p.id
-      WHERE cs.assigned_at >= $1 AND cs.assigned_at <= $2
+      WHERE cs.assigned_at >= $1 AND cs.assigned_at < $2
         AND p.id != $3
         AND p.created_at < $4
         AND (
@@ -439,7 +455,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     %{rows: [[avg]]} =
       Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
         start_naive,
-        end_naive,
+        end_exclusive,
         @test_patient_id,
         period_start
       ])
@@ -464,7 +480,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   """
   def rating_metrics(start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     sql = """
     SELECT
@@ -477,12 +493,16 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       AVG(cs.doctor_platform_rating)::float  AS dp_avg,
       COUNT(cs.doctor_platform_rating)       AS dp_n
     FROM consultations cs
-    WHERE cs.assigned_at >= $1 AND cs.assigned_at <= $2
+    WHERE cs.assigned_at >= $1 AND cs.assigned_at < $2
       AND (cs.patient_id IS NULL OR cs.patient_id != $3)
     """
 
     %{rows: [[d_avg, d_n, p_avg, p_n, pp_avg, pp_n, dp_avg, dp_n]]} =
-      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive, @test_patient_id])
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        start_naive,
+        end_exclusive,
+        @test_patient_id
+      ])
 
     %{
       doctor: %{avg: rating_round(d_avg), count: d_n},
@@ -697,7 +717,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         left_join: c in Consultation,
         on:
           c.doctor_id == d.id and c.assigned_at >= ^to_naive_start(start_date) and
-            c.assigned_at <= ^to_naive_end(end_date),
+            c.assigned_at < ^to_naive_end_exclusive(end_date),
         group_by: d.id,
         select: %{
           id: d.id,
@@ -737,7 +757,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         on:
           c.doctor_id == d.id and
             c.assigned_at >= ^to_naive_start(start_date) and
-            c.assigned_at <= ^to_naive_end(end_date),
+            c.assigned_at < ^to_naive_end_exclusive(end_date),
         group_by: d.id,
         select: %{
           id: d.id,
@@ -892,7 +912,9 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         on: c.doctor_id == d.id,
         join: p in StripePayment,
         on: p.consultation_id == c.id and p.status == "paid",
-        where: p.paid_at >= ^to_naive_start(start_date) and p.paid_at <= ^to_naive_end(end_date),
+        where:
+          p.paid_at >= ^to_naive_start(start_date) and
+            p.paid_at < ^to_naive_end_exclusive(end_date),
         group_by: [d.id, d.name, d.specialty],
         select: %{
           id: d.id,
@@ -969,16 +991,25 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   # ── Private helpers ────────────────────────────────────────────
 
+  # All timestamp columns are UTC-stored `timestamp without time zone` and
+  # all input dates are Mexico City wall-clock. We MUST convert the date
+  # bounds to UTC instants before comparing. Half-open `>= start AND <
+  # end_exclusive` is the safe shape — the legacy `<= 23:59:59` pattern
+  # both treated MX dates as UTC AND dropped the final second-of-day.
+  # See Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1.
   defp where_date_range(query, field, start_date, end_date) do
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
 
     from q in query,
-      where: field(q, ^field) >= ^start_naive and field(q, ^field) <= ^end_naive
+      where: field(q, ^field) >= ^start_naive and field(q, ^field) < ^end_exclusive
   end
 
-  defp to_naive_start(%Date{} = d), do: NaiveDateTime.new!(d, ~T[00:00:00])
-  defp to_naive_end(%Date{} = d), do: NaiveDateTime.new!(d, ~T[23:59:59])
+  defp to_naive_start(%Date{} = d),
+    do: Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(d)
+
+  defp to_naive_end_exclusive(%Date{} = d),
+    do: Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(d)
 
   defp date_range(start_date, end_date) do
     Date.range(start_date, end_date) |> Enum.to_list()

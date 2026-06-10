@@ -157,8 +157,11 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
   the unique constraint on `doctor_payout_consultations`.
   """
   def list_consultations(start_date, end_date) do
-    start_naive = NaiveDateTime.new!(start_date, ~T[00:00:00])
-    end_naive = NaiveDateTime.new!(end_date, ~T[23:59:59])
+    # Bounds are Mexico City wall-clock; `completed_at` is UTC-stored.
+    # Helpers convert MX-midnight to UTC instants; see
+    # `Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1`.
+    start_naive = Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
+    end_exclusive = Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
 
     sql = """
     WITH main AS (
@@ -215,7 +218,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
             AND c.stripe_payment_intent_id IS NOT NULL
             AND p.stripe_payment_intent_id = c.stripe_payment_intent_id)
       )
-      WHERE c.completed_at BETWEEN $1 AND $2
+      WHERE c.completed_at >= $1 AND c.completed_at < $2
         AND (p.status IS DISTINCT FROM 'refunded'
              OR COALESCE(cpd.pay_doctor, TRUE) = TRUE)
         -- ADR-046: /prueba test bypass rows are not doctor-payable; hide them.
@@ -235,7 +238,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
 
     params = [
       start_naive,
-      end_naive,
+      end_exclusive,
       @doctor_share_mxn,
       @iva_rate_pct,
       @isr_rate_with_rfc_pct,

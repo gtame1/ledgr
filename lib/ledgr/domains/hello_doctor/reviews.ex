@@ -45,8 +45,10 @@ defmodule Ledgr.Domains.HelloDoctor.Reviews do
        semantics that target "patient feedback about the doctor")
   """
   def list_reviews(start_date, end_date, opts \\ []) do
-    start_naive = NaiveDateTime.new!(start_date, ~T[00:00:00])
-    end_naive = NaiveDateTime.new!(end_date, ~T[23:59:59])
+    # Bounds are Mexico City wall-clock; `completed_at` is UTC-stored.
+    # See Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1.
+    start_naive = Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
+    end_exclusive = Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
 
     base =
       from c in Consultation,
@@ -61,7 +63,7 @@ defmodule Ledgr.Domains.HelloDoctor.Reviews do
             not is_nil(c.patient_platform_rating) or
             not is_nil(c.doctor_rating) or
             not is_nil(c.doctor_platform_rating),
-        where: c.completed_at >= ^start_naive and c.completed_at <= ^end_naive,
+        where: c.completed_at >= ^start_naive and c.completed_at < ^end_exclusive,
         select: %{
           consultation_id: c.id,
           completed_at: c.completed_at,

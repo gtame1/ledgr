@@ -72,7 +72,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   def list_consultations_with_payouts(start_date, end_date, opts \\ []) do
     share = ConsultationAccounting.doctor_share_mxn()
     start_naive = to_naive_start(start_date)
-    end_naive = to_naive_end(end_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
     doctor_id = opts[:doctor_id]
 
     base_query =
@@ -114,12 +114,12 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
               ^start_naive
             ) and
             fragment(
-              "COALESCE(?, ?, ?, ?) <= ?",
+              "COALESCE(?, ?, ?, ?) < ?",
               sp.paid_at,
               c.payment_confirmed_at,
               c.completed_at,
               c.assigned_at,
-              ^end_naive
+              ^end_exclusive
             ),
         select: %{
           consultation_id: c.id,
@@ -962,6 +962,9 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   defp paid_date(nil), do: nil
   defp paid_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt)
 
-  defp to_naive_start(%Date{} = d), do: NaiveDateTime.new!(d, ~T[00:00:00])
-  defp to_naive_end(%Date{} = d), do: NaiveDateTime.new!(d, ~T[23:59:59])
+  defp to_naive_start(%Date{} = d),
+    do: Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(d)
+
+  defp to_naive_end_exclusive(%Date{} = d),
+    do: Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(d)
 end

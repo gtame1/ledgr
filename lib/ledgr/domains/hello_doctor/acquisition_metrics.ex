@@ -47,11 +47,17 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   this dashboard is strictly the ad-attributed funnel.
   """
   def generate(start_date, end_date) do
-    start_naive = NaiveDateTime.new!(start_date, ~T[00:00:00])
-    end_naive = NaiveDateTime.new!(end_date, ~T[23:59:59])
+    # Mexico City wall-clock bounds → UTC instants for the UTC-stored
+    # `messages.created_at` / `conversations.created_at` columns. See
+    # `Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1`. Both query
+    # paths use a half-open `[start, end_exclusive)` window — `BETWEEN`
+    # would re-introduce the inclusive end and lose the last
+    # microsecond-of-day.
+    start_naive = Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
+    end_exclusive = Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
 
-    rows = run_funnel_query(start_naive, end_naive)
-    daily = run_daily_query(start_naive, end_naive)
+    rows = run_funnel_query(start_naive, end_exclusive)
+    daily = run_daily_query(start_naive, end_exclusive, start_date, end_date)
 
     per_campaign =
       Campaigns.all()
@@ -70,7 +76,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   # ── Per-campaign funnel ─────────────────────────────────────────
 
-  defp run_funnel_query(start_naive, end_naive) do
+  defp run_funnel_query(start_naive, end_exclusive) do
     detection = Campaigns.detection_case_sql("fm.content")
 
     sql = """
@@ -93,7 +99,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         #{detection} AS campaign_id
       FROM first_msg fm
       JOIN conversations c ON c.id = fm.conversation_id
-      WHERE fm.first_msg_at BETWEEN $1 AND $2
+      WHERE fm.first_msg_at >= $1 AND fm.first_msg_at < $2
         -- DR-XXXX referral_link clicks (per-doctor wa.me from the doctor
         -- show page) aren't ad-attributable. Same prefix the bot uses.
         AND fm.content NOT ILIKE '%mi doctor: dr-%'
@@ -132,7 +138,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     GROUP BY a.campaign_id
     """
 
-    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive])
+    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_exclusive])
 
     columns = Enum.map(result.columns, &String.to_atom/1)
 
@@ -212,7 +218,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   # ── Daily trend ──────────────────────────────────────────────────
 
-  defp run_daily_query(start_naive, end_naive) do
+  defp run_daily_query(start_naive, end_exclusive, start_date, end_date) do
     detection = Campaigns.detection_case_sql("fm.content")
 
     sql = """
@@ -231,7 +237,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         #{detection} AS campaign_id
       FROM first_msg fm
       JOIN conversations c ON c.id = fm.conversation_id
-      WHERE fm.first_msg_at BETWEEN $1 AND $2
+      WHERE fm.first_msg_at >= $1 AND fm.first_msg_at < $2
         AND fm.content NOT ILIKE '%mi doctor: dr-%'
     )
     SELECT day, campaign_id, COUNT(*) AS leads
@@ -241,16 +247,13 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     ORDER BY day ASC, campaign_id
     """
 
-    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_naive])
+    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_exclusive])
 
     # Group into one row per calendar day, filling 0 for missing campaigns.
     raw =
       result.rows
       |> Enum.map(fn [day, campaign_id, leads] -> {day, campaign_id, leads} end)
       |> Enum.group_by(fn {day, _, _} -> day end, fn {_, c, l} -> {c, l} end)
-
-    {start_date, end_date} =
-      {NaiveDateTime.to_date(start_naive), NaiveDateTime.to_date(end_naive)}
 
     days = Date.range(start_date, end_date) |> Enum.to_list()
 

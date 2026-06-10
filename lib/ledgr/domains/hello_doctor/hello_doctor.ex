@@ -16,6 +16,43 @@ defmodule Ledgr.Domains.HelloDoctor do
     DateTime.now!(@timezone) |> DateTime.to_date()
   end
 
+  @doc """
+  Converts a Mexico City calendar date to the UTC `NaiveDateTime` instant
+  marking the start of that day.
+
+  All timestamp columns in the HelloDoctor DB (bot- and Ledgr-owned alike)
+  are `timestamp without time zone` stored in UTC. The dashboards and
+  reports take Mexico City dates as input ("show me last 30 days"). This
+  helper builds Mexico-midnight as a tz-aware DateTime, then shifts to UTC
+  and drops the offset so it can be compared to the naive columns.
+
+  Pair with `mx_day_end_utc_naive/1` for a half-open `>= start AND < end`
+  window — that's the only timezone-safe shape. The legacy
+  `to_naive_end(date) = date 23:59:59` pattern silently dropped 6 hours
+  of late-evening Mexico activity on the end date because the comparison
+  was effectively UTC-against-UTC.
+  """
+  def mx_day_start_utc_naive(%Date{} = date) do
+    date
+    |> DateTime.new!(~T[00:00:00], @timezone)
+    |> DateTime.shift_zone!("Etc/UTC")
+    |> DateTime.to_naive()
+  end
+
+  @doc """
+  Converts a Mexico City calendar date to the UTC `NaiveDateTime` instant
+  marking the *start of the next* day. Use as the EXCLUSIVE upper bound of
+  a half-open range: `WHERE col >= mx_day_start_utc_naive(start) AND
+  col < mx_day_end_utc_naive(end)`.
+  """
+  def mx_day_end_utc_naive(%Date{} = date) do
+    date
+    |> Date.add(1)
+    |> DateTime.new!(~T[00:00:00], @timezone)
+    |> DateTime.shift_zone!("Etc/UTC")
+    |> DateTime.to_naive()
+  end
+
   # ── DomainConfig callbacks ──────────────────────────────────────────
 
   @impl Ledgr.Domain.DomainConfig
