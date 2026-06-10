@@ -5,27 +5,145 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   Drives off a CTE that picks each conversation's first user message,
   applies the emoji+phrase detection from `Campaigns.detection_case_sql/1`,
-  then joins through to consultations / stripe_payments for the
-  downstream funnel + revenue numbers.
+  then maps each conversation's current `funnel_stage` to a canonical
+  stage index and emits cumulative "reached this stage or later" counts.
+
+  ## Stage semantics
+
+  Each per-campaign row has a `reached_<N>` field for N in 1..12, where N
+  follows the canonical ordering defined in
+  `Ledgr.Domains.HelloDoctor.ConversationFunnelExport`. Cumulative: a
+  conversation in `consultation_complete` (idx 11) is counted in every
+  `reached_<N>` for N ≤ 11. The implicit assumption — same as the
+  conversation funnel CSV — is that the bot only advances funnel_stage
+  forward over time; if that assumption breaks we'd undercount.
+
+  Prod has stages the canonical list doesn't name explicitly
+  (`consultation_type`, `payment_pending`, `doctor_notified`); the
+  `@stage_idx` VALUES list maps them onto the canonical sibling so
+  they're bucketed sensibly (a `payment_pending` conversation counts as
+  having reached `payment_link_sent`, not the void).
+
+  `awaiting_code` and `abandoned` stay outside the canonical chain —
+  they're either pre-funnel (awaiting_code) or terminal-failure-outside
+  (abandoned). `awaiting_code` in the direct pipe gets its own
+  `pending_routing` counter.
 
   Attribution is content-based (emoji + phrase in the first user
   message), so it does NOT filter on `conversations.tenant`. Many
   ad-driven patients end up in `tenant = 'direct'` because the bot
-  routes them through its referral-code question
-  (`"¿te refirió un doctor y te dio un código?"`). Conversations
-  paused at that yes/no button-tap are surfaced as the
-  "pending routing" KPI — not a dead-end, just mid-question.
+  routes them through its referral-code question. Conversations paused
+  at that yes/no button-tap are surfaced as the `pending_routing` KPI.
 
-  DR-XXXX referral_link clicks (the per-doctor wa.me from the
-  doctor show page) are excluded explicitly — they're a separate
-  acquisition path, not ad-attributable.
+  DR-XXXX referral_link clicks (the per-doctor wa.me from the doctor
+  show page) are excluded explicitly — separate acquisition path.
 
-  Date range filters on `first_message_at` — the moment the patient
-  hit the WhatsApp click-to-chat.
+  Date range filters on `first_message_at` — the moment the patient hit
+  the WhatsApp click-to-chat.
   """
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Campaigns
+
+  @doc """
+  Canonical funnel stages, in order, with display metadata.
+
+  Mirrors the VALUES list in `ConversationFunnelExport.build_query/1`
+  exactly — same idx for every shared stage name. The template iterates
+  this list to render one column per stage.
+  """
+  def canonical_stages do
+    [
+      %{idx: 1, key: :reached_1, stage: "greeting", label: "Greeting", short: "Greet"},
+      %{idx: 2, key: :reached_2, stage: "symptoms", label: "Symptoms", short: "Sympt"},
+      %{idx: 3, key: :reached_3, stage: "orientation", label: "Orientation", short: "Orient"},
+      %{
+        idx: 4,
+        key: :reached_4,
+        stage: "doctor_recommended",
+        label: "Doctor recommended",
+        short: "Dr rec"
+      },
+      %{
+        idx: 5,
+        key: :reached_5,
+        stage: "consultation_type_set",
+        label: "Consultation type set",
+        short: "Type set"
+      },
+      %{
+        idx: 6,
+        key: :reached_6,
+        stage: "payment_link_sent",
+        label: "Payment link sent",
+        short: "Pay link"
+      },
+      %{
+        idx: 7,
+        key: :reached_7,
+        stage: "payment_confirmed",
+        label: "Payment confirmed",
+        short: "Pay cnf"
+      },
+      %{
+        idx: 8,
+        key: :reached_8,
+        stage: "data_collected",
+        label: "Data collected",
+        short: "Data"
+      },
+      %{
+        idx: 9,
+        key: :reached_9,
+        stage: "doctor_search",
+        label: "Doctor search",
+        short: "Dr search"
+      },
+      %{
+        idx: 10,
+        key: :reached_10,
+        stage: "doctor_connected",
+        label: "Doctor connected",
+        short: "Dr conn"
+      },
+      %{
+        idx: 11,
+        key: :reached_11,
+        stage: "consultation_complete",
+        label: "Consultation complete",
+        short: "Done"
+      },
+      %{
+        idx: 12,
+        key: :reached_12,
+        stage: "consultation_failed",
+        label: "Consultation failed",
+        short: "Failed"
+      }
+    ]
+  end
+
+  # Maps every prod `funnel_stage` value onto a canonical idx (1..12).
+  # Stages NOT in this list get NULL idx and don't count toward any
+  # reached_<N>. Variants (consultation_type, payment_pending,
+  # doctor_notified) bucket to their canonical sibling.
+  @stage_idx_pairs [
+    {"greeting", 1},
+    {"symptoms", 2},
+    {"orientation", 3},
+    {"doctor_recommended", 4},
+    {"consultation_type", 5},
+    {"consultation_type_set", 5},
+    {"payment_link_sent", 6},
+    {"payment_pending", 6},
+    {"payment_confirmed", 7},
+    {"data_collected", 8},
+    {"doctor_search", 9},
+    {"doctor_notified", 10},
+    {"doctor_connected", 10},
+    {"consultation_complete", 11},
+    {"consultation_failed", 12}
+  ]
 
   @doc "Default period: last 30 days inclusive, in Mexico City time."
   def last_30_days do
@@ -36,23 +154,19 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   @doc """
   Returns `%{period, totals, per_campaign, daily}` for the date range.
 
-    * `per_campaign` — list of maps keyed by campaign id (in PDF order),
-      with: `leads`, `unique_patients`, `triaged`, `doctor_matched`,
-      `paid`, `completed`, `revenue_mxn`, conversion rates.
+    * `per_campaign` — list of maps keyed by campaign id, with `leads`,
+      `unique_patients`, `pending_routing`, `reached_1`..`reached_12`,
+      `revenue_mxn`, and `*_pct` percentages of leads.
     * `daily` — list of `%{date, by_campaign: %{id => leads}, total}`
       rows for the trend chart.
     * `totals` — sum across campaigns.
 
-  Unattributed conversations (no campaign emoji) are NOT counted —
-  this dashboard is strictly the ad-attributed funnel.
+  Unattributed conversations are NOT counted — this is strictly the
+  ad-attributed funnel.
   """
   def generate(start_date, end_date) do
-    # Mexico City wall-clock bounds → UTC instants for the UTC-stored
-    # `messages.created_at` / `conversations.created_at` columns. See
-    # `Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1`. Both query
-    # paths use a half-open `[start, end_exclusive)` window — `BETWEEN`
-    # would re-introduce the inclusive end and lose the last
-    # microsecond-of-day.
+    # Mexico City wall-clock bounds → UTC instants. See
+    # `Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1`.
     start_naive = Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
     end_exclusive = Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
 
@@ -79,8 +193,21 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   defp run_funnel_query(start_naive, end_exclusive) do
     detection = Campaigns.detection_case_sql("fm.content")
 
+    # Emit `('greeting', 1), ('symptoms', 2), ...` for the SQL VALUES list.
+    stage_values_sql =
+      @stage_idx_pairs
+      |> Enum.map_join(", ", fn {s, i} -> "('#{s}', #{i})" end)
+
+    # Emit `COUNT(*) FILTER (WHERE a.stage_idx >= 1) AS reached_1, ...`
+    reached_select =
+      canonical_stages()
+      |> Enum.map_join(",\n      ", fn s ->
+        "COUNT(*) FILTER (WHERE a.stage_idx >= #{s.idx}) AS reached_#{s.idx}"
+      end)
+
     sql = """
-    WITH first_msg AS (
+    WITH funnel_stages(stage, idx) AS (VALUES #{stage_values_sql}),
+    first_msg AS (
       SELECT DISTINCT ON (m.conversation_id)
         m.conversation_id,
         m.content,
@@ -96,9 +223,11 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         c.patient_id,
         c.funnel_stage,
         c.tenant,
+        COALESCE(fs.idx, 0) AS stage_idx,
         #{detection} AS campaign_id
       FROM first_msg fm
       JOIN conversations c ON c.id = fm.conversation_id
+      LEFT JOIN funnel_stages fs ON fs.stage = c.funnel_stage
       WHERE fm.first_msg_at >= $1 AND fm.first_msg_at < $2
         -- DR-XXXX referral_link clicks (per-doctor wa.me from the doctor
         -- show page) aren't ad-attributable. Same prefix the bot uses.
@@ -108,23 +237,12 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       a.campaign_id,
       COUNT(*) AS leads,
       COUNT(DISTINCT a.patient_id) AS unique_patients,
-      COUNT(*) FILTER (
-        WHERE a.funnel_stage IN ('doctor_recommended','doctor_assigned','consultation_active','completed')
-      ) AS triaged,
-      COUNT(*) FILTER (
-        WHERE a.funnel_stage IN ('doctor_assigned','consultation_active','completed')
-      ) AS doctor_matched,
       -- Ad clicks paused at the bot's "¿te refirió un doctor?" prompt.
       -- Transient — empirically avg ~7h before tapping a button.
-      -- Surfaced so we can see how much of the daily lead pool is
-      -- mid-question vs already routed.
       COUNT(*) FILTER (
         WHERE a.tenant = 'direct' AND a.funnel_stage = 'awaiting_code'
       ) AS pending_routing,
-      COUNT(DISTINCT cons.id) FILTER (
-        WHERE cons.payment_status IN ('paid','confirmed')
-      ) AS paid,
-      COUNT(DISTINCT cons.id) FILTER (WHERE cons.status = 'completed') AS completed,
+      #{reached_select},
       COALESCE(SUM(sp.amount) FILTER (WHERE sp.status = 'paid'), 0) AS revenue_mxn
     FROM attributed a
     LEFT JOIN consultations cons ON cons.conversation_id = a.conversation_id
@@ -148,35 +266,62 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   end
 
   defp empty_row do
-    %{
+    base = %{
       leads: 0,
       unique_patients: 0,
-      triaged: 0,
-      doctor_matched: 0,
       pending_routing: 0,
-      paid: 0,
-      completed: 0,
       revenue_mxn: 0
     }
+
+    Enum.reduce(canonical_stages(), base, fn s, acc -> Map.put(acc, s.key, 0) end)
   end
 
   defp decorate(row) do
     leads = row.leads || 0
 
-    Map.merge(row, %{
+    # Per-stage counts (defensive: SQL returns 0 not nil after COUNT, but
+    # `empty_row` cells fall through to here too).
+    reached =
+      Enum.reduce(canonical_stages(), %{}, fn s, acc ->
+        Map.put(acc, s.key, Map.get(row, s.key) || 0)
+      end)
+
+    # Per-stage `pct_<N>` for hover tooltips.
+    reached_pcts =
+      Enum.reduce(canonical_stages(), %{}, fn s, acc ->
+        pct_key = :"pct_#{s.idx}"
+        Map.put(acc, pct_key, pct(Map.get(reached, s.key), leads))
+      end)
+
+    base = %{
       leads: leads,
       unique_patients: row.unique_patients || 0,
-      triaged: row.triaged || 0,
-      doctor_matched: row.doctor_matched || 0,
       pending_routing: row[:pending_routing] || 0,
-      paid: row.paid || 0,
-      completed: row.completed || 0,
       revenue_mxn: to_float(row.revenue_mxn),
-      lead_to_triage: pct(row.triaged, leads),
-      lead_to_paid: pct(row.paid, leads),
-      lead_to_completed: pct(row.completed, leads),
       pending_routing_pct: pct(row[:pending_routing] || 0, leads)
-    })
+    }
+
+    # Backward-compat aliases for the top-of-page KPI cards. Mapping:
+    #   triaged        = reached doctor_recommended (idx 4)
+    #   doctor_matched = reached doctor_connected   (idx 10)
+    #   paid           = reached payment_confirmed  (idx 7)
+    #   completed      = reached consultation_complete (idx 11)
+    # The old KPIs used a mix of `consultations.status` and funnel_stage
+    # filters; this unifies on funnel_stage so the KPI cards and the
+    # per-stage table agree.
+    aliases = %{
+      triaged: Map.get(reached, :reached_4),
+      doctor_matched: Map.get(reached, :reached_10),
+      paid: Map.get(reached, :reached_7),
+      completed: Map.get(reached, :reached_11),
+      lead_to_paid: pct(Map.get(reached, :reached_7), leads),
+      lead_to_completed: pct(Map.get(reached, :reached_11), leads)
+    }
+
+    base
+    |> Map.merge(reached)
+    |> Map.merge(reached_pcts)
+    |> Map.merge(aliases)
   end
 
   defp pct(_n, 0), do: 0.0
@@ -189,19 +334,12 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   defp to_float(n) when is_float(n), do: n
 
   defp totals(per_campaign) do
-    keys = [
-      :leads,
-      :unique_patients,
-      :triaged,
-      :doctor_matched,
-      :pending_routing,
-      :paid,
-      :completed,
-      :revenue_mxn
-    ]
+    summed_keys =
+      [:leads, :unique_patients, :pending_routing, :revenue_mxn] ++
+        Enum.map(canonical_stages(), & &1.key)
 
     summed =
-      Enum.reduce(keys, %{}, fn k, acc ->
+      Enum.reduce(summed_keys, %{}, fn k, acc ->
         sum =
           per_campaign
           |> Enum.map(&Map.get(&1, k, 0))
@@ -210,10 +348,28 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         Map.put(acc, k, if(k == :revenue_mxn, do: Float.round(sum / 1, 2), else: sum))
       end)
 
+    leads = summed.leads
+
+    # Roll up the same backward-compat KPI aliases at the totals level.
+    aliases = %{
+      triaged: Map.get(summed, :reached_4),
+      doctor_matched: Map.get(summed, :reached_10),
+      paid: Map.get(summed, :reached_7),
+      completed: Map.get(summed, :reached_11),
+      lead_to_paid: pct(Map.get(summed, :reached_7), leads),
+      lead_to_completed: pct(Map.get(summed, :reached_11), leads),
+      pending_routing_pct: pct(summed.pending_routing, leads)
+    }
+
+    # Per-stage % too, for the totals row in the table.
+    pct_rolls =
+      Enum.reduce(canonical_stages(), %{}, fn s, acc ->
+        Map.put(acc, :"pct_#{s.idx}", pct(Map.get(summed, s.key), leads))
+      end)
+
     summed
-    |> Map.put(:lead_to_paid, pct(summed.paid, summed.leads))
-    |> Map.put(:lead_to_completed, pct(summed.completed, summed.leads))
-    |> Map.put(:pending_routing_pct, pct(summed.pending_routing, summed.leads))
+    |> Map.merge(aliases)
+    |> Map.merge(pct_rolls)
   end
 
   # ── Daily trend ──────────────────────────────────────────────────

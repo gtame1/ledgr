@@ -177,74 +177,53 @@
 
   <%!-- ── Per-campaign funnel table ── --%>
   <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">Per-campaign funnel</h2>
-  <div class="hd-card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
-    <table class="w-full text-sm">
+  <p class="text-xs mb-2" style="color: var(--text-muted); max-width: 80ch;">
+    Each stage column is cumulative — a conversation in <em>doctor_recommended</em>
+    is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. Hover any cell
+    to see its share of leads.
+  </p>
+  <% stages = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.canonical_stages() %>
+  <div class="hd-card" style="padding: 0; overflow-x: auto; margin-bottom: 2rem;">
+    <table class="w-full text-sm" style="min-width: 100%;">
       <thead>
         <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
           <th
             class="text-left p-3 pl-4 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
+            style="color: var(--text-muted); white-space: nowrap;"
           >
             Campaign
           </th>
           <th
-            class="text-left p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
-          >
-            Pain
-          </th>
-          <th
             class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
+            style="color: var(--text-muted); white-space: nowrap;"
           >
             Leads
           </th>
           <th
             class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
+            style="color: var(--text-muted); white-space: nowrap;"
           >
             Patients
           </th>
           <th
             class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
-          >
-            Triaged
-          </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
-          >
-            Matched
-          </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
+            style="color: var(--text-muted); white-space: nowrap;"
             title="Ad clicks paused at the bot's '¿te refirió un doctor?' prompt — awaiting a yes/no button tap. Transient."
           >
             Pending routing
           </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
-          >
-            Paid
-          </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
-          >
-            Completed
-          </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
-          >
-            Lead→Paid
-          </th>
+          <%= for s <- stages do %>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
+              title={"Stage #{s.idx}: #{s.label} (cumulative — includes everyone past this stage)"}
+            >
+              {s.idx}. {s.short}
+            </th>
+          <% end %>
           <th
             class="text-right p-3 pr-4 text-xs font-semibold uppercase"
-            style="color: var(--text-muted);"
+            style="color: var(--text-muted); white-space: nowrap;"
           >
             Revenue
           </th>
@@ -258,22 +237,27 @@
               </span>
               {entry.campaign.emoji} {entry.campaign.ad_set}
               <div class="text-xs mt-0.5" style="color: var(--text-muted);">
-                {entry.campaign.campaign_set}
+                {entry.campaign.campaign_set} · {entry.campaign.pain}
               </div>
             </td>
-            <td class="p-3 text-xs" style="color: var(--text-muted);">{entry.campaign.pain}</td>
             <td class="p-3 text-right font-semibold">{entry.leads}</td>
             <td class="p-3 text-right">{entry.unique_patients}</td>
-            <td class="p-3 text-right">{entry.triaged}</td>
-            <td class="p-3 text-right">{entry.doctor_matched}</td>
-            <td class="p-3 text-right" style="color: var(--text-muted);">
+            <td
+              class="p-3 text-right"
+              style="color: var(--text-muted);"
+              title={"#{fmt_pct(entry.pending_routing_pct)} of leads"}
+            >
               {entry.pending_routing}
             </td>
-            <td class="p-3 text-right" style="color: #16a34a;">{entry.paid}</td>
-            <td class="p-3 text-right" style="color: var(--accent);">{entry.completed}</td>
-            <td class="p-3 text-right" style="color: var(--text-muted);">
-              {fmt_pct(entry.lead_to_paid)}
-            </td>
+            <%= for s <- stages do %>
+              <td
+                class="p-3 text-right"
+                style={"color: #{stage_cell_color(s.idx)};"}
+                title={"#{fmt_pct(Map.get(entry, :"pct_#{s.idx}"))} of leads · reached #{s.label}"}
+              >
+                {Map.get(entry, s.key)}
+              </td>
+            <% end %>
             <td class="p-3 pr-4 text-right font-semibold">
               {fmt_money(entry.revenue_mxn)}
             </td>
@@ -282,19 +266,25 @@
       </tbody>
       <tfoot>
         <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
-          <td class="p-3 pl-4 font-bold" colspan="2">Totals</td>
+          <td class="p-3 pl-4 font-bold" style="white-space: nowrap;">Totals</td>
           <td class="p-3 text-right font-bold">{@report.totals.leads}</td>
           <td class="p-3 text-right font-bold">{@report.totals.unique_patients}</td>
-          <td class="p-3 text-right font-bold">{@report.totals.triaged}</td>
-          <td class="p-3 text-right font-bold">{@report.totals.doctor_matched}</td>
-          <td class="p-3 text-right font-bold" style="color: var(--text-muted);">
+          <td
+            class="p-3 text-right font-bold"
+            style="color: var(--text-muted);"
+            title={"#{fmt_pct(@report.totals.pending_routing_pct)} of leads"}
+          >
             {@report.totals.pending_routing}
           </td>
-          <td class="p-3 text-right font-bold" style="color: #16a34a;">{@report.totals.paid}</td>
-          <td class="p-3 text-right font-bold" style="color: var(--accent);">
-            {@report.totals.completed}
-          </td>
-          <td class="p-3 text-right font-bold">{fmt_pct(@report.totals.lead_to_paid)}</td>
+          <%= for s <- stages do %>
+            <td
+              class="p-3 text-right font-bold"
+              style={"color: #{stage_cell_color(s.idx)};"}
+              title={"#{fmt_pct(Map.get(@report.totals, :"pct_#{s.idx}"))} of leads · reached #{s.label}"}
+            >
+              {Map.get(@report.totals, s.key)}
+            </td>
+          <% end %>
           <td class="p-3 pr-4 text-right font-bold">{fmt_money(@report.totals.revenue_mxn)}</td>
         </tr>
       </tfoot>

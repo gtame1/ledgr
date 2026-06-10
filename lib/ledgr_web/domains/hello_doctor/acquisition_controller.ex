@@ -58,6 +58,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
 
   def campaign_color(id), do: Map.get(@palette, id, "#94a3b8")
 
+  @doc """
+  Color hint for each canonical funnel-stage cell. Money-bearing
+  stages (payment_confirmed, consultation_complete) get green/accent
+  emphasis; the failure terminal gets a muted red; everything
+  mid-funnel stays in the default text color so the eye isn't pulled
+  to columns that are just stepping-stones.
+  """
+  def stage_cell_color(7), do: "#16a34a"
+  def stage_cell_color(11), do: "var(--accent)"
+  def stage_cell_color(12), do: "#dc2626"
+  def stage_cell_color(_), do: "var(--text-main)"
+
   @doc "MXN money formatter."
   def fmt_money(n) when is_number(n) do
     "$" <> :erlang.float_to_binary(n / 1, decimals: 2) <> " MXN"
