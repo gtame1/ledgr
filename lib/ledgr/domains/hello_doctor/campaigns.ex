@@ -4,22 +4,42 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
   logic that maps a patient's first WhatsApp message to a campaign.
 
   Each Meta ad uses WhatsApp's click-to-chat with a prefilled welcome
-  message containing a campaign-specific emoji + phrase. When a patient
-  clicks the ad, the bot receives that exact message as the first user
-  inbound. We attribute the resulting conversation to the campaign by
-  matching emoji AND a distinctive phrase from the template — both
-  required, so common organic greetings (`Hola 🙂`, `Hola 👋`) don't
-  bleed into the funnel.
+  message containing a campaign-specific emoji + phrase. We attribute
+  in two passes:
 
-  This is the "now"/"mvp" tenant only; "direct"-flow conversations
-  enter via a different patient-picks-doctor path and aren't ad-driven.
+  1. **High-confidence**: emoji + phrase both match. The strongest
+     signal — almost no false-positive risk.
+  2. **Phrase-only fallback** (campaigns flagged `phrase_only_fallback`):
+     the phrase alone is distinctive enough to attribute even when the
+     patient stripped the emoji. Enabled for phrases like
+     `dudas sobre la salud de mi hijo` (very ad-specific) but not for
+     `tengo una pregunta` (too generic).
 
-  Adding a campaign: append an entry to `all/0` with a unique `id`,
-  display fields, and the emoji+phrase pair. The detection CASE
+  Phrase matching is **accent-insensitive** via Postgres' `unaccent`
+  extension (`médico` ↔ `medico`, `podrían` ↔ `podrian`). Emoji
+  matching is byte-equal.
+
+  Adding a campaign: append an entry to `all/0`. The detection CASE
   rebuilds itself from the list.
   """
 
-  defstruct [:id, :label, :emoji, :campaign_set, :ad_set, :pain, :phrase]
+  defstruct [
+    :id,
+    :label,
+    :emoji,
+    :campaign_set,
+    :ad_set,
+    :pain,
+    :phrase,
+    phrase_only_fallback: false,
+    # Optional second anchor for campaigns that drift in practice
+    # (patients insert/double words between phrase parts). When set,
+    # detection matches a regex `phrase.{0,max_gap}anchor_2` instead
+    # of a strict substring on `phrase` alone. Both anchors run
+    # through unaccent() for accent insensitivity.
+    anchor_2: nil,
+    max_gap: 20
+  ]
 
   @type t :: %__MODULE__{
           id: String.t(),
@@ -28,7 +48,10 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
           campaign_set: String.t(),
           ad_set: String.t(),
           pain: String.t(),
-          phrase: String.t()
+          phrase: String.t(),
+          phrase_only_fallback: boolean(),
+          anchor_2: String.t() | nil,
+          max_gap: non_neg_integer()
         }
 
   @doc """
@@ -45,7 +68,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Ginecología",
         ad_set: "GIN-01",
         pain: "Salud sexual general",
-        phrase: "tengo una duda de salud"
+        phrase: "tengo una duda de salud",
+        phrase_only_fallback: true
       },
       %__MODULE__{
         id: "gin_02",
@@ -54,7 +78,9 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Ginecología",
         ad_set: "GIN-02",
         pain: "Pena/vergüenza",
-        phrase: "tengo una pregunta"
+        phrase: "tengo una pregunta",
+        # Phrase alone is too generic — could false-match organic chatter.
+        phrase_only_fallback: false
       },
       %__MODULE__{
         id: "ped_01",
@@ -63,7 +89,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Pediatría",
         ad_set: "PED-01",
         pain: "3am del bebé",
-        phrase: "dudas sobre la salud de mi hijo"
+        phrase: "dudas sobre la salud de mi hijo",
+        phrase_only_fallback: true
       },
       %__MODULE__{
         id: "gen_01_thinking",
@@ -72,7 +99,10 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "General",
         ad_set: "GEN-01",
         pain: "¿Es grave o no?",
-        phrase: "necesito apoyo de un medico"
+        # Two anchors tolerate the doubled-word case ("apoyo de de un").
+        phrase: "necesito apoyo de",
+        anchor_2: "un medico",
+        phrase_only_fallback: true
       },
       %__MODULE__{
         id: "gen_01_smile",
@@ -81,7 +111,10 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "General",
         ad_set: "GEN-01",
         pain: "¿Es grave o no?",
-        phrase: "podrian apoyarme con dudas de salud"
+        # Two anchors tolerate inserted words ("con unas dudas").
+        phrase: "podrian apoyarme",
+        anchor_2: "dudas de salud",
+        phrase_only_fallback: true
       },
       %__MODULE__{
         id: "awr_01",
@@ -90,7 +123,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Awareness",
         ad_set: "AWR-01",
         pain: "Video views",
-        phrase: "vi su video, quiero info"
+        phrase: "vi su video, quiero info",
+        phrase_only_fallback: true
       },
       %__MODULE__{
         id: "lpc_01",
@@ -99,7 +133,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "General",
         ad_set: "LPC-01",
         pain: "From /consulta landing page",
-        phrase: "busco una consulta médica"
+        phrase: "busco una consulta médica",
+        phrase_only_fallback: true
       },
       %__MODULE__{
         id: "lph_01",
@@ -108,35 +143,73 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "General",
         ad_set: "LPH-01",
         pain: "From the home page CTA",
-        phrase: "me interesa una consulta"
+        phrase: "me interesa una consulta",
+        # "me interesa una consulta" is fairly common phrasing —
+        # require the emoji to avoid false positives.
+        phrase_only_fallback: false
       }
     ]
   end
 
   @doc "Returns the campaign with the given `id`, or `nil`."
-  def get(id) do
-    Enum.find(all(), &(&1.id == id))
-  end
+  def get(id), do: Enum.find(all(), &(&1.id == id))
 
   @doc """
   SQL CASE expression that maps a message-content column to a
-  campaign id, or `NULL` if no match. Pass the column name (already
-  quoted) as `content_ref` — e.g. `"first_msg.content"`.
+  campaign id, or `NULL` if no match. Pass the column name as
+  `content_ref` — e.g. `"fm.content"`.
 
-  Returns the SQL fragment as a string. Both the emoji AND the phrase
-  must appear in the content for a match (case-insensitive on the
-  phrase; emoji match is byte-equal via `LIKE`).
+  Two passes inside the CASE:
+
+  1. **Emoji + phrase** (strict) — all campaigns, in declared order.
+  2. **Phrase-only fallback** — only for campaigns with
+     `phrase_only_fallback: true`, in declared order.
+
+  Both passes use `unaccent(content)` for accent-insensitive matching
+  (`médico` ↔ `medico`, `podrían` ↔ `podrian`).
+
+  Campaigns with `anchor_2` set use a regex (`~*`) with up to
+  `max_gap` chars between the two anchors — tolerates word-injection
+  / word-doubling drift (e.g. `apoyo de de un medico` → still matches
+  `apoyo de.{0,N}un medico`). Campaigns without `anchor_2` fall back
+  to a simple `ILIKE` substring on `phrase`.
   """
   def detection_case_sql(content_ref) do
-    clauses =
+    strict =
       all()
-      |> Enum.map(fn c ->
-        "WHEN #{content_ref} LIKE '%#{c.emoji}%' AND #{content_ref} ILIKE '%#{escape(c.phrase)}%' THEN '#{c.id}'"
+      |> Enum.map_join("\n        ", fn c ->
+        "WHEN #{content_ref} LIKE '%#{c.emoji}%' " <>
+          "AND #{phrase_predicate_sql(content_ref, c)} " <>
+          "THEN '#{c.id}'"
       end)
-      |> Enum.join("\n        ")
 
-    "CASE\n        #{clauses}\n        ELSE NULL\n      END"
+    fallback =
+      all()
+      |> Enum.filter(& &1.phrase_only_fallback)
+      |> Enum.map_join("\n        ", fn c ->
+        "WHEN #{phrase_predicate_sql(content_ref, c)} THEN '#{c.id}'"
+      end)
+
+    "CASE\n        #{strict}\n        #{fallback}\n        ELSE NULL\n      END"
+  end
+
+  # Builds the SQL predicate that checks if `content_ref` contains the
+  # campaign's phrase (and optional anchor_2). Accent-insensitive.
+  defp phrase_predicate_sql(content_ref, %__MODULE__{anchor_2: nil} = c) do
+    "unaccent(#{content_ref}) ILIKE unaccent('%#{escape(c.phrase)}%')"
+  end
+
+  defp phrase_predicate_sql(content_ref, %__MODULE__{anchor_2: a2} = c) do
+    pattern = "#{regex_escape(c.phrase)}.{0,#{c.max_gap}}#{regex_escape(a2)}"
+    "unaccent(#{content_ref}) ~* unaccent('#{escape(pattern)}')"
   end
 
   defp escape(s), do: String.replace(s, "'", "''")
+
+  # Escape POSIX regex metachars in user-supplied anchors. Our phrases
+  # are clean ASCII words today, but this guards against future
+  # anchors that include punctuation like '.' or '?'.
+  defp regex_escape(s) do
+    Regex.escape(s)
+  end
 end
