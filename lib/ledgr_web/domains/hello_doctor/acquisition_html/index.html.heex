@@ -179,8 +179,8 @@
   <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">Per-campaign funnel</h2>
   <p class="text-xs mb-2" style="color: var(--text-muted); max-width: 80ch;">
     Each stage column is cumulative — a conversation in <em>doctor_recommended</em>
-    is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. Hover any cell
-    to see its share of leads.
+    is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. Each cell
+    shows count + share of leads.
   </p>
   <% stages = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.canonical_stages() %>
   <div class="hd-card" style="padding: 0; overflow-x: auto; margin-bottom: 2rem;">
@@ -242,20 +242,19 @@
             </td>
             <td class="p-3 text-right font-semibold">{entry.leads}</td>
             <td class="p-3 text-right">{entry.unique_patients}</td>
-            <td
-              class="p-3 text-right"
-              style="color: var(--text-muted);"
-              title={"#{fmt_pct(entry.pending_routing_pct)} of leads"}
-            >
+            <td class="p-3 text-right" style="color: var(--text-muted);">
               {entry.pending_routing}
+              <div class="text-xs" style="color: var(--text-muted); font-weight: 400;">
+                {fmt_pct(entry.pending_routing_pct)}
+              </div>
             </td>
             <%= for s <- stages do %>
-              <td
-                class="p-3 text-right"
-                style={"color: #{stage_cell_color(s.idx)};"}
-                title={"#{fmt_pct(Map.get(entry, :"pct_#{s.idx}"))} of leads · reached #{s.label}"}
-              >
+              <% pct_val = Map.get(entry, :"pct_#{s.idx}") %>
+              <td class="p-3 text-right" style={"color: #{stage_cell_color(s.idx)};"}>
                 {Map.get(entry, s.key)}
+                <div class="text-xs" style="color: var(--text-muted); font-weight: 400;">
+                  {fmt_pct(pct_val)}
+                </div>
               </td>
             <% end %>
             <td class="p-3 pr-4 text-right font-semibold">
@@ -269,20 +268,19 @@
           <td class="p-3 pl-4 font-bold" style="white-space: nowrap;">Totals</td>
           <td class="p-3 text-right font-bold">{@report.totals.leads}</td>
           <td class="p-3 text-right font-bold">{@report.totals.unique_patients}</td>
-          <td
-            class="p-3 text-right font-bold"
-            style="color: var(--text-muted);"
-            title={"#{fmt_pct(@report.totals.pending_routing_pct)} of leads"}
-          >
+          <td class="p-3 text-right font-bold" style="color: var(--text-muted);">
             {@report.totals.pending_routing}
+            <div class="text-xs" style="color: var(--text-muted); font-weight: 400;">
+              {fmt_pct(@report.totals.pending_routing_pct)}
+            </div>
           </td>
           <%= for s <- stages do %>
-            <td
-              class="p-3 text-right font-bold"
-              style={"color: #{stage_cell_color(s.idx)};"}
-              title={"#{fmt_pct(Map.get(@report.totals, :"pct_#{s.idx}"))} of leads · reached #{s.label}"}
-            >
+            <% pct_val = Map.get(@report.totals, :"pct_#{s.idx}") %>
+            <td class="p-3 text-right font-bold" style={"color: #{stage_cell_color(s.idx)};"}>
               {Map.get(@report.totals, s.key)}
+              <div class="text-xs" style="color: var(--text-muted); font-weight: 400;">
+                {fmt_pct(pct_val)}
+              </div>
             </td>
           <% end %>
           <td class="p-3 pr-4 text-right font-bold">{fmt_money(@report.totals.revenue_mxn)}</td>
