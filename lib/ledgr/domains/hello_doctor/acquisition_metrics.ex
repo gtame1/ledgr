@@ -11,10 +11,10 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   Attribution is content-based (emoji + phrase in the first user
   message), so it does NOT filter on `conversations.tenant`. Many
   ad-driven patients end up in `tenant = 'direct'` because the bot
-  routes anything not explicitly tagged as MVP into the direct
-  pipe — even when there's no DR-XXXX code (those get stuck in
-  `awaiting_code`, which the dashboard surfaces as a funnel-leak
-  warning).
+  routes them through its referral-code question
+  (`"¿te refirió un doctor y te dio un código?"`). Conversations
+  paused at that yes/no button-tap are surfaced as the
+  "pending routing" KPI — not a dead-end, just mid-question.
 
   DR-XXXX referral_link clicks (the per-doctor wa.me from the
   doctor show page) are excluded explicitly — they're a separate
@@ -108,12 +108,13 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       COUNT(*) FILTER (
         WHERE a.funnel_stage IN ('doctor_assigned','consultation_active','completed')
       ) AS doctor_matched,
-      -- Funnel-leak: ad clicks stuck in the bot's direct-pipe awaiting_code
-      -- with no DR-XXXX code on file. The bot's routing doesn't know what
-      -- to do with these; they hang.
+      -- Ad clicks paused at the bot's "¿te refirió un doctor?" prompt.
+      -- Transient — empirically avg ~7h before tapping a button.
+      -- Surfaced so we can see how much of the daily lead pool is
+      -- mid-question vs already routed.
       COUNT(*) FILTER (
         WHERE a.tenant = 'direct' AND a.funnel_stage = 'awaiting_code'
-      ) AS stuck_in_awaiting_code,
+      ) AS pending_routing,
       COUNT(DISTINCT cons.id) FILTER (
         WHERE cons.payment_status IN ('paid','confirmed')
       ) AS paid,
@@ -146,7 +147,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       unique_patients: 0,
       triaged: 0,
       doctor_matched: 0,
-      stuck_in_awaiting_code: 0,
+      pending_routing: 0,
       paid: 0,
       completed: 0,
       revenue_mxn: 0
@@ -161,14 +162,14 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       unique_patients: row.unique_patients || 0,
       triaged: row.triaged || 0,
       doctor_matched: row.doctor_matched || 0,
-      stuck_in_awaiting_code: row[:stuck_in_awaiting_code] || 0,
+      pending_routing: row[:pending_routing] || 0,
       paid: row.paid || 0,
       completed: row.completed || 0,
       revenue_mxn: to_float(row.revenue_mxn),
       lead_to_triage: pct(row.triaged, leads),
       lead_to_paid: pct(row.paid, leads),
       lead_to_completed: pct(row.completed, leads),
-      stuck_pct: pct(row[:stuck_in_awaiting_code] || 0, leads)
+      pending_routing_pct: pct(row[:pending_routing] || 0, leads)
     })
   end
 
@@ -187,7 +188,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       :unique_patients,
       :triaged,
       :doctor_matched,
-      :stuck_in_awaiting_code,
+      :pending_routing,
       :paid,
       :completed,
       :revenue_mxn
@@ -206,7 +207,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     summed
     |> Map.put(:lead_to_paid, pct(summed.paid, summed.leads))
     |> Map.put(:lead_to_completed, pct(summed.completed, summed.leads))
-    |> Map.put(:stuck_pct, pct(summed.stuck_in_awaiting_code, summed.leads))
+    |> Map.put(:pending_routing_pct, pct(summed.pending_routing, summed.leads))
   end
 
   # ── Daily trend ──────────────────────────────────────────────────
