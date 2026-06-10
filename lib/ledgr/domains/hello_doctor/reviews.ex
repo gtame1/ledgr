@@ -148,10 +148,29 @@ defmodule Ledgr.Domains.HelloDoctor.Reviews do
 
   # ── Sorting ─────────────────────────────────────────────────────
 
+  # Important: Erlang term ordering compares structs field-by-field in
+  # ALPHABETICAL key order, not by semantic meaning. For NaiveDateTime
+  # the fields land in the order calendar / day / hour / microsecond /
+  # minute / month / second / year — so `~N[2026-05-29] >= ~N[2026-06-10]`
+  # evaluates true (day 29 > day 10 before month is even checked).
+  # `Enum.sort_by/3` with `{:desc, NaiveDateTime}` dispatches through
+  # `NaiveDateTime.compare/2` which is correct.
   defp apply_sort(rows, sort, dir) do
     sort = normalize_sort(sort)
     dir = normalize_dir(dir, sort)
-    Enum.sort_by(rows, sort_key(sort), sort_comparer(dir))
+
+    case sort do
+      :date ->
+        Enum.sort_by(rows, & &1.completed_at, {dir, NaiveDateTime})
+
+      :rating ->
+        # nil ratings sort below 0 so they pin to the bottom regardless of
+        # direction.
+        Enum.sort_by(rows, &(&1.rating || -1), dir)
+
+      :doctor ->
+        Enum.sort_by(rows, & &1.doctor_name, dir)
+    end
   end
 
   defp normalize_sort(s) when s in [nil, "", :date, "date"], do: :date
@@ -164,15 +183,6 @@ defmodule Ledgr.Domains.HelloDoctor.Reviews do
   defp normalize_dir(_, :rating), do: :asc
   defp normalize_dir(_, :doctor), do: :asc
   defp normalize_dir(_, _), do: :desc
-
-  defp sort_key(:date), do: &(&1.completed_at || ~N[1970-01-01 00:00:00])
-  # nil ratings sort below 0 so they end up at the bottom regardless of
-  # direction (Erlang term ordering puts nil < integers).
-  defp sort_key(:rating), do: &(&1.rating || -1)
-  defp sort_key(:doctor), do: & &1.doctor_name
-
-  defp sort_comparer(:asc), do: &<=/2
-  defp sort_comparer(:desc), do: &>=/2
 
   # ── KPI summary ─────────────────────────────────────────────────
 

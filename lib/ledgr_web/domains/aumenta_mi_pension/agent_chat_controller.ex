@@ -18,7 +18,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.AgentChatController do
     grouped =
       messages
       |> Enum.group_by(& &1.consultation_id)
-      |> Enum.sort_by(fn {_k, msgs} -> List.first(msgs).created_at end)
+      |> Enum.sort_by(fn {_k, msgs} -> List.first(msgs).created_at end, NaiveDateTime)
 
     render(conn, :show,
       agent: agent,

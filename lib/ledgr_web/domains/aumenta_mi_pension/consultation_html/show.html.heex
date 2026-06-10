@@ -208,7 +208,7 @@ end %>
             </span>
           </h2>
           <div class="space-y-3 max-h-[500px] overflow-y-auto">
-            <%= for msg <- Enum.sort_by(messages, & &1.created_at) do %>
+            <%= for msg <- Enum.sort_by(messages, & &1.created_at, NaiveDateTime) do %>
               <% is_customer = msg.role in ["user", "customer"] %>
               <% is_agent = msg.role in ["agent"] %>
               <% is_system = msg.role in ["assistant", "system", "bot"] %>

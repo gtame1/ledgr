@@ -166,7 +166,7 @@
             </span>
           </h2>
           <div class="space-y-3 max-h-[600px] overflow-y-auto">
-            <%= for msg <- Enum.sort_by(messages, & &1.created_at) do %>
+            <%= for msg <- Enum.sort_by(messages, & &1.created_at, NaiveDateTime) do %>
               <% is_patient = msg.role in ["user", "patient"] %>
               <% is_doctor = msg.role in ["doctor"] %>
               <% msg_bg =

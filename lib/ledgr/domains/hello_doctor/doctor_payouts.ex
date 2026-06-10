@@ -268,12 +268,28 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
   defp apply_status_filter(rows, _), do: rows
 
+  # NOTE: raw `>=`/`<=` term ordering on NaiveDateTime structs compares
+  # fields in alphabetical key order (day before month) — sorts May 29
+  # *above* June 10. Use `{dir, NaiveDateTime}` for date columns so the
+  # comparator dispatches through `NaiveDateTime.compare/2`. Numeric and
+  # string columns are fine with the term comparators.
   defp apply_sort(rows, sort, dir) do
     sort = normalize_sort(sort)
     dir = normalize_dir(dir, sort)
-    key_fn = sort_key(sort)
-    sorted = Enum.sort_by(rows, key_fn, sort_comparer(dir))
-    sorted
+
+    case sort do
+      :date ->
+        Enum.sort_by(rows, &(&1.paid_at || ~N[1970-01-01 00:00:00]), {dir, NaiveDateTime})
+
+      :doctor ->
+        Enum.sort_by(rows, & &1.doctor_name, dir)
+
+      :billed ->
+        Enum.sort_by(rows, & &1.amount, dir)
+
+      :hd_net ->
+        Enum.sort_by(rows, & &1.hd_net, dir)
+    end
   end
 
   defp normalize_sort(s) when s in [nil, "", :date, "date"], do: :date
@@ -287,14 +303,6 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   # Default direction per column: date/billed/hd_net = desc, doctor = asc.
   defp normalize_dir(_, :doctor), do: :asc
   defp normalize_dir(_, _), do: :desc
-
-  defp sort_key(:doctor), do: & &1.doctor_name
-  defp sort_key(:billed), do: & &1.amount
-  defp sort_key(:hd_net), do: & &1.hd_net
-  defp sort_key(:date), do: &(&1.paid_at || ~N[1970-01-01 00:00:00])
-
-  defp sort_comparer(:asc), do: &<=/2
-  defp sort_comparer(:desc), do: &>=/2
 
   @doc """
   Aggregates a list of consultation rows (as returned by
@@ -677,7 +685,11 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     |> Enum.map(fn r ->
       Map.put(r, :linked_to_this_payout?, MapSet.member?(linked_ids, r.consultation_id))
     end)
-    |> Enum.sort_by(&(&1.paid_at || ~N[1970-01-01 00:00:00]), :desc)
+    # `:desc` shortcut uses default term ordering, which compares
+    # NaiveDateTime field-by-field in alphabetical key order
+    # (day before month — sorts May 29 above June 10). Dispatch through
+    # NaiveDateTime.compare/2 instead.
+    |> Enum.sort_by(&(&1.paid_at || ~N[1970-01-01 00:00:00]), {:desc, NaiveDateTime})
   end
 
   defp fetch_doctor(%{doctor_id: id}) when is_binary(id) and id != "" do
