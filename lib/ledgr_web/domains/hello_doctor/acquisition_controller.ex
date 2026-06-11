@@ -82,6 +82,21 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
   def fmt_pct(_), do: "—"
 
   @doc """
+  Returns `count / column_total * 100` as a float, or `0.0` when the
+  column total is missing or zero. Used by the acquisition table's
+  per-cell hover tooltip to show what share of each stage's total came
+  from a given campaign — e.g. "GIN-02 = 60% of doctor_search".
+  """
+  def column_share(_count, nil), do: 0.0
+  def column_share(_count, 0), do: 0.0
+  def column_share(nil, _total), do: 0.0
+
+  def column_share(count, total) when is_number(count) and is_number(total) and total > 0,
+    do: Float.round(count / total * 100, 1)
+
+  def column_share(_, _), do: 0.0
+
+  @doc """
   Precomputes the stacked-bar segments for a single day. Returns a list
   of `%{campaign_id, color, height, y_top}` ordered the way they should
   stack (palette/PDF order, bottom-up). `chart_h` is the total chart

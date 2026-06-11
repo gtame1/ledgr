@@ -548,4 +548,29 @@
   opacity: 0.4;
 }
 
+/* Hover tooltip — fires from `data-tip="..."`, no JS, no native title delay.
+   Used on acquisition table cells to surface column-share % without
+   crowding the grid. */
+[data-domain="hello-doctor"] .hd-tooltip-cell {
+  position: relative;
+}
+
+[data-domain="hello-doctor"] .hd-tooltip-cell[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background: var(--text-main, #0f172a);
+  color: var(--bg-primary, #ffffff);
+  padding: 0.3rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
 } /* end @layer components */
