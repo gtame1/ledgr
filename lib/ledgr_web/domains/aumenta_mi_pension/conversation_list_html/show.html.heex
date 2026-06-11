@@ -326,6 +326,92 @@
           </div>
         <% end %>
       </div>
+
+      <%!--
+        Operator tags ("buckets") — Ledgr-owned overlay keyed by
+        conversation_id (the bot owns `conversations`, so tags live in
+        a separate table). Each checkbox auto-saves the whole form on
+        change, mirroring the lead CRM card. The hidden `false` input
+        before each checkbox makes unticking submit a value, so toggling
+        a bucket off reliably clears it.
+      --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Buckets
+        </h3>
+        <.form
+          for={%{}}
+          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/buckets")}
+          method="post"
+          class="space-y-2"
+        >
+          <input
+            type="hidden"
+            name="_filters"
+            value={String.replace_prefix(@filter_qs, "?", "")}
+          />
+          <%= for {field, label} <- @bucket_options do %>
+            <% name = Atom.to_string(field) %>
+            <label
+              class="flex items-center gap-2 text-sm cursor-pointer"
+              style="color: var(--text-main);"
+            >
+              <input type="hidden" name={name} value="false" />
+              <input
+                type="checkbox"
+                name={name}
+                value="true"
+                checked={@bucket && Map.get(@bucket, field)}
+                onchange="this.form.submit()"
+                class="h-4 w-4 rounded border"
+                style="border-color: var(--border-subtle); accent-color: var(--accent);"
+              />
+              {label}
+            </label>
+          <% end %>
+          <p class="text-xs mt-2" style="color: var(--text-muted);">
+            Se guarda automáticamente al cambiar.
+          </p>
+        </.form>
+      </div>
+
+      <%!--
+        Free-text case notes — same Ledgr-owned overlay row as the
+        buckets (POSTs to the same endpoint; a partial submit leaves the
+        buckets intact). Meant to be surfaced to the bot as extra
+        context, which requires the bot service to read
+        `conversation_buckets.case_notes`.
+      --%>
+      <div class="hd-card p-5">
+        <h3 class="text-sm font-semibold uppercase mb-3" style="color: var(--text-muted);">
+          Comentarios del caso
+        </h3>
+        <.form
+          for={%{}}
+          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/buckets")}
+          method="post"
+          class="space-y-2"
+        >
+          <input
+            type="hidden"
+            name="_filters"
+            value={String.replace_prefix(@filter_qs, "?", "")}
+          />
+          <textarea
+            name="case_notes"
+            rows="5"
+            placeholder="Notas sobre el caso para dar contexto al bot…"
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          >{@bucket && @bucket.case_notes}</textarea>
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs" style="color: var(--text-muted);">
+              El bot usa estas notas como contexto.
+            </p>
+            <button type="submit" class="hd-btn-secondary">Guardar</button>
+          </div>
+        </.form>
+      </div>
     </div>
   </div>
 </div>

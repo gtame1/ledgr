@@ -621,6 +621,12 @@ defmodule LedgrWeb.Router do
     resources "/conversations", Domains.AumentaMiPension.ConversationListController,
       only: [:index, :show]
 
+    # Operator tags ("buckets") for a conversation — Ledgr-owned overlay,
+    # auto-saved from the checkbox card on the conversation detail page.
+    post "/conversations/:id/buckets",
+         Domains.AumentaMiPension.ConversationListController,
+         :update_buckets
+
     # Unified leads view (joins conversations / checkup / calculadora by phone).
     # CRM annotations live here at the lead level, not per-conversation.
     get "/leads", Domains.AumentaMiPension.LeadController, :index
