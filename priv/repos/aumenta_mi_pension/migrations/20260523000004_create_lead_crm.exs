@@ -82,6 +82,33 @@ defmodule Ledgr.Repos.AumentaMiPension.Migrations.CreateLeadCrm do
   end
 
   defp backfill_lead_crm_from_conversation_crm do
+    # The backfill joins BOT-owned tables (conversations, customers) that
+    # only exist where the bot shares the DB (prod/Neon branches). Fresh
+    # ledgr-only DBs — the local test DB above all — don't have them, and
+    # the join would abort the whole migration. Nothing to backfill there
+    # anyway: skip, leaving lead_crm empty.
+    if bot_tables_present?() do
+      do_backfill()
+    else
+      IO.puts(
+        :stderr,
+        "[migration] conversations/customers (bot-owned) not present — " <>
+          "skipping lead_crm backfill (fresh ledgr-only DB)."
+      )
+    end
+  end
+
+  defp bot_tables_present? do
+    %{rows: [[present]]} =
+      repo().query!("""
+      SELECT to_regclass('public.conversations') IS NOT NULL
+         AND to_regclass('public.customers') IS NOT NULL
+      """)
+
+    present
+  end
+
+  defp do_backfill do
     # Pull every conversation_crm row with its associated customer.phone.
     # Raw SQL because the Ecto schemas may not align at migration time
     # (we're between `conversation_crm` and `lead_crm`).
