@@ -26,6 +26,24 @@ defmodule Ledgr.Domains.HelloDoctor.Conversations.Conversation do
     # "corporate"; NULL otherwise. The monthly-invoice join key.
     field :corporate_account_id, :string
 
+    # Bot-owned (bot ADR-019/ADR-059): operator quality marks + live case
+    # notes. Read directly for display; ALL writes go through the bot's
+    # admin API (BotAdmin.mark_conversation / set_operator_notes) — never
+    # write these columns from Ecto. TIMESTAMPTZ columns read as
+    # :utc_datetime (unlike the table's naive created_at).
+    field :quality_signal, :string
+    field :corpus_candidate, :boolean, default: false
+    field :quality_marked_at, :utc_datetime
+    field :quality_marked_by, :string
+    field :quality_notes, :string
+    field :failure_category, :string
+    field :first_bad_message_id, :string
+    field :exemplary_message_id, :string
+    field :corrected_response, :string
+    field :operator_notes, :string
+    field :operator_notes_updated_at, :utc_datetime
+    field :operator_notes_updated_by, :string
+
     belongs_to :patient, Ledgr.Domains.HelloDoctor.Patients.Patient
     has_many :consultations, Ledgr.Domains.HelloDoctor.Consultations.Consultation
     has_many :messages, Ledgr.Domains.HelloDoctor.Messages.Message

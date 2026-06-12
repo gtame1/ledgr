@@ -1,6 +1,8 @@
 defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
   use LedgrWeb, :controller
 
+  alias Ledgr.Domains.HelloDoctor.BotAdmin
+  alias Ledgr.Domains.HelloDoctor.ConversationFeedback
   alias Ledgr.Domains.HelloDoctor.Conversations
   alias Ledgr.Domains.HelloDoctor.ConversationFunnelExport
 
@@ -27,8 +29,120 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
       conversation: conversation,
       prev_id: prev_id,
       next_id: next_id,
-      filter_qs: encode_filter_qs(filters)
+      filter_qs: encode_filter_qs(filters),
+      filters: filters,
+      feedback_categories: ConversationFeedback.failure_categories(),
+      marker: get_session(conn, :triage_marker) || ""
     )
+  end
+
+  @doc """
+  Quality feedback panel on the conversation detail page. Pushes the mark
+  to the bot's admin API (bot ADR-059) — the bot's `conversations` row is
+  the single store; nothing is written locally.
+
+  Signal-dependent clearing: marking good clears the bad-only fields
+  (category, first-bad anchor, corrected response) and vice versa, so a
+  re-verdict never leaves stale structure behind.
+  """
+  def update_feedback(conn, %{"id" => id} = params) do
+    marker = presence(params["marked_by"]) || get_session(conn, :triage_marker)
+    signal = params["signal"]
+
+    cond do
+      is_nil(marker) ->
+        feedback_redirect(conn, id, params, :error, "Set your handle (marked by) first.")
+
+      signal not in ["good", "bad"] ->
+        feedback_redirect(conn, id, params, :error, "Pick a verdict: good or bad.")
+
+      signal == "bad" and presence(params["failure_category"]) == nil ->
+        feedback_redirect(conn, id, params, :error, "A bad mark needs a failure category.")
+
+      signal == "bad" and presence(params["notes"]) == nil ->
+        feedback_redirect(conn, id, params, :error, "A bad mark needs a one-line rationale.")
+
+      true ->
+        attrs =
+          case signal do
+            "good" ->
+              %{
+                signal: "good",
+                exemplary_message_id: params["exemplary_message_id"] || "",
+                failure_category: "",
+                first_bad_message_id: "",
+                corrected_response: ""
+              }
+
+            "bad" ->
+              %{
+                signal: "bad",
+                failure_category: params["failure_category"] || "",
+                first_bad_message_id: params["first_bad_message_id"] || "",
+                corrected_response: params["corrected_response"] || "",
+                exemplary_message_id: ""
+              }
+          end
+          |> Map.merge(%{
+            corpus_candidate: params["corpus_candidate"] == "true",
+            notes: params["notes"] || "",
+            marked_by: marker
+          })
+
+        {kind, msg} =
+          case BotAdmin.mark_conversation(id, attrs) do
+            {:ok, _} -> {:info, "Feedback saved (#{signal})."}
+            {:error, reason} -> {:error, "Couldn't save feedback: #{reason}"}
+          end
+
+        conn
+        |> put_session(:triage_marker, marker)
+        |> feedback_redirect(id, params, kind, msg)
+    end
+  end
+
+  @doc """
+  Live operator case note (bot ADR-059): the bot injects it into the LLM
+  context on every later turn of this conversation. Blank clears it.
+  """
+  def update_operator_notes(conn, %{"id" => id} = params) do
+    marker = presence(params["updated_by"]) || get_session(conn, :triage_marker)
+
+    if is_nil(marker) do
+      feedback_redirect(conn, id, params, :error, "Set your handle first.")
+    else
+      notes = params["operator_notes"] || ""
+
+      {kind, msg} =
+        case BotAdmin.set_operator_notes(id, notes, marker) do
+          {:ok, _} ->
+            if String.trim(notes) == "",
+              do: {:info, "Case note cleared — the bot no longer sees it."},
+              else: {:info, "Case note saved — the bot sees it on its next turn."}
+
+          {:error, reason} ->
+            {:error, "Couldn't save the case note: #{reason}"}
+        end
+
+      conn
+      |> put_session(:triage_marker, marker)
+      |> feedback_redirect(id, params, kind, msg)
+    end
+  end
+
+  defp feedback_redirect(conn, id, params, kind, msg) do
+    conn
+    |> put_flash(kind, msg)
+    |> redirect(to: dp(conn, "/conversations/#{id}") <> encode_filter_qs(filter_opts(params)))
+  end
+
+  defp presence(nil), do: nil
+
+  defp presence(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
   end
 
   defp filter_opts(params) do

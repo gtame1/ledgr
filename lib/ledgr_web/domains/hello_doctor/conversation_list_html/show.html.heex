@@ -169,6 +169,7 @@
             <%= for msg <- Enum.sort_by(messages, & &1.created_at, NaiveDateTime) do %>
               <% is_patient = msg.role in ["user", "patient"] %>
               <% is_doctor = msg.role in ["doctor"] %>
+              <% is_ai = not is_patient and not is_doctor %>
               <% msg_bg =
                 cond do
                   is_patient -> "bg-[#d0f5ed]"
@@ -194,9 +195,53 @@
                   <div class="whitespace-pre-line" style="color: var(--text-main);">
                     {msg.content}
                   </div>
-                  <%= if msg.created_at do %>
-                    <div class="text-xs mt-1 opacity-60">{fmt_time(msg.created_at)}</div>
-                  <% end %>
+                  <div class="flex items-center justify-between gap-2 mt-1">
+                    <%= if msg.created_at do %>
+                      <div class="text-xs opacity-60">{fmt_time(msg.created_at)}</div>
+                    <% else %>
+                      <div></div>
+                    <% end %>
+                    <%= if is_ai do %>
+                      <%!-- Feedback anchors (bot ADR-059): fill the hidden
+                           fields in the Quality Feedback form below. --%>
+                      <div class="text-xs" style="white-space: nowrap;">
+                        <%= if conv.first_bad_message_id == msg.id do %>
+                          <span
+                            title="Currently marked as the first bad message"
+                            style="background: #fee2e2; color: #991b1b; padding: 0 0.3rem; border-radius: 0.25rem; font-weight: 600;"
+                          >
+                            ⚑ first bad
+                          </span>
+                        <% end %>
+                        <%= if conv.exemplary_message_id == msg.id do %>
+                          <span
+                            title="Currently marked as an exemplary message"
+                            style="background: #d1fae5; color: #065f46; padding: 0 0.3rem; border-radius: 0.25rem; font-weight: 600;"
+                          >
+                            ★ exemplary
+                          </span>
+                        <% end %>
+                        <button
+                          type="button"
+                          onclick={"hdAnchor('first_bad_message_id', '#{msg.id}', this)"}
+                          title="Anchor: first bad message (fills the feedback form)"
+                          class="hd-anchor-btn hd-anchor-btn--bad"
+                          style="border: none; background: transparent; cursor: pointer; opacity: 0.45; padding: 0 0.15rem;"
+                        >
+                          ⚑
+                        </button>
+                        <button
+                          type="button"
+                          onclick={"hdAnchor('exemplary_message_id', '#{msg.id}', this)"}
+                          title="Anchor: exemplary message (fills the feedback form)"
+                          class="hd-anchor-btn hd-anchor-btn--good"
+                          style="border: none; background: transparent; cursor: pointer; opacity: 0.45; padding: 0 0.15rem;"
+                        >
+                          ★
+                        </button>
+                      </div>
+                    <% end %>
+                  </div>
                 </div>
               </div>
             <% end %>
@@ -214,6 +259,235 @@
 
     <%!-- Right Column --%>
     <div class="space-y-6">
+      <%!-- Quality Feedback (writes to the bot via its admin API — bot ADR-059) --%>
+      <% signal_now = conv.quality_signal %>
+      <div class="hd-card p-5" style="border-left: 4px solid #f59e0b;">
+        <h3 class="text-sm font-semibold uppercase mb-1" style="color: var(--text-muted);">
+          Quality Feedback
+        </h3>
+        <%= if signal_now do %>
+          <div class="text-xs mb-3" style="color: var(--text-muted);">
+            Marked
+            <strong style={"color: #{if signal_now == "good", do: "#065f46", else: "#991b1b"};"}>
+              {signal_now}
+            </strong>
+            <%= if conv.failure_category do %>
+              · {Ledgr.Domains.HelloDoctor.ConversationFeedback.category_label(
+                conv.failure_category
+              )}
+            <% end %>
+            <%= if conv.quality_marked_by do %>
+              · by {conv.quality_marked_by}
+            <% end %>
+            <%= if conv.quality_marked_at do %>
+              · {Calendar.strftime(conv.quality_marked_at, "%Y-%m-%d %H:%M")} UTC
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-xs mb-3" style="color: var(--text-muted);">
+            Unreviewed. A <strong>bad</strong>
+            mark needs a category + rationale; use ⚑ / ★ next to an AI message to anchor it.
+          </div>
+        <% end %>
+
+        <form
+          id="hd-feedback-form"
+          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/feedback")}
+          method="post"
+          class="space-y-3"
+        >
+          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+          <%= for {k, v} <- @filters, v not in [nil, ""] do %>
+            <input type="hidden" name={k} value={v} />
+          <% end %>
+          <input
+            type="hidden"
+            id="hd-first_bad_message_id"
+            name="first_bad_message_id"
+            value={conv.first_bad_message_id || ""}
+          />
+          <input
+            type="hidden"
+            id="hd-exemplary_message_id"
+            name="exemplary_message_id"
+            value={conv.exemplary_message_id || ""}
+          />
+
+          <div class="flex items-center gap-3">
+            <label
+              class="text-sm flex items-center gap-1"
+              style="color: #065f46; font-weight: 600; cursor: pointer;"
+            >
+              <input
+                type="radio"
+                name="signal"
+                value="good"
+                checked={signal_now == "good"}
+                onchange="hdSignalChanged()"
+              /> ✓ Good
+            </label>
+            <label
+              class="text-sm flex items-center gap-1"
+              style="color: #991b1b; font-weight: 600; cursor: pointer;"
+            >
+              <input
+                type="radio"
+                name="signal"
+                value="bad"
+                checked={signal_now == "bad"}
+                onchange="hdSignalChanged()"
+              /> ✗ Bad
+            </label>
+            <label
+              class="text-xs flex items-center gap-1 ml-auto"
+              style="color: var(--text-muted); cursor: pointer;"
+              title="Flag for the persona/few-shot harvest corpus"
+            >
+              <input
+                type="checkbox"
+                name="corpus_candidate"
+                value="true"
+                checked={conv.corpus_candidate == true}
+              /> 📚 Corpus
+            </label>
+          </div>
+
+          <div id="hd-bad-only" style="display: none;" class="space-y-3">
+            <div>
+              <label class="text-xs uppercase font-medium" style="color: var(--text-muted);">
+                Failure category
+              </label>
+              <select id="hd-category" name="failure_category" class="hd-input text-sm w-full">
+                <option value="">— pick one —</option>
+                <%= for {value, label} <- @feedback_categories do %>
+                  <option value={value} selected={conv.failure_category == value}>{label}</option>
+                <% end %>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs uppercase font-medium" style="color: var(--text-muted);">
+                What should the bot have said?
+                <span style="text-transform: none; font-weight: 400;">(optional, gold)</span>
+              </label>
+              <textarea
+                name="corrected_response"
+                rows="3"
+                maxlength="4000"
+                class="hd-input text-sm w-full"
+                placeholder="The reply Nura should have given — becomes eval/few-shot material."
+              >{conv.corrected_response || ""}</textarea>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs uppercase font-medium" style="color: var(--text-muted);">
+              Rationale
+              <span id="hd-notes-req" style="text-transform: none; font-weight: 400;"></span>
+            </label>
+            <textarea
+              id="hd-notes"
+              name="notes"
+              rows="2"
+              class="hd-input text-sm w-full"
+              placeholder="One line: why is this good/bad?"
+            >{conv.quality_notes || ""}</textarea>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              name="marked_by"
+              value={@marker}
+              placeholder="your handle"
+              class="hd-input text-sm"
+              style="width: 8rem;"
+              title="Saved to session; sent as marked_by."
+            />
+            <button type="submit" class="hd-btn-sm" style="margin-left: auto;">
+              Save feedback
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <%!-- Live operator case note (bot ADR-059: injected into the bot's context) --%>
+      <% has_note = (conv.operator_notes || "") != "" %>
+      <div
+        class="hd-card p-5"
+        style={"border-left: 4px solid #{if has_note, do: "#8b5cf6", else: "var(--border-subtle)"};"}
+      >
+        <div class="flex items-center gap-2 mb-1">
+          <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+            Case Note → Bot
+          </h3>
+          <%= if has_note do %>
+            <span
+              style="background: #ede9fe; color: #5b21b6; padding: 0.1rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;"
+              title="The bot injects this note into its context on every turn of this conversation."
+            >
+              ● live
+            </span>
+          <% end %>
+        </div>
+        <div class="text-xs mb-3" style="color: var(--text-muted);">
+          Injected into the bot's context on its next turn — case facts and steering for
+          <em>this</em>
+          conversation only (e.g. "ya envió sus estudios; no se los vuelvas a pedir").
+          It can't override safety rules. Clear it when it no longer applies.
+          <%= if has_note and conv.operator_notes_updated_by do %>
+            <div class="mt-1">
+              Last set by {conv.operator_notes_updated_by}
+              <%= if conv.operator_notes_updated_at do %>
+                · {Calendar.strftime(conv.operator_notes_updated_at, "%Y-%m-%d %H:%M")} UTC
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <form
+          action={dp(@domain_path_prefix, "/conversations/#{conv.id}/operator-notes")}
+          method="post"
+          class="space-y-2"
+        >
+          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+          <%= for {k, v} <- @filters, v not in [nil, ""] do %>
+            <input type="hidden" name={k} value={v} />
+          <% end %>
+          <textarea
+            id="hd-op-notes"
+            name="operator_notes"
+            rows="3"
+            maxlength="1500"
+            class="hd-input text-sm w-full"
+            placeholder="Nota para el bot sobre este caso (máx. 1500)."
+          >{conv.operator_notes || ""}</textarea>
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              name="updated_by"
+              value={@marker}
+              placeholder="your handle"
+              class="hd-input text-sm"
+              style="width: 8rem;"
+            />
+            <%= if has_note do %>
+              <button
+                type="submit"
+                class="hd-btn-sm"
+                style="background: #fee2e2; color: #991b1b;"
+                onclick="document.getElementById('hd-op-notes').value = '';"
+                title="Remove the note — the bot stops seeing it immediately."
+              >
+                Clear
+              </button>
+            <% end %>
+            <button type="submit" class="hd-btn-sm" style="margin-left: auto;">
+              Save note
+            </button>
+          </div>
+        </form>
+      </div>
+
       <%!-- Patient --%>
       <%= if conv.patient do %>
         <div class="hd-card p-5">
@@ -360,3 +634,32 @@
     </div>
   </div>
 </div>
+
+<script>
+  // Feedback-panel helpers (bot ADR-059). Plain JS — this is a dead view.
+  function hdSignalChanged() {
+    const bad = document.querySelector('input[name="signal"][value="bad"]').checked;
+    document.getElementById("hd-bad-only").style.display = bad ? "" : "none";
+    document.getElementById("hd-category").required = bad;
+    document.getElementById("hd-notes").required = bad;
+    document.getElementById("hd-notes-req").textContent = bad ? "(required)" : "";
+  }
+
+  // Toggle an anchor: click fills the hidden field; clicking the same
+  // message again clears it. Active buttons render at full opacity.
+  function hdAnchor(field, msgId, btn) {
+    const input = document.getElementById("hd-" + field);
+    const cls = field === "first_bad_message_id" ? "hd-anchor-btn--bad" : "hd-anchor-btn--good";
+    input.value = input.value === msgId ? "" : msgId;
+    document.querySelectorAll("." + cls).forEach((b) => (b.style.opacity = "0.45"));
+    if (input.value !== "") btn.style.opacity = "1";
+    // Anchoring implies a verdict — preselect the matching signal if unset.
+    const signal = field === "first_bad_message_id" ? "bad" : "good";
+    if (!document.querySelector('input[name="signal"]:checked')) {
+      document.querySelector('input[name="signal"][value="' + signal + '"]').checked = true;
+    }
+    hdSignalChanged();
+  }
+
+  hdSignalChanged();
+</script>

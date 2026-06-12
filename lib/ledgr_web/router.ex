@@ -458,6 +458,16 @@ defmodule LedgrWeb.Router do
     resources "/conversations", Domains.HelloDoctor.ConversationListController,
       only: [:index, :show]
 
+    # Quality feedback + live operator case note (bot ADR-059) — both
+    # write through the bot's admin API, nothing stored ledgr-side.
+    post "/conversations/:id/feedback",
+         Domains.HelloDoctor.ConversationListController,
+         :update_feedback
+
+    post "/conversations/:id/operator-notes",
+         Domains.HelloDoctor.ConversationListController,
+         :update_operator_notes
+
     # Doctor assistant chats
     resources "/doctor-chats", Domains.HelloDoctor.DoctorChatController, only: [:index, :show]
 
@@ -477,9 +487,9 @@ defmodule LedgrWeb.Router do
 
     resources "/reviews", Domains.HelloDoctor.ReviewController, only: [:index]
 
-    # Bot quality triage — list + mark conversations via the bot's admin API
+    # Review inbox — conversations awaiting quality review, priority-sorted
+    # by the bot's auto-hint. Marking happens on the conversation detail page.
     get "/triage", Domains.HelloDoctor.TriageController, :index
-    post "/triage/:id/mark", Domains.HelloDoctor.TriageController, :mark
 
     # Doctors (read-only — bot manages doctors)
     resources "/doctors", Domains.HelloDoctor.DoctorController,

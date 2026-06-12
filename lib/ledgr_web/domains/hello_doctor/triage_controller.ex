@@ -9,7 +9,19 @@ defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
   alias Ledgr.Domains.HelloDoctor.Patients.Patient
 
-  @auto_hints ~w[unmarked likely_bad looks_good safety_review regression abandoned review neutral]
+  @auto_hints ~w[unmarked likely_bad looks_good safety_review regression abandoned review neutral good bad]
+
+  # Inbox ordering: most actionable first. Recency is preserved within a
+  # bucket (Enum.sort_by is stable; the bot returns recent-first).
+  @hint_priority %{
+    "safety_review" => 0,
+    "likely_bad" => 1,
+    "regression" => 2,
+    "review" => 3,
+    "abandoned" => 4,
+    "neutral" => 5,
+    "looks_good" => 6
+  }
 
   def index(conn, params) do
     signal = blank_to_nil(params["signal"]) || "unmarked"
@@ -29,10 +41,13 @@ defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
         {:error, reason} -> {[], reason}
       end
 
+    conversations = sort_by_hint_priority(conversations)
+
     conn
     |> put_session(:triage_marker, marker)
     |> render(:index,
       conversations: conversations,
+      hint_counts: Enum.frequencies_by(conversations, &Map.get(&1, "auto_hint")),
       signal: signal,
       tenant: tenant,
       corpus_only: corpus_only,
@@ -40,6 +55,12 @@ defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
       error: error,
       auto_hints: @auto_hints
     )
+  end
+
+  defp sort_by_hint_priority(conversations) do
+    Enum.sort_by(conversations, fn conv ->
+      Map.get(@hint_priority, Map.get(conv, "auto_hint"), 5)
+    end)
   end
 
   # The bot's /admin/conversations response only carries identifiers + funnel
@@ -93,55 +114,12 @@ defmodule LedgrWeb.Domains.HelloDoctor.TriageController do
     end
   end
 
-  def mark(conn, %{"id" => conv_id} = params) do
-    attrs =
-      %{}
-      |> maybe_put(:signal, blank_to_nil(params["signal"]))
-      |> maybe_put(:corpus_candidate, parse_bool(params["corpus_candidate"]))
-      |> maybe_put(:notes, blank_to_nil(params["notes"]))
-      |> maybe_put(:marked_by, blank_to_nil(params["marker"]))
-
-    {flash_kind, msg} =
-      case BotAdmin.mark_conversation(conv_id, attrs) do
-        {:ok, _} -> {:info, mark_message(attrs)}
-        {:error, reason} -> {:error, "Mark failed: #{reason}"}
-      end
-
-    # Preserve the page state (filters + marker handle) when redirecting back.
-    redirect_query =
-      params
-      |> Map.take(["signal", "tenant", "corpus_only", "marker"])
-      |> Enum.reject(fn {_, v} -> v in [nil, ""] end)
-      |> URI.encode_query()
-
-    redirect_to = dp(conn, "/triage" <> if(redirect_query == "", do: "", else: "?" <> redirect_query))
-
-    conn
-    |> put_flash(flash_kind, msg)
-    |> redirect(to: redirect_to)
-  end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
-
-  defp parse_bool("true"), do: true
-  defp parse_bool("false"), do: false
-  defp parse_bool(_), do: nil
+  # Marking moved to the conversation detail page (ConversationListController
+  # .update_feedback) — Triage is now a read-only review inbox.
 
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(v), do: v
-
-  defp mark_message(attrs) do
-    parts =
-      [
-        attrs[:signal] && "signal=#{attrs[:signal]}",
-        attrs[:corpus_candidate] && "corpus_candidate=#{attrs[:corpus_candidate]}"
-      ]
-      |> Enum.reject(&is_nil/1)
-
-    "Marked: " <> Enum.join(parts, ", ")
-  end
 end
 
 defmodule LedgrWeb.Domains.HelloDoctor.TriageHTML do

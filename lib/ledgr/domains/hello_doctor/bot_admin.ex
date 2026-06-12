@@ -59,17 +59,52 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
 
     * `:signal` — `"good"` / `"bad"` (omit to leave unchanged)
     * `:corpus_candidate` — boolean
-    * `:notes` — free text
+    * `:notes` — free text rationale
     * `:marked_by` — operator handle
+
+  Bot ADR-059 structured fields (omit = unchanged, `""` = clear):
+
+    * `:failure_category` — value from `ConversationFeedback.failure_categories/0`
+    * `:first_bad_message_id` / `:exemplary_message_id` — message anchors
+    * `:corrected_response` — what the bot should have said
   """
   def mark_conversation(conv_id, attrs) when is_binary(conv_id) and is_map(attrs) do
     case config() do
       {:ok, base_url, api_key} ->
         url = base_url <> "/admin/conversations/" <> conv_id <> "/quality"
 
-        body = Map.take(attrs, [:signal, :corpus_candidate, :notes, :marked_by])
+        body =
+          Map.take(attrs, [
+            :signal,
+            :corpus_candidate,
+            :notes,
+            :marked_by,
+            :failure_category,
+            :first_bad_message_id,
+            :exemplary_message_id,
+            :corrected_response
+          ])
 
         request(:post, url, body, [], api_key)
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  @doc """
+  Sets or clears the live operator case note on a conversation (bot
+  ADR-059). The bot injects it into the LLM context on every later turn
+  of that conversation. `notes` nil/blank clears; the bot caps length
+  at 1500 chars (422 beyond it).
+  """
+  def set_operator_notes(conv_id, notes, updated_by)
+      when is_binary(conv_id) and is_binary(updated_by) do
+    case config() do
+      {:ok, base_url, api_key} ->
+        url = base_url <> "/admin/conversations/" <> conv_id <> "/operator-notes"
+
+        request(:put, url, %{notes: notes, updated_by: updated_by}, [], api_key)
 
       {:error, _} = err ->
         err

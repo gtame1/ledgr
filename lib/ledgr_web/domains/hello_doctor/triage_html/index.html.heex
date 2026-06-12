@@ -3,13 +3,12 @@
   <div class="mb-8">
     <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold" style="color: var(--text-main);">Triage</h1>
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);">Review Inbox</h1>
         <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 65ch;">
-          Bot-side quality review. Default shows
-          <strong>unmarked</strong>
-          conversations with an auto-hint. Click ✓ Good, ✗ Bad, or 📚 Corpus to
-          push a label back to the bot — the row drops off the list once
-          marked.
+          Conversations awaiting quality review, riskiest first
+          (safety → likely bad → regression → …). Open one to read it and mark
+          it on the detail page — it leaves the inbox once marked. Inbox zero =
+          every flagged conversation got human eyes.
         </p>
       </div>
 
@@ -48,6 +47,22 @@
       </form>
     </div>
   </div>
+
+  <%!-- ── Coverage (this page of the inbox, grouped by auto-hint) ── --%>
+  <%= if @signal == "unmarked" and not Enum.empty?(@conversations) do %>
+    <div class="mb-6 flex flex-wrap items-center gap-2">
+      <span class="text-sm font-semibold" style="color: var(--text-main);">
+        {length(@conversations)} awaiting review
+      </span>
+      <%= for hint <- ~w[safety_review likely_bad regression review abandoned neutral looks_good],
+              count = Map.get(@hint_counts, hint),
+              count != nil do %>
+        <span class="text-xs" style="color: var(--text-muted);">
+          {hint_badge(hint)} ×{count}
+        </span>
+      <% end %>
+    </div>
+  <% end %>
 
   <%!-- ── Error from bot API, if any ── --%>
   <%= if @error do %>
@@ -131,7 +146,7 @@
               class="p-3 pr-4 text-xs font-semibold uppercase"
               style="color: var(--text-muted); text-align: right;"
             >
-              Actions
+              <%!-- review link --%>
             </th>
           </tr>
         </thead>
@@ -214,69 +229,14 @@
                 <% end %>
               </td>
               <td class="p-3 pr-4" style="text-align: right; white-space: nowrap;">
-                <form
-                  action={dp(@domain_path_prefix, "/triage/#{conv_id}/mark")}
-                  method="post"
-                  style="display: inline-flex; gap: 0.25rem;"
+                <a
+                  href={dp(@domain_path_prefix, "/conversations/#{conv_id}")}
+                  class="hd-btn-sm"
+                  style="font-size: 0.7rem; padding: 0.2rem 0.5rem; text-decoration: none;"
+                  title="Read the conversation and mark it on the detail page"
                 >
-                  <input
-                    type="hidden"
-                    name="_csrf_token"
-                    value={Phoenix.Controller.get_csrf_token()}
-                  />
-                  <input type="hidden" name="signal" value="" disabled />
-                  <input type="hidden" name="marker" value={@marker} />
-                  <input type="hidden" name="signal_for_submit" value="" />
-
-                  <button
-                    type="submit"
-                    name="signal"
-                    value="good"
-                    class="hd-btn-sm"
-                    style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: #d1fae5; color: #065f46;"
-                  >
-                    ✓ Good
-                  </button>
-                  <button
-                    type="submit"
-                    name="signal"
-                    value="bad"
-                    class="hd-btn-sm"
-                    style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: #fee2e2; color: #991b1b;"
-                  >
-                    ✗ Bad
-                  </button>
-                </form>
-
-                <form
-                  action={dp(@domain_path_prefix, "/triage/#{conv_id}/mark")}
-                  method="post"
-                  style="display: inline;"
-                >
-                  <input
-                    type="hidden"
-                    name="_csrf_token"
-                    value={Phoenix.Controller.get_csrf_token()}
-                  />
-                  <input
-                    type="hidden"
-                    name="corpus_candidate"
-                    value={
-                      if corpus_now == true or corpus_now == "true",
-                        do: "false",
-                        else: "true"
-                    }
-                  />
-                  <input type="hidden" name="marker" value={@marker} />
-                  <button
-                    type="submit"
-                    class="hd-btn-sm"
-                    style="font-size: 0.7rem; padding: 0.2rem 0.5rem; margin-left: 0.25rem;"
-                    title="Toggle corpus candidate flag"
-                  >
-                    📚 {if corpus_now == true or corpus_now == "true", do: "un-corpus", else: "Corpus"}
-                  </button>
-                </form>
+                  Review →
+                </a>
               </td>
             </tr>
           <% end %>
