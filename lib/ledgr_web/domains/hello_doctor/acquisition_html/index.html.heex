@@ -12,12 +12,16 @@
     <p class="text-sm" style="color: var(--text-muted); max-width: 80ch;">
       Each campaign sets a distinct emoji + welcome message in its WhatsApp
       click-to-chat link. We attribute a conversation to a campaign when its
-      first inbound user message contains both. Doctor-referral
-      (<code>DR-XXXX</code>) clicks are excluded — those are a separate
-      acquisition path. Ad-driven patients may land in either <code>mvp</code>
+      first inbound user message contains both — and from that point on,
+      <strong>every subsequent conversation by that patient inherits the same
+        campaign credit</strong>
+      (first-touch attribution), so an organic
+      return visit still counts toward the campaign that brought the patient
+      in. Doctor-referral (<code>DR-XXXX</code>) clicks are excluded — those
+      are a separate acquisition path. Ad-driven patients may land in either <code>mvp</code>
       or <code>direct</code>
-      tenant depending on how the bot routes them; the "Pending routing" KPI
-      counts leads paused at the bot's <em>"¿te refirió un doctor?"</em>
+      tenant depending on how the bot routes them;
+      the "Pending routing" KPI counts leads paused at the bot's <em>"¿te refirió un doctor?"</em>
       yes/no prompt — usually a transient state, not a dead-end.
     </p>
   </div>

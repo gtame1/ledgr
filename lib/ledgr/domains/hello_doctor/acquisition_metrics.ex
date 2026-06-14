@@ -8,6 +8,22 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   then maps each conversation's current `funnel_stage` to a canonical
   stage index and emits cumulative "reached this stage or later" counts.
 
+  ## Attribution model: first-touch per patient
+
+  A patient's earliest attributed conversation (all-time, not just in
+  the dashboard window) defines the campaign credit for *every*
+  subsequent conversation that patient has — including organic return
+  visits where the first message doesn't carry any campaign welcome
+  text. This avoids dropping credit when a known patient comes back
+  via WhatsApp directly instead of re-tapping the ad. Conversations
+  with no `patient_id` (anonymous, no profile yet) fall through to
+  per-conversation detection.
+
+  Trade-off: a patient first acquired via GIN-01 who later taps a
+  PED-01 ad credits GIN-01 for BOTH visits. PED-01 doesn't get credit
+  for the re-engagement; it brought no genuinely new patient. This is
+  the first-touch contract.
+
   ## Stage semantics
 
   Each per-campaign row has a `reached_<N>` field for N in 1..12, where N
@@ -216,7 +232,11 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       WHERE m.role = 'user'
       ORDER BY m.conversation_id, m.created_at ASC
     ),
-    attributed AS (
+    -- All conversations EVER + their direct per-message campaign match.
+    -- No date filter: first-touch attribution needs to see history
+    -- before the dashboard window so it can credit an out-of-period
+    -- ad click for an in-period return conversation.
+    detected_all AS (
       SELECT
         fm.conversation_id,
         fm.first_msg_at,
@@ -224,14 +244,46 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         c.funnel_stage,
         c.tenant,
         COALESCE(fs.idx, 0) AS stage_idx,
-        #{detection} AS campaign_id
+        #{detection} AS direct_campaign_id
       FROM first_msg fm
       JOIN conversations c ON c.id = fm.conversation_id
       LEFT JOIN funnel_stages fs ON fs.stage = c.funnel_stage
-      WHERE fm.first_msg_at >= $1 AND fm.first_msg_at < $2
-        -- DR-XXXX referral_link clicks (per-doctor wa.me from the doctor
-        -- show page) aren't ad-attributable. Same prefix the bot uses.
-        AND fm.content NOT ILIKE '%mi doctor: dr-%'
+      -- DR-XXXX referral_link clicks (per-doctor wa.me from the doctor
+      -- show page) aren't ad-attributable. Same prefix the bot uses.
+      WHERE fm.content NOT ILIKE '%mi doctor: dr-%'
+    ),
+    -- First-touch: each patient's earliest attributed conversation
+    -- defines the campaign that gets credit for every subsequent
+    -- conversation by that patient (even ones whose first message
+    -- doesn't match any campaign welcome-text — organic returns).
+    -- Anonymous conversations (patient_id NULL) can't be deduped this
+    -- way; they fall through to direct per-conversation detection.
+    patient_first_campaign AS (
+      SELECT DISTINCT ON (patient_id)
+        patient_id, direct_campaign_id
+      FROM detected_all
+      WHERE direct_campaign_id IS NOT NULL
+        AND patient_id IS NOT NULL
+      ORDER BY patient_id, first_msg_at ASC
+    ),
+    attributed AS (
+      SELECT
+        da.conversation_id,
+        da.first_msg_at,
+        da.patient_id,
+        da.funnel_stage,
+        da.tenant,
+        da.stage_idx,
+        -- Inherit from the patient's first-touch when available;
+        -- otherwise fall back to per-conversation detection (covers
+        -- patient_id IS NULL and patients whose every conversation
+        -- including the earliest doesn't match a campaign).
+        COALESCE(pfc.direct_campaign_id, da.direct_campaign_id) AS campaign_id
+      FROM detected_all da
+      LEFT JOIN patient_first_campaign pfc ON pfc.patient_id = da.patient_id
+      -- Window applied AFTER inheriting so out-of-period first-touches
+      -- still credit in-period followups.
+      WHERE da.first_msg_at >= $1 AND da.first_msg_at < $2
     )
     SELECT
       a.campaign_id,
@@ -377,6 +429,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   defp run_daily_query(start_naive, end_exclusive, start_date, end_date) do
     detection = Campaigns.detection_case_sql("fm.content")
 
+    # Same first-touch attribution as `run_funnel_query/2` so the
+    # daily chart and per-campaign table show identical lead counts.
     sql = """
     WITH first_msg AS (
       SELECT DISTINCT ON (m.conversation_id)
@@ -387,14 +441,27 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       WHERE m.role = 'user'
       ORDER BY m.conversation_id, m.created_at ASC
     ),
-    attributed AS (
+    detected_all AS (
       SELECT
-        DATE(fm.first_msg_at) AS day,
-        #{detection} AS campaign_id
+        fm.conversation_id, fm.first_msg_at, c.patient_id,
+        #{detection} AS direct_campaign_id
       FROM first_msg fm
       JOIN conversations c ON c.id = fm.conversation_id
-      WHERE fm.first_msg_at >= $1 AND fm.first_msg_at < $2
-        AND fm.content NOT ILIKE '%mi doctor: dr-%'
+      WHERE fm.content NOT ILIKE '%mi doctor: dr-%'
+    ),
+    patient_first_campaign AS (
+      SELECT DISTINCT ON (patient_id) patient_id, direct_campaign_id
+      FROM detected_all
+      WHERE direct_campaign_id IS NOT NULL AND patient_id IS NOT NULL
+      ORDER BY patient_id, first_msg_at ASC
+    ),
+    attributed AS (
+      SELECT
+        DATE(da.first_msg_at) AS day,
+        COALESCE(pfc.direct_campaign_id, da.direct_campaign_id) AS campaign_id
+      FROM detected_all da
+      LEFT JOIN patient_first_campaign pfc ON pfc.patient_id = da.patient_id
+      WHERE da.first_msg_at >= $1 AND da.first_msg_at < $2
     )
     SELECT day, campaign_id, COUNT(*) AS leads
     FROM attributed
