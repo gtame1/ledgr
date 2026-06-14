@@ -55,6 +55,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       top_diagnoses: top_diagnoses(start_date, end_date, 10),
       prescription_mix: prescription_mix(start_date, end_date),
       conversations_per_patient: conversations_per_patient(start_date, end_date),
+      return_cohorts: weekly_return_cohorts(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       direct_requests: direct_request_metrics(start_date, end_date),
       infrastructure_costs: infrastructure_costs(start_date, end_date),
@@ -64,6 +65,94 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       # Totals independent of period (for footer/nav context)
       total_doctors: count_doctors(),
       active_doctors: count_active_doctors()
+    }
+  end
+
+  @doc """
+  Lightweight subset of `all/2` for period-over-period comparison: only the
+  scalar operational figures the dashboard renders deltas on (funnel, ops,
+  users). Skips the heavy `funnel_by_segment` / `infrastructure_costs` /
+  `db_size` queries so the prior-period call stays cheap.
+  """
+  def period_summary(start_date, end_date) do
+    %{
+      funnel: funnel_metrics(start_date, end_date),
+      operations: operations_metrics(start_date, end_date),
+      user_metrics: user_metrics(start_date, end_date)
+    }
+  end
+
+  # ── Weekly return-rate cohorts (vintage) ───────────────────────
+
+  @doc """
+  Return-rate cohorts grouped by weekly vintage.
+
+  Each patient is assigned to a vintage = the ISO week (Mexico City) of
+  their FIRST-ever conversation. For each vintage whose first conversation
+  falls inside [start_date, end_date], returns:
+
+    * `cohort_size` — patients first seen that week
+    * `returned`    — how many of them started ≥1 additional conversation
+    * `return_rate` — returned / cohort_size (%)
+
+  "Returned" is measured across ALL of a patient's conversations, not just
+  those in-period, so the rate reflects true repeat behaviour — which means
+  the most recent weeks are still maturing (a patient acquired this week
+  hasn't had much time to come back). Excludes the dashboard-owner test
+  patient. Ordered newest vintage first.
+  """
+  def weekly_return_cohorts(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
+
+    sql = """
+    WITH patient_convs AS (
+      SELECT c.patient_id AS pid,
+             MIN(c.created_at) AS first_at,
+             COUNT(*) AS conv_count
+      FROM conversations c
+      WHERE c.patient_id IS NOT NULL
+        AND c.patient_id != $1
+      GROUP BY c.patient_id
+    )
+    SELECT
+      date_trunc(
+        'week',
+        (first_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'
+      )::date AS vintage_week,
+      COUNT(*) AS cohort_size,
+      COUNT(*) FILTER (WHERE conv_count >= 2) AS returned
+    FROM patient_convs
+    WHERE first_at >= $2 AND first_at < $3
+    GROUP BY vintage_week
+    ORDER BY vintage_week DESC
+    """
+
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        @test_patient_id,
+        start_naive,
+        end_exclusive
+      ])
+
+    cohorts =
+      Enum.map(rows, fn [week, size, returned] ->
+        %{
+          week_start: week,
+          cohort_size: size,
+          returned: returned,
+          return_rate: pct(returned, size)
+        }
+      end)
+
+    total_size = Enum.reduce(cohorts, 0, fn c, acc -> acc + c.cohort_size end)
+    total_returned = Enum.reduce(cohorts, 0, fn c, acc -> acc + c.returned end)
+
+    %{
+      cohorts: cohorts,
+      total_cohort: total_size,
+      total_returned: total_returned,
+      overall_rate: pct(total_returned, total_size)
     }
   end
 

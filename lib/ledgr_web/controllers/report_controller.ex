@@ -28,6 +28,20 @@ defmodule LedgrWeb.ReportController do
 
     metrics = domain.dashboard_metrics(start_date, end_date)
 
+    # Prior equal-length window, immediately preceding the current one, for
+    # the HelloDoctor dashboard's period-over-period delta chips. Skipped for
+    # "all time" (no meaningful prior period) and for other domains.
+    comparison =
+      if domain == Ledgr.Domains.HelloDoctor and params["period"] != "all_time" and
+           params["all_dates"] != "true" do
+        len = Date.diff(end_date, start_date) + 1
+        prior_end = Date.add(start_date, -1)
+        prior_start = Date.add(prior_end, -(len - 1))
+
+        Ledgr.Domains.HelloDoctor.DashboardMetrics.period_summary(prior_start, prior_end)
+        |> Map.merge(%{start_date: prior_start, end_date: prior_end})
+      end
+
     template =
       cond do
         domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
@@ -41,6 +55,7 @@ defmodule LedgrWeb.ReportController do
 
     render(conn, template,
       metrics: metrics,
+      comparison: comparison,
       start_date: start_date,
       end_date: end_date,
       earliest_date: earliest_date,
@@ -461,4 +476,72 @@ defmodule LedgrWeb.ReportHTML do
   def status_dot_color("paused"), do: "#9ca3af"
   def status_dot_color("churned"), do: "#ef4444"
   def status_dot_color(_), do: "#9ca3af"
+
+  @doc """
+  Small period-over-period delta pill for the HelloDoctor dashboard KPIs.
+
+  `current` / `prior` are the same scalar measured in this period and the
+  prior equal-length window. `:mode` is `:pct` (relative % change, for
+  counts) or `:point` (absolute point change, for rates already in %).
+  Renders nothing when `prior` is nil (comparison disabled, e.g. all-time).
+  """
+  attr :current, :any, default: nil
+  attr :prior, :any, default: nil
+  attr :mode, :atom, default: :pct
+
+  def hd_delta_chip(assigns) do
+    assigns = assign(assigns, :delta, hd_delta(assigns.current, assigns.prior, assigns.mode))
+
+    ~H"""
+    <span
+      :if={@delta}
+      class="inline-flex items-center gap-0.5"
+      style={"font-size:0.7rem;font-weight:700;padding:1px 7px;border-radius:20px;#{hd_chip_style(elem(@delta, 0))}"}
+      title="vs. previous period of equal length"
+    >
+      <span style="font-size:0.6rem;line-height:1;">{hd_chip_arrow(elem(@delta, 0))}</span>
+      {elem(@delta, 1)}
+    </span>
+    """
+  end
+
+  defp hd_delta(cur, prior, _mode) when is_nil(cur) or is_nil(prior), do: nil
+
+  defp hd_delta(cur, prior, :point) when is_number(cur) and is_number(prior) do
+    d = Float.round((cur - prior) * 1.0, 1)
+
+    cond do
+      d > 0.05 -> {:up, "+" <> :erlang.float_to_binary(d, decimals: 1) <> "pt"}
+      d < -0.05 -> {:down, :erlang.float_to_binary(d, decimals: 1) <> "pt"}
+      true -> {:flat, "0pt"}
+    end
+  end
+
+  defp hd_delta(cur, prior, :pct) when is_number(cur) and is_number(prior) do
+    cond do
+      prior == 0 and cur == 0 -> {:flat, "0%"}
+      prior == 0 -> {:up, "new"}
+      true -> hd_pct_chip((cur - prior) / prior * 100)
+    end
+  end
+
+  defp hd_delta(_, _, _), do: nil
+
+  defp hd_pct_chip(change) do
+    rounded = round(change)
+
+    cond do
+      rounded > 0 -> {:up, "+#{rounded}%"}
+      rounded < 0 -> {:down, "#{rounded}%"}
+      true -> {:flat, "0%"}
+    end
+  end
+
+  defp hd_chip_style(:up), do: "background:#d1fae5;color:#047857;"
+  defp hd_chip_style(:down), do: "background:#fee2e2;color:#b91c1c;"
+  defp hd_chip_style(:flat), do: "background:#f1f5f9;color:#64748b;"
+
+  defp hd_chip_arrow(:up), do: "▲"
+  defp hd_chip_arrow(:down), do: "▼"
+  defp hd_chip_arrow(:flat), do: "—"
 end

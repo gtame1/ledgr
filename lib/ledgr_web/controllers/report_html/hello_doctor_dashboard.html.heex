@@ -1,11 +1,5 @@
 <% m = @metrics %>
-<% fmt_money = fn
-  nil ->
-    "$0.00"
-
-  amount when is_number(amount) ->
-    "$" <> (amount |> :erlang.float_to_binary(decimals: 2))
-end %>
+<% cmp = @comparison %>
 <% fmt_pct = fn
   nil -> "0%"
   n when is_number(n) -> "#{:erlang.float_to_binary(n * 1.0, decimals: 1)}%"
@@ -15,9 +9,8 @@ end %>
 <% c_primary = "#004058" %>
 <% c_accent = "#02ba97" %>
 <% c_amber = "#f59e0b" %>
-<% c_red = "#dc2626" %>
 
-<%!-- Chart data preparation --%>
+<%!-- Chart data preparation (operational only) --%>
 <% daily = m.daily_series %>
 <% day_labels = Enum.map(daily, fn d -> fmt_date(d.date, "%b %d") end) %>
 
@@ -71,22 +64,8 @@ end %>
         m.prescription_mix.does_not_require,
         m.prescription_mix.unknown
       ],
-      backgroundColor: [c_red, c_accent, "#cbd5e1"],
+      backgroundColor: ["#dc2626", c_accent, "#cbd5e1"],
       borderWidth: 0
-    }
-  ]
-} %>
-
-<% revenue_chart = %{
-  format: "currency_pesos",
-  labels: day_labels,
-  datasets: [
-    %{
-      label: "Revenue",
-      data: Enum.map(daily, & &1.revenue),
-      backgroundColor: c_accent,
-      borderWidth: 0,
-      borderRadius: 3
     }
   ]
 } %>
@@ -133,42 +112,194 @@ end %>
   ]
 } %>
 
+<% period_days = Date.diff(@end_date, @start_date) + 1 %>
+
 <div class="hd-page">
-  <%!-- Header with period selector --%>
-  <div class="flex items-center justify-between mb-6">
+  <%!-- ═══ HEADER + PERIOD CONTROLS ═══ --%>
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
     <div>
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Dashboard</h1>
       <p class="text-sm mt-1" style="color: var(--text-muted);">
         {fmt_date(@start_date, "%b %d, %Y")} &mdash; {fmt_date(@end_date, "%b %d, %Y")}
+        <%= if cmp do %>
+          <span style="color: var(--border-strong);">·</span>
+          deltas vs. prior {period_days} days
+        <% end %>
       </p>
     </div>
-    <div
-      class="flex gap-1 p-1 rounded-lg"
-      style="background: var(--bg-surface); border: 1px solid var(--border-subtle);"
-    >
-      <%= for {label, value} <- [{"7d", "last_7_days"}, {"30d", "last_30_days"}, {"90d", "last_90_days"}, {"All", "all_time"}] do %>
-        <% active = (@current_period || "last_30_days") == value %>
-        <.link
-          navigate={dp(@domain_path_prefix, "/?period=#{value}")}
-          class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-          style={
-            if active, do: "background: #02ba97; color: white;", else: "color: var(--text-muted);"
-          }
-        >
-          {label}
-        </.link>
-      <% end %>
+
+    <div class="flex items-center gap-3 flex-wrap">
+      <div
+        class="flex gap-1 p-1 rounded-lg"
+        style="background: var(--bg-surface); border: 1px solid var(--border-subtle);"
+      >
+        <%= for {label, value} <- [{"7d", "last_7_days"}, {"30d", "last_30_days"}, {"90d", "last_90_days"}, {"All", "all_time"}] do %>
+          <% active = (@current_period || "last_30_days") == value %>
+          <.link
+            navigate={dp(@domain_path_prefix, "/?period=#{value}")}
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            style={
+              if active, do: "background: #02ba97; color: white;", else: "color: var(--text-muted);"
+            }
+          >
+            {label}
+          </.link>
+        <% end %>
+      </div>
+
+      <form method="get" action={dp(@domain_path_prefix, "/")} class="flex items-center gap-2">
+        <input
+          type="date"
+          name="start_date"
+          value={@start_date}
+          class="hd-input text-sm"
+          style="padding: 0.35rem 0.55rem;"
+        />
+        <span class="text-xs" style="color: var(--text-muted);">→</span>
+        <input
+          type="date"
+          name="end_date"
+          value={@end_date}
+          class="hd-input text-sm"
+          style="padding: 0.35rem 0.55rem;"
+        />
+        <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.35rem 0.85rem;">
+          Apply
+        </button>
+      </form>
     </div>
   </div>
 
-  <%!-- ═══ FUNNEL BY SEGMENT ═══ --%>
+  <%!-- ═══ PULSE — headline operational KPIs (with period-over-period deltas) ═══ --%>
+  <div class="hd-kpi-grid mb-8">
+    <div class="hd-kpi">
+      <div class="flex items-center justify-between">
+        <div class="hd-kpi-label" style="margin-bottom: 0;">Conversations</div>
+        <.hd_delta_chip current={m.funnel.conversations} prior={cmp && cmp.funnel.conversations} />
+      </div>
+      <div class="hd-kpi-value mt-2">{m.funnel.conversations}</div>
+      <div class="hd-kpi-sub">WhatsApp leads started</div>
+    </div>
+
+    <div class="hd-kpi">
+      <div class="flex items-center justify-between">
+        <div class="hd-kpi-label" style="margin-bottom: 0;">Paid consultations</div>
+        <.hd_delta_chip current={m.funnel.paid} prior={cmp && cmp.funnel.paid} />
+      </div>
+      <div class="hd-kpi-value mt-2" style="color: var(--accent);">{m.funnel.paid}</div>
+      <div class="hd-kpi-sub">of {m.funnel.consultations} consults started</div>
+    </div>
+
+    <div class="hd-kpi">
+      <div class="flex items-center justify-between">
+        <div class="hd-kpi-label" style="margin-bottom: 0;">Conversion</div>
+        <.hd_delta_chip
+          current={m.funnel.overall_conversion}
+          prior={cmp && cmp.funnel.overall_conversion}
+          mode={:point}
+        />
+      </div>
+      <div class="hd-kpi-value mt-2">{fmt_pct.(m.funnel.overall_conversion)}</div>
+      <div class="hd-kpi-sub">lead → paid</div>
+    </div>
+
+    <div class="hd-kpi">
+      <div class="flex items-center justify-between">
+        <div class="hd-kpi-label" style="margin-bottom: 0;">New patients</div>
+        <.hd_delta_chip current={m.user_metrics.new_users} prior={cmp && cmp.user_metrics.new_users} />
+      </div>
+      <div class="hd-kpi-value mt-2">{m.user_metrics.new_users}</div>
+      <div class="hd-kpi-sub">{m.user_metrics.total_active_users} active this period</div>
+    </div>
+
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Active now</div>
+      <div class="hd-kpi-value">{m.operations.active_consultations}</div>
+      <div class="hd-kpi-sub">in progress · point-in-time</div>
+    </div>
+
+    <div class="hd-kpi">
+      <div class="flex items-center justify-between">
+        <div class="hd-kpi-label" style="margin-bottom: 0;">Avg rating</div>
+        <.hd_delta_chip
+          :if={m.operations.rated_count > 0}
+          current={m.operations.avg_rating}
+          prior={cmp && cmp.operations.rated_count > 0 && cmp.operations.avg_rating}
+          mode={:point}
+        />
+      </div>
+      <div class="hd-kpi-value mt-2" style="color: #f59e0b;">
+        <%= if m.operations.rated_count > 0 do %>
+          {:erlang.float_to_binary(m.operations.avg_rating * 1.0, decimals: 2)} ★
+        <% else %>
+          —
+        <% end %>
+      </div>
+      <div class="hd-kpi-sub">{m.operations.rated_count} consults rated</div>
+    </div>
+  </div>
+
+  <%!-- ═══ ACQUISITION FUNNEL ═══ --%>
   <div class="mb-8">
     <h2
       class="text-sm font-semibold uppercase mb-3"
       style="color: var(--text-muted); letter-spacing: 0.05em;"
     >
-      Funnel — split by user type & tenant
+      Acquisition funnel
     </h2>
+
+    <div class="hd-card p-5 mb-4">
+      <% base = max(m.funnel.conversations, 1) %>
+      <% width = fn n -> Float.round(n / base * 100, 1) end %>
+      <% steps = [
+        {"Conversations", m.funnel.conversations, 100.0, c_primary, "100% of leads"},
+        {"Doctor recommended", m.funnel.doctor_recommended, width.(m.funnel.doctor_recommended),
+         "#11697e", "#{fmt_pct.(m.funnel.doctor_recommended_rate)} of conversations"},
+        {"Consultations started", m.funnel.consultations, width.(m.funnel.consultations), "#1d92a8",
+         "#{fmt_pct.(m.funnel.consultation_rate)} of recommended"},
+        {"Paid", m.funnel.paid, width.(m.funnel.paid), c_accent,
+         "#{fmt_pct.(m.funnel.paid_rate)} of consultations"}
+      ] %>
+      <%= if m.funnel.conversations == 0 do %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">📊</div>
+          <p>No conversations in this period.</p>
+        </div>
+      <% else %>
+        <div class="flex flex-col gap-3">
+          <%= for {label, count, w, color, note} <- steps do %>
+            <div>
+              <div class="flex items-baseline justify-between text-sm mb-1">
+                <span class="font-medium" style="color: var(--text-main);">{label}</span>
+                <span style="color: var(--text-muted);">
+                  <span class="font-semibold" style="color: var(--text-main);">{count}</span>
+                  · {note}
+                </span>
+              </div>
+              <div style="height: 22px; border-radius: 6px; background: var(--bg); overflow: hidden;">
+                <div style={"height:100%;border-radius:6px;background:#{color};width:#{max(w, 0.5)}%;min-width:2px;transition:width .3s;"}>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <div
+          class="mt-3 pt-3 text-xs"
+          style="color: var(--text-muted); border-top: 1px solid var(--border-subtle);"
+        >
+          Overall lead → paid conversion
+          <span class="font-semibold" style="color: var(--text-main);">
+            {fmt_pct.(m.funnel.overall_conversion)}
+          </span>
+          · {fmt_pct.(m.direct_requests.targeted_rate)} of consultations were direct doctor requests
+        </div>
+      <% end %>
+    </div>
+
+    <%!-- Funnel split by user type × tenant --%>
+    <h3 class="text-xs font-semibold uppercase mb-2" style="color: var(--text-muted);">
+      Split by user type &amp; tenant
+    </h3>
     <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 70ch;">
       One table per (user type × tenant). New = patient created in the same
       calendar month as the conversation. Excludes the dashboard owner's test
@@ -225,16 +356,16 @@ end %>
     <% end %>
   </div>
 
-  <%!-- ═══ USERS ═══ --%>
+  <%!-- ═══ PATIENTS & ENGAGEMENT ═══ --%>
   <div class="mb-8">
     <h2
       class="text-sm font-semibold uppercase mb-3"
       style="color: var(--text-muted); letter-spacing: 0.05em;"
     >
-      Users
+      Patients &amp; engagement
     </h2>
 
-    <div class="hd-kpi-grid">
+    <div class="hd-kpi-grid mb-4">
       <div class="hd-kpi">
         <div class="hd-kpi-label">New users</div>
         <div class="hd-kpi-value">{m.user_metrics.new_users}</div>
@@ -243,7 +374,7 @@ end %>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Existing users</div>
         <div class="hd-kpi-value">{m.user_metrics.existing_users}</div>
-        <div class="hd-kpi-sub">existed before period · active this period</div>
+        <div class="hd-kpi-sub">pre-existing · active this period</div>
       </div>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Conv / existing user</div>
@@ -256,103 +387,220 @@ end %>
         <div class="hd-kpi-sub">avg consultations among existing</div>
       </div>
     </div>
-  </div>
 
-  <%!-- ═══ UNIT ECONOMICS ═══ --%>
-  <div class="mb-8">
-    <h2
-      class="text-sm font-semibold uppercase mb-3"
-      style="color: var(--text-muted); letter-spacing: 0.05em;"
-    >
-      Unit economics
-    </h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="hd-card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="hd-card-title" style="margin-bottom: 0;">Conversations per patient</div>
+          <%= if m.conversations_per_patient.total_patients > 0 do %>
+            <span class="text-xs font-semibold" style="color: var(--accent);">
+              avg {m.conversations_per_patient.avg} per patient
+            </span>
+          <% end %>
+        </div>
+        <%= if m.conversations_per_patient.total_patients > 0 do %>
+          <div id="conv-per-patient-chart-wrapper" phx-hook="BarChart" style="height: 250px;">
+            <canvas
+              id="conv-per-patient-chart"
+              data-chart-data={Jason.encode!(conversations_per_patient_chart)}
+            >
+            </canvas>
+          </div>
+          <div class="flex gap-4 mt-3 text-xs" style="color: var(--text-muted);">
+            <span>{m.conversations_per_patient.total_patients} unique patients</span>
+            <span>{m.conversations_per_patient.total_conversations} total conversations</span>
+          </div>
+        <% else %>
+          <div class="hd-empty">
+            <div class="hd-empty-icon">👥</div>
+            <p>No patient conversations in this period</p>
+          </div>
+        <% end %>
+      </div>
 
-    <div class="hd-kpi-grid">
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Cost per Consultation</div>
-        <div class="hd-kpi-value">
-          {if m.cost_metrics.cost_per_consultation,
-            do: fmt_money.(m.cost_metrics.cost_per_consultation),
-            else: "—"}
+      <div class="hd-card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="hd-card-title" style="margin-bottom: 0;">Direct doctor requests</div>
+          <span class="text-xs font-semibold" style="color: var(--accent);">
+            {fmt_pct.(m.direct_requests.targeted_rate)} of consultations
+          </span>
         </div>
-        <div class="hd-kpi-sub">
-          MXN · total expenses / {m.cost_metrics.consultations} consult(s)
-        </div>
+        <%= if m.direct_requests.total == 0 do %>
+          <div class="hd-empty">
+            <div class="hd-empty-icon">🎯</div>
+            <p>No consultations in this period</p>
+          </div>
+        <% else %>
+          <div class="text-sm mb-3" style="color: var(--text-muted);">
+            {m.direct_requests.targeted} targeted / {m.direct_requests.total} total consultations
+          </div>
+          <%= if Enum.empty?(m.direct_requests.per_doctor) do %>
+            <p class="text-sm" style="color: var(--text-muted);">No per-doctor data available.</p>
+          <% else %>
+            <table class="hd-table w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                    Doctor
+                  </th>
+                  <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                    Total
+                  </th>
+                  <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                    Direct
+                  </th>
+                  <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                    % Direct
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for row <- Enum.take(m.direct_requests.per_doctor, 8) do %>
+                  <tr class="border-t" style="border-color: var(--border-subtle);">
+                    <td class="p-2 font-medium" style="color: var(--text-main);">{row.name}</td>
+                    <td class="p-2 text-right" style="color: var(--text-muted);">{row.total}</td>
+                    <td class="p-2 text-right" style="color: var(--text-main);">{row.targeted || 0}</td>
+                    <td class="p-2 text-right">
+                      <span
+                        class="font-semibold"
+                        style={"color: #{if row.targeted_rate > 0, do: "var(--accent)", else: "var(--text-muted)"};"}
+                      >
+                        {fmt_pct.(row.targeted_rate)}
+                      </span>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        <% end %>
       </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Cost per Conversation</div>
-        <div class="hd-kpi-value">
-          {if m.cost_metrics.cost_per_conversation,
-            do: fmt_money.(m.cost_metrics.cost_per_conversation),
-            else: "—"}
-        </div>
-        <div class="hd-kpi-sub">
-          MXN · total expenses / {m.cost_metrics.conversations} conv(s)
-        </div>
+    </div>
+
+    <%!-- Return rate by signup week (vintage) --%>
+    <div class="hd-card p-5 mt-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="hd-card-title" style="margin-bottom: 0;">Return rate by signup week</div>
+        <%= if m.return_cohorts.total_cohort > 0 do %>
+          <span class="text-xs font-semibold" style="color: var(--accent);">
+            {fmt_pct.(m.return_cohorts.overall_rate)} overall ·
+            {m.return_cohorts.total_returned}/{m.return_cohorts.total_cohort} returned
+          </span>
+        <% end %>
       </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">CAC</div>
-        <div class="hd-kpi-value">
-          {if m.cost_metrics.cac, do: fmt_money.(m.cost_metrics.cac), else: "—"}
+      <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 80ch;">
+        Patients grouped by the week of their first conversation (vintage). "Returned" =
+        started at least one more conversation later. Measured across all time, so the most
+        recent weeks are still maturing.
+      </p>
+      <%= if Enum.empty?(m.return_cohorts.cohorts) do %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">🔁</div>
+          <p>No patient cohorts in this period</p>
         </div>
-        <div class="hd-kpi-sub">
-          MXN · acct 6050 / {m.cost_metrics.new_users} new user(s)
-        </div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Total Expenses</div>
-        <div class="hd-kpi-value">{fmt_money.(m.cost_metrics.total_costs_mxn)}</div>
-        <div class="hd-kpi-sub">MXN · all expense GL debits</div>
-      </div>
+      <% else %>
+        <table class="hd-table w-full text-sm">
+          <thead>
+            <tr>
+              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Week of
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                New patients
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Returned
+              </th>
+              <th
+                class="text-left p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted); width: 42%;"
+              >
+                Return rate
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for c <- m.return_cohorts.cohorts do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-2 font-medium" style="color: var(--text-main);">
+                  {fmt_date(c.week_start, "%b %d, %Y")}
+                </td>
+                <td class="p-2 text-right" style="color: var(--text-muted);">{c.cohort_size}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{c.returned}</td>
+                <td class="p-2">
+                  <div class="flex items-center gap-2">
+                    <div style="flex: 1; height: 8px; border-radius: 5px; background: var(--bg); overflow: hidden;">
+                      <div style={"height:100%;border-radius:5px;background:var(--accent);width:#{c.return_rate}%;"}>
+                      </div>
+                    </div>
+                    <span
+                      class="font-semibold"
+                      style="color: var(--text-main); min-width: 3rem; text-align: right;"
+                    >
+                      {fmt_pct.(c.return_rate)}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
     </div>
   </div>
 
-  <%!-- ═══ OPERATIONS ═══ --%>
+  <%!-- ═══ OPERATIONS & QUALITY ═══ --%>
   <div class="mb-8">
     <h2
       class="text-sm font-semibold uppercase mb-3"
       style="color: var(--text-muted); letter-spacing: 0.05em;"
     >
-      Operations
+      Operations &amp; quality
     </h2>
 
     <div class="hd-kpi-grid mb-4">
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Active Now</div>
-        <div class="hd-kpi-value">{m.operations.active_consultations}</div>
-        <div class="hd-kpi-sub">in progress</div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Avg Response</div>
-        <div class="hd-kpi-value">
+        <div class="flex items-center justify-between">
+          <div class="hd-kpi-label" style="margin-bottom: 0;">Avg response</div>
+          <.hd_delta_chip
+            current={m.operations.avg_response_minutes}
+            prior={cmp && cmp.operations.avg_response_minutes}
+            mode={:point}
+          />
+        </div>
+        <div class="hd-kpi-value mt-2">
           {m.operations.avg_response_minutes} <span class="text-base">min</span>
         </div>
         <div class="hd-kpi-sub">assigned → accepted</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Avg Duration</div>
+        <div class="hd-kpi-label">Avg duration</div>
         <div class="hd-kpi-value">
           {m.operations.avg_duration_minutes} <span class="text-base">min</span>
         </div>
         <div class="hd-kpi-sub">per consultation</div>
       </div>
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Video Adoption</div>
+        <div class="hd-kpi-label">Video adoption</div>
         <div class="hd-kpi-value">{fmt_pct.(m.operations.video_adoption_rate)}</div>
         <div class="hd-kpi-sub">{m.operations.video_count} video calls</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Total consultations</div>
+        <div class="hd-kpi-value">{m.operations.total_consultations}</div>
+        <div class="hd-kpi-sub">assigned this period</div>
       </div>
     </div>
 
     <%!-- Ratings (4 dimensions) --%>
     <% rm = m.rating_metrics %>
+    <% star = fn r ->
+      case r.avg do
+        nil -> {"—", ""}
+        v -> {:erlang.float_to_binary(v, decimals: 2), "★"}
+      end
+    end %>
     <div class="hd-kpi-grid mb-4">
-      <% star = fn r ->
-        case r.avg do
-          nil -> {"—", ""}
-          v -> {:erlang.float_to_binary(v, decimals: 2), "★"}
-        end
-      end %>
-
       <div class="hd-kpi">
         <div class="hd-kpi-label">Doctor (rated by patient)</div>
         <% {val, suffix} = star.(rm.doctor) %>
@@ -379,136 +627,34 @@ end %>
       </div>
     </div>
 
-    <div class="hd-card p-5 mb-4">
-      <div class="hd-card-title">Daily Activity</div>
-      <%= if Enum.any?(daily, fn d -> d.consultations > 0 or d.conversations > 0 end) do %>
-        <div id="activity-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
-          <canvas id="activity-chart" data-chart-data={Jason.encode!(activity_chart)}></canvas>
-        </div>
-      <% else %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">📈</div>
-          <p>No activity in this period</p>
-        </div>
-      <% end %>
-    </div>
-
-    <div class="hd-card p-5">
-      <div class="hd-card-title">Consultations per Doctor</div>
-      <%= if Enum.any?(m.top_doctors, & &1.consultation_count > 0) do %>
-        <div id="doctors-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
-          <canvas id="doctors-chart" data-chart-data={Jason.encode!(doctors_chart)}></canvas>
-        </div>
-      <% else %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">👨‍⚕️</div>
-          <p>No doctor activity in this period</p>
-        </div>
-      <% end %>
-    </div>
-
-    <%!-- Direct Doctor Requests --%>
-    <div class="hd-card p-5">
-      <div class="flex items-center justify-between mb-4">
-        <div class="hd-card-title" style="margin-bottom: 0;">Direct Doctor Requests</div>
-        <span class="text-sm font-semibold" style="color: var(--accent);">
-          {fmt_pct.(m.direct_requests.targeted_rate)} of consultations
-        </span>
-      </div>
-      <%= if m.direct_requests.total == 0 do %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">🎯</div>
-          <p>No consultations in this period</p>
-        </div>
-      <% else %>
-        <div class="flex gap-6 mb-4 text-sm" style="color: var(--text-muted);">
-          <span>
-            {m.direct_requests.targeted} targeted / {m.direct_requests.total} total consultations
-          </span>
-        </div>
-        <%= if Enum.empty?(m.direct_requests.per_doctor) do %>
-          <p class="text-sm" style="color: var(--text-muted);">No per-doctor data available.</p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="hd-card p-5">
+        <div class="hd-card-title">Daily activity</div>
+        <%= if Enum.any?(daily, fn d -> d.consultations > 0 or d.conversations > 0 end) do %>
+          <div id="activity-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
+            <canvas id="activity-chart" data-chart-data={Jason.encode!(activity_chart)}></canvas>
+          </div>
         <% else %>
-          <table class="hd-table w-full text-sm">
-            <thead>
-              <tr>
-                <th
-                  class="text-left p-2 text-xs font-medium uppercase"
-                  style="color: var(--text-muted);"
-                >
-                  Doctor
-                </th>
-                <th
-                  class="text-right p-2 text-xs font-medium uppercase"
-                  style="color: var(--text-muted);"
-                >
-                  Total
-                </th>
-                <th
-                  class="text-right p-2 text-xs font-medium uppercase"
-                  style="color: var(--text-muted);"
-                >
-                  Requested directly
-                </th>
-                <th
-                  class="text-right p-2 text-xs font-medium uppercase"
-                  style="color: var(--text-muted);"
-                >
-                  % Direct
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <%= for row <- m.direct_requests.per_doctor do %>
-                <tr class="border-t" style="border-color: var(--border-subtle);">
-                  <td class="p-2 font-medium" style="color: var(--text-main);">{row.name}</td>
-                  <td class="p-2 text-right" style="color: var(--text-muted);">{row.total}</td>
-                  <td class="p-2 text-right" style="color: var(--text-main);">
-                    {row.targeted || 0}
-                  </td>
-                  <td class="p-2 text-right">
-                    <span
-                      class="font-semibold"
-                      style={"color: #{if row.targeted_rate > 0, do: "var(--accent)", else: "var(--text-muted)"};"}
-                    >
-                      {fmt_pct.(row.targeted_rate)}
-                    </span>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        <% end %>
-      <% end %>
-    </div>
-
-    <div class="hd-card p-5">
-      <div class="flex items-center justify-between mb-2">
-        <div class="hd-card-title" style="margin-bottom: 0;">Conversations per Patient</div>
-        <%= if m.conversations_per_patient.total_patients > 0 do %>
-          <span class="text-xs font-semibold" style="color: var(--accent);">
-            avg {m.conversations_per_patient.avg} per patient
-          </span>
+          <div class="hd-empty">
+            <div class="hd-empty-icon">📈</div>
+            <p>No activity in this period</p>
+          </div>
         <% end %>
       </div>
-      <%= if m.conversations_per_patient.total_patients > 0 do %>
-        <div id="conv-per-patient-chart-wrapper" phx-hook="BarChart" style="height: 250px;">
-          <canvas
-            id="conv-per-patient-chart"
-            data-chart-data={Jason.encode!(conversations_per_patient_chart)}
-          >
-          </canvas>
-        </div>
-        <div class="flex gap-4 mt-3 text-xs" style="color: var(--text-muted);">
-          <span>{m.conversations_per_patient.total_patients} unique patients</span>
-          <span>{m.conversations_per_patient.total_conversations} total conversations</span>
-        </div>
-      <% else %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">👥</div>
-          <p>No patient conversations in this period</p>
-        </div>
-      <% end %>
+
+      <div class="hd-card p-5">
+        <div class="hd-card-title">Consultations per doctor</div>
+        <%= if Enum.any?(m.top_doctors, &(&1.consultation_count > 0)) do %>
+          <div id="doctors-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
+            <canvas id="doctors-chart" data-chart-data={Jason.encode!(doctors_chart)}></canvas>
+          </div>
+        <% else %>
+          <div class="hd-empty">
+            <div class="hd-empty-icon">👨‍⚕️</div>
+            <p>No doctor activity in this period</p>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 
@@ -523,7 +669,7 @@ end %>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="hd-card p-5">
-        <div class="hd-card-title">Top Diagnoses</div>
+        <div class="hd-card-title">Top diagnoses</div>
         <%= if Enum.empty?(m.top_diagnoses) do %>
           <div class="hd-empty">
             <div class="hd-empty-icon">🩺</div>
@@ -539,7 +685,7 @@ end %>
 
       <div class="hd-card p-5">
         <div class="flex items-center justify-between mb-2">
-          <div class="hd-card-title" style="margin-bottom: 0;">Prescription Requirement</div>
+          <div class="hd-card-title" style="margin-bottom: 0;">Prescription requirement</div>
           <%= if m.prescription_mix.total > 0 do %>
             <span class="text-xs font-semibold" style="color: var(--accent);">
               {:erlang.float_to_binary(m.prescription_mix.requires_rate * 1.0, decimals: 1)}% require Rx
@@ -564,186 +710,28 @@ end %>
     </div>
   </div>
 
-  <%!-- ═══ REVENUE ═══ --%>
+  <%!-- ═══ PLATFORM HEALTH ═══ --%>
   <div class="mb-8">
     <h2
       class="text-sm font-semibold uppercase mb-3"
       style="color: var(--text-muted); letter-spacing: 0.05em;"
     >
-      Revenue
+      Platform health
     </h2>
 
-    <div class="hd-kpi-grid mb-4">
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Total Revenue</div>
-        <div class="hd-kpi-value" style="color: #02ba97;">
-          {fmt_money.(m.revenue.total_revenue)}
-        </div>
-        <div class="hd-kpi-sub">{m.revenue.paid_count} payments</div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Commission (15%)</div>
-        <div class="hd-kpi-value">{fmt_money.(m.revenue.commission)}</div>
-        <div class="hd-kpi-sub">HelloDoctor's share</div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Avg Consultation</div>
-        <div class="hd-kpi-value">{fmt_money.(m.revenue.avg_consultation_value)}</div>
-        <div class="hd-kpi-sub">per paid consult</div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Refunds</div>
-        <div class="hd-kpi-value" style="color: #dc2626;">
-          {fmt_money.(m.revenue.total_refunds)}
-        </div>
-        <div class="hd-kpi-sub">{m.revenue.refund_count} refunded</div>
-      </div>
-    </div>
-
-    <div class="hd-card p-5">
-      <div class="hd-card-title">Daily Revenue</div>
-      <%= if m.revenue.total_revenue > 0 do %>
-        <div id="revenue-chart-wrapper" phx-hook="BarChart" style="height: 280px;">
-          <canvas id="revenue-chart" data-chart-data={Jason.encode!(revenue_chart)}></canvas>
-        </div>
-      <% else %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">💰</div>
-          <p>No revenue in this period</p>
-        </div>
-      <% end %>
-    </div>
-  </div>
-
-  <%!-- ═══ INFRASTRUCTURE ═══ --%>
-  <div class="mb-8">
-    <div class="flex items-center justify-between mb-3">
-      <h2
-        class="text-sm font-semibold uppercase"
-        style="color: var(--text-muted); letter-spacing: 0.05em;"
-      >
-        Infrastructure &amp; Costs
-      </h2>
-      <div class="flex gap-2">
-        <form action={dp(@domain_path_prefix, "/billing/sync-costs")} method="post">
-          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-          <button
-            type="submit"
-            class="hd-btn-sm"
-            style="font-size: 0.75rem; padding: 0.25rem 0.75rem;"
-          >
-            ↻ Sync costs
-          </button>
-        </form>
-        <form action={dp(@domain_path_prefix, "/billing/post-all-costs")} method="post">
-          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-          <button
-            type="submit"
-            class="hd-btn-sm"
-            style="font-size: 0.75rem; padding: 0.25rem 0.75rem; background: var(--accent); color: #fff;"
-          >
-            ↑ Post all to GL
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <%!-- External cost KPIs --%>
-    <div class="hd-kpi-grid mb-4">
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Total Ext. Costs (period)</div>
-        <div class="hd-kpi-value">
-          ${Float.round(m.infrastructure_costs.total_usd, 2)}
-          <span class="text-base font-normal" style="color: var(--text-muted);">USD</span>
-        </div>
-        <div class="hd-kpi-sub">
-          <%= if m.infrastructure_costs.last_synced do %>
-            Last synced {fmt_date(m.infrastructure_costs.last_synced, "%b %d")}
-          <% else %>
-            Never synced — click Sync costs
-          <% end %>
-        </div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">OpenAI</div>
-        <div class="hd-kpi-value">${Float.round(m.infrastructure_costs.openai.total_usd, 4)}</div>
-        <div class="hd-kpi-sub">completions + embeddings</div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Whereby</div>
-        <div class="hd-kpi-value">
-          ${Float.round(m.infrastructure_costs.whereby.total_usd, 4)}
-        </div>
-        <div class="hd-kpi-sub">video meetings</div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">AWS App Runner</div>
-        <div class="hd-kpi-value">
-          ${Float.round(m.infrastructure_costs.aws_app_runner.total_usd, 4)}
-        </div>
-        <div class="hd-kpi-sub">compute hosting</div>
-      </div>
-    </div>
-
-    <%!--
-      Per-row detail table was here. Removed per feedback — full breakdown
-      lives on the Expenses page (`/app/hello-doctor/expenses`) when you
-      need it. The KPI grid above is the at-a-glance summary.
-    --%>
-    <%= if Enum.empty?(m.infrastructure_costs.detail) do %>
-      <div class="hd-empty" style="padding: 1rem;">
-        <div class="hd-empty-icon">💻</div>
-        <p>No cost data — click <strong>Sync costs</strong> to pull from external services.</p>
-      </div>
-    <% else %>
-      <div class="text-xs mb-4" style="color: var(--text-muted);">
-        {length(m.infrastructure_costs.detail)} cost row(s) for the period.
-        <.link
-          navigate={dp(@domain_path_prefix, "/expenses")}
-          style="color: var(--accent); margin-left: 0.5rem;"
-        >
-          See breakdown →
-        </.link>
-      </div>
-    <% end %>
-
-    <%!-- FX rate setting --%>
-    <div class="hd-card mb-4 flex items-center gap-4" style="padding: 0.75rem 1rem;">
-      <span class="text-sm font-medium" style="color: var(--text-muted);">
-        USD → MXN rate for GL posting:
-      </span>
-      <form
-        action={dp(@domain_path_prefix, "/settings/fx-rate")}
-        method="post"
-        class="flex items-center gap-2"
-      >
-        <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-        <input
-          type="number"
-          name="fx_rate"
-          step="0.01"
-          min="1"
-          value={@usd_mxn_rate}
-          class="hd-input text-sm"
-          style="width: 6rem; padding: 0.25rem 0.5rem;"
-        />
-        <button
-          type="submit"
-          class="hd-btn-sm"
-          style="font-size: 0.75rem; padding: 0.25rem 0.75rem;"
-        >
-          Save rate
-        </button>
-      </form>
-      <span class="text-xs" style="color: var(--text-muted);">
-        Applied when "Post to GL" runs.
-      </span>
-    </div>
-
-    <%!-- Platform stats --%>
     <div class="hd-kpi-grid">
       <div class="hd-kpi">
-        <div class="hd-kpi-label">Database Storage</div>
+        <div class="hd-kpi-label">Active doctors</div>
+        <div class="hd-kpi-value">
+          {m.active_doctors}
+          <span class="text-base font-normal" style="color: var(--text-muted);">
+            / {m.total_doctors}
+          </span>
+        </div>
+        <div class="hd-kpi-sub">available on platform</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Database storage</div>
         <div class="hd-kpi-value">
           {m.db_size.mb}
           <span class="text-base font-normal" style="color: var(--text-muted);">
@@ -764,16 +752,6 @@ end %>
           >
           </div>
         </div>
-      </div>
-      <div class="hd-kpi">
-        <div class="hd-kpi-label">Active Doctors</div>
-        <div class="hd-kpi-value">
-          {m.active_doctors}
-          <span class="text-base font-normal" style="color: var(--text-muted);">
-            / {m.total_doctors}
-          </span>
-        </div>
-        <div class="hd-kpi-sub">available on platform</div>
       </div>
     </div>
   </div>
