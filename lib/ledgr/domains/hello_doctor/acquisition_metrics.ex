@@ -457,7 +457,10 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     ),
     attributed AS (
       SELECT
-        DATE(da.first_msg_at) AS day,
+        -- MX-date bucket, not UTC date — see
+        -- Ledgr.Domains.HelloDoctor.to_mx_date/1 for the Elixir-side
+        -- twin of this expression.
+        DATE((da.first_msg_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')) AS day,
         COALESCE(pfc.direct_campaign_id, da.direct_campaign_id) AS campaign_id
       FROM detected_all da
       LEFT JOIN patient_first_campaign pfc ON pfc.patient_id = da.patient_id

@@ -935,20 +935,43 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   def daily_series(start_date, end_date) do
     days = date_range(start_date, end_date)
 
-    # Fetch aggregates grouped by day
+    # `fragment("date(?)", utc_naive)` extracts the UTC calendar date,
+    # which is wrong by one day for any Mexico-evening activity (a
+    # consultation at 9pm MX gets bucketed into tomorrow). Shift the
+    # naive UTC value to Mexico City wall-clock first, then take the
+    # date. Same conversion as Ledgr.Domains.HelloDoctor.to_mx_date/1,
+    # just at the SQL layer.
     conv_by_day =
       Conversation
       |> where_date_range(:created_at, start_date, end_date)
-      |> group_by([c], fragment("date(?)", c.created_at))
-      |> select([c], {fragment("date(?)", c.created_at), count(c.id)})
+      |> group_by(
+        [c],
+        fragment("date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))", c.created_at)
+      )
+      |> select(
+        [c],
+        {fragment(
+           "date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))",
+           c.created_at
+         ), count(c.id)}
+      )
       |> Repo.all()
       |> Map.new()
 
     consult_by_day =
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
-      |> group_by([c], fragment("date(?)", c.assigned_at))
-      |> select([c], {fragment("date(?)", c.assigned_at), count(c.id)})
+      |> group_by(
+        [c],
+        fragment("date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))", c.assigned_at)
+      )
+      |> select(
+        [c],
+        {fragment(
+           "date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))",
+           c.assigned_at
+         ), count(c.id)}
+      )
       |> Repo.all()
       |> Map.new()
 
@@ -956,8 +979,17 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
       |> where([c], c.payment_status in ["paid", "confirmed"])
-      |> group_by([c], fragment("date(?)", c.assigned_at))
-      |> select([c], {fragment("date(?)", c.assigned_at), count(c.id)})
+      |> group_by(
+        [c],
+        fragment("date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))", c.assigned_at)
+      )
+      |> select(
+        [c],
+        {fragment(
+           "date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))",
+           c.assigned_at
+         ), count(c.id)}
+      )
       |> Repo.all()
       |> Map.new()
 
@@ -965,8 +997,15 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       StripePayment
       |> where_date_range(:paid_at, start_date, end_date)
       |> where([p], p.status == "paid")
-      |> group_by([p], fragment("date(?)", p.paid_at))
-      |> select([p], {fragment("date(?)", p.paid_at), sum(p.amount)})
+      |> group_by(
+        [p],
+        fragment("date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))", p.paid_at)
+      )
+      |> select(
+        [p],
+        {fragment("date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))", p.paid_at),
+         sum(p.amount)}
+      )
       |> Repo.all()
       |> Map.new()
 

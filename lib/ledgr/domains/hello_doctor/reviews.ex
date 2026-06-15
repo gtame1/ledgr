@@ -143,8 +143,10 @@ defmodule Ledgr.Domains.HelloDoctor.Reviews do
     }
   end
 
-  defp completed_date(nil), do: nil
-  defp completed_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt)
+  # `completed_at` is UTC-stored. Plain `NaiveDateTime.to_date/1`
+  # returns the UTC calendar date, which is wrong by a day for any
+  # consultation that completed after 6pm Mexico time. Shift first.
+  defp completed_date(ndt), do: Ledgr.Domains.HelloDoctor.to_mx_date(ndt)
 
   # ── Sorting ─────────────────────────────────────────────────────
 

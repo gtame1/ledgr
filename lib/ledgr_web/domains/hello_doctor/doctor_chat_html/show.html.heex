@@ -26,7 +26,9 @@
     <div class="ml-auto text-right text-sm" style="color: var(--text-muted);">
       <div>{length(@messages)} messages</div>
       <%= if @consultation_count > 0 do %>
-        <div class="text-xs">across {@consultation_count} consultation{if @consultation_count == 1, do: "", else: "s"}</div>
+        <div class="text-xs">
+          across {@consultation_count} consultation{if @consultation_count == 1, do: "", else: "s"}
+        </div>
       <% end %>
     </div>
   </div>
@@ -40,8 +42,10 @@
   <% else %>
     <div class="hd-card p-5 space-y-3">
       <%= for {msg, prev} <- Enum.zip(@messages, [nil | Enum.drop(@messages, -1)]) do %>
-        <% prev_date = if prev, do: NaiveDateTime.to_date(prev.created_at), else: nil
-        cur_date = NaiveDateTime.to_date(msg.created_at)
+        <% prev_date =
+          if prev, do: Ledgr.Domains.HelloDoctor.to_mx_date(prev.created_at), else: nil
+
+        cur_date = Ledgr.Domains.HelloDoctor.to_mx_date(msg.created_at)
         prev_consult = prev && prev.consultation_id
         cur_consult = msg.consultation_id %>
 
@@ -49,8 +53,10 @@
         <%= if cur_date != prev_date do %>
           <div class="flex items-center gap-3 pt-3 first:pt-0">
             <div class="flex-1 h-px" style="background: var(--border-subtle);"></div>
-            <span class="text-xs font-medium px-2 py-0.5 rounded-full"
-              style="background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-subtle);">
+            <span
+              class="text-xs font-medium px-2 py-0.5 rounded-full"
+              style="background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-subtle);"
+            >
               {Calendar.strftime(cur_date, "%B %-d, %Y")}
             </span>
             <div class="flex-1 h-px" style="background: var(--border-subtle);"></div>
@@ -66,12 +72,13 @@
                 class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
                 style="background: rgba(2,186,151,0.08); color: var(--accent); border: 1px solid rgba(2,186,151,0.25);"
               >
-                <span>📋</span>
-                Consultation context started — view consultation →
+                <span>📋</span> Consultation context started — view consultation →
               </.link>
             <% else %>
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
-                style="background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-subtle);">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
+                style="background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-subtle);"
+              >
                 ← Back to general chat
               </span>
             <% end %>

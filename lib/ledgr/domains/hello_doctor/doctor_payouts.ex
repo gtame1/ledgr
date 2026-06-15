@@ -971,8 +971,10 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   defp to_float(n) when is_float(n), do: n
   defp to_float(%Decimal{} = d), do: Decimal.to_float(d)
 
-  defp paid_date(nil), do: nil
-  defp paid_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt)
+  # `paid_at` is UTC-stored. Plain `NaiveDateTime.to_date/1` returns
+  # the UTC calendar date, off by a day for any payment that landed
+  # after 6pm Mexico time. Shift to MX before taking the date.
+  defp paid_date(ndt), do: Ledgr.Domains.HelloDoctor.to_mx_date(ndt)
 
   defp to_naive_start(%Date{} = d),
     do: Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(d)

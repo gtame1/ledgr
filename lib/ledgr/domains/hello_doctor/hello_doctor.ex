@@ -53,6 +53,48 @@ defmodule Ledgr.Domains.HelloDoctor do
     |> DateTime.to_naive()
   end
 
+  @doc """
+  Converts a UTC-stored `NaiveDateTime` to the Mexico City calendar
+  date it falls on. Inverse direction of `mx_day_start_utc_naive/1`.
+
+  Reach for this anywhere you'd otherwise write
+  `NaiveDateTime.to_date(naive)` on a column we know is UTC — the
+  plain `to_date/1` returns the UTC calendar date, which is wrong by
+  one day for any Mexico-evening activity (UTC midnight = 6pm MX).
+  Symptom: a payment that happened at 9pm MX shows up on the next
+  day's row.
+
+  Used by display helpers (review row dates, payout row dates) and
+  by chat day-dividers. SQL daily-bucket queries use an inline
+  `AT TIME ZONE` fragment instead — same conversion, different layer.
+  """
+  def to_mx_date(nil), do: nil
+
+  def to_mx_date(%NaiveDateTime{} = ndt) do
+    ndt
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.shift_zone!(@timezone)
+    |> DateTime.to_date()
+  end
+
+  @doc """
+  SQL fragment that bucket-extracts a UTC `timestamp without time
+  zone` column as a Mexico City calendar date.
+
+  Drops in wherever you'd otherwise write `DATE(col)` in a query
+  where the bucket should follow the MX wall-clock day (dashboards,
+  daily charts). Usage:
+
+      fragment(unquote(Ledgr.Domains.HelloDoctor.sql_mx_date("?")), c.created_at)
+
+  Inline `?` substitution; the column reference goes in your Ecto
+  fragment args as usual. For raw SQL strings, interpolate
+  the literal column name.
+  """
+  def sql_mx_date(col_ref) do
+    "date((#{col_ref} AT TIME ZONE 'UTC' AT TIME ZONE '#{@timezone}'))"
+  end
+
   # ── DomainConfig callbacks ──────────────────────────────────────────
 
   @impl Ledgr.Domain.DomainConfig
