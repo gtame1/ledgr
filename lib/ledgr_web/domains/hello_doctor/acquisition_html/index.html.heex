@@ -187,118 +187,22 @@
     to see its share of that stage's column total.
   </p>
   <% stages = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.canonical_stages() %>
-  <div class="hd-card" style="padding: 0; overflow-x: auto; margin-bottom: 2rem;">
-    <table class="w-full text-sm" style="min-width: 100%;">
-      <thead>
-        <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
-          <th
-            class="text-left p-3 pl-4 text-xs font-semibold uppercase"
-            style="color: var(--text-muted); white-space: nowrap;"
-          >
-            Campaign
-          </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted); white-space: nowrap;"
-          >
-            Leads
-          </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted); white-space: nowrap;"
-          >
-            Patients
-          </th>
-          <th
-            class="text-right p-3 text-xs font-semibold uppercase"
-            style="color: var(--text-muted); white-space: nowrap;"
-            title="Ad clicks paused at the bot's '¿te refirió un doctor?' prompt — awaiting a yes/no button tap. Transient."
-          >
-            Pending routing
-          </th>
-          <%= for s <- stages do %>
-            <th
-              class="text-right p-3 text-xs font-semibold uppercase"
-              style="color: var(--text-muted); white-space: nowrap;"
-              title={"Stage #{s.idx}: #{s.label} (cumulative — includes everyone past this stage)"}
-            >
-              {s.idx}. {s.short}
-            </th>
-          <% end %>
-          <th
-            class="text-right p-3 pr-4 text-xs font-semibold uppercase"
-            style="color: var(--text-muted); white-space: nowrap;"
-          >
-            Revenue
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <%= for entry <- @report.per_campaign do %>
-          <tr style="border-bottom: 1px solid var(--border-subtle);">
-            <td class="p-3 pl-4 font-medium" style="color: var(--text-main); white-space: nowrap;">
-              <span style={"display:inline-block;width:8px;height:8px;background:#{campaign_color(entry.campaign.id)};border-radius:50%;margin-right:0.4rem;vertical-align:middle;"}>
-              </span>
-              {entry.campaign.emoji} {entry.campaign.ad_set}
-              <div class="text-xs mt-0.5" style="color: var(--text-muted);">
-                {entry.campaign.campaign_set} · {entry.campaign.pain}
-              </div>
-            </td>
-            <td class="p-3 text-right font-semibold">{entry.leads}</td>
-            <td class="p-3 text-right">{entry.unique_patients}</td>
-            <% pending_share = column_share(entry.pending_routing, @report.totals.pending_routing) %>
-            <td
-              class="hd-tooltip-cell p-3 text-right"
-              style="color: var(--text-muted);"
-              data-tip={"#{fmt_pct(pending_share)} of pending routing"}
-            >
-              {entry.pending_routing}
-            </td>
-            <%= for s <- stages do %>
-              <% count = Map.get(entry, s.key) %>
-              <% col_total = Map.get(@report.totals, s.key) %>
-              <% share = column_share(count, col_total) %>
-              <td
-                class="hd-tooltip-cell p-3 text-right"
-                style={"color: #{stage_cell_color(s.idx)};"}
-                data-tip={"#{fmt_pct(share)} of #{s.label}"}
-              >
-                {count}
-              </td>
-            <% end %>
-            <td class="p-3 pr-4 text-right font-semibold">
-              {fmt_money(entry.revenue_mxn)}
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-      <tfoot>
-        <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
-          <td class="p-3 pl-4 font-bold" style="white-space: nowrap;">Totals</td>
-          <td class="p-3 text-right font-bold">{@report.totals.leads}</td>
-          <td class="p-3 text-right font-bold">{@report.totals.unique_patients}</td>
-          <td
-            class="hd-tooltip-cell p-3 text-right font-bold"
-            style="color: var(--text-muted);"
-            data-tip={"#{fmt_pct(@report.totals.pending_routing_pct)} of all leads"}
-          >
-            {@report.totals.pending_routing}
-          </td>
-          <%= for s <- stages do %>
-            <% pct_of_leads = Map.get(@report.totals, :"pct_#{s.idx}") %>
-            <td
-              class="hd-tooltip-cell p-3 text-right font-bold"
-              style={"color: #{stage_cell_color(s.idx)};"}
-              data-tip={"#{fmt_pct(pct_of_leads)} of all leads reached #{s.label}"}
-            >
-              {Map.get(@report.totals, s.key)}
-            </td>
-          <% end %>
-          <td class="p-3 pr-4 text-right font-bold">{fmt_money(@report.totals.revenue_mxn)}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
+  <.funnel_table entries={@report.per_campaign} totals={@report.totals} stages={stages} />
+
+  <%!-- ── Launch-cohort tables (one per tracked launch date) ── --%>
+  <%= for launch_date <- Ledgr.Domains.HelloDoctor.Campaigns.launch_dates() do %>
+    <% cohort = Enum.filter(@report.per_campaign, &(&1.campaign.started_on == launch_date)) %>
+    <% cohort_totals = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.subtotals(cohort) %>
+    <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">
+      Meta — launched {Calendar.strftime(launch_date, "%b %-d, %Y")}
+    </h2>
+    <p class="text-xs mb-2" style="color: var(--text-muted); max-width: 80ch;">
+      The campaigns started this cohort. Same cumulative-stage columns as above; column-share
+      tooltips and the Totals row are relative to this cohort only. Numbers reflect the date range
+      selected above — pick a range starting on or after the launch date to see clean cohort figures.
+    </p>
+    <.funnel_table entries={cohort} totals={cohort_totals} stages={stages} />
+  <% end %>
 
   <%!-- ── Welcome-message reference ── --%>
   <details class="hd-card p-5" style="margin-bottom: 2rem;">

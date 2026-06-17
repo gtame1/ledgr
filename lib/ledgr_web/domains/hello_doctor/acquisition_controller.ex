@@ -53,7 +53,11 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
     "gen_01_smile" => "#14b8a6",
     "awr_01" => "#ef4444",
     "lpc_01" => "#6366f1",
-    "lph_01" => "#ec4899"
+    "lph_01" => "#ec4899",
+    # Meta cohort launched 2026-06-17
+    "gine_manchado" => "#be185d",
+    "gast_estomago" => "#0891b2",
+    "ped_bebe_enfermo" => "#ea580c"
   }
 
   def campaign_color(id), do: Map.get(@palette, id, "#94a3b8")
@@ -133,5 +137,133 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
       end)
 
     Enum.reverse(segs)
+  end
+
+  @doc """
+  The per-campaign funnel table. Shared by the all-campaigns view and
+  each launch-cohort sub-table so they render identically.
+
+    * `entries` — `report.per_campaign` (or a filtered subset).
+    * `totals`  — the matching totals map (`report.totals`, or
+      `AcquisitionMetrics.subtotals/1` for a subset) — drives the footer
+      and the per-cell column-share tooltips.
+    * `stages`  — `AcquisitionMetrics.canonical_stages/0`.
+  """
+  attr :entries, :list, required: true
+  attr :totals, :map, required: true
+  attr :stages, :list, required: true
+
+  def funnel_table(assigns) do
+    ~H"""
+    <div class="hd-card" style="padding: 0; overflow-x: auto; margin-bottom: 2rem;">
+      <table class="w-full text-sm" style="min-width: 100%;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+            <th
+              class="text-left p-3 pl-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
+            >
+              Campaign
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
+            >
+              Leads
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
+            >
+              Patients
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
+              title="Ad clicks paused at the bot's '¿te refirió un doctor?' prompt — awaiting a yes/no button tap. Transient."
+            >
+              Pending routing
+            </th>
+            <th
+              :for={s <- @stages}
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
+              title={"Stage #{s.idx}: #{s.label} (cumulative — includes everyone past this stage)"}
+            >
+              {s.idx}. {s.short}
+            </th>
+            <th
+              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
+            >
+              Revenue
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={entry <- @entries} style="border-bottom: 1px solid var(--border-subtle);">
+            <td class="p-3 pl-4 font-medium" style="color: var(--text-main); white-space: nowrap;">
+              <span style={"display:inline-block;width:8px;height:8px;background:#{campaign_color(entry.campaign.id)};border-radius:50%;margin-right:0.4rem;vertical-align:middle;"}>
+              </span>
+              {entry.campaign.emoji} {entry.campaign.ad_set}
+              <div class="text-xs mt-0.5" style="color: var(--text-muted);">
+                {entry.campaign.campaign_set} · {entry.campaign.pain}
+              </div>
+            </td>
+            <td class="p-3 text-right font-semibold">{entry.leads}</td>
+            <td class="p-3 text-right">{entry.unique_patients}</td>
+            <% pending_share = column_share(entry.pending_routing, @totals.pending_routing) %>
+            <td
+              class="hd-tooltip-cell p-3 text-right"
+              style="color: var(--text-muted);"
+              data-tip={"#{fmt_pct(pending_share)} of pending routing"}
+            >
+              {entry.pending_routing}
+            </td>
+            <%= for s <- @stages do %>
+              <% count = Map.get(entry, s.key) %>
+              <% col_total = Map.get(@totals, s.key) %>
+              <% share = column_share(count, col_total) %>
+              <td
+                class="hd-tooltip-cell p-3 text-right"
+                style={"color: #{stage_cell_color(s.idx)};"}
+                data-tip={"#{fmt_pct(share)} of #{s.label}"}
+              >
+                {count}
+              </td>
+            <% end %>
+            <td class="p-3 pr-4 text-right font-semibold">
+              {fmt_money(entry.revenue_mxn)}
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
+            <td class="p-3 pl-4 font-bold" style="white-space: nowrap;">Totals</td>
+            <td class="p-3 text-right font-bold">{@totals.leads}</td>
+            <td class="p-3 text-right font-bold">{@totals.unique_patients}</td>
+            <td
+              class="hd-tooltip-cell p-3 text-right font-bold"
+              style="color: var(--text-muted);"
+              data-tip={"#{fmt_pct(@totals.pending_routing_pct)} of all leads"}
+            >
+              {@totals.pending_routing}
+            </td>
+            <%= for s <- @stages do %>
+              <% pct_of_leads = Map.get(@totals, :"pct_#{s.idx}") %>
+              <td
+                class="hd-tooltip-cell p-3 text-right font-bold"
+                style={"color: #{stage_cell_color(s.idx)};"}
+                data-tip={"#{fmt_pct(pct_of_leads)} of all leads reached #{s.label}"}
+              >
+                {Map.get(@totals, s.key)}
+              </td>
+            <% end %>
+            <td class="p-3 pr-4 text-right font-bold">{fmt_money(@totals.revenue_mxn)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    """
   end
 end

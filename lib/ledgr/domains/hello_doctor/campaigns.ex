@@ -38,7 +38,12 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
     # of a strict substring on `phrase` alone. Both anchors run
     # through unaccent() for accent insensitivity.
     anchor_2: nil,
-    max_gap: 20
+    max_gap: 20,
+    # Launch date (Mexico City). `nil` = a legacy/original campaign with
+    # no tracked launch. Campaigns sharing a `started_on` form a cohort
+    # the acquisition dashboard renders as its own table. Detection and
+    # attribution are date-agnostic — this is display grouping only.
+    started_on: nil
   ]
 
   @type t :: %__MODULE__{
@@ -51,7 +56,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
           phrase: String.t(),
           phrase_only_fallback: boolean(),
           anchor_2: String.t() | nil,
-          max_gap: non_neg_integer()
+          max_gap: non_neg_integer(),
+          started_on: Date.t() | nil
         }
 
   @doc """
@@ -126,6 +132,49 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         phrase: "vi su video, quiero info",
         phrase_only_fallback: true
       },
+      # ── Meta cohort launched 2026-06-17 ──────────────────────────
+      # New emoji coding. Welcome messages:
+      #   🌼  "Hola, tengo una duda 🌼"
+      #   🫠  "Hola, llevo días sintiéndome mal 🫠"
+      #   🤒  "Hola, mi bebé se siente mal 🤒"
+      %__MODULE__{
+        id: "gine_manchado",
+        label: "Ginecología — Manchado",
+        emoji: "🌼",
+        campaign_set: "Ginecología",
+        ad_set: "GINE-01",
+        pain: "Manchado / sangrado",
+        phrase: "tengo una duda",
+        # "tengo una duda" is generic (and a substring of GIN-01's
+        # "tengo una duda de salud") — require the 🌼 emoji so it can't
+        # false-match organic chatter or steal credit from GIN-01.
+        phrase_only_fallback: false,
+        started_on: ~D[2026-06-17]
+      },
+      %__MODULE__{
+        id: "gast_estomago",
+        label: "Gastro — Estómago",
+        emoji: "🫠",
+        campaign_set: "Gastroenterología",
+        ad_set: "GAST-01",
+        pain: "Malestar estomacal",
+        phrase: "llevo días sintiéndome mal",
+        phrase_only_fallback: true,
+        started_on: ~D[2026-06-17]
+      },
+      %__MODULE__{
+        id: "ped_bebe_enfermo",
+        label: "Pediatría — Bebé enfermo",
+        emoji: "🤒",
+        campaign_set: "Pediatría",
+        # Legacy PED-01 ("3am del bebé") still tracks history; this is a
+        # distinct creative, so it gets its own ad-set code.
+        ad_set: "PED-02",
+        pain: "Bebé enfermo",
+        phrase: "mi bebé se siente mal",
+        phrase_only_fallback: true,
+        started_on: ~D[2026-06-17]
+      },
       %__MODULE__{
         id: "lpc_01",
         label: "General — /consulta landing",
@@ -153,6 +202,19 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
 
   @doc "Returns the campaign with the given `id`, or `nil`."
   def get(id), do: Enum.find(all(), &(&1.id == id))
+
+  @doc """
+  Distinct launch dates across all campaigns, newest first. Each is a
+  cohort the acquisition dashboard renders as its own table. Campaigns
+  with `started_on: nil` (legacy/original) are excluded.
+  """
+  def launch_dates do
+    all()
+    |> Enum.map(& &1.started_on)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+    |> Enum.sort({:desc, Date})
+  end
 
   @doc """
   SQL CASE expression that maps a message-content column to a

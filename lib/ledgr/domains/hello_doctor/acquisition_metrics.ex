@@ -204,6 +204,14 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     }
   end
 
+  @doc """
+  Totals row for an arbitrary subset of the `per_campaign` list — same
+  shape as `report.totals`. Used to give a cohort sub-table (e.g. the
+  campaigns launched on a given date) its own footer + column-share
+  denominators, independent of the all-campaigns totals.
+  """
+  def subtotals(per_campaign_subset), do: totals(per_campaign_subset)
+
   # ── Per-campaign funnel ─────────────────────────────────────────
 
   defp run_funnel_query(start_naive, end_exclusive) do
