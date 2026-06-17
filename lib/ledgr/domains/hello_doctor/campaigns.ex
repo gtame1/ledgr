@@ -39,10 +39,17 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
     # through unaccent() for accent insensitivity.
     anchor_2: nil,
     max_gap: 20,
-    # Launch date (Mexico City). `nil` = a legacy/original campaign with
-    # no tracked launch. Campaigns sharing a `started_on` form a cohort
-    # the acquisition dashboard renders as its own table. Detection and
-    # attribution are date-agnostic — this is display grouping only.
+    # Acquisition channel. `:meta` = a Meta ad (era-bound — replaced when
+    # the ad set is refreshed). `:landing` = an evergreen landing-page
+    # CTA that runs continuously across campaign generations. The
+    # dashboard splits campaigns into a "before" and a "from" era at the
+    # cutoff date (see `cutoff/0`); landing-page campaigns are evergreen,
+    # so they appear in BOTH eras with their data divided at the cutoff.
+    channel: :meta,
+    # Launch date (Mexico City). `nil` = a legacy/original Meta campaign
+    # that predates the cutoff. New-generation campaigns set this to the
+    # cutoff date. Detection and attribution are date-agnostic — this is
+    # display grouping only.
     started_on: nil
   ]
 
@@ -57,8 +64,18 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
           phrase_only_fallback: boolean(),
           anchor_2: String.t() | nil,
           max_gap: non_neg_integer(),
+          channel: :meta | :landing,
           started_on: Date.t() | nil
         }
+
+  @doc """
+  The campaign-generation cutoff (Mexico City). On this date the Meta ad
+  sets were refreshed with new emoji coding. The acquisition dashboard
+  splits its funnel tables into a "before" era (legacy Meta + landing)
+  and a "from" era (new Meta + landing), windowing each table's data at
+  this boundary.
+  """
+  def cutoff, do: ~D[2026-06-17]
 
   @doc """
   All tracked campaigns. Order is the detection priority — first match
@@ -149,7 +166,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         # "tengo una duda de salud") — require the 🌼 emoji so it can't
         # false-match organic chatter or steal credit from GIN-01.
         phrase_only_fallback: false,
-        started_on: ~D[2026-06-17]
+        started_on: cutoff()
       },
       %__MODULE__{
         id: "gast_estomago",
@@ -160,7 +177,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         pain: "Malestar estomacal",
         phrase: "llevo días sintiéndome mal",
         phrase_only_fallback: true,
-        started_on: ~D[2026-06-17]
+        started_on: cutoff()
       },
       %__MODULE__{
         id: "ped_bebe_enfermo",
@@ -173,8 +190,9 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         pain: "Bebé enfermo",
         phrase: "mi bebé se siente mal",
         phrase_only_fallback: true,
-        started_on: ~D[2026-06-17]
+        started_on: cutoff()
       },
+      # ── Landing pages (evergreen — span every Meta generation) ───
       %__MODULE__{
         id: "lpc_01",
         label: "General — /consulta landing",
@@ -183,7 +201,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "LPC-01",
         pain: "From /consulta landing page",
         phrase: "busco una consulta médica",
-        phrase_only_fallback: true
+        phrase_only_fallback: true,
+        channel: :landing
       },
       %__MODULE__{
         id: "lph_01",
@@ -195,7 +214,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         phrase: "me interesa una consulta",
         # "me interesa una consulta" is fairly common phrasing —
         # require the emoji to avoid false positives.
-        phrase_only_fallback: false
+        phrase_only_fallback: false,
+        channel: :landing
       }
     ]
   end
@@ -204,16 +224,27 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
   def get(id), do: Enum.find(all(), &(&1.id == id))
 
   @doc """
-  Distinct launch dates across all campaigns, newest first. Each is a
-  cohort the acquisition dashboard renders as its own table. Campaigns
-  with `started_on: nil` (legacy/original) are excluded.
+  Campaigns active in the **before-cutoff** era: legacy Meta ad sets
+  (`started_on: nil`) plus the evergreen landing pages. These get the
+  "Before #{inspect(~D[2026-06-17])}" funnel table, windowed to data
+  before the cutoff.
   """
-  def launch_dates do
-    all()
-    |> Enum.map(& &1.started_on)
-    |> Enum.reject(&is_nil/1)
-    |> Enum.uniq()
-    |> Enum.sort({:desc, Date})
+  def before_cutoff do
+    Enum.filter(all(), &(&1.channel == :landing or is_nil(&1.started_on)))
+  end
+
+  @doc """
+  Campaigns active in the **from-cutoff** era: the new Meta ad sets
+  launched on the cutoff date plus the evergreen landing pages. These
+  get the "From #{inspect(~D[2026-06-17])}" funnel table, windowed to
+  data on/after the cutoff.
+
+  Landing pages appear in both `before_cutoff/0` and `from_cutoff/0` —
+  they run continuously, so their leads divide across the two tables at
+  the cutoff boundary.
+  """
+  def from_cutoff do
+    Enum.filter(all(), &(&1.channel == :landing or &1.started_on == cutoff()))
   end
 
   @doc """

@@ -2,19 +2,38 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.AcquisitionMetrics
+  alias Ledgr.Domains.HelloDoctor.Campaigns
 
   def index(conn, params) do
     {start_date, end_date} = resolve_period(params)
+    cutoff = Campaigns.cutoff()
+
+    # Full-range report drives the top KPI cards + daily trend chart.
     report = AcquisitionMetrics.generate(start_date, end_date)
+
+    # Each era table queries its own window, clamped to the picker so the
+    # From/To range still bounds the page. The cutoff splits the data:
+    #   before-era → [start, cutoff)   on/after start, strictly before cutoff
+    #   from-era   → [cutoff, end]     on/after cutoff
+    # When the picker range sits entirely on one side, the other era's
+    # window inverts (start > end) and `funnel/2` returns all-zero rows.
+    before_report = AcquisitionMetrics.funnel(start_date, min_date(end_date, Date.add(cutoff, -1)))
+    from_report = AcquisitionMetrics.funnel(max_date(start_date, cutoff), end_date)
 
     render(conn, :index,
       report: report,
+      before_report: before_report,
+      from_report: from_report,
+      cutoff: cutoff,
       start_date: start_date,
       end_date: end_date
     )
   end
 
   # ── Helpers ──────────────────────────────────────────────────────
+
+  defp min_date(a, b), do: if(Date.compare(a, b) == :gt, do: b, else: a)
+  defp max_date(a, b), do: if(Date.compare(a, b) == :lt, do: b, else: a)
 
   defp resolve_period(params) do
     {default_start, default_end} = AcquisitionMetrics.last_30_days()

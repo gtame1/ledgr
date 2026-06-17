@@ -179,29 +179,63 @@
     <% end %>
   </div>
 
-  <%!-- ── Per-campaign funnel table ── --%>
-  <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">Per-campaign funnel</h2>
-  <p class="text-xs mb-2" style="color: var(--text-muted); max-width: 80ch;">
-    Each stage column is cumulative — a conversation in <em>doctor_recommended</em>
-    is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. Hover any cell
-    to see its share of that stage's column total.
-  </p>
+  <%!-- ── Per-campaign funnel, split at the cutoff ── --%>
   <% stages = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.canonical_stages() %>
-  <.funnel_table entries={@report.per_campaign} totals={@report.totals} stages={stages} />
+  <% cutoff_label = Calendar.strftime(@cutoff, "%b %-d, %Y") %>
+  <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Per-campaign funnel</h2>
+  <p class="text-xs mb-5" style="color: var(--text-muted); max-width: 80ch;">
+    Split at the <strong>{cutoff_label}</strong>
+    campaign refresh — new Meta ad sets replaced the old ones that day. Each
+    table's numbers are windowed to its era (clamped to the range above). Stage columns are
+    cumulative — a conversation in <em>doctor_recommended</em>
+    is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. Hover any cell to
+    see its share of that table's column total. Landing-page campaigns run across both eras, so they
+    appear in each table with their leads divided at the cutoff.
+  </p>
 
-  <%!-- ── Launch-cohort tables (one per tracked launch date) ── --%>
-  <%= for launch_date <- Ledgr.Domains.HelloDoctor.Campaigns.launch_dates() do %>
-    <% cohort = Enum.filter(@report.per_campaign, &(&1.campaign.started_on == launch_date)) %>
-    <% cohort_totals = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.subtotals(cohort) %>
-    <h2 class="text-lg font-semibold mb-2" style="color: var(--text-main);">
-      Meta — launched {Calendar.strftime(launch_date, "%b %-d, %Y")}
-    </h2>
-    <p class="text-xs mb-2" style="color: var(--text-muted); max-width: 80ch;">
-      The campaigns started this cohort. Same cumulative-stage columns as above; column-share
-      tooltips and the Totals row are relative to this cohort only. Numbers reflect the date range
-      selected above — pick a range starting on or after the launch date to see clean cohort figures.
+  <%!-- From-cutoff era (current generation): new Meta + evergreen landing --%>
+  <% from_ids = Ledgr.Domains.HelloDoctor.Campaigns.from_cutoff() |> Enum.map(& &1.id) %>
+  <% from_entries = Enum.filter(@from_report.per_campaign, &(&1.campaign.id in from_ids)) %>
+  <% from_totals = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.subtotals(from_entries) %>
+  <% {from_start, from_end} = @from_report.period %>
+  <h3 class="text-base font-semibold mb-1" style="color: var(--text-main);">
+    From {cutoff_label}
+    <span class="text-xs font-normal" style="color: var(--text-muted);">
+      · new Meta ad sets + landing pages
+    </span>
+  </h3>
+  <%= if Date.compare(from_start, from_end) != :gt do %>
+    <p class="text-xs mb-2" style="color: var(--text-muted);">
+      Showing {Calendar.strftime(from_start, "%b %-d")} – {Calendar.strftime(from_end, "%b %-d, %Y")}.
     </p>
-    <.funnel_table entries={cohort} totals={cohort_totals} stages={stages} />
+    <.funnel_table entries={from_entries} totals={from_totals} stages={stages} />
+  <% else %>
+    <p class="hd-card p-4 text-sm" style="color: var(--text-muted); margin-bottom: 2rem;">
+      The selected range ends before {cutoff_label}. Move the <em>To</em>
+      date to on/after {cutoff_label} to see the new campaigns.
+    </p>
+  <% end %>
+
+  <%!-- Before-cutoff era (legacy generation): old Meta + evergreen landing --%>
+  <% before_ids = Ledgr.Domains.HelloDoctor.Campaigns.before_cutoff() |> Enum.map(& &1.id) %>
+  <% before_entries = Enum.filter(@before_report.per_campaign, &(&1.campaign.id in before_ids)) %>
+  <% before_totals = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.subtotals(before_entries) %>
+  <% {before_start, before_end} = @before_report.period %>
+  <h3 class="text-base font-semibold mb-1" style="color: var(--text-main);">
+    Before {cutoff_label}
+    <span class="text-xs font-normal" style="color: var(--text-muted);">
+      · legacy Meta ad sets + landing pages
+    </span>
+  </h3>
+  <%= if Date.compare(before_start, before_end) != :gt do %>
+    <p class="text-xs mb-2" style="color: var(--text-muted);">
+      Showing {Calendar.strftime(before_start, "%b %-d")} – {Calendar.strftime(before_end, "%b %-d, %Y")}.
+    </p>
+    <.funnel_table entries={before_entries} totals={before_totals} stages={stages} />
+  <% else %>
+    <p class="hd-card p-4 text-sm" style="color: var(--text-muted); margin-bottom: 2rem;">
+      The selected range starts on/after {cutoff_label} — no legacy-era days to show.
+    </p>
   <% end %>
 
   <%!-- ── Welcome-message reference ── --%>

@@ -181,13 +181,36 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   ad-attributed funnel.
   """
   def generate(start_date, end_date) do
+    base = funnel(start_date, end_date)
+
     # Mexico City wall-clock bounds → UTC instants. See
     # `Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1`.
     start_naive = Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
     end_exclusive = Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
-
-    rows = run_funnel_query(start_naive, end_exclusive)
     daily = run_daily_query(start_naive, end_exclusive, start_date, end_date)
+
+    Map.put(base, :daily, daily)
+  end
+
+  @doc """
+  Per-campaign funnel for a date window, WITHOUT the daily trend chart.
+  Returns `%{period, per_campaign, totals}`.
+
+  This is what the cutoff-era sub-tables use — they only need the table,
+  not the chart, and they query their own (narrower) window. An empty or
+  inverted window (`start_date > end_date`, e.g. when the picker range
+  doesn't overlap an era at all) yields all-zero rows instead of running
+  a query.
+  """
+  def funnel(start_date, end_date) do
+    rows =
+      if Date.compare(start_date, end_date) == :gt do
+        %{}
+      else
+        start_naive = Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
+        end_exclusive = Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
+        run_funnel_query(start_naive, end_exclusive)
+      end
 
     per_campaign =
       Campaigns.all()
@@ -199,16 +222,14 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     %{
       period: {start_date, end_date},
       per_campaign: per_campaign,
-      daily: daily,
       totals: totals(per_campaign)
     }
   end
 
   @doc """
   Totals row for an arbitrary subset of the `per_campaign` list — same
-  shape as `report.totals`. Used to give a cohort sub-table (e.g. the
-  campaigns launched on a given date) its own footer + column-share
-  denominators, independent of the all-campaigns totals.
+  shape as `report.totals`. Used to give an era sub-table its own footer
+  + column-share denominators, independent of the all-campaigns totals.
   """
   def subtotals(per_campaign_subset), do: totals(per_campaign_subset)
 
