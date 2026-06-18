@@ -82,15 +82,11 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
   def campaign_color(id), do: Map.get(@palette, id, "#94a3b8")
 
   @doc """
-  Color hint for each canonical funnel-stage cell. Money-bearing
-  stages (payment_confirmed, consultation_complete) get green/accent
-  emphasis; the failure terminal gets a muted red; everything
-  mid-funnel stays in the default text color so the eye isn't pulled
-  to columns that are just stepping-stones.
+  Color for each early funnel-stage cell. These are all mid-funnel
+  stepping-stones now (greeting → payment_link_sent), so they stay in
+  the default text color; the eye-catching colors live on the outcome
+  columns instead (see `Ledgr.Domains.HelloDoctor.AcquisitionMetrics.outcome_stages/0`).
   """
-  def stage_cell_color(7), do: "#16a34a"
-  def stage_cell_color(11), do: "var(--accent)"
-  def stage_cell_color(12), do: "#dc2626"
   def stage_cell_color(_), do: "var(--text-main)"
 
   @doc "MXN money formatter."
@@ -166,11 +162,15 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
     * `totals`  — the matching totals map (`report.totals`, or
       `AcquisitionMetrics.subtotals/1` for a subset) — drives the footer
       and the per-cell column-share tooltips.
-    * `stages`  — `AcquisitionMetrics.canonical_stages/0`.
+    * `stages`   — `AcquisitionMetrics.canonical_stages/0` (cumulative
+      early-funnel columns).
+    * `outcomes` — `AcquisitionMetrics.outcome_stages/0` (independent
+      source-of-truth outcome columns: paid / consult / done / etc.).
   """
   attr :entries, :list, required: true
   attr :totals, :map, required: true
   attr :stages, :list, required: true
+  attr :outcomes, :list, required: true
 
   def funnel_table(assigns) do
     ~H"""
@@ -212,6 +212,14 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
               {s.idx}. {s.short}
             </th>
             <th
+              :for={o <- @outcomes}
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap; border-left: 1px solid var(--border-subtle);"
+              title={"#{o.label} — measured from consultations / stripe_payments, not funnel_stage (independent, not cumulative)"}
+            >
+              {o.short}
+            </th>
+            <th
               class="text-right p-3 pr-4 text-xs font-semibold uppercase"
               style="color: var(--text-muted); white-space: nowrap;"
             >
@@ -251,6 +259,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
                 {count}
               </td>
             <% end %>
+            <%= for o <- @outcomes do %>
+              <% count = Map.get(entry, o.key) %>
+              <% col_total = Map.get(@totals, o.key) %>
+              <% share = column_share(count, col_total) %>
+              <td
+                class="hd-tooltip-cell p-3 text-right font-semibold"
+                style={"color: #{o.color}; border-left: 1px solid var(--border-subtle);"}
+                data-tip={"#{fmt_pct(share)} of #{o.label}"}
+              >
+                {count}
+              </td>
+            <% end %>
             <td class="p-3 pr-4 text-right font-semibold">
               {fmt_money(entry.revenue_mxn)}
             </td>
@@ -276,6 +296,16 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
                 data-tip={"#{fmt_pct(pct_of_leads)} of all leads reached #{s.label}"}
               >
                 {Map.get(@totals, s.key)}
+              </td>
+            <% end %>
+            <%= for o <- @outcomes do %>
+              <% pct_of_leads = Map.get(@totals, :"pct_#{o.key}") %>
+              <td
+                class="hd-tooltip-cell p-3 text-right font-bold"
+                style={"color: #{o.color}; border-left: 1px solid var(--border-subtle);"}
+                data-tip={"#{fmt_pct(pct_of_leads)} of all leads · #{o.label}"}
+              >
+                {Map.get(@totals, o.key)}
               </td>
             <% end %>
             <td class="p-3 pr-4 text-right font-bold">{fmt_money(@totals.revenue_mxn)}</td>

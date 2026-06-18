@@ -78,7 +78,7 @@
     <div class="hd-kpi">
       <div class="hd-kpi-label">Doctor matched</div>
       <div class="hd-kpi-value">{@report.totals.doctor_matched}</div>
-      <div class="hd-kpi-sub">routed to a doctor</div>
+      <div class="hd-kpi-sub">consultation started</div>
     </div>
     <%= if @report.totals.pending_routing > 0 do %>
       <div class="hd-kpi">
@@ -100,12 +100,12 @@
     <div class="hd-kpi">
       <div class="hd-kpi-label">Completed</div>
       <div class="hd-kpi-value" style="color: var(--accent);">{@report.totals.completed}</div>
-      <div class="hd-kpi-sub">consultations</div>
+      <div class="hd-kpi-sub">{fmt_pct(@report.totals.lead_to_completed)} of leads · status=completed</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Revenue</div>
       <div class="hd-kpi-value">{fmt_money(@report.totals.revenue_mxn)}</div>
-      <div class="hd-kpi-sub">gross, paid Stripe lines</div>
+      <div class="hd-kpi-sub">net of refunds</div>
     </div>
   </div>
 
@@ -181,16 +181,21 @@
 
   <%!-- ── Per-campaign funnel, split at the cutoff ── --%>
   <% stages = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.canonical_stages() %>
+  <% outcomes = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.outcome_stages() %>
   <% cutoff_label = Calendar.strftime(@cutoff, "%b %-d, %Y") %>
   <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Per-campaign funnel</h2>
   <p class="text-xs mb-5" style="color: var(--text-muted); max-width: 80ch;">
     Split at the <strong>{cutoff_label}</strong>
     campaign refresh — new Meta ad sets replaced the old ones that day. Each
-    table's numbers are windowed to its era (clamped to the range above). Stage columns are
-    cumulative — a conversation in <em>doctor_recommended</em>
-    is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. Hover any cell to
-    see its share of that table's column total. Landing-page campaigns run across both eras, so they
-    appear in each table with their leads divided at the cutoff.
+    table's numbers are windowed to its era (clamped to the range above). The numbered
+    <em>stage</em> columns (greeting → payment link) are cumulative — a conversation in
+    <em>doctor_recommended</em>
+    is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. The
+    <em>outcome</em> columns to the right (Paid · Consult · Done · Cancel · Failed) are measured
+    from the <code>consultations</code> and <code>stripe_payments</code> tables — not from the bot's
+    chat state, which stalls once a consultation starts — and are independent, not cumulative. Hover
+    any cell to see its share of that table's column total. Landing-page campaigns run across both
+    eras, so they appear in each table with their leads divided at the cutoff.
   </p>
 
   <%!-- From-cutoff era (current generation): new Meta + evergreen landing --%>
@@ -208,7 +213,7 @@
     <p class="text-xs mb-2" style="color: var(--text-muted);">
       Showing {Calendar.strftime(from_start, "%b %-d")} – {Calendar.strftime(from_end, "%b %-d, %Y")}.
     </p>
-    <.funnel_table entries={from_entries} totals={from_totals} stages={stages} />
+    <.funnel_table entries={from_entries} totals={from_totals} stages={stages} outcomes={outcomes} />
   <% else %>
     <p class="hd-card p-4 text-sm" style="color: var(--text-muted); margin-bottom: 2rem;">
       The selected range ends before {cutoff_label}. Move the <em>To</em>
@@ -231,7 +236,7 @@
     <p class="text-xs mb-2" style="color: var(--text-muted);">
       Showing {Calendar.strftime(before_start, "%b %-d")} – {Calendar.strftime(before_end, "%b %-d, %Y")}.
     </p>
-    <.funnel_table entries={before_entries} totals={before_totals} stages={stages} />
+    <.funnel_table entries={before_entries} totals={before_totals} stages={stages} outcomes={outcomes} />
   <% else %>
     <p class="hd-card p-4 text-sm" style="color: var(--text-muted); margin-bottom: 2rem;">
       The selected range starts on/after {cutoff_label} — no legacy-era days to show.
