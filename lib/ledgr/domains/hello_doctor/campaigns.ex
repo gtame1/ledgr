@@ -3,24 +3,30 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
   Meta Ad campaign definitions for HelloDoctor and the attribution
   logic that maps a patient's first WhatsApp message to a campaign.
 
-  Each Meta ad uses WhatsApp's click-to-chat with a prefilled welcome
-  message containing a campaign-specific emoji + phrase. We attribute
-  in two passes:
+  Each Meta ad (and landing-page CTA) uses WhatsApp's click-to-chat with
+  a prefilled welcome message carrying a campaign-specific **emoji**. We
+  attribute a conversation to a campaign when its first inbound user
+  message contains that emoji.
 
-  1. **High-confidence**: emoji + phrase both match. The strongest
-     signal — almost no false-positive risk.
-  2. **Phrase-only fallback** (campaigns flagged `phrase_only_fallback`):
-     the phrase alone is distinctive enough to attribute even when the
-     patient stripped the emoji. Enabled for phrases like
-     `dudas sobre la salud de mi hijo` (very ad-specific) but not for
-     `tengo una pregunta` (too generic).
+  ## Why emoji-only (no phrase matching)
 
-  Phrase matching is **accent-insensitive** via Postgres' `unaccent`
-  extension (`médico` ↔ `medico`, `podrían` ↔ `podrian`). Emoji
-  matching is byte-equal.
+  We previously also required a distinctive phrase from the welcome
+  template. Auditing real first-messages showed the phrase requirement
+  was net-harmful: it silently dropped genuine ad clicks — patients edit
+  the prefill ("mi hija" vs the template's "mi hijo"), delete the text
+  but keep the emoji ("Hola 👋"), or the deployed ad text simply differs
+  from spec (GAST shipped "he estado sintiéndome mal", not "llevo días
+  sintiéndome mal"). Meanwhile it filtered almost no noise, because these
+  emojis essentially never appear in an organic conversation opener — a
+  brand-new chat starting with 🩺 or 🫠 came from an ad. The emoji alone
+  is the reliable signal, and the mapping is 1:1 (every campaign uses a
+  distinct emoji), so the CASE is unambiguous.
 
-  Adding a campaign: append an entry to `all/0`. The detection CASE
-  rebuilds itself from the list.
+  The `phrase` field is kept as documentation of the expected welcome
+  text (shown in the dashboard reference) — it is NOT used for matching.
+
+  Adding a campaign: append an entry to `all/0` with a unique emoji. The
+  detection CASE rebuilds itself from the list.
   """
 
   defstruct [
@@ -30,15 +36,9 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
     :campaign_set,
     :ad_set,
     :pain,
+    # Reference only — the distinctive part of the prefilled welcome
+    # message. Shown in the dashboard; NOT used for attribution.
     :phrase,
-    phrase_only_fallback: false,
-    # Optional second anchor for campaigns that drift in practice
-    # (patients insert/double words between phrase parts). When set,
-    # detection matches a regex `phrase.{0,max_gap}anchor_2` instead
-    # of a strict substring on `phrase` alone. Both anchors run
-    # through unaccent() for accent insensitivity.
-    anchor_2: nil,
-    max_gap: 20,
     # Acquisition channel. `:meta` = a Meta ad (era-bound — replaced when
     # the ad set is refreshed). `:landing` = an evergreen landing-page
     # CTA that runs continuously across campaign generations. The
@@ -61,9 +61,6 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
           ad_set: String.t(),
           pain: String.t(),
           phrase: String.t(),
-          phrase_only_fallback: boolean(),
-          anchor_2: String.t() | nil,
-          max_gap: non_neg_integer(),
           channel: :meta | :landing,
           started_on: Date.t() | nil
         }
@@ -78,9 +75,9 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
   def cutoff, do: ~D[2026-06-17]
 
   @doc """
-  All tracked campaigns. Order is the detection priority — first match
-  wins in the SQL CASE. Put the most specific patterns first; common
-  emojis last.
+  All tracked campaigns. Each must use a unique emoji — that emoji is the
+  attribution key. Order is the detection priority (first match wins) for
+  the rare message that somehow contains two campaign emojis.
   """
   def all do
     [
@@ -91,8 +88,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Ginecología",
         ad_set: "GIN-01",
         pain: "Salud sexual general",
-        phrase: "tengo una duda de salud",
-        phrase_only_fallback: true
+        phrase: "tengo una duda de salud"
       },
       %__MODULE__{
         id: "gin_02",
@@ -101,9 +97,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Ginecología",
         ad_set: "GIN-02",
         pain: "Pena/vergüenza",
-        phrase: "tengo una pregunta",
-        # Phrase alone is too generic — could false-match organic chatter.
-        phrase_only_fallback: false
+        phrase: "tengo una pregunta"
       },
       %__MODULE__{
         id: "ped_01",
@@ -112,8 +106,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Pediatría",
         ad_set: "PED-01",
         pain: "3am del bebé",
-        phrase: "dudas sobre la salud de mi hijo",
-        phrase_only_fallback: true
+        phrase: "dudas sobre la salud de mi hijo"
       },
       %__MODULE__{
         id: "gen_01_thinking",
@@ -122,10 +115,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "General",
         ad_set: "GEN-01",
         pain: "¿Es grave o no?",
-        # Two anchors tolerate the doubled-word case ("apoyo de de un").
-        phrase: "necesito apoyo de",
-        anchor_2: "un medico",
-        phrase_only_fallback: true
+        phrase: "necesito apoyo de un medico"
       },
       %__MODULE__{
         id: "gen_01_smile",
@@ -134,10 +124,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "General",
         ad_set: "GEN-01",
         pain: "¿Es grave o no?",
-        # Two anchors tolerate inserted words ("con unas dudas").
-        phrase: "podrian apoyarme",
-        anchor_2: "dudas de salud",
-        phrase_only_fallback: true
+        phrase: "podrian apoyarme con dudas de salud"
       },
       %__MODULE__{
         id: "awr_01",
@@ -146,13 +133,12 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Awareness",
         ad_set: "AWR-01",
         pain: "Video views",
-        phrase: "vi su video, quiero info",
-        phrase_only_fallback: true
+        phrase: "vi su video, quiero info"
       },
       # ── Meta cohort launched 2026-06-17 ──────────────────────────
-      # New emoji coding. Welcome messages:
+      # New emoji coding. Welcome messages (as deployed):
       #   🌼  "Hola, tengo una duda 🌼"
-      #   🫠  "Hola, llevo días sintiéndome mal 🫠"
+      #   🫠  "Hola, he estado sintiéndome mal 🫠"
       #   🤒  "Hola, mi bebé se siente mal 🤒"
       %__MODULE__{
         id: "gine_manchado",
@@ -162,10 +148,6 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "GINE-01",
         pain: "Manchado / sangrado",
         phrase: "tengo una duda",
-        # "tengo una duda" is generic (and a substring of GIN-01's
-        # "tengo una duda de salud") — require the 🌼 emoji so it can't
-        # false-match organic chatter or steal credit from GIN-01.
-        phrase_only_fallback: false,
         started_on: cutoff()
       },
       %__MODULE__{
@@ -175,8 +157,8 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         campaign_set: "Gastroenterología",
         ad_set: "GAST-01",
         pain: "Malestar estomacal",
-        phrase: "llevo días sintiéndome mal",
-        phrase_only_fallback: true,
+        # Deployed ad text — differs from the original spec ("llevo días…").
+        phrase: "he estado sintiéndome mal",
         started_on: cutoff()
       },
       %__MODULE__{
@@ -189,7 +171,6 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "PED-02",
         pain: "Bebé enfermo",
         phrase: "mi bebé se siente mal",
-        phrase_only_fallback: true,
         started_on: cutoff()
       },
       # ── Landing pages (evergreen — span every Meta generation) ───
@@ -201,7 +182,6 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "LPC-01",
         pain: "From /consulta landing page",
         phrase: "busco una consulta médica",
-        phrase_only_fallback: true,
         channel: :landing
       },
       %__MODULE__{
@@ -212,9 +192,6 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "LPH-01",
         pain: "From the home page CTA",
         phrase: "me interesa una consulta",
-        # "me interesa una consulta" is fairly common phrasing —
-        # require the emoji to avoid false positives.
-        phrase_only_fallback: false,
         channel: :landing
       }
     ]
@@ -248,61 +225,21 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
   end
 
   @doc """
-  SQL CASE expression that maps a message-content column to a
-  campaign id, or `NULL` if no match. Pass the column name as
+  SQL CASE expression that maps a message-content column to a campaign
+  id, or `NULL` if no campaign emoji is present. Pass the column name as
   `content_ref` — e.g. `"fm.content"`.
 
-  Two passes inside the CASE:
-
-  1. **Emoji + phrase** (strict) — all campaigns, in declared order.
-  2. **Phrase-only fallback** — only for campaigns with
-     `phrase_only_fallback: true`, in declared order.
-
-  Both passes use `unaccent(content)` for accent-insensitive matching
-  (`médico` ↔ `medico`, `podrían` ↔ `podrian`).
-
-  Campaigns with `anchor_2` set use a regex (`~*`) with up to
-  `max_gap` chars between the two anchors — tolerates word-injection
-  / word-doubling drift (e.g. `apoyo de de un medico` → still matches
-  `apoyo de.{0,N}un medico`). Campaigns without `anchor_2` fall back
-  to a simple `ILIKE` substring on `phrase`.
+  Attribution is **emoji-only**: each campaign owns a unique emoji, so a
+  single `LIKE '%emoji%'` per campaign suffices. Emojis carry no SQL
+  quotes, so no escaping is needed.
   """
   def detection_case_sql(content_ref) do
-    strict =
+    whens =
       all()
       |> Enum.map_join("\n        ", fn c ->
-        "WHEN #{content_ref} LIKE '%#{c.emoji}%' " <>
-          "AND #{phrase_predicate_sql(content_ref, c)} " <>
-          "THEN '#{c.id}'"
+        "WHEN #{content_ref} LIKE '%#{c.emoji}%' THEN '#{c.id}'"
       end)
 
-    fallback =
-      all()
-      |> Enum.filter(& &1.phrase_only_fallback)
-      |> Enum.map_join("\n        ", fn c ->
-        "WHEN #{phrase_predicate_sql(content_ref, c)} THEN '#{c.id}'"
-      end)
-
-    "CASE\n        #{strict}\n        #{fallback}\n        ELSE NULL\n      END"
-  end
-
-  # Builds the SQL predicate that checks if `content_ref` contains the
-  # campaign's phrase (and optional anchor_2). Accent-insensitive.
-  defp phrase_predicate_sql(content_ref, %__MODULE__{anchor_2: nil} = c) do
-    "unaccent(#{content_ref}) ILIKE unaccent('%#{escape(c.phrase)}%')"
-  end
-
-  defp phrase_predicate_sql(content_ref, %__MODULE__{anchor_2: a2} = c) do
-    pattern = "#{regex_escape(c.phrase)}.{0,#{c.max_gap}}#{regex_escape(a2)}"
-    "unaccent(#{content_ref}) ~* unaccent('#{escape(pattern)}')"
-  end
-
-  defp escape(s), do: String.replace(s, "'", "''")
-
-  # Escape POSIX regex metachars in user-supplied anchors. Our phrases
-  # are clean ASCII words today, but this guards against future
-  # anchors that include punctuation like '.' or '?'.
-  defp regex_escape(s) do
-    Regex.escape(s)
+    "CASE\n        #{whens}\n        ELSE NULL\n      END"
   end
 end

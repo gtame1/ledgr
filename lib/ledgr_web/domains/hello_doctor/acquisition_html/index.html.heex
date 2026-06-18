@@ -6,13 +6,13 @@
         Acquisition
       </h1>
       <div class="text-sm" style="color: var(--text-muted);">
-        Meta Ads → WhatsApp · attribution by emoji + welcome-message phrase
+        Meta Ads → WhatsApp · attribution by welcome-message emoji
       </div>
     </div>
     <p class="text-sm" style="color: var(--text-muted); max-width: 80ch;">
-      Each campaign sets a distinct emoji + welcome message in its WhatsApp
-      click-to-chat link. We attribute a conversation to a campaign when its
-      first inbound user message contains both — and from that point on,
+      Each campaign sets a distinct emoji in its WhatsApp click-to-chat
+      welcome message. We attribute a conversation to a campaign when its
+      first inbound user message contains that emoji — and from that point on,
       <strong>every subsequent conversation by that patient inherits the same
         campaign credit</strong>
       (first-touch attribution), so an organic
@@ -244,9 +244,11 @@
       Campaign welcome-message reference
     </summary>
     <p class="text-xs mt-3" style="color: var(--text-muted);">
-      Each campaign's WhatsApp click-to-chat link prefills the message below.
-      Attribution requires the patient to send the message essentially intact —
-      both the emoji AND a distinctive phrase from the template must appear.
+      Each campaign's WhatsApp click-to-chat link prefills a welcome message
+      containing the campaign's emoji. Attribution keys on the
+      <strong>emoji alone</strong>
+      in the first inbound message — the welcome text is shown here for
+      reference only and isn't required to match.
     </p>
     <table class="w-full text-sm mt-3">
       <thead>
@@ -257,7 +259,7 @@
           </th>
           <th class="text-left p-2 text-xs uppercase" style="color: var(--text-muted);">Pain</th>
           <th class="text-left p-2 text-xs uppercase" style="color: var(--text-muted);">
-            Phrase match
+            Welcome text (reference)
           </th>
         </tr>
       </thead>
