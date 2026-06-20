@@ -3,6 +3,7 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
 
   alias Ledgr.Domains.HelloDoctor.Medikit
   alias Ledgr.Domains.HelloDoctor.MedikitProvisioning
+  alias Ledgr.Domains.HelloDoctor.Doctors
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
 
   # base_url in enable_medikit/0 ends in "/api", so Req joins these full paths.
@@ -151,6 +152,39 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
       }
 
       assert Doctor.changeset(%Doctor{}, attrs).valid?
+    end
+  end
+
+  # ── Doctors.create_doctor/1 (full create path, form-style params) ──────────
+
+  describe "create_doctor/1 with structured name and no Full Name field" do
+    test "persists a NEW doctor with name derived from the parts" do
+      # Mirrors what the form now submits: no doctor[name], just the parts.
+      attrs = %{
+        "specialty" => "General",
+        "phone" => "+52155#{System.unique_integer([:positive])}",
+        "is_available" => true,
+        "first_name" => "Ana",
+        "paternal_surname" => "Gomez",
+        "maternal_surname" => "Ruiz"
+      }
+
+      assert {:ok, doctor} = Doctors.create_doctor(attrs)
+      assert doctor.name == "Ana Gomez Ruiz"
+
+      # Confirm it actually hit the DB, not just the in-memory struct.
+      assert Ledgr.Repo.get!(Doctor, doctor.id).name == "Ana Gomez Ruiz"
+    end
+
+    test "rejects a new doctor with neither name nor parts" do
+      attrs = %{
+        "specialty" => "General",
+        "phone" => "+52155#{System.unique_integer([:positive])}",
+        "is_available" => true
+      }
+
+      assert {:error, changeset} = Doctors.create_doctor(attrs)
+      assert changeset.errors[:name]
     end
   end
 
