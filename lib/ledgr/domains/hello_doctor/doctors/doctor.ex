@@ -24,6 +24,36 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     field :prescrypto_specialty_no, :string
     field :prescrypto_specialty_verified, :boolean, default: false
     field :prescrypto_synced_at, :utc_datetime
+    # Medikit digital prescriptions (migrating off Prescrypto). Both columns
+    # live in the shared Neon DB and are added out-of-band — Ledgr only syncs
+    # the schema here, never migrates the doctors table. Populated by the
+    # one-off MedikitProvisioning backfill: the HealthcareProvider id returned
+    # by Medikit's POST /doctors, and the UTC timestamp at which the doctor's
+    # professional license was validated + registered. NULL = not yet
+    # provisioned (the backfill is idempotent on this column being NULL).
+    field :medikit_healthcare_provider_id, :string
+    field :medikit_license_validated_at, :utc_datetime
+    # Structured doctor data required by Medikit's doctors-1.0.38 API that the
+    # bot's onboarding never captured. All optional at the changeset level so
+    # existing doctor CRUD keeps working; MedikitProvisioning enforces
+    # completeness before it will register a doctor.
+    field :first_name, :string
+    field :paternal_surname, :string
+    field :maternal_surname, :string
+    field :birthdate, :date
+    field :gender, :string
+    field :tax_id, :string
+    # Kept per-doctor for a possible future international expansion; Medikit
+    # currently supports MX/CO. Falls back to the :medikit config default ("MX")
+    # at send time when blank.
+    field :address_country, :string
+    field :address_state, :string
+    field :address_city, :string
+    field :address_line, :string
+    field :address_zipcode, :string
+    # Medikit specialty catalog id, chosen from the Medikit catalog dropdown.
+    # Distinct from the free-text `specialty` (which drives bot routing).
+    field :medikit_specialty_id, :string
     # Admin-confirmed: do we have the doctor's correct RFC on file for
     # CFDI invoicing? Flipped from the doctor show page.
     field :has_correct_rfc, :boolean, default: false
@@ -51,15 +81,48 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   end
 
   @required ~w[id phone name specialty is_available]a
-  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at has_correct_rfc consultation_fee_mxn referral_link]a
+  @optional ~w[cedula_profesional university years_experience email accepts_video_calls terms_accepted terms_accepted_at extension_code prescrypto_medic_id prescrypto_token prescrypto_specialty_no prescrypto_specialty_verified prescrypto_synced_at deactivated_at has_correct_rfc consultation_fee_mxn referral_link medikit_healthcare_provider_id medikit_license_validated_at first_name paternal_surname maternal_surname birthdate gender tax_id address_country address_state address_city address_line address_zipcode medikit_specialty_id]a
+
+  # Genders Medikit accepts (RAML Gender pattern). Countries Medikit supports
+  # (RAML Country pattern ^(MX|CO)$). Mexican state codes (RAML State pattern).
+  @genders ~w[Male Female Other]
+  @countries ~w[MX CO]
+  @mx_states ~w[AG BC BS CH CL CM CO CS CX DG GR GT HG JA ME MI MO NA NL OA PB QE QR SI SL SO TB TL TM VE YU ZA]
+
+  def genders, do: @genders
+  def countries, do: @countries
+  def mx_states, do: @mx_states
 
   def changeset(doctor, attrs) do
     doctor
     |> cast(attrs, @required ++ @optional)
     |> normalize_phone()
     |> validate_number(:consultation_fee_mxn, greater_than_or_equal_to: 0)
+    |> validate_medikit_fields()
     |> validate_required(@required)
     |> unique_constraint(:phone)
+  end
+
+  # Format/enum checks for the Medikit fields — applied only when a value is
+  # present (the fields stay optional so partial doctor records still save).
+  defp validate_medikit_fields(changeset) do
+    changeset
+    |> validate_inclusion(:gender, @genders)
+    |> validate_inclusion(:address_country, @countries)
+    |> validate_state_for_country()
+    |> validate_format(:address_zipcode, ~r/^\d{5,10}$/,
+      message: "must be 5–10 digits"
+    )
+  end
+
+  # `@mx_states` only describes Mexico. Enforce it solely for MX doctors so a
+  # future non-MX country (CO) isn't blocked by Mexican state codes; that
+  # country's own state list/UI is a later addition.
+  defp validate_state_for_country(changeset) do
+    case get_field(changeset, :address_country) || "MX" do
+      "MX" -> validate_inclusion(changeset, :address_state, @mx_states)
+      _ -> changeset
+    end
   end
 
   @doc """

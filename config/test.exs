@@ -93,3 +93,6 @@ config :phoenix_live_view,
 
 config :ledgr, :prescrypto, enabled: false
 config :ledgr, :prescrypto_test_plug, {Req.Test, Ledgr.Domains.HelloDoctor.Prescrypto}
+
+config :ledgr, :medikit, enabled: false
+config :ledgr, :medikit_test_plug, {Req.Test, Ledgr.Domains.HelloDoctor.Medikit}

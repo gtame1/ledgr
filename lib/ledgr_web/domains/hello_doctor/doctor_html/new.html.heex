@@ -176,6 +176,8 @@
           />
         </div>
 
+        <.medikit_fields changeset={@changeset} />
+
         <div class="flex items-center gap-3 pt-3">
           <button type="submit" class="hd-btn-primary">Save Doctor</button>
           <.link navigate={dp(@domain_path_prefix, "/doctors")} class="hd-btn-secondary">

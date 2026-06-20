@@ -244,6 +244,226 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorHTML do
   use LedgrWeb, :html
   embed_templates "doctor_html/*"
 
+  alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
+  alias Ledgr.Domains.HelloDoctor.Medikit
+  alias Ledgr.Domains.HelloDoctor.MedikitSpecialties
+
+  @doc "Dark switch — hides all Medikit admin UI until the env is configured."
+  def medikit_enabled?, do: Medikit.enabled?()
+
+  @doc """
+  The structured doctor data Medikit's doctors API needs (name parts, birthdate,
+  gender, RFC, specialty catalog id, postal address). Shared by the new and edit
+  forms. Values come from `Ecto.Changeset.get_field/2` (works for both an
+  unsaved and a persisted changeset); errors show only after a submit
+  (`@changeset.action`).
+  """
+  attr :changeset, :any, required: true
+
+  def medikit_fields(assigns) do
+    assigns =
+      assign(assigns,
+        medikit_specialty_options: MedikitSpecialties.options(),
+        genders: Doctor.genders(),
+        countries: Doctor.countries(),
+        mx_states: Doctor.mx_states()
+      )
+
+    ~H"""
+    <div class="pt-5 mt-5" style="border-top: 1px solid var(--border-subtle);">
+      <h2 class="text-sm font-semibold mb-1" style="color: var(--text-main);">
+        Medikit — digital prescriptions
+      </h2>
+      <p class="text-xs mb-4" style="color: var(--text-muted);">
+        Required to register the doctor with Medikit. All fields must be filled (and the cédula
+        validated) before the doctor can be provisioned.
+      </p>
+
+      <div class="grid grid-cols-3 gap-4">
+        <.medikit_text changeset={@changeset} field={:first_name} label="First name(s)" required />
+        <.medikit_text
+          changeset={@changeset}
+          field={:paternal_surname}
+          label="Paternal surname"
+          required
+        />
+        <.medikit_text
+          changeset={@changeset}
+          field={:maternal_surname}
+          label="Maternal surname"
+          required
+        />
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Birthdate
+          </label>
+          <input
+            type="date"
+            name="doctor[birthdate]"
+            value={date_value(@changeset, :birthdate)}
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Gender
+          </label>
+          <select
+            name="doctor[gender]"
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          >
+            <option value="">—</option>
+            <%= for g <- @genders do %>
+              <option value={g} selected={field_value(@changeset, :gender) == g}>{g}</option>
+            <% end %>
+          </select>
+          <.medikit_error changeset={@changeset} field={:gender} />
+        </div>
+
+        <.medikit_text changeset={@changeset} field={:tax_id} label="RFC (Tax ID)" />
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+          Medikit specialty <span style="color: #dc2626;">*</span>
+        </label>
+        <select
+          name="doctor[medikit_specialty_id]"
+          class="w-full rounded-lg border px-4 py-2.5 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+        >
+          <option value="">Select Medikit specialty...</option>
+          <%= for {label, id} <- @medikit_specialty_options do %>
+            <option value={id} selected={field_value(@changeset, :medikit_specialty_id) == id}>
+              {label}
+            </option>
+          <% end %>
+        </select>
+        <%= if @medikit_specialty_options == [] do %>
+          <p class="text-xs mt-1" style="color: #dc2626;">
+            No Medikit specialty catalog configured yet — set <code>:medikit</code>
+            <code>:specialty_catalog</code> once the Account Manager provides it.
+          </p>
+        <% end %>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mt-4">
+        <.medikit_text changeset={@changeset} field={:address_line} label="Address (street & number)" />
+        <.medikit_text changeset={@changeset} field={:address_city} label="City" />
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Country
+          </label>
+          <select
+            name="doctor[address_country]"
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          >
+            <%= for c <- @countries do %>
+              <option value={c} selected={country_selected?(@changeset, c)}>{c}</option>
+            <% end %>
+          </select>
+          <.medikit_error changeset={@changeset} field={:address_country} />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            State
+          </label>
+          <select
+            name="doctor[address_state]"
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          >
+            <option value="">—</option>
+            <%= for s <- @mx_states do %>
+              <option value={s} selected={field_value(@changeset, :address_state) == s}>{s}</option>
+            <% end %>
+          </select>
+          <.medikit_error changeset={@changeset} field={:address_state} />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+            Zipcode
+          </label>
+          <input
+            type="text"
+            name="doctor[address_zipcode]"
+            value={field_value(@changeset, :address_zipcode)}
+            inputmode="numeric"
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="64000"
+          />
+          <.medikit_error changeset={@changeset} field={:address_zipcode} />
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :changeset, :any, required: true
+  attr :field, :atom, required: true
+  attr :label, :string, required: true
+  attr :required, :boolean, default: false
+
+  defp medikit_text(assigns) do
+    ~H"""
+    <div>
+      <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
+        {@label}<span :if={@required} style="color: #dc2626;"> *</span>
+      </label>
+      <input
+        type="text"
+        name={"doctor[#{@field}]"}
+        value={field_value(@changeset, @field)}
+        class="w-full rounded-lg border px-4 py-2.5 text-sm"
+        style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+      />
+      <.medikit_error changeset={@changeset} field={@field} />
+    </div>
+    """
+  end
+
+  attr :changeset, :any, required: true
+  attr :field, :atom, required: true
+
+  defp medikit_error(assigns) do
+    ~H"""
+    <%= if @changeset.action && @changeset.errors[@field] do %>
+      <p class="text-xs mt-1" style="color: #dc2626;">{elem(@changeset.errors[@field], 0)}</p>
+    <% end %>
+    """
+  end
+
+  defp field_value(changeset, field), do: Ecto.Changeset.get_field(changeset, field) || ""
+
+  # Country defaults to "MX" in the dropdown when the doctor has none set yet.
+  defp country_selected?(changeset, country) do
+    case Ecto.Changeset.get_field(changeset, :address_country) do
+      nil -> country == "MX"
+      "" -> country == "MX"
+      v -> v == country
+    end
+  end
+
+  defp date_value(changeset, field) do
+    case Ecto.Changeset.get_field(changeset, field) do
+      %Date{} = d -> Date.to_iso8601(d)
+      _ -> ""
+    end
+  end
+
   @doc """
   Builds the query string for a doctor-list URL with the given overrides
   layered on top of the current filter/sort state. Drops empty/nil values

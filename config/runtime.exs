@@ -216,6 +216,28 @@ if token = System.get_env("PRESCRYPTO_TOKEN") do
     enabled: true
 end
 
+# Medikit digital prescriptions (migrating off Prescrypto). Single account-level
+# API-KEY. Build against dev/UAT by pointing MEDIKIT_DOCTORS_HOST at the UAT host
+# (https://api-doctors-1jqz1q.5sc6y6-2.usa-e2.cloudhub.io/api). Only configured
+# when the API key is present, so the integration stays inert without it.
+#
+# Account-scoped ids (Payer/PurchaserPlan/OrganizationId/SourceSystem) and the
+# specialty catalog come from the Medikit Account Manager. Per-doctor data
+# (name parts, birthdate, specialty, address) is stored on the doctors table and
+# captured via the doctor form — not config. `country` is only the fallback used
+# when a doctor has no per-doctor address_country set.
+if api_key = System.get_env("MEDIKIT_API_KEY") do
+  config :ledgr, :medikit,
+    base_url: System.get_env("MEDIKIT_DOCTORS_HOST"),
+    api_key: api_key,
+    enabled: true,
+    payer: System.get_env("MEDIKIT_PAYER_ID"),
+    purchaser_plan: System.get_env("MEDIKIT_PURCHASER_PLAN_ID"),
+    organization_id: System.get_env("MEDIKIT_ORGANIZATION_ID"),
+    source_system: System.get_env("MEDIKIT_SOURCE_SYSTEM_ID"),
+    country: System.get_env("MEDIKIT_DEFAULT_COUNTRY", "MX")
+end
+
 # CallMeBot (WhatsApp) — free per-recipient WhatsApp sender used for
 # server-initiated alerts (e.g. new MrMunchMe orders). One-time setup:
 # from the receiving phone, send "I allow callmebot to send me messages"
