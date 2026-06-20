@@ -51,19 +51,10 @@ config :ledgr, Ledgr.Repos.CasaTame,
   pool_size: 10,
   priv: "priv/repos/casa_tame"
 
-config :ledgr, Ledgr.Repos.HelloDoctor,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "ledgr_hello_doctor_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10,
-  priv: "priv/repos/hello_doctor"
-
-# AMP repo config lives at the END of this file (after dev.secret.exs loads),
-# so a local `dev.secret.exs` can `System.put_env/2` the Neon URL before the
-# env-var check runs. See the block below `import_config("dev.secret.exs")`.
+# HelloDoctor + AMP repo config live at the END of this file (after
+# dev.secret.exs loads), so a local `dev.secret.exs` can `System.put_env/2` the
+# Neon URL before the env-var check runs. See the blocks below
+# `import_config("dev.secret.exs")`.
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -176,4 +167,47 @@ else
     show_sensitive_data_on_connection_error: true,
     pool_size: 10,
     priv: "priv/repos/aumenta_mi_pension"
+end
+
+# HelloDoctor dev DB.
+#
+# Default: local Postgres (`ledgr_hello_doctor_dev`) — fine for the
+# Ledgr-owned/managed tables (`doctors`, etc.).
+#
+# Override: set `HELLO_DOCTOR_DATABASE_URL` (typically from
+# `config/dev.secret.exs`) to point at a Neon dev branch. Several columns on
+# shared tables are bot-owned and only exist on Neon (e.g.
+# `conversations.quality_signal` / `operator_notes`, bot ADR-019/059), so any
+# page that selects them 500s against a local Postgres that hasn't had the
+# matching DDL applied. Use the override to get the full bot-owned schema.
+if hd_url = System.get_env("HELLO_DOCTOR_DATABASE_URL") do
+  IO.puts(:stderr, "[dev.exs] HelloDoctor repo → Neon (#{URI.parse(hd_url).host})")
+
+  config :ledgr, Ledgr.Repos.HelloDoctor,
+    url: hd_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(URI.parse(hd_url).host || "")
+    ],
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10,
+    priv: "priv/repos/hello_doctor"
+else
+  IO.puts(
+    :stderr,
+    "[dev.exs] HelloDoctor repo → local Postgres (bot-owned columns like " <>
+      "conversations.quality_signal WILL be missing; set HELLO_DOCTOR_DATABASE_URL " <>
+      "to use the Neon dev branch)"
+  )
+
+  config :ledgr, Ledgr.Repos.HelloDoctor,
+    username: "postgres",
+    password: "postgres",
+    hostname: "localhost",
+    database: "ledgr_hello_doctor_dev",
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10,
+    priv: "priv/repos/hello_doctor"
 end
