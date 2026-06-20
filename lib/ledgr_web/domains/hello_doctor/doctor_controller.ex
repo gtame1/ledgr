@@ -252,11 +252,33 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorHTML do
   def medikit_enabled?, do: Medikit.enabled?()
 
   @doc """
-  The structured doctor data Medikit's doctors API needs (name parts, birthdate,
-  gender, RFC, specialty catalog id, postal address). Shared by the new and edit
-  forms. Values come from `Ecto.Changeset.get_field/2` (works for both an
-  unsaved and a persisted changeset); errors show only after a submit
-  (`@changeset.action`).
+  The doctor's structured name (given names + both surnames). Replaces the old
+  single "Full Name" input — `Doctor.changeset/2` derives `name` from these, so
+  the name is captured once. Shared by the new and edit forms.
+  """
+  attr :changeset, :any, required: true
+
+  def name_fields(assigns) do
+    ~H"""
+    <div class="grid grid-cols-3 gap-4">
+      <.medikit_text changeset={@changeset} field={:first_name} label="First name(s)" required />
+      <.medikit_text
+        changeset={@changeset}
+        field={:paternal_surname}
+        label="Paternal surname"
+        required
+      />
+      <.medikit_text changeset={@changeset} field={:maternal_surname} label="Maternal surname" />
+    </div>
+    """
+  end
+
+  @doc """
+  The structured doctor data Medikit's doctors API needs (birthdate, gender, RFC,
+  specialty catalog id, postal address). Shared by the new and edit forms. Name
+  parts live in `name_fields/1` (they double as the doctor's name). Values come
+  from `Ecto.Changeset.get_field/2` (works for both an unsaved and a persisted
+  changeset); errors show only after a submit (`@changeset.action`).
   """
   attr :changeset, :any, required: true
 
@@ -280,22 +302,6 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorHTML do
       </p>
 
       <div class="grid grid-cols-3 gap-4">
-        <.medikit_text changeset={@changeset} field={:first_name} label="First name(s)" required />
-        <.medikit_text
-          changeset={@changeset}
-          field={:paternal_surname}
-          label="Paternal surname"
-          required
-        />
-        <.medikit_text
-          changeset={@changeset}
-          field={:maternal_surname}
-          label="Maternal surname"
-          required
-        />
-      </div>
-
-      <div class="grid grid-cols-3 gap-4 mt-4">
         <div>
           <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
             Birthdate

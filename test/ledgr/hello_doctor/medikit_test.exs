@@ -111,6 +111,36 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
       assert cs.errors[:address_zipcode]
     end
 
+    test "derives name from the structured name parts" do
+      attrs = %{
+        "id" => Ecto.UUID.generate(),
+        "specialty" => "General",
+        "phone" => "+52155#{System.unique_integer([:positive])}",
+        "is_available" => true,
+        "first_name" => "Ana",
+        "paternal_surname" => "Gomez",
+        "maternal_surname" => "Ruiz"
+      }
+
+      cs = Doctor.changeset(%Doctor{}, attrs)
+      assert cs.valid?
+      # name is required and not passed — it must come from the parts
+      assert Ecto.Changeset.get_field(cs, :name) == "Ana Gomez Ruiz"
+    end
+
+    test "keeps existing name when editing a legacy doctor without name parts" do
+      doctor = %Doctor{
+        id: "d1",
+        name: "Legacy Name",
+        phone: "5550001111",
+        specialty: "General",
+        is_available: true
+      }
+
+      cs = Doctor.changeset(doctor, %{"email" => "x@y.com"})
+      assert Ecto.Changeset.get_field(cs, :name) == "Legacy Name"
+    end
+
     test "Medikit fields stay optional — a bare doctor still saves" do
       attrs = %{
         "id" => Ecto.UUID.generate(),
@@ -231,33 +261,44 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
 
   # ── doctor form component renders ─────────────────────────────────────────
 
-  describe "DoctorHTML.medikit_fields/1 renders" do
+  describe "DoctorHTML form components render" do
     import Phoenix.LiveViewTest
 
-    test "renders for a blank (new) changeset" do
+    test "name_fields renders the three structured name inputs" do
+      cs = %Doctor{first_name: "Juan"} |> Doctor.changeset(%{})
+
+      html =
+        render_component(&LedgrWeb.Domains.HelloDoctor.DoctorHTML.name_fields/1, changeset: cs)
+
+      assert html =~ ~s(name="doctor[first_name]")
+      assert html =~ ~s(name="doctor[paternal_surname]")
+      assert html =~ ~s(name="doctor[maternal_surname]")
+      assert html =~ "value=\"Juan\""
+    end
+
+    test "medikit_fields renders the Medikit data inputs (no name parts)" do
       cs = Doctor.changeset(%Doctor{}, %{})
 
       html =
         render_component(&LedgrWeb.Domains.HelloDoctor.DoctorHTML.medikit_fields/1, changeset: cs)
 
       assert html =~ "Medikit"
-      assert html =~ ~s(name="doctor[first_name]")
       assert html =~ ~s(name="doctor[medikit_specialty_id]")
       assert html =~ ~s(name="doctor[address_state]")
+      # name parts now live in name_fields, not here
+      refute html =~ ~s(name="doctor[first_name]")
     end
 
-    test "renders with values + errors for a submitted (edit) changeset" do
+    test "medikit_fields shows values + format errors after a submit" do
       cs =
-        %Doctor{first_name: "Juan", birthdate: ~D[1980-01-01]}
-        |> Doctor.changeset(%{"gender" => "X", "address_zipcode" => "bad"})
+        %Doctor{birthdate: ~D[1980-01-01]}
+        |> Doctor.changeset(%{"address_zipcode" => "bad"})
         |> Map.put(:action, :update)
 
       html =
         render_component(&LedgrWeb.Domains.HelloDoctor.DoctorHTML.medikit_fields/1, changeset: cs)
 
-      assert html =~ "value=\"Juan\""
       assert html =~ "1980-01-01"
-      # zipcode format error surfaces after a submit
       assert html =~ "must be 5–10 digits"
     end
   end

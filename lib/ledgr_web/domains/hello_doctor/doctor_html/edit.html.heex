@@ -19,25 +19,7 @@
       >
         <input type="hidden" name="_method" value="put" />
 
-        <div>
-          <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">
-            Full Name <span style="color: #dc2626;">*</span>
-          </label>
-          <input
-            type="text"
-            name="doctor[name]"
-            value={Ecto.Changeset.get_field(@changeset, :name) || ""}
-            required
-            class="w-full rounded-lg border px-4 py-2.5 text-sm"
-            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-            placeholder="Dr. Juan Pérez García"
-          />
-          <%= if @changeset.action && @changeset.errors[:name] do %>
-            <p class="text-xs mt-1" style="color: #dc2626;">
-              {elem(@changeset.errors[:name], 0)}
-            </p>
-          <% end %>
-        </div>
+        <.name_fields changeset={@changeset} />
 
         <div>
           <label class="block text-sm font-medium mb-1" style="color: var(--text-main);">

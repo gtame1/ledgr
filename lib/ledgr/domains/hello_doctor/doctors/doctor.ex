@@ -97,10 +97,27 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     doctor
     |> cast(attrs, @required ++ @optional)
     |> normalize_phone()
+    |> put_name_from_parts()
     |> validate_number(:consultation_fee_mxn, greater_than_or_equal_to: 0)
     |> validate_medikit_fields()
     |> validate_required(@required)
     |> unique_constraint(:phone)
+  end
+
+  # `name` (required; used by the bot for routing/display/search) is derived from
+  # the structured name parts so the form captures the name once. Only overrides
+  # `name` when at least one part is present, so a legacy doctor edited without
+  # touching the parts keeps its existing `name`.
+  defp put_name_from_parts(changeset) do
+    parts =
+      [:first_name, :paternal_surname, :maternal_surname]
+      |> Enum.map(&get_field(changeset, &1))
+      |> Enum.reject(fn v -> is_nil(v) or (is_binary(v) and String.trim(v) == "") end)
+
+    case parts |> Enum.join(" ") |> String.trim() do
+      "" -> changeset
+      full -> put_change(changeset, :name, full)
+    end
   end
 
   # Format/enum checks for the Medikit fields — applied only when a value is
