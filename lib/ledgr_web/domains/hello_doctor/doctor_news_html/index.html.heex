@@ -1,0 +1,506 @@
+<div class="hd-page">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Doctor News Blast</h1>
+    <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 70ch;">
+      Compose a one-shot announcement and send it to doctors over WhatsApp.
+      You write only the body — a fixed greeting and signature are added
+      automatically. Preview the recipients before sending; the blast is
+      irreversible.
+    </p>
+  </div>
+
+  <div
+    id="dn-config"
+    data-preview-url={dp(@domain_path_prefix, "/doctor-news/preview")}
+    data-send-url={dp(@domain_path_prefix, "/doctor-news/send")}
+    hidden
+  >
+  </div>
+
+  <div class="dn-grid">
+    <%!-- ── Compose ────────────────────────────────────────────── --%>
+    <div class="hd-card p-6">
+      <h2 class="text-lg font-semibold mb-4" style="color: var(--text-main);">Compose</h2>
+
+      <div class="mb-2">
+        <label
+          for="dn-message"
+          class="block text-sm font-medium mb-1"
+          style="color: var(--text-main);"
+        >
+          Message <span style="color: #dc2626;">*</span>
+        </label>
+        <textarea
+          id="dn-message"
+          rows="6"
+          maxlength="1000"
+          class="w-full rounded-lg border px-4 py-2.5 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          placeholder="Ya pueden emitir recetas digitales con /receta."
+        ></textarea>
+        <div class="flex items-center justify-between mt-1">
+          <p id="dn-message-error" class="text-xs" style="color: #dc2626;" hidden></p>
+          <p id="dn-counter" class="text-xs ml-auto" style="color: var(--text-muted);">
+            0 / 1000
+          </p>
+        </div>
+      </div>
+
+      <h3 class="text-sm font-semibold mt-6 mb-3" style="color: var(--text-main);">
+        Filters <span style="color: var(--text-muted); font-weight: 400;">— optional, narrow the audience</span>
+      </h3>
+
+      <div class="mb-4">
+        <label
+          for="dn-specialty"
+          class="block text-sm font-medium mb-1"
+          style="color: var(--text-main);"
+        >
+          Specialty
+        </label>
+        <input
+          type="text"
+          id="dn-specialty"
+          list="dn-specialty-list"
+          class="w-full rounded-lg border px-4 py-2.5 text-sm"
+          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+          placeholder="cardio (substring match)"
+        />
+        <datalist id="dn-specialty-list">
+          <%= for {label, _value} <- @specialties do %>
+            <option value={label}></option>
+          <% end %>
+        </datalist>
+        <p class="text-xs mt-1" style="color: var(--text-muted);">
+          Case-insensitive substring — "cardio" matches "Cardiología".
+        </p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="dn-check">
+          <input type="checkbox" id="dn-available_only" /> Available only
+        </label>
+        <label class="dn-check">
+          <input type="checkbox" id="dn-terms_accepted_only" /> Terms-accepted only
+        </label>
+        <label class="dn-check">
+          <input type="checkbox" id="dn-direct_only" />
+          Direct doctors only <span style="color: var(--text-muted);">(those with a consultation fee)</span>
+        </label>
+        <label class="dn-check">
+          <input type="checkbox" id="dn-exclude_deactivated" /> Exclude deactivated
+        </label>
+      </div>
+    </div>
+
+    <%!-- ── Preview + send ─────────────────────────────────────── --%>
+    <div class="space-y-6">
+      <div class="hd-card p-6">
+        <h2 class="text-lg font-semibold mb-3" style="color: var(--text-main);">
+          What each doctor receives
+        </h2>
+        <div class="dn-bubble">
+          <span style="color: var(--text-muted);">Hola Dr. </span><span class="dn-name">[Nombre del doctor]</span><span style="color: var(--text-muted);">, te compartimos una novedad de Hello Doctor:</span>
+          <div id="dn-preview-body" class="dn-preview-body" style="color: var(--text-muted); font-style: italic;">
+            Tu mensaje aparecerá aquí…
+          </div>
+          <div style="color: var(--text-muted);">— Equipo Hello Doctor</div>
+        </div>
+      </div>
+
+      <div class="hd-card p-6">
+        <h2 class="text-lg font-semibold mb-3" style="color: var(--text-main);">
+          Recipients
+        </h2>
+        <button type="button" id="dn-preview-btn" class="hd-btn-secondary" disabled>
+          Preview recipients
+        </button>
+
+        <div id="dn-recipients" class="mt-4" hidden></div>
+
+        <div id="dn-send-area" class="mt-5 pt-5" style="border-top: 1px solid var(--border-subtle);" hidden>
+          <button type="button" id="dn-send-btn" class="hd-btn-primary">
+            Send blast…
+          </button>
+
+          <div id="dn-confirm" class="mt-4" hidden>
+            <div class="dn-alert dn-alert-warn">
+              <strong>This is irreversible.</strong>
+              You're about to send a WhatsApp message to
+              <strong><span id="dn-confirm-count">0</span> doctor(s)</strong>.
+            </div>
+            <div class="flex items-center gap-3 mt-3">
+              <button type="button" id="dn-confirm-btn" class="hd-btn-primary">
+                Confirm &amp; send
+              </button>
+              <button type="button" id="dn-cancel-btn" class="hd-btn-secondary">Cancel</button>
+            </div>
+          </div>
+
+          <div id="dn-send-result" class="mt-4" hidden></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .dn-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  @media (min-width: 1024px) {
+    .dn-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+  }
+  .dn-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-main);
+    cursor: pointer;
+  }
+  .dn-check input { width: 1rem; height: 1rem; }
+  .dn-bubble {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-main);
+  }
+  .dn-name { color: var(--text-main); font-weight: 600; }
+  .dn-preview-body {
+    margin: 0.5rem 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-main);
+  }
+  .dn-alert {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  .dn-alert-warn { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .dn-alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .dn-alert-ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  .dn-alert-info {
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+  }
+  .dn-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .dn-chip {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+  .dn-phones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+    max-height: 11rem;
+    overflow-y: auto;
+  }
+  .dn-phone {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.375rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+  }
+</style>
+
+<script>
+  (function () {
+    const cfg = document.getElementById("dn-config");
+    const PREVIEW_URL = cfg.dataset.previewUrl;
+    const SEND_URL = cfg.dataset.sendUrl;
+    const CSRF =
+      (document.querySelector('meta[name="csrf-token"]') || {}).content || "";
+    const MAX = 1000;
+
+    const $ = (id) => document.getElementById(id);
+    const message = $("dn-message");
+    const counter = $("dn-counter");
+    const msgError = $("dn-message-error");
+    const previewBody = $("dn-preview-body");
+    const previewBtn = $("dn-preview-btn");
+    const recipientsBox = $("dn-recipients");
+    const sendArea = $("dn-send-area");
+    const sendBtn = $("dn-send-btn");
+    const confirm = $("dn-confirm");
+    const confirmCount = $("dn-confirm-count");
+    const confirmBtn = $("dn-confirm-btn");
+    const cancelBtn = $("dn-cancel-btn");
+    const sendResult = $("dn-send-result");
+    const specialty = $("dn-specialty");
+    const checks = {
+      available_only: $("dn-available_only"),
+      terms_accepted_only: $("dn-terms_accepted_only"),
+      direct_only: $("dn-direct_only"),
+      exclude_deactivated: $("dn-exclude_deactivated"),
+    };
+
+    function trimmed() {
+      return message.value.trim();
+    }
+
+    function show(el) { el.hidden = false; }
+    function hide(el) { el.hidden = true; }
+
+    function clearMsgError() {
+      msgError.hidden = true;
+      msgError.textContent = "";
+    }
+
+    function showMsgError(text) {
+      msgError.textContent = text;
+      msgError.hidden = false;
+    }
+
+    // Any change to message or filters invalidates a prior preview: the
+    // recipient set may no longer match, so re-preview is required before send.
+    function resetPreviewState() {
+      hide(recipientsBox);
+      hide(sendArea);
+      hide(confirm);
+      hide(sendResult);
+      recipientsBox.innerHTML = "";
+      sendResult.innerHTML = "";
+    }
+
+    function refreshCompose() {
+      const t = trimmed();
+      counter.textContent = t.length + " / " + MAX;
+      counter.style.color = t.length > MAX ? "#dc2626" : "var(--text-muted)";
+      previewBtn.disabled = t.length === 0 || t.length > MAX;
+      previewBody.textContent = t.length ? t : "Tu mensaje aparecerá aquí…";
+      previewBody.style.fontStyle = t.length ? "normal" : "italic";
+      previewBody.style.color = t.length ? "var(--text-main)" : "var(--text-muted)";
+      clearMsgError();
+      resetPreviewState();
+    }
+
+    function payload() {
+      return {
+        message: message.value,
+        specialty: specialty.value,
+        available_only: checks.available_only.checked,
+        terms_accepted_only: checks.terms_accepted_only.checked,
+        direct_only: checks.direct_only.checked,
+        exclude_deactivated: checks.exclude_deactivated.checked,
+      };
+    }
+
+    async function call(url) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json",
+          "x-csrf-token": CSRF,
+        },
+        body: JSON.stringify(payload()),
+      });
+      let data = null;
+      try { data = await res.json(); } catch (_e) {}
+      return { status: res.status, ok: res.ok, data };
+    }
+
+    // Maps non-2xx responses to a user-facing message. 400 goes inline on the
+    // message field (operator error); everything else is a config/system issue
+    // and renders into `target`. Returns true if it handled an error.
+    function handleError(status, data, target) {
+      if (status >= 200 && status < 300) return false;
+
+      if (status === 400) {
+        showMsgError((data && data.detail) || "Invalid message.");
+        return true;
+      }
+
+      let msg;
+      if (status === 401 || status === 422) {
+        msg =
+          "Configuration error: the admin API key is missing or invalid. " +
+          "This is a setup issue, not your message.";
+      } else if (status === 503) {
+        msg =
+          "Configuration error: the Hello Doctor bot URL / admin key isn't " +
+          "set on the server.";
+      } else if (status === 502) {
+        msg =
+          "Couldn't reach the Hello Doctor service. Try again shortly.";
+      } else {
+        msg =
+          "Unexpected error (HTTP " + status + "). " +
+          ((data && data.detail) || "Please try again.");
+      }
+      target.innerHTML =
+        '<div class="dn-alert dn-alert-error">' + escapeHtml(msg) + "</div>";
+      show(target);
+      return true;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function filterLabel(key) {
+      return {
+        specialty: "specialty",
+        available_only: "available only",
+        terms_accepted_only: "terms accepted",
+        direct_only: "direct only",
+        exclude_deactivated: "exclude deactivated",
+      }[key] || key;
+    }
+
+    function renderRecipients(d) {
+      const total = d.total || 0;
+      const applied = d.applied_filters || {};
+      const recipients = d.recipients || [];
+
+      let chips = "";
+      const keys = Object.keys(applied);
+      if (keys.length) {
+        chips =
+          '<div class="dn-chips">' +
+          keys
+            .map(function (k) {
+              const v = applied[k];
+              const text =
+                v === true ? filterLabel(k) : filterLabel(k) + ": " + v;
+              return '<span class="dn-chip">' + escapeHtml(text) + "</span>";
+            })
+            .join("") +
+          "</div>";
+      } else {
+        chips =
+          '<p class="text-xs" style="color: var(--text-muted); margin-top: 0.4rem;">' +
+          "No filters applied — every doctor.</p>";
+      }
+
+      let phones = "";
+      if (recipients.length) {
+        phones =
+          '<div class="dn-phones">' +
+          recipients
+            .map(function (p) {
+              return '<span class="dn-phone">' + escapeHtml(p) + "</span>";
+            })
+            .join("") +
+          "</div>" +
+          '<p class="text-xs" style="color: var(--text-muted); margin-top: 0.4rem;">' +
+          "Numbers are redacted to the last 4 digits.</p>";
+      }
+
+      if (total === 0) {
+        recipientsBox.innerHTML =
+          '<div class="dn-alert dn-alert-warn">No doctors match these filters. ' +
+          "Adjust the filters and preview again.</div>" + chips;
+        hide(sendArea);
+      } else {
+        recipientsBox.innerHTML =
+          '<div class="dn-alert dn-alert-info"><strong>' +
+          total +
+          "</strong> doctor(s) will receive this message.</div>" +
+          chips +
+          phones;
+        confirmCount.textContent = total;
+        hide(confirm);
+        hide(sendResult);
+        show(sendArea);
+      }
+      show(recipientsBox);
+    }
+
+    function renderSendResult(d) {
+      const sent = d.sent || 0;
+      const failed = d.failed || 0;
+      let html =
+        '<div class="dn-alert dn-alert-ok"><strong>Sent to ' +
+        sent +
+        " doctor(s).</strong></div>";
+      if (failed > 0) {
+        html +=
+          '<div class="dn-alert dn-alert-warn" style="margin-top: 0.5rem;">' +
+          failed +
+          " message(s) failed to send. Per-recipient errors are logged " +
+          'server-side under "doctor_news".</div>';
+      }
+      sendResult.innerHTML = html;
+      show(sendResult);
+      // The blast is spent — block re-sending the same batch by accident.
+      hide(confirm);
+      sendBtn.disabled = true;
+      sendBtn.textContent = "Blast sent";
+    }
+
+    // ── Wiring ─────────────────────────────────────────────────────
+    message.addEventListener("input", refreshCompose);
+    specialty.addEventListener("input", resetPreviewState);
+    Object.values(checks).forEach(function (c) {
+      c.addEventListener("change", resetPreviewState);
+    });
+
+    previewBtn.addEventListener("click", async function () {
+      clearMsgError();
+      previewBtn.disabled = true;
+      previewBtn.textContent = "Previewing…";
+      try {
+        const { status, data } = await call(PREVIEW_URL);
+        if (!handleError(status, data, recipientsBox)) {
+          renderRecipients(data || {});
+        }
+      } catch (_e) {
+        recipientsBox.innerHTML =
+          '<div class="dn-alert dn-alert-error">Network error — please try again.</div>';
+        show(recipientsBox);
+      } finally {
+        previewBtn.disabled = trimmed().length === 0 || trimmed().length > MAX;
+        previewBtn.textContent = "Preview recipients";
+      }
+    });
+
+    sendBtn.addEventListener("click", function () {
+      show(confirm);
+    });
+    cancelBtn.addEventListener("click", function () {
+      hide(confirm);
+    });
+
+    confirmBtn.addEventListener("click", async function () {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = "Sending…";
+      try {
+        const { status, data } = await call(SEND_URL);
+        if (!handleError(status, data, sendResult)) {
+          renderSendResult(data || {});
+        }
+      } catch (_e) {
+        sendResult.innerHTML =
+          '<div class="dn-alert dn-alert-error">Network error — the blast may ' +
+          "or may not have sent. Check before retrying.</div>";
+        show(sendResult);
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = "Confirm & send";
+      }
+    });
+
+    refreshCompose();
+  })();
+</script>
