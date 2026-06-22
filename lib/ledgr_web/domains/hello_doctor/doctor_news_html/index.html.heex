@@ -535,16 +535,26 @@
     function renderSendResult(d) {
       const sent = d.sent || 0;
       const failed = d.failed || 0;
+      // "sent" means WhatsApp accepted the request — NOT that it reached the
+      // handset. Marketing templates can still be dropped by Meta after
+      // acceptance (e.g. error 131049), and that outcome only arrives later via
+      // a delivery webhook the bot doesn't report back here. So we say
+      // "accepted", not "delivered".
       let html =
-        '<div class="dn-alert dn-alert-ok"><strong>Sent to ' +
+        '<div class="dn-alert dn-alert-ok"><strong>Accepted by WhatsApp for ' +
         sent +
-        " doctor(s).</strong></div>";
+        " doctor(s).</strong></div>" +
+        '<div class="dn-alert dn-alert-info" style="margin-top: 0.5rem;">' +
+        "Accepted isn’t the same as delivered. WhatsApp may still drop " +
+        "marketing-template messages for some recipients (e.g. those who’ve " +
+        "received several recently or haven’t engaged). Final delivery isn’t " +
+        "reported back here — check with the doctor if it’s critical.</div>";
       if (failed > 0) {
         html +=
           '<div class="dn-alert dn-alert-warn" style="margin-top: 0.5rem;">' +
           failed +
-          " message(s) failed to send. Per-recipient errors are logged " +
-          'server-side under "doctor_news".</div>';
+          " message(s) were rejected outright at send time. Per-recipient " +
+          'errors are logged server-side under "doctor_news".</div>';
       }
       sendResult.innerHTML = html;
       show(sendResult);
