@@ -401,11 +401,14 @@
     }
 
     async function call(url) {
+      // NOTE: deliberately no "accept: application/json" header — these
+      // routes run through the :browser pipeline (plug :accepts, ["html"]),
+      // which 406s a JSON Accept. The default */* passes, and the controller's
+      // json/2 still returns an application/json response.
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "accept": "application/json",
           "x-csrf-token": CSRF,
         },
         body: JSON.stringify(payload()),
@@ -602,9 +605,9 @@
       roster.innerHTML =
         '<p class="text-sm" style="color: var(--text-muted); padding: 0.75rem;">Loading doctors…</p>';
       try {
-        const res = await fetch(RECIPIENTS_URL, {
-          headers: { accept: "application/json" },
-        });
+        // No "accept" header — see note in call(): the :browser pipeline
+        // only accepts "html", so a JSON Accept would 406.
+        const res = await fetch(RECIPIENTS_URL);
         let data = null;
         try { data = await res.json(); } catch (_e) {}
         if (!res.ok || !data || !Array.isArray(data.doctors)) {
