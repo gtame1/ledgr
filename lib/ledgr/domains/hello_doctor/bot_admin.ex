@@ -226,6 +226,60 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
     end
   end
 
+  # ── Doctor news blast (one-shot announcement) ───────────────────
+
+  @doc """
+  Sends a one-shot news/announcement to doctors via the bot's pre-approved
+  WhatsApp template.
+
+  `message` is the operator's body text only — the bot wraps it with a fixed
+  greeting (`Hola Dr. {nombre}, te compartimos una novedad de Hello Doctor:`)
+  and signature (`— Equipo Hello Doctor`). It must be 1–1000 chars after
+  trimming (the bot rejects empty/oversized with HTTP 400).
+
+  `filters` narrows the recipient set; all keys optional and AND-ed together
+  (omitted/false = no narrowing → every doctor):
+
+    * `:specialty` — case-insensitive substring match on specialty
+    * `:available_only` — only doctors marked available
+    * `:terms_accepted_only` — only doctors who accepted T&C
+    * `:direct_only` — only "Direct" doctors (those with a consultation fee)
+    * `:exclude_deactivated` — skip offboarded/deactivated doctors
+
+  `dry_run: true` previews recipients (redacted, last-4-only) and sends
+  nothing; `false` performs the real, irreversible blast.
+
+  Unlike the other helpers here, this returns the raw HTTP status so callers
+  can map the bot's contract precisely (400 = bad message, 401/422 = key
+  misconfig):
+
+    * `{:ok, status, body}` — the call completed (any status; body is decoded)
+    * `{:error, :config, reason}` — bot URL / admin key not configured
+    * `{:error, :network, reason}` — connection failure / timeout
+  """
+  def broadcast_doctor_news(message, filters \\ %{}, dry_run \\ false)
+      when is_binary(message) and is_map(filters) and is_boolean(dry_run) do
+    case config() do
+      {:ok, base, key} ->
+        body =
+          filters
+          |> Map.take([
+            :specialty,
+            :available_only,
+            :terms_accepted_only,
+            :direct_only,
+            :exclude_deactivated
+          ])
+          |> Map.put(:message, message)
+          |> Map.put(:dry_run, dry_run)
+
+        request_with_status(:post, base <> "/admin/doctors/broadcast-news", body, key)
+
+      {:error, reason} ->
+        {:error, :config, reason}
+    end
+  end
+
   # ── Internal ────────────────────────────────────────────────────
 
   defp config do
@@ -273,6 +327,37 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
         Logger.warning("[HelloDoctor BotAdmin] #{method} #{url} failed: #{inspect(exception)}")
 
         {:error, "network error: #{Exception.message(exception)}"}
+    end
+  end
+
+  # Like request/5 but surfaces the raw HTTP status to the caller instead of
+  # collapsing non-2xx into an opaque {:error, string}. Used by the doctor news
+  # blast proxy, which mirrors the bot's status/body straight back to the
+  # browser so the UI can branch on 400 vs 401/422.
+  defp request_with_status(method, url, body, api_key) do
+    opts = [
+      method: method,
+      url: url,
+      headers: [{"x-api-key", api_key}],
+      json: body,
+      receive_timeout: @timeout,
+      connect_options: [timeout: @timeout]
+    ]
+
+    case Req.request(opts) do
+      {:ok, %Req.Response{status: status, body: resp_body}} ->
+        if status not in 200..299 do
+          Logger.warning(
+            "[HelloDoctor BotAdmin] #{method} #{url} returned #{status}: #{inspect(resp_body)}"
+          )
+        end
+
+        {:ok, status, resp_body}
+
+      {:error, exception} ->
+        Logger.warning("[HelloDoctor BotAdmin] #{method} #{url} failed: #{inspect(exception)}")
+
+        {:error, :network, Exception.message(exception)}
     end
   end
 

@@ -584,6 +584,12 @@ defmodule LedgrWeb.Router do
     # Acquisition / Meta ad attribution dashboard
     get "/acquisition", Domains.HelloDoctor.AcquisitionController, :index
 
+    # Doctor news blast — compose + server-side proxy to the bot's
+    # /admin/doctors/broadcast-news (keeps the admin API key off the browser)
+    get "/doctor-news", Domains.HelloDoctor.DoctorNewsController, :index
+    post "/doctor-news/preview", Domains.HelloDoctor.DoctorNewsController, :preview
+    post "/doctor-news/send", Domains.HelloDoctor.DoctorNewsController, :send
+
     # Corporate accounts admin (proxies the bot's /admin/corporate API)
     get "/corporate", Domains.HelloDoctor.CorporateController, :index
     get "/corporate/new", Domains.HelloDoctor.CorporateController, :new

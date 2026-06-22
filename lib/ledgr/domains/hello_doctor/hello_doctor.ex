@@ -231,7 +231,8 @@ defmodule Ledgr.Domains.HelloDoctor do
       %{
         group: "Marketing",
         items: [
-          %{label: "Acquisition", path: "#{prefix}/acquisition", icon: :reports}
+          %{label: "Acquisition", path: "#{prefix}/acquisition", icon: :reports},
+          %{label: "News Blast", path: "#{prefix}/doctor-news", icon: :reports}
         ]
       },
       %{
@@ -267,6 +268,7 @@ defmodule Ledgr.Domains.HelloDoctor do
       "Doctor Payouts" => "account_balance_wallet",
       "Corporate" => "business",
       "Acquisition" => "trending_up",
+      "News Blast" => "campaign",
       "Monthly Report" => "calendar_month",
       "Balance Sheet" => "account_balance",
       "P&L" => "bar_chart",
