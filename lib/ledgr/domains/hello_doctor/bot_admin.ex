@@ -245,6 +245,9 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
     * `:terms_accepted_only` — only doctors who accepted T&C
     * `:direct_only` — only "Direct" doctors (those with a consultation fee)
     * `:exclude_deactivated` — skip offboarded/deactivated doctors
+    * `:doctor_ids` — explicit list of doctor IDs (hand-picked recipients).
+      When present, the caller should send *only* this and omit the attribute
+      filters so the selection is unambiguous.
 
   `dry_run: true` previews recipients (redacted, last-4-only) and sends
   nothing; `false` performs the real, irreversible blast.
@@ -268,7 +271,8 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
             :available_only,
             :terms_accepted_only,
             :direct_only,
-            :exclude_deactivated
+            :exclude_deactivated,
+            :doctor_ids
           ])
           |> Map.put(:message, message)
           |> Map.put(:dry_run, dry_run)
@@ -277,6 +281,22 @@ defmodule Ledgr.Domains.HelloDoctor.BotAdmin do
 
       {:error, reason} ->
         {:error, :config, reason}
+    end
+  end
+
+  @doc """
+  Lists the full doctor roster from the bot's admin API. Used to populate the
+  hand-pick recipient checklist on the news blast screen.
+
+  Returns `{:ok, [doctor_map, ...]}` where each map has string keys including
+  `"id"` (the selection key for `:doctor_ids`), `"name"`, `"specialty"`, and
+  status flags. NOTE: this endpoint returns **full phone numbers** — callers
+  proxying to the browser must strip `"phone"` first.
+  """
+  def list_doctors do
+    case config() do
+      {:ok, base, key} -> request(:get, base <> "/admin/doctors", [], [], key)
+      {:error, _} = err -> err
     end
   end
 
