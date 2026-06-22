@@ -15,7 +15,9 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
       conversations: conversations,
       current_status: params["status"],
       current_funnel_stage: params["funnel_stage"],
-      current_search: params["search"]
+      current_search: params["search"],
+      current_start_date: params["start_date"],
+      current_end_date: params["end_date"]
     )
   end
 
@@ -149,7 +151,9 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
     [
       status: params["status"],
       funnel_stage: params["funnel_stage"],
-      search: params["search"]
+      search: params["search"],
+      start_date: params["start_date"],
+      end_date: params["end_date"]
     ]
   end
 
@@ -176,6 +180,8 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
           status: params["status"],
           funnel_stage: params["funnel_stage"],
           search: params["search"],
+          start_date: params["start_date"],
+          end_date: params["end_date"],
           limit: params["limit"]
         )
 

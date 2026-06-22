@@ -18,6 +18,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
   """
 
   alias Ledgr.Repo
+  alias Ledgr.Domains.HelloDoctor
 
   @doc """
   Returns the CSV body as a string.
@@ -27,7 +28,11 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
     * `:status` — exact match on `conversations.status` (e.g. "active", "closed")
     * `:funnel_stage` — exact match on `conversations.funnel_stage`
     * `:search` — substring match on patient name OR phone (case-insensitive)
-    * `:limit` — integer; default `1000`, capped to keep responses bounded
+    * `:start_date` / `:end_date` — ISO date strings (`"2026-06-01"`) or `Date`s.
+      Inclusive Mexico-City calendar bounds on `conversations.created_at`
+      (half-open `>= start 00:00 MX` and `< end+1 00:00 MX`, UTC-correct).
+    * `:limit` — integer; OMITTED by default so the full filtered set is
+      exported (no silent truncation). When given, capped at `#{50_000}`.
   """
   def to_csv(opts \\ []) do
     {sql, params} = build_query(opts)
@@ -123,7 +128,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       base <>
         where_sql <>
         " ORDER BY c.created_at DESC " <>
-        limit_clause(opts, params)
+        limit_clause(opts)
 
     {sql, params}
   end
@@ -164,30 +169,65 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
           {[sql | clauses], params ++ [term, term]}
       end
 
+    # created_at range — Mexico-City calendar dates → UTC-naive half-open
+    # bounds (the only tz-safe shape; see HelloDoctor.mx_day_start_utc_naive/1).
+    {clauses, params} =
+      case mx_start(opts[:start_date]) do
+        nil ->
+          {clauses, params}
+
+        ndt ->
+          idx = length(params) + 1
+          {["c.created_at >= $#{idx}" | clauses], params ++ [ndt]}
+      end
+
+    {clauses, params} =
+      case mx_end(opts[:end_date]) do
+        nil ->
+          {clauses, params}
+
+        ndt ->
+          idx = length(params) + 1
+          {["c.created_at < $#{idx}" | clauses], params ++ [ndt]}
+      end
+
     case clauses do
       [] -> {"", params}
       _ -> {" WHERE " <> Enum.join(Enum.reverse(clauses), " AND "), params}
     end
   end
 
-  # Cap to keep download size manageable. Re-run with a tighter filter if
-  # you hit it.
-  @max_limit 5000
-  @default_limit 1000
+  # Parse an ISO date string (or Date) to the inclusive UTC-naive lower
+  # bound; `nil`/blank/invalid → nil (no clause).
+  defp mx_start(d), do: with_date(d, &HelloDoctor.mx_day_start_utc_naive/1)
+  # …and the EXCLUSIVE upper bound (start of the day after `end_date`).
+  defp mx_end(d), do: with_date(d, &HelloDoctor.mx_day_end_utc_naive/1)
 
-  defp limit_clause(opts, params_before) do
-    limit =
-      case opts[:limit] do
-        nil -> @default_limit
-        "" -> @default_limit
-        v when is_integer(v) -> min(v, @max_limit)
-        v when is_binary(v) -> v |> Integer.parse() |> elem(0) |> min(@max_limit)
-      end
+  defp with_date(nil, _fun), do: nil
+  defp with_date("", _fun), do: nil
+  defp with_date(%Date{} = d, fun), do: fun.(d)
 
-    # Append to the params list outside this function — we use a literal
-    # here since the limit is server-controlled, not user-supplied SQL.
-    _ = params_before
-    " LIMIT #{limit}"
+  defp with_date(str, fun) when is_binary(str) do
+    case Date.from_iso8601(str) do
+      {:ok, d} -> fun.(d)
+      _ -> nil
+    end
+  end
+
+  # No default limit — the full filtered set is exported so nothing is
+  # silently dropped. A caller-supplied `:limit` still applies, capped here.
+  @max_limit 50_000
+
+  defp limit_clause(opts) do
+    case opts[:limit] do
+      v when v in [nil, ""] -> ""
+      v when is_integer(v) -> " LIMIT #{min(v, @max_limit)}"
+      v when is_binary(v) ->
+        case Integer.parse(v) do
+          {n, _} -> " LIMIT #{min(n, @max_limit)}"
+          :error -> ""
+        end
+    end
   end
 
   # ── CSV encoding ────────────────────────────────────────────────
