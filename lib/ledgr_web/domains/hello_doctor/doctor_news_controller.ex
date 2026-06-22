@@ -22,8 +22,42 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorNewsController do
 
   @max_len 1000
 
+  # Per-doctor selection: fields we expose to the browser. `phone` is
+  # deliberately excluded — the roster returns full numbers and they must
+  # never reach the client.
+  @doctor_fields [
+    "id",
+    "name",
+    "specialty",
+    "is_available",
+    "accepts_video_calls",
+    "terms_accepted",
+    "is_direct",
+    "deactivated_at"
+  ]
+
   def index(conn, _params) do
     render(conn, :index, specialties: Doctors.specialty_options())
+  end
+
+  @doc """
+  Roster for the hand-pick checklist. Proxies the bot's `GET /admin/doctors`
+  and returns a trimmed list — `id`/`name`/`specialty` + status flags, with
+  full phone numbers stripped server-side.
+  """
+  def recipients(conn, _params) do
+    case BotAdmin.list_doctors() do
+      {:ok, doctors} when is_list(doctors) ->
+        json(conn, %{doctors: Enum.map(doctors, &trim_doctor/1)})
+
+      {:ok, _other} ->
+        conn
+        |> put_status(502)
+        |> json(%{error: "bad_shape", detail: "unexpected roster response"})
+
+      {:error, reason} ->
+        conn |> put_status(502) |> json(%{error: "fetch", detail: to_string(reason)})
+    end
   end
 
   # dry_run is pinned by the action, not the request body.
@@ -57,18 +91,36 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorNewsController do
     end
   end
 
-  # Only include filters that actually narrow: a blank specialty or an
-  # unchecked box is omitted (= no narrowing), matching the bot's defaults.
+  # Two mutually-exclusive audience modes. Hand-picked doctor_ids win: when
+  # present we send *only* the explicit list and omit the attribute filters, so
+  # the recipient set is unambiguous regardless of the bot's precedence rules.
+  # Otherwise we fall back to the attribute filters, including only those that
+  # actually narrow (blank specialty / unchecked box = omitted).
   defp build_filters(params) do
-    specialty = params |> Map.get("specialty", "") |> to_string() |> String.trim()
+    case parse_ids(params["doctor_ids"]) do
+      [] ->
+        specialty = params |> Map.get("specialty", "") |> to_string() |> String.trim()
 
-    %{}
-    |> maybe_put(:specialty, if(specialty == "", do: nil, else: specialty))
-    |> maybe_put(:available_only, truthy(params["available_only"]))
-    |> maybe_put(:terms_accepted_only, truthy(params["terms_accepted_only"]))
-    |> maybe_put(:direct_only, truthy(params["direct_only"]))
-    |> maybe_put(:exclude_deactivated, truthy(params["exclude_deactivated"]))
+        %{}
+        |> maybe_put(:specialty, if(specialty == "", do: nil, else: specialty))
+        |> maybe_put(:available_only, truthy(params["available_only"]))
+        |> maybe_put(:terms_accepted_only, truthy(params["terms_accepted_only"]))
+        |> maybe_put(:direct_only, truthy(params["direct_only"]))
+        |> maybe_put(:exclude_deactivated, truthy(params["exclude_deactivated"]))
+
+      ids ->
+        %{doctor_ids: ids}
+    end
   end
+
+  defp parse_ids(list) when is_list(list) do
+    list |> Enum.map(&to_string/1) |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+  end
+
+  defp parse_ids(_), do: []
+
+  defp trim_doctor(doctor) when is_map(doctor), do: Map.take(doctor, @doctor_fields)
+  defp trim_doctor(_), do: %{}
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, _key, false), do: map

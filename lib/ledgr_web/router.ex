@@ -587,6 +587,7 @@ defmodule LedgrWeb.Router do
     # Doctor news blast — compose + server-side proxy to the bot's
     # /admin/doctors/broadcast-news (keeps the admin API key off the browser)
     get "/doctor-news", Domains.HelloDoctor.DoctorNewsController, :index
+    get "/doctor-news/recipients", Domains.HelloDoctor.DoctorNewsController, :recipients
     post "/doctor-news/preview", Domains.HelloDoctor.DoctorNewsController, :preview
     post "/doctor-news/send", Domains.HelloDoctor.DoctorNewsController, :send
 

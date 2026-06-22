@@ -13,6 +13,7 @@
     id="dn-config"
     data-preview-url={dp(@domain_path_prefix, "/doctor-news/preview")}
     data-send-url={dp(@domain_path_prefix, "/doctor-news/send")}
+    data-recipients-url={dp(@domain_path_prefix, "/doctor-news/recipients")}
     hidden
   >
   </div>
@@ -47,49 +48,86 @@
       </div>
 
       <h3 class="text-sm font-semibold mt-6 mb-3" style="color: var(--text-main);">
-        Filters <span style="color: var(--text-muted); font-weight: 400;">— optional, narrow the audience</span>
+        Audience
       </h3>
 
-      <div class="mb-4">
-        <label
-          for="dn-specialty"
-          class="block text-sm font-medium mb-1"
-          style="color: var(--text-main);"
-        >
-          Specialty
+      <div class="dn-modes" role="radiogroup" aria-label="Audience mode">
+        <label class="dn-mode">
+          <input type="radio" name="dn-mode" value="filters" checked /> By filters
         </label>
-        <input
-          type="text"
-          id="dn-specialty"
-          list="dn-specialty-list"
-          class="w-full rounded-lg border px-4 py-2.5 text-sm"
-          style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
-          placeholder="cardio (substring match)"
-        />
-        <datalist id="dn-specialty-list">
-          <%= for {label, _value} <- @specialties do %>
-            <option value={label}></option>
-          <% end %>
-        </datalist>
-        <p class="text-xs mt-1" style="color: var(--text-muted);">
-          Case-insensitive substring — "cardio" matches "Cardiología".
-        </p>
+        <label class="dn-mode">
+          <input type="radio" name="dn-mode" value="pick" /> Pick specific doctors
+        </label>
       </div>
 
-      <div class="space-y-2">
-        <label class="dn-check">
-          <input type="checkbox" id="dn-available_only" /> Available only
-        </label>
-        <label class="dn-check">
-          <input type="checkbox" id="dn-terms_accepted_only" /> Terms-accepted only
-        </label>
-        <label class="dn-check">
-          <input type="checkbox" id="dn-direct_only" />
-          Direct doctors only <span style="color: var(--text-muted);">(those with a consultation fee)</span>
-        </label>
-        <label class="dn-check">
-          <input type="checkbox" id="dn-exclude_deactivated" /> Exclude deactivated
-        </label>
+      <%!-- Mode A: attribute filters --%>
+      <div id="dn-panel-filters" class="mt-4">
+        <div class="mb-4">
+          <label
+            for="dn-specialty"
+            class="block text-sm font-medium mb-1"
+            style="color: var(--text-main);"
+          >
+            Specialty
+          </label>
+          <input
+            type="text"
+            id="dn-specialty"
+            list="dn-specialty-list"
+            class="w-full rounded-lg border px-4 py-2.5 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="cardio (substring match)"
+          />
+          <datalist id="dn-specialty-list">
+            <%= for {label, _value} <- @specialties do %>
+              <option value={label}></option>
+            <% end %>
+          </datalist>
+          <p class="text-xs mt-1" style="color: var(--text-muted);">
+            Case-insensitive substring — "cardio" matches "Cardiología".
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="dn-check">
+            <input type="checkbox" id="dn-available_only" /> Available only
+          </label>
+          <label class="dn-check">
+            <input type="checkbox" id="dn-terms_accepted_only" /> Terms-accepted only
+          </label>
+          <label class="dn-check">
+            <input type="checkbox" id="dn-direct_only" />
+            Direct doctors only <span style="color: var(--text-muted);">(those with a consultation fee)</span>
+          </label>
+          <label class="dn-check">
+            <input type="checkbox" id="dn-exclude_deactivated" /> Exclude deactivated
+          </label>
+        </div>
+      </div>
+
+      <%!-- Mode B: hand-pick from the roster --%>
+      <div id="dn-panel-pick" class="mt-4" hidden>
+        <div class="flex items-center gap-2 mb-2">
+          <input
+            type="search"
+            id="dn-doctor-search"
+            class="flex-1 rounded-lg border px-3 py-2 text-sm"
+            style="background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-main);"
+            placeholder="Search by name or specialty…"
+          />
+          <button type="button" id="dn-select-visible" class="hd-btn-secondary" style="white-space: nowrap;">
+            Select visible
+          </button>
+          <button type="button" id="dn-clear-selection" class="hd-btn-secondary" style="white-space: nowrap;">
+            Clear
+          </button>
+        </div>
+        <p class="text-xs mb-2" style="color: var(--text-muted);">
+          <strong><span id="dn-selected-count">0</span></strong> selected
+        </p>
+        <div id="dn-roster" class="dn-roster">
+          <p class="text-sm" style="color: var(--text-muted);">Loading doctors…</p>
+        </div>
       </div>
     </div>
 
@@ -163,6 +201,36 @@
     cursor: pointer;
   }
   .dn-check input { width: 1rem; height: 1rem; }
+  .dn-modes { display: flex; gap: 1.25rem; }
+  .dn-mode {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-main);
+    cursor: pointer;
+  }
+  .dn-roster {
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.5rem;
+    max-height: 18rem;
+    overflow-y: auto;
+  }
+  .dn-doctor {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+  }
+  .dn-doctor:last-child { border-bottom: none; }
+  .dn-doctor input { width: 1rem; height: 1rem; flex-shrink: 0; }
+  .dn-doctor .dn-doc-spec { color: var(--text-muted); font-size: 0.8rem; }
+  .dn-doctor.dn-deactivated { opacity: 0.55; }
   .dn-bubble {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
@@ -226,6 +294,7 @@
     const cfg = document.getElementById("dn-config");
     const PREVIEW_URL = cfg.dataset.previewUrl;
     const SEND_URL = cfg.dataset.sendUrl;
+    const RECIPIENTS_URL = cfg.dataset.recipientsUrl;
     const CSRF =
       (document.querySelector('meta[name="csrf-token"]') || {}).content || "";
     const MAX = 1000;
@@ -251,6 +320,20 @@
       direct_only: $("dn-direct_only"),
       exclude_deactivated: $("dn-exclude_deactivated"),
     };
+
+    // Audience mode (Mode B: hand-pick)
+    const panelFilters = $("dn-panel-filters");
+    const panelPick = $("dn-panel-pick");
+    const doctorSearch = $("dn-doctor-search");
+    const roster = $("dn-roster");
+    const selectedCount = $("dn-selected-count");
+    const selectVisibleBtn = $("dn-select-visible");
+    const clearSelectionBtn = $("dn-clear-selection");
+
+    let mode = "filters"; // "filters" | "pick"
+    let rosterLoaded = false;
+    let doctors = []; // [{id, name, specialty, deactivated_at, ...}]
+    const selected = new Set(); // selected doctor ids
 
     function trimmed() {
       return message.value.trim();
@@ -280,19 +363,33 @@
       sendResult.innerHTML = "";
     }
 
+    // Preview requires a valid message, plus — in pick mode — at least one
+    // selected doctor (no point previewing an empty hand-picked list).
+    function updatePreviewEnabled() {
+      const t = trimmed();
+      const okMessage = t.length > 0 && t.length <= MAX;
+      const okAudience = mode === "filters" || selected.size > 0;
+      previewBtn.disabled = !(okMessage && okAudience);
+    }
+
     function refreshCompose() {
       const t = trimmed();
       counter.textContent = t.length + " / " + MAX;
       counter.style.color = t.length > MAX ? "#dc2626" : "var(--text-muted)";
-      previewBtn.disabled = t.length === 0 || t.length > MAX;
       previewBody.textContent = t.length ? t : "Tu mensaje aparecerá aquí…";
       previewBody.style.fontStyle = t.length ? "normal" : "italic";
       previewBody.style.color = t.length ? "var(--text-main)" : "var(--text-muted)";
       clearMsgError();
       resetPreviewState();
+      updatePreviewEnabled();
     }
 
     function payload() {
+      // Modes are mutually exclusive: in pick mode send only doctor_ids (the
+      // server then omits the attribute filters); otherwise send the filters.
+      if (mode === "pick") {
+        return { message: message.value, doctor_ids: Array.from(selected) };
+      }
       return {
         message: message.value,
         specialty: specialty.value,
@@ -365,6 +462,7 @@
         terms_accepted_only: "terms accepted",
         direct_only: "direct only",
         exclude_deactivated: "exclude deactivated",
+        doctor_ids: "hand-picked",
       }[key] || key;
     }
 
@@ -382,7 +480,11 @@
             .map(function (k) {
               const v = applied[k];
               const text =
-                v === true ? filterLabel(k) : filterLabel(k) + ": " + v;
+                v === true
+                  ? filterLabel(k)
+                  : Array.isArray(v)
+                  ? filterLabel(k) + ": " + v.length
+                  : filterLabel(k) + ": " + v;
               return '<span class="dn-chip">' + escapeHtml(text) + "</span>";
             })
             .join("") +
@@ -449,11 +551,132 @@
       sendBtn.textContent = "Blast sent";
     }
 
+    // ── Hand-pick roster (Mode B) ──────────────────────────────────
+    function updateSelectedCount() {
+      selectedCount.textContent = selected.size;
+    }
+
+    function visibleDoctors() {
+      const q = doctorSearch.value.trim().toLowerCase();
+      if (!q) return doctors;
+      return doctors.filter(function (d) {
+        return (
+          (d.name || "").toLowerCase().indexOf(q) !== -1 ||
+          (d.specialty || "").toLowerCase().indexOf(q) !== -1
+        );
+      });
+    }
+
+    function renderRoster() {
+      const list = visibleDoctors();
+      if (!doctors.length) {
+        roster.innerHTML =
+          '<p class="text-sm" style="color: var(--text-muted); padding: 0.75rem;">No doctors in the roster.</p>';
+        return;
+      }
+      if (!list.length) {
+        roster.innerHTML =
+          '<p class="text-sm" style="color: var(--text-muted); padding: 0.75rem;">No matches.</p>';
+        return;
+      }
+      roster.innerHTML = list
+        .map(function (d) {
+          const checked = selected.has(d.id) ? " checked" : "";
+          const deactivated = d.deactivated_at ? " dn-deactivated" : "";
+          const spec = d.specialty
+            ? '<span class="dn-doc-spec">' + escapeHtml(d.specialty) + "</span>"
+            : "";
+          return (
+            '<label class="dn-doctor' + deactivated + '">' +
+            '<input type="checkbox" data-id="' + escapeHtml(d.id) + '"' + checked + " /> " +
+            "<span>" + escapeHtml(d.name || d.id) + "</span>" +
+            spec +
+            "</label>"
+          );
+        })
+        .join("");
+    }
+
+    async function loadRoster() {
+      if (rosterLoaded) return;
+      roster.innerHTML =
+        '<p class="text-sm" style="color: var(--text-muted); padding: 0.75rem;">Loading doctors…</p>';
+      try {
+        const res = await fetch(RECIPIENTS_URL, {
+          headers: { accept: "application/json" },
+        });
+        let data = null;
+        try { data = await res.json(); } catch (_e) {}
+        if (!res.ok || !data || !Array.isArray(data.doctors)) {
+          roster.innerHTML =
+            '<div class="dn-alert dn-alert-error" style="margin: 0.5rem;">Couldn\'t load the doctor list. ' +
+            "Switch to filters, or try reloading the page.</div>";
+          rosterLoaded = false;
+          return;
+        }
+        doctors = data.doctors;
+        rosterLoaded = true;
+        renderRoster();
+      } catch (_e) {
+        roster.innerHTML =
+          '<div class="dn-alert dn-alert-error" style="margin: 0.5rem;">Network error loading doctors.</div>';
+        rosterLoaded = false;
+      }
+    }
+
+    function setMode(newMode) {
+      mode = newMode;
+      const pick = mode === "pick";
+      panelPick.hidden = !pick;
+      panelFilters.hidden = pick;
+      resetPreviewState();
+      updatePreviewEnabled();
+      if (pick) loadRoster();
+    }
+
     // ── Wiring ─────────────────────────────────────────────────────
     message.addEventListener("input", refreshCompose);
     specialty.addEventListener("input", resetPreviewState);
     Object.values(checks).forEach(function (c) {
       c.addEventListener("change", resetPreviewState);
+    });
+
+    Array.prototype.forEach.call(
+      document.querySelectorAll('input[name="dn-mode"]'),
+      function (radio) {
+        radio.addEventListener("change", function () {
+          if (radio.checked) setMode(radio.value);
+        });
+      }
+    );
+
+    doctorSearch.addEventListener("input", renderRoster);
+
+    // Event delegation: toggle a doctor's selection from its checkbox.
+    roster.addEventListener("change", function (e) {
+      const cb = e.target;
+      if (!cb || cb.type !== "checkbox" || !cb.dataset.id) return;
+      if (cb.checked) selected.add(cb.dataset.id);
+      else selected.delete(cb.dataset.id);
+      updateSelectedCount();
+      updatePreviewEnabled();
+      resetPreviewState();
+    });
+
+    selectVisibleBtn.addEventListener("click", function () {
+      visibleDoctors().forEach(function (d) { selected.add(d.id); });
+      renderRoster();
+      updateSelectedCount();
+      updatePreviewEnabled();
+      resetPreviewState();
+    });
+
+    clearSelectionBtn.addEventListener("click", function () {
+      selected.clear();
+      renderRoster();
+      updateSelectedCount();
+      updatePreviewEnabled();
+      resetPreviewState();
     });
 
     previewBtn.addEventListener("click", async function () {
@@ -470,8 +693,8 @@
           '<div class="dn-alert dn-alert-error">Network error — please try again.</div>';
         show(recipientsBox);
       } finally {
-        previewBtn.disabled = trimmed().length === 0 || trimmed().length > MAX;
         previewBtn.textContent = "Preview recipients";
+        updatePreviewEnabled();
       }
     });
 
