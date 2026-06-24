@@ -156,8 +156,10 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
   ## Pay eligibility (the default)
 
   A consultation pays the doctor by default whenever it was **collected**:
-  a non-refunded Stripe payment (status `paid`), or `payment_source =
-  'corporate'`. Status is intentionally NOT checked — a paid consultation
+  a non-refunded Stripe payment (status `paid`), `payment_source =
+  'corporate'`, or a bot-sanctioned 100%-discount / free consult
+  (`cs_no_payment_*` intent, confirmed — $0 charged but the doctor still
+  did the work). Status is intentionally NOT checked — a paid consultation
   still owes the doctor even if it's not marked `completed`. Refunded or
   uncollected consultations don't pay by default. An explicit
   `consultation_payout_decisions.pay_doctor` row always wins either way
@@ -243,18 +245,31 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         (CASE WHEN conv.tenant = 'direct' AND COALESCE(d.consultation_fee_mxn, 0) > 0
               THEN d.consultation_fee_mxn::float8
               ELSE $3::float8 END)                 AS fee_mxn,
-        -- Auto-eligible = the consultation was collected: a non-refunded
-        -- Stripe payment, or corporate (employer-billed). We deliberately
-        -- do NOT require status='completed' — a genuinely paid consultation
-        -- still owes the doctor even if its status is something else.
-        (so.status = 'paid'
-         OR COALESCE(c.payment_source, 'stripe') = 'corporate') AS auto_eligible,
-        -- Explicit decision wins ("pay anyway" / "skip"); otherwise pay when
-        -- there's a payment. So: payment OR pay_doctor=true ⇒ pays.
+        -- Collected / payable, with NO status='completed' gate:
+        --   • a non-refunded Stripe payment (status 'paid'), OR
+        --   • corporate (employer-billed, no Stripe row), OR
+        --   • a bot-sanctioned 100%-discount / free consult — intent
+        --     `cs_no_payment_*`, confirmed: $0 charged but the doctor still
+        --     did the work, so they're owed.
+        -- COALESCE(... = 'paid', FALSE) keeps this a true boolean: a consult
+        -- with no Stripe row reads FALSE, not NULL (NULL slips past CASE/NOT
+        -- and posts phantom $0 / negative rows).
+        (
+          COALESCE(so.status = 'paid', FALSE)
+          OR COALESCE(c.payment_source, 'stripe') = 'corporate'
+          OR (c.stripe_payment_intent_id LIKE 'cs_no_payment_%'
+              AND COALESCE(c.payment_status, '') IN ('paid', 'confirmed'))
+        )                                          AS auto_eligible,
+        -- Explicit decision wins ("pay anyway" / "skip"); else pay when
+        -- collected. So: payment / corporate / free-consult OR pay_doctor=true.
         COALESCE(
           cpd.pay_doctor,
-          (so.status = 'paid'
-           OR COALESCE(c.payment_source, 'stripe') = 'corporate')
+          (
+            COALESCE(so.status = 'paid', FALSE)
+            OR COALESCE(c.payment_source, 'stripe') = 'corporate'
+            OR (c.stripe_payment_intent_id LIKE 'cs_no_payment_%'
+                AND COALESCE(c.payment_status, '') IN ('paid', 'confirmed'))
+          )
         )                                          AS pay_to_doc,
         cpd.pay_doctor                             AS pay_doctor_override,
         (pa.cid IS NOT NULL)                       AS is_paid_to_doctor,
