@@ -98,6 +98,16 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
            ELSE '-' END                                                      AS acc,
       CASE WHEN fs.idx >= 6 THEN 'Y' ELSE '-' END                            AS link,
       CASE WHEN c.stripe_payment_intent_id IS NOT NULL THEN 'Y' ELSE '-' END AS paid,
+      -- Promo/discount code on this conversation's payment (e.g. SALUD26),
+      -- matched via the linked consultation or the shared payment intent.
+      COALESCE((
+        SELECT sp.discount_code FROM stripe_payments sp
+        WHERE sp.discount_code IS NOT NULL
+          AND (sp.consultation_id = lc.id
+               OR (c.stripe_payment_intent_id IS NOT NULL
+                   AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id))
+        LIMIT 1
+      ), '-')                                                                AS disc,
       CASE WHEN c.data_review_sent_at IS NOT NULL THEN 'Y' ELSE '-' END      AS rev,
       CASE WHEN lc.id IS NOT NULL THEN 'Y' ELSE '-' END                      AS bcast,
       CASE WHEN lc.accepted_at IS NOT NULL THEN 'Y' ELSE '-' END             AS docacc,

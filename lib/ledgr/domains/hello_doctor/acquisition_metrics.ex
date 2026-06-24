@@ -138,6 +138,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   def outcome_stages do
     [
       %{key: :paid, label: "Paid", short: "Paid", color: "#16a34a"},
+      # Of the paid conversations, how many used any promo/discount code.
+      %{key: :discounted, label: "Paid w/ discount", short: "Disc", color: "#7c3aed"},
       %{
         key: :doctor_matched,
         label: "Consultation started",
@@ -399,7 +401,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         cons.conversation_id,
         sp.status,
         sp.amount,
-        sp.amount_refunded
+        sp.amount_refunded,
+        sp.discount_code
       FROM stripe_payments sp
       JOIN consultations cons ON (
         cons.id = sp.consultation_id
@@ -414,6 +417,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       SELECT
         conversation_id,
         bool_or(status = 'paid') AS has_paid,
+        -- Paid with any promo/discount code applied at checkout.
+        bool_or(status = 'paid' AND discount_code IS NOT NULL) AS used_discount,
         -- Net of refunds: a fully-refunded payment (status='refunded')
         -- and a partial refund on a still-'paid' row both reduce to
         -- (amount - amount_refunded). Excludes non-settled statuses.
@@ -437,6 +442,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       #{reached_select},
       -- Outcomes: independent per-conversation counts from source tables.
       COUNT(*) FILTER (WHERE cp.has_paid) AS paid,
+      COUNT(*) FILTER (WHERE cp.used_discount) AS discounted,
       COUNT(*) FILTER (WHERE cc.n_consultations > 0) AS doctor_matched,
       COUNT(*) FILTER (WHERE cc.has_completed) AS completed,
       -- Terminal buckets exclude conversations that also completed, so

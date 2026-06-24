@@ -106,6 +106,24 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
     end
   end
 
+  def backfill_discounts(conn, _params) do
+    case StripeSync.backfill_discounts() do
+      {:ok, %{updated: u, no_discount: nd, errors: e}} ->
+        msg = "Discount backfill: #{u} tagged, #{nd} full-price"
+        msg = if e > 0, do: "#{msg}, #{e} errors (check logs)", else: msg
+        flash = if e > 0, do: :error, else: :info
+
+        conn
+        |> put_flash(flash, msg <> ".")
+        |> redirect(to: dp(conn, "/payments"))
+
+      {:error, :no_api_key} ->
+        conn
+        |> put_flash(:error, "No Stripe API key configured.")
+        |> redirect(to: dp(conn, "/payments"))
+    end
+  end
+
   def link_form(conn, %{"id" => id}) do
     payment = Repo.get!(StripePayment, id)
     suggestions = Ledgr.Domains.HelloDoctor.PaymentLinking.suggest_consultations(payment)

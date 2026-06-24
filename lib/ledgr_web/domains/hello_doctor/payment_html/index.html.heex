@@ -35,6 +35,14 @@ end %>
       >
         Backfill Fees
       </.link>
+      <.link
+        href={dp(@domain_path_prefix, "/payments/backfill-discounts")}
+        method="post"
+        class="hd-btn-secondary"
+        data-confirm="Re-read Stripe Checkout Sessions to tag the promo/discount code (e.g. SALUD26) on payments synced before discount tracking existed. Only touches rows with no discount recorded. Continue?"
+      >
+        Backfill Discounts
+      </.link>
     </div>
   </div>
 
@@ -87,6 +95,12 @@ end %>
               Product
             </th>
             <th
+              class="text-left p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Discount
+            </th>
+            <th
               class="text-right p-3 text-xs font-medium uppercase"
               style="color: var(--text-muted);"
             >
@@ -133,7 +147,7 @@ end %>
         <tbody>
           <%= if Enum.empty?(@payments) do %>
             <tr>
-              <td colspan="10" class="p-8 text-center" style="color: var(--text-muted);">
+              <td colspan="11" class="p-8 text-center" style="color: var(--text-muted);">
                 <div class="text-3xl mb-2 opacity-30">💳</div>
                 No payments yet. Click "Sync from Stripe" to pull recent payments.
               </td>
@@ -156,6 +170,19 @@ end %>
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-main);">
                   {pay.product_name || "—"}
+                </td>
+                <td class="p-3 text-sm">
+                  <%= if pay.discount_code do %>
+                    <span
+                      class="text-xs font-mono"
+                      style="background: rgba(124,58,237,0.12); color: #7c3aed; padding: 0.1rem 0.4rem; border-radius: 4px;"
+                      title={pay.discount_amount && "−#{fmt.(pay.discount_amount)} discount"}
+                    >
+                      {pay.discount_code}
+                    </span>
+                  <% else %>
+                    <span style="color: var(--text-muted);">—</span>
+                  <% end %>
                 </td>
                 <td class="p-3 text-sm text-right font-semibold" style="color: var(--text-main);">
                   {fmt.(pay.amount)}

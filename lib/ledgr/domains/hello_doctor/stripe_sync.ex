@@ -317,6 +317,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         )
 
         if hellodoctor_session?(line_item_product_ids) do
+          {discount_code, discount_amount} = fetch_discount_info(session, api_key)
           amount_pesos = (session.amount_total || 0) / 100.0
           customer_email = session.customer_details && session.customer_details.email
           customer_name = session.customer_details && session.customer_details.name
@@ -353,6 +354,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             consultation_id: consultation_id,
             stripe_fee: fee_pesos,
             product_name: product_name,
+            discount_code: discount_code,
+            discount_amount: discount_amount,
             paid_at: charge_info.paid_at_naive
           }
 
@@ -694,6 +697,93 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   defp fetch_product_name(session, api_key) do
     {product_name, _} = fetch_line_item_info(session, api_key)
     product_name
+  end
+
+  # Returns `{discount_code, discount_amount_pesos}` for a session, or
+  # `{nil, nil}` when no promo/coupon was applied. The session is retrieved
+  # with `discounts.promotion_code` expanded so we get the human code
+  # ("SALUD26"), falling back to the coupon name/id if a coupon was applied
+  # directly without a promotion code. `amount_discount` is on the session
+  # by default (no expansion needed).
+  defp fetch_discount_info(session, api_key) do
+    try do
+      case Stripe.Checkout.Session.retrieve(session.id, %{expand: ["discounts.promotion_code"]},
+             api_key: api_key
+           ) do
+        {:ok, full_session} -> extract_discount(full_session)
+        {:error, _} -> {nil, nil}
+      end
+    rescue
+      _ -> {nil, nil}
+    end
+  end
+
+  defp extract_discount(session) do
+    amount =
+      case Map.get(session, :total_details) do
+        %{amount_discount: cents} when is_integer(cents) and cents > 0 -> cents / 100.0
+        _ -> nil
+      end
+
+    code =
+      (Map.get(session, :discounts) || [])
+      |> Enum.find_value(fn d ->
+        case Map.get(d, :promotion_code) do
+          %{} = pc -> Map.get(pc, :code)
+          code when is_binary(code) -> code
+          _ -> coupon_label(Map.get(d, :coupon))
+        end
+      end)
+
+    {code, amount}
+  end
+
+  defp coupon_label(%{} = coupon), do: Map.get(coupon, :name) || Map.get(coupon, :id)
+  defp coupon_label(id) when is_binary(id), do: id
+  defp coupon_label(_), do: nil
+
+  @doc """
+  Backfills `discount_code` / `discount_amount` on existing `stripe_payments`
+  rows that were synced before discount capture existed (where both are
+  NULL). Re-reads each row's Checkout Session from Stripe. Idempotent, but
+  re-checks full-price rows each run (a NULL code is indistinguishable from
+  "not yet checked") — fine at our volume. Returns
+  `%{updated: N, no_discount: N, errors: N}`.
+  """
+  def backfill_discounts do
+    import Ecto.Query, warn: false
+
+    api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
+
+    if is_nil(api_key) do
+      Logger.warning("[HelloDoctor StripeSync] No API key configured for discount backfill")
+      {:error, :no_api_key}
+    else
+      payments =
+        StripePayment
+        |> where([p], is_nil(p.discount_code) and is_nil(p.discount_amount))
+        |> where([p], not is_nil(p.stripe_session_id))
+        |> Repo.all()
+
+      result =
+        Enum.reduce(payments, %{updated: 0, no_discount: 0, errors: 0}, fn payment, acc ->
+          case fetch_discount_info(%{id: payment.stripe_session_id}, api_key) do
+            {nil, nil} ->
+              %{acc | no_discount: acc.no_discount + 1}
+
+            {code, amount} ->
+              case payment
+                   |> StripePayment.changeset(%{discount_code: code, discount_amount: amount})
+                   |> Repo.update() do
+                {:ok, _} -> %{acc | updated: acc.updated + 1}
+                {:error, _} -> %{acc | errors: acc.errors + 1}
+              end
+          end
+        end)
+
+      Logger.info("[HelloDoctor StripeSync] Discount backfill complete: #{inspect(result)}")
+      {:ok, result}
+    end
   end
 
   defp hellodoctor_session?(product_ids) do

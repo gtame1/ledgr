@@ -520,6 +520,11 @@ defmodule LedgrWeb.Router do
     post "/payments/sync-payouts", Domains.HelloDoctor.PaymentController, :sync_payouts
     post "/payments/backfill-gl", Domains.HelloDoctor.PaymentController, :backfill_gl
     post "/payments/backfill-fees", Domains.HelloDoctor.PaymentController, :backfill_fees
+
+    post "/payments/backfill-discounts",
+         Domains.HelloDoctor.PaymentController,
+         :backfill_discounts
+
     post "/payments/:id/refund", Domains.HelloDoctor.PaymentController, :refund
 
     post "/payments/:id/toggle-pay-doctor",
