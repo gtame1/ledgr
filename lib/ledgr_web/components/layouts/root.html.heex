@@ -55,6 +55,12 @@
           --sidebar-text: <%= t.sidebar_text %>;
           --sidebar-hover: <%= t.sidebar_hover %>;
           --sidebar-accent: <%= t[:accent] || t.primary %>;
+          <%!-- Accent used throughout the app (progress-bar fills, KPI
+                highlights, links). Was referenced via var(--accent) in many
+                templates but never defined — so `background: var(--accent)`
+                rendered transparent (e.g. the return-rate bars showed an
+                empty track). Define it once here. --%>
+          --accent: <%= t[:accent] || t.primary %>;
           --primary: <%= t.primary %>;
           --primary-soft: <%= t.primary_soft %>;
           --bg: <%= t[:bg] || "#fff7f2" %>;
