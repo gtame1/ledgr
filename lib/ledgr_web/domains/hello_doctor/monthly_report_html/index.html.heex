@@ -3,19 +3,27 @@
   <div class="mb-6">
     <div class="flex items-baseline justify-between gap-4 flex-wrap mb-2">
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">
-        Monthly Doctor Payouts
+        Doctor Payouts
       </h1>
       <div class="text-sm" style="color: var(--text-muted);">
-        Doctor share:
-        <strong>${:erlang.float_to_binary(@doctor_share + 0.0, decimals: 2)} MXN</strong>
-        · ISR: <strong>2.5%</strong>
-        if RFC verified, otherwise <strong>20%</strong>
+        Doctor share: <strong>direct</strong>
+        = doctor's rate, <strong>MVP</strong>
+        = ${:erlang.float_to_binary(@doctor_share + 0.0, decimals: 2)} MXN
+        · ISR <strong>2.5%</strong>
+        if RFC verified, else <strong>20%</strong>
       </div>
     </div>
-    <p class="text-sm" style="color: var(--text-muted); max-width: 80ch;">
-      One row per consultation completed in the month. Refunded consultations
-      are excluded unless an operator chose "still pay doctor" on the refund.
-      Rows where <code>net_payment_pending = 0</code> are hidden by default.
+    <p class="text-sm" style="color: var(--text-muted); max-width: 82ch;">
+      Defaults to <strong>all outstanding balances</strong>
+      (every doctor with a non-zero net pending, any date) — use the month
+      picker to scope. A consultation pays the doctor by default only when it's
+      <strong>completed and collected</strong>; refunded, cancelled or
+      uncollected ones don't pay unless an operator sets
+      <em>"pay anyway"</em>
+      on the payment. Already-paid balances that are now ineligible show as a
+      <strong>negative</strong>
+      net (rolling-total / clawback). <code>net_payment_pending = 0</code>
+      rows are hidden by default.
     </p>
   </div>
 
@@ -39,6 +47,7 @@
             style="padding: 0.4rem 0.65rem; min-width: 12rem;"
             onchange="this.form.submit()"
           >
+            <option value="" selected={is_nil(@month_key)}>— All outstanding —</option>
             <%= for {label, key} <- @month_options do %>
               <option value={key} selected={key == @month_key}>{label}</option>
             <% end %>
@@ -57,8 +66,15 @@
         </.link>
       </div>
 
-      <%!-- Quick chips: This month / Last month --%>
+      <%!-- Quick chips: All outstanding / This month / Last month --%>
       <div class="flex flex-wrap items-center gap-2">
+        <.link
+          navigate={dp(@domain_path_prefix, "/reports/monthly")}
+          class={"hd-btn-sm #{if @all_outstanding?, do: "hd-btn-primary", else: ""}"}
+          title="Every doctor with a non-zero net pending, any date"
+        >
+          All outstanding
+        </.link>
         <.link
           navigate={dp(@domain_path_prefix, "/reports/monthly?month=#{@this_month}")}
           class={"hd-btn-sm #{if @month_key == @this_month, do: "hd-btn-primary", else: ""}"}
@@ -89,11 +105,19 @@
         </form>
 
         <a
-          href={dp(@domain_path_prefix, csv_href("", assigns))}
+          href={dp(@domain_path_prefix, xlsx_href("", assigns))}
           class="hd-btn-primary text-sm"
           style="padding: 0.4rem 0.95rem;"
+          title="Two sheets: Resumen (per-doctor) + Detalle (per-consultation)"
         >
-          ⬇ CSV
+          ⬇ Excel
+        </a>
+        <a
+          href={dp(@domain_path_prefix, csv_href("", assigns))}
+          class="hd-btn-sm"
+          style="padding: 0.4rem 0.95rem;"
+        >
+          CSV
         </a>
       </div>
     </div>

@@ -87,7 +87,10 @@ defmodule Ledgr.MixProject do
       {:excoveralls, "~> 0.18", only: :test},
       {:earmark, "~> 1.4"},
       {:stripity_stripe, "~> 3.0"},
-      {:tz, "~> 0.28"}
+      {:tz, "~> 0.28"},
+      # Pure-Elixir .xlsx writer (no native build) for multi-sheet exports
+      # like the weekly doctor-payout report.
+      {:elixlsx, "~> 0.6"}
     ]
   end
 

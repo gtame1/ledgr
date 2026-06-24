@@ -585,6 +585,7 @@ defmodule LedgrWeb.Router do
     # Weekly consultations & payout report
     get "/reports/monthly", Domains.HelloDoctor.MonthlyReportController, :index
     get "/reports/monthly/download", Domains.HelloDoctor.MonthlyReportController, :download
+    get "/reports/monthly/xlsx", Domains.HelloDoctor.MonthlyReportController, :download_xlsx
 
     # Acquisition / Meta ad attribution dashboard
     get "/acquisition", Domains.HelloDoctor.AcquisitionController, :index

@@ -30,6 +30,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
   """
 
   alias Ledgr.Repo
+  alias Elixlsx.{Workbook, Sheet}
 
   @doctor_share_mxn 100.0
 
@@ -148,23 +149,63 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
   # ── Per-consultation query ─────────────────────────────────────
 
   @doc """
-  One row per consultation whose `completed_at` falls in
-  `[start_date, end_date]`. Refunded consultations are excluded
-  unless they have a `pay_doctor=true` override.
+  One row per consultation. With a date window, restricts to
+  `completed_at` in `[start_date, end_date)`; pass `nil` for either bound
+  to leave it open (the default "all outstanding" view passes both nil).
 
-  Driven directly from `doctor_payout_consultations → doctor_payouts`
-  with no aggregation CTE — consultations have at most one payout via
-  the unique constraint on `doctor_payout_consultations`.
+  ## Pay eligibility (the default)
+
+  A consultation pays the doctor by default ONLY when it's clean:
+  `status = 'completed'` AND it was collected (a Stripe payment in status
+  `paid`, or `payment_source = 'corporate'`). Refunded, cancelled, or
+  uncollected consultations do NOT pay by default. An explicit
+  `consultation_payout_decisions.pay_doctor` row always wins either way
+  ("pay anyway" = true, "skip" = false):
+
+      pay_to_doc = COALESCE(cpd.pay_doctor, auto_eligible)
+
+  Doctor share is the per-doctor `consultation_fee_mxn` when set (> 0),
+  otherwise the global $100. Already-paid amounts are summed across ALL
+  payouts a consultation appears in (a consultation can legitimately span
+  more than one payout), and the Stripe row is de-duplicated to one
+  (preferring a `paid` row) so neither join multiplies the consultation.
   """
   def list_consultations(start_date, end_date) do
     # Bounds are Mexico City wall-clock; `completed_at` is UTC-stored.
-    # Helpers convert MX-midnight to UTC instants; see
-    # `Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive/1`.
-    start_naive = Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
-    end_exclusive = Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
+    # Helpers convert MX-midnight to UTC instants; nil = open bound.
+    start_naive = start_date && Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
+    end_exclusive = end_date && Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
 
     sql = """
-    WITH main AS (
+    WITH pay_agg AS (
+      -- Sum every payout a consultation appears in (it can span more than
+      -- one), so paid-out / retentions-applied are per-consultation totals.
+      SELECT dpc.consultation_id            AS cid,
+             SUM(dp.amount_cents)           AS amount_cents,
+             SUM(dp.iva_retention_cents)    AS iva_cents,
+             SUM(dp.isr_retention_cents)    AS isr_cents,
+             MAX(dp.payout_date)            AS payout_date
+      FROM doctor_payout_consultations dpc
+      JOIN doctor_payouts dp ON dp.id = dpc.doctor_payout_id
+      GROUP BY dpc.consultation_id
+    ),
+    stripe_one AS (
+      -- One Stripe row per consultation: prefer a 'paid' row, then latest.
+      SELECT DISTINCT ON (s.cid)
+             s.cid, s.status, s.amount, s.stripe_fee, s.paid_at, s.discount_code
+      FROM (
+        SELECT c.id AS cid, p.status, p.amount, p.stripe_fee, p.paid_at, p.discount_code
+        FROM consultations c
+        JOIN stripe_payments p ON (
+          p.consultation_id = c.id
+          OR (p.consultation_id IS NULL
+              AND c.stripe_payment_intent_id IS NOT NULL
+              AND p.stripe_payment_intent_id = c.stripe_payment_intent_id)
+        )
+      ) s
+      ORDER BY s.cid, (s.status = 'paid') DESC, s.paid_at DESC NULLS LAST
+    ),
+    base AS (
       SELECT
         c.id                                       AS consultation_id,
         c.completed_at,
@@ -172,7 +213,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         c.duration_minutes,
         c.consultation_type,
         c.status                                   AS consultation_status,
-        p.status                                   AS payment_status,
+        so.status                                  AS payment_status,
         c.payment_amount,
         c.patient_rating,
         d.id                                       AS doctor_id,
@@ -181,50 +222,72 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         COALESCE(d.has_correct_rfc, FALSE)         AS has_correct_rfc,
         pt.id                                      AS patient_id,
         COALESCE(pt.full_name, pt.display_name)    AS patient_name,
-        p.amount                                   AS stripe_amount,
-        p.stripe_fee,
-        p.paid_at                                  AS stripe_paid_at,
+        so.amount                                  AS stripe_amount,
+        so.stripe_fee,
+        so.paid_at                                 AS stripe_paid_at,
+        so.discount_code,
         -- ADR-046. "stripe" = patient paid via Stripe; "corporate" =
         -- employer-paid, no Stripe row but doctor IS owed; "test" =
         -- /prueba bypass, excluded by the WHERE clause below.
         COALESCE(c.payment_source, 'stripe')       AS payment_source,
         c.corporate_account_id                     AS corporate_account_id,
-        COALESCE(cpd.pay_doctor, TRUE)             AS pay_to_doc,
-        -- HD commission is the gross above the doctor's flat share.
-        -- NULL when there's no Stripe payment (e.g. discount or corporate).
-        (p.amount - $3::float8)                    AS hd_commission,
-        CASE WHEN COALESCE(cpd.pay_doctor, TRUE)
-             THEN $3::float8 ELSE 0::float8 END    AS doctor_share,
-        $4::float8                                 AS iva_retention_to_apply,
-        CASE WHEN COALESCE(d.has_correct_rfc, FALSE)
-             THEN $5::float8 ELSE $6::float8 END   AS isr_retention_to_apply,
-        (dp.id IS NOT NULL)                        AS is_paid_to_doctor,
-        dp.payout_date                             AS payout_date,
-        COALESCE(ROUND(dp.amount_cents / 100.0, 2)::float8, 0::float8)
-                                                    AS paid_out_amount,
-        COALESCE(ROUND(dp.iva_retention_cents / 100.0, 2)::float8, 0::float8)
-                                                    AS iva_retentions_applied,
-        COALESCE(ROUND(dp.isr_retention_cents / 100.0, 2)::float8, 0::float8)
-                                                    AS isr_retentions_applied
+        conv.tenant                                AS tenant,
+        -- Doctor-share basis: a doctor's own DIRECT patients (conversation
+        -- tenant 'direct') pay that doctor's negotiated rate
+        -- (consultation_fee_mxn, pesos). HD-sourced MVP — and anything not
+        -- 'direct' — pays the flat $100; HD keeps the sourcing margin. A
+        -- direct consult with no configured fee falls back to $100.
+        (CASE WHEN conv.tenant = 'direct' AND COALESCE(d.consultation_fee_mxn, 0) > 0
+              THEN d.consultation_fee_mxn::float8
+              ELSE $3::float8 END)                 AS fee_mxn,
+        -- Auto-eligible = clean consultation (completed + collected).
+        (c.status = 'completed'
+           AND (so.status = 'paid'
+                OR COALESCE(c.payment_source, 'stripe') = 'corporate')) AS auto_eligible,
+        -- Explicit decision wins; otherwise default to auto-eligibility.
+        COALESCE(
+          cpd.pay_doctor,
+          (c.status = 'completed'
+             AND (so.status = 'paid'
+                  OR COALESCE(c.payment_source, 'stripe') = 'corporate'))
+        )                                          AS pay_to_doc,
+        cpd.pay_doctor                             AS pay_doctor_override,
+        (pa.cid IS NOT NULL)                       AS is_paid_to_doctor,
+        pa.payout_date                             AS payout_date,
+        COALESCE(ROUND(pa.amount_cents / 100.0, 2)::float8, 0::float8) AS paid_out_amount,
+        COALESCE(ROUND(pa.iva_cents / 100.0, 2)::float8, 0::float8)    AS iva_retentions_applied,
+        COALESCE(ROUND(pa.isr_cents / 100.0, 2)::float8, 0::float8)    AS isr_retentions_applied
       FROM consultations c
       LEFT JOIN doctors  d  ON d.id = c.doctor_id
       LEFT JOIN patients pt ON pt.id = c.patient_id
-      LEFT JOIN doctor_payout_consultations dpc ON dpc.consultation_id = c.id
-      LEFT JOIN doctor_payouts dp              ON dp.id = dpc.doctor_payout_id
+      LEFT JOIN conversations conv ON conv.id = c.conversation_id
       LEFT JOIN consultation_payout_decisions cpd ON cpd.consultation_id = c.id
-      LEFT JOIN stripe_payments p ON (
-        p.consultation_id = c.id
-        OR (p.consultation_id IS NULL
-            AND c.stripe_payment_intent_id IS NOT NULL
-            AND p.stripe_payment_intent_id = c.stripe_payment_intent_id)
-      )
-      WHERE c.completed_at >= $1 AND c.completed_at < $2
-        AND (p.status IS DISTINCT FROM 'refunded'
-             OR COALESCE(cpd.pay_doctor, TRUE) = TRUE)
+      LEFT JOIN pay_agg    pa ON pa.cid = c.id
+      LEFT JOIN stripe_one so ON so.cid = c.id
+      WHERE ($1::timestamp IS NULL OR c.completed_at >= $1::timestamp)
+        AND ($2::timestamp IS NULL OR c.completed_at < $2::timestamp)
+        -- No doctor assigned → nobody to pay; never belongs on a payout report.
+        AND c.doctor_id IS NOT NULL
         -- ADR-046: /prueba test bypass rows are not doctor-payable; hide them.
         AND COALESCE(c.payment_source, 'stripe') <> 'test'
         AND (pt.id IS DISTINCT FROM $7)
         AND (d.id  IS DISTINCT FROM $8)
+    ),
+    main AS (
+      SELECT
+        base.*,
+        (CASE WHEN pay_to_doc THEN fee_mxn ELSE 0::float8 END) AS doctor_share,
+        -- HD commission = gross above the doctor's share. NULL with no
+        -- Stripe row; can go negative when a promo drops price below fee.
+        (stripe_amount - fee_mxn)                              AS hd_commission,
+        $4::float8                                             AS iva_retention_to_apply,
+        -- Retention only applies to a payment we're actually making. With
+        -- pay_to_doc = false there's no honorario, so no ISR to withhold —
+        -- otherwise a not-paid consultation would post a phantom negative.
+        (CASE WHEN NOT pay_to_doc THEN 0::float8
+              WHEN has_correct_rfc THEN $5::float8
+              ELSE $6::float8 END)                             AS isr_retention_to_apply
+      FROM base
     )
     SELECT
       main.*,
@@ -233,7 +296,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
        - (iva_retention_to_apply - iva_retentions_applied)
        - (isr_retention_to_apply - isr_retentions_applied)) AS net_payment_pending
     FROM main
-    ORDER BY completed_at ASC
+    ORDER BY doctor_name ASC, completed_at ASC
     """
 
     params = [
@@ -297,8 +360,11 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         doctor_specialty: sample.doctor_specialty,
         has_correct_rfc: sample.has_correct_rfc,
         consultations: length(rows),
+        direct_count: Enum.count(rows, &(&1.tenant == "direct")),
         paid_to_doctor_count: Enum.count(rows, & &1.is_paid_to_doctor),
         skipped_count: Enum.count(rows, &(&1.pay_to_doc == false)),
+        stripe_amount: sum_round_nilable(rows, :stripe_amount),
+        stripe_fee: sum_round_nilable(rows, :stripe_fee),
         doctor_share: sum_round(rows, :doctor_share),
         hd_commission: sum_round_nilable(rows, :hd_commission),
         paid_out_amount: sum_round(rows, :paid_out_amount),
@@ -327,8 +393,11 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
 
     %{
       total_consultations: length(consultations),
+      direct_count: Enum.count(consultations, &(&1.tenant == "direct")),
       paid_to_doctor_count: Enum.count(consultations, & &1.is_paid_to_doctor),
       unique_doctors: length(per_doctor),
+      total_stripe_amount: sum_round_nilable(consultations, :stripe_amount),
+      total_stripe_fee: sum_round_nilable(consultations, :stripe_fee),
       total_doctor_share: sum_round(consultations, :doctor_share),
       total_hd_commission: sum_round_nilable(consultations, :hd_commission),
       total_paid_out: sum_round(consultations, :paid_out_amount),
@@ -517,6 +586,142 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
     |> Enum.concat()
     |> Enum.map_join("", &encode_row/1)
   end
+
+  # ── XLSX export (2 sheets: Resumen + Detalle) ──────────────────
+
+  @doc """
+  Builds the report as a native `.xlsx` binary with two sheets:
+
+    * `Resumen`  — one row per doctor (the payout order list).
+    * `Detalle`  — one row per consultation (the audit trail).
+
+  Mirrors the spreadsheet ops keeps by hand. Returns the raw binary.
+  """
+  def to_xlsx(%{consultations: consultations, per_doctor: per_doctor}) do
+    resumen_header = [
+      "doctor_id",
+      "Doctor",
+      "Especialidad",
+      "RFC ok",
+      "Consultas",
+      "Directas",
+      "$ consultas (cobrado)",
+      "Comisión HD",
+      "Monto Doc",
+      "Costo Stripe",
+      "Retención IVA",
+      "Retención ISR",
+      "Ya pagado",
+      "Ya retenido IVA",
+      "Ya retenido ISR",
+      "Pago pendiente",
+      "Rating prom"
+    ]
+
+    resumen_rows =
+      Enum.map(per_doctor, fn d ->
+        [
+          d.doctor_id,
+          d.doctor_name,
+          d.doctor_specialty || "",
+          yes_no(d.has_correct_rfc),
+          d.consultations,
+          d.direct_count,
+          cell(d.stripe_amount),
+          cell(d.hd_commission),
+          d.doctor_share,
+          cell(d.stripe_fee),
+          d.iva_retention_to_apply,
+          d.isr_retention_to_apply,
+          d.paid_out_amount,
+          d.iva_retentions_applied,
+          d.isr_retentions_applied,
+          d.net_payment_pending,
+          cell(d.avg_rating)
+        ]
+      end)
+
+    detalle_header = [
+      "consultation_id",
+      "completed_at",
+      "doctor_id",
+      "Doctor",
+      "Especialidad",
+      "Tenant",
+      "Tipo",
+      "Duración (min)",
+      "Estado consulta",
+      "Paciente",
+      "Estado pago (Stripe)",
+      "Código descuento",
+      "$ Stripe",
+      "Costo Stripe",
+      "Comisión HD",
+      "¿Pagar al doctor?",
+      "Monto Doc",
+      "Retención IVA",
+      "Retención ISR",
+      "Ya pagado",
+      "Ya retenido IVA",
+      "Ya retenido ISR",
+      "Adeudo",
+      "Pago pendiente",
+      "Fecha pago",
+      "¿Pagado?",
+      "Rating"
+    ]
+
+    detalle_rows =
+      Enum.map(consultations, fn r ->
+        [
+          r.consultation_id,
+          cell(r.completed_at),
+          r.doctor_id,
+          r.doctor_name || "",
+          r.doctor_specialty || "",
+          r.tenant || "",
+          r.consultation_type || "",
+          cell(r.duration_minutes),
+          r.consultation_status || "",
+          r.patient_name || "",
+          r.payment_status || "",
+          r.discount_code || "",
+          cell(r.stripe_amount),
+          cell(r.stripe_fee),
+          cell(r.hd_commission),
+          yes_no(r.pay_to_doc),
+          r.doctor_share,
+          r.iva_retention_to_apply,
+          r.isr_retention_to_apply,
+          r.paid_out_amount,
+          r.iva_retentions_applied,
+          r.isr_retentions_applied,
+          r.owed_to_doctor,
+          r.net_payment_pending,
+          cell(r.payout_date),
+          yes_no(r.is_paid_to_doctor),
+          cell(r.patient_rating)
+        ]
+      end)
+
+    workbook = %Workbook{
+      sheets: [
+        %Sheet{name: "Resumen", rows: [resumen_header | resumen_rows]},
+        %Sheet{name: "Detalle", rows: [detalle_header | detalle_rows]}
+      ]
+    }
+
+    {:ok, {_filename, binary}} = Elixlsx.write_to_memory(workbook, "payouts.xlsx")
+    binary
+  end
+
+  # Coerce a value into something Elixlsx can write: dates → ISO strings,
+  # nil → "", numbers/strings pass through.
+  defp cell(nil), do: ""
+  defp cell(%Date{} = d), do: Date.to_iso8601(d)
+  defp cell(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_string(ndt)
+  defp cell(%DateTime{} = dt), do: DateTime.to_string(dt)
+  defp cell(v), do: v
 
   defp encode_row(row) when is_list(row) do
     row

@@ -8,13 +8,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportController do
     opts = report_opts(params)
     report = MonthlyReport.generate(start_date, end_date, opts)
 
+    # Default view (no date params) = all outstanding balances, any date.
+    all_outstanding? = is_nil(start_date)
+    nav_date = start_date || Ledgr.Domains.HelloDoctor.today()
+
     render(conn, :index,
       report: report,
       start_date: start_date,
       end_date: end_date,
-      month_key: month_key(start_date),
-      prev_month: month_key(MonthlyReport.shift_month(start_date, -1)),
-      next_month: month_key(MonthlyReport.shift_month(start_date, 1)),
+      all_outstanding?: all_outstanding?,
+      month_key: if(all_outstanding?, do: nil, else: month_key(start_date)),
+      prev_month: month_key(MonthlyReport.shift_month(nav_date, -1)),
+      next_month: month_key(MonthlyReport.shift_month(nav_date, 1)),
       this_month: month_key(Ledgr.Domains.HelloDoctor.today()),
       last_month: month_key(MonthlyReport.shift_month(Ledgr.Domains.HelloDoctor.today(), -1)),
       month_options: MonthlyReport.month_options(12),
@@ -27,12 +32,28 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportController do
     {start_date, end_date} = resolve_period(params)
     opts = report_opts(params)
     csv = MonthlyReport.generate(start_date, end_date, opts) |> MonthlyReport.to_csv()
-    filename = "hello-doctor-monthly-#{start_date}-to-#{end_date}.csv"
 
     conn
     |> put_resp_content_type("text/csv")
-    |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+    |> put_resp_header(
+      "content-disposition",
+      ~s(attachment; filename="hello-doctor-payouts-#{period_slug(start_date, end_date)}.csv")
+    )
     |> send_resp(200, csv)
+  end
+
+  def download_xlsx(conn, params) do
+    {start_date, end_date} = resolve_period(params)
+    opts = report_opts(params)
+    xlsx = MonthlyReport.generate(start_date, end_date, opts) |> MonthlyReport.to_xlsx()
+
+    conn
+    |> put_resp_content_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    |> put_resp_header(
+      "content-disposition",
+      ~s(attachment; filename="hello-doctor-payouts-#{period_slug(start_date, end_date)}.xlsx")
+    )
+    |> send_resp(200, xlsx)
   end
 
   # ── Helpers ─────────────────────────────────────────────────────
@@ -40,7 +61,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportController do
   # Resolution order:
   #   1. explicit start_date + end_date (any range, possibly multi-month)
   #   2. ?month=YYYY-MM
-  #   3. default = previous calendar month
+  #   3. default = ALL OUTSTANDING (no date bound) — every unpaid balance.
   defp resolve_period(params) do
     explicit_start = parse_date(params["start_date"])
     explicit_end = parse_date(params["end_date"])
@@ -53,9 +74,12 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportController do
         month_range
 
       true ->
-        MonthlyReport.last_month_range()
+        {nil, nil}
     end
   end
+
+  defp period_slug(nil, nil), do: "all-outstanding-#{Ledgr.Domains.HelloDoctor.today()}"
+  defp period_slug(s, e), do: "#{s}-to-#{e}"
 
   defp report_opts(params) do
     [include_settled: truthy?(params["include_settled"])]
@@ -88,12 +112,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportHTML do
   Builds the CSV download URL preserving the currently displayed
   filter state.
   """
-  def csv_href(prefix, %{month_key: month_key, include_settled?: included?}) do
-    query =
-      [{"month", month_key}, {"include_settled", if(included?, do: "true", else: nil)}]
-      |> Enum.reject(fn {_, v} -> is_nil(v) end)
-      |> URI.encode_query()
+  def csv_href(prefix, assigns), do: "#{prefix}/reports/monthly/download?#{report_query(assigns)}"
 
-    "#{prefix}/reports/monthly/download?#{query}"
+  @doc "Same, for the two-sheet .xlsx download (Resumen + Detalle)."
+  def xlsx_href(prefix, assigns), do: "#{prefix}/reports/monthly/xlsx?#{report_query(assigns)}"
+
+  # Preserve the current scope (month, if any) + settled toggle. A nil
+  # month_key (all-outstanding view) drops the param so the download
+  # matches what's on screen.
+  defp report_query(%{month_key: month_key, include_settled?: included?}) do
+    [{"month", month_key}, {"include_settled", if(included?, do: "true", else: nil)}]
+    |> Enum.reject(fn {_, v} -> is_nil(v) end)
+    |> URI.encode_query()
   end
 end
