@@ -16,11 +16,12 @@
     <p class="text-sm" style="color: var(--text-muted); max-width: 82ch;">
       Defaults to <strong>all outstanding balances</strong>
       (every doctor with a non-zero net pending, any date) — use the month
-      picker to scope. A consultation pays the doctor by default only when it's
-      <strong>completed and collected</strong>; refunded, cancelled or
-      uncollected ones don't pay unless an operator sets
-      <em>"pay anyway"</em>
-      on the payment. Already-paid balances that are now ineligible show as a
+      picker to scope. A consultation pays the doctor when it has a
+      <strong>non-refunded payment</strong>
+      (or is corporate), <em>or</em>
+      an operator set <em>"pay anyway"</em>
+      on it; refunded / uncollected ones don't pay unless overridden.
+      Already-paid balances that are now ineligible show as a
       <strong>negative</strong>
       net (rolling-total / clawback). <code>net_payment_pending = 0</code>
       rows are hidden by default.

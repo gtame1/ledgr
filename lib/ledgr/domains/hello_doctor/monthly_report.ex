@@ -155,14 +155,17 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
 
   ## Pay eligibility (the default)
 
-  A consultation pays the doctor by default ONLY when it's clean:
-  `status = 'completed'` AND it was collected (a Stripe payment in status
-  `paid`, or `payment_source = 'corporate'`). Refunded, cancelled, or
-  uncollected consultations do NOT pay by default. An explicit
+  A consultation pays the doctor by default whenever it was **collected**:
+  a non-refunded Stripe payment (status `paid`), or `payment_source =
+  'corporate'`. Status is intentionally NOT checked — a paid consultation
+  still owes the doctor even if it's not marked `completed`. Refunded or
+  uncollected consultations don't pay by default. An explicit
   `consultation_payout_decisions.pay_doctor` row always wins either way
-  ("pay anyway" = true, "skip" = false):
+  ("pay anyway" = true, "skip" = false), so the rule is simply:
 
-      pay_to_doc = COALESCE(cpd.pay_doctor, auto_eligible)
+      pays  ⇔  has a (non-refunded) payment  OR  pay_doctor = true
+
+      pay_to_doc = COALESCE(cpd.pay_doctor, collected?)
 
   Doctor share is the per-doctor `consultation_fee_mxn` when set (> 0),
   otherwise the global $100. Already-paid amounts are summed across ALL
@@ -240,16 +243,18 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         (CASE WHEN conv.tenant = 'direct' AND COALESCE(d.consultation_fee_mxn, 0) > 0
               THEN d.consultation_fee_mxn::float8
               ELSE $3::float8 END)                 AS fee_mxn,
-        -- Auto-eligible = clean consultation (completed + collected).
-        (c.status = 'completed'
-           AND (so.status = 'paid'
-                OR COALESCE(c.payment_source, 'stripe') = 'corporate')) AS auto_eligible,
-        -- Explicit decision wins; otherwise default to auto-eligibility.
+        -- Auto-eligible = the consultation was collected: a non-refunded
+        -- Stripe payment, or corporate (employer-billed). We deliberately
+        -- do NOT require status='completed' — a genuinely paid consultation
+        -- still owes the doctor even if its status is something else.
+        (so.status = 'paid'
+         OR COALESCE(c.payment_source, 'stripe') = 'corporate') AS auto_eligible,
+        -- Explicit decision wins ("pay anyway" / "skip"); otherwise pay when
+        -- there's a payment. So: payment OR pay_doctor=true ⇒ pays.
         COALESCE(
           cpd.pay_doctor,
-          (c.status = 'completed'
-             AND (so.status = 'paid'
-                  OR COALESCE(c.payment_source, 'stripe') = 'corporate'))
+          (so.status = 'paid'
+           OR COALESCE(c.payment_source, 'stripe') = 'corporate')
         )                                          AS pay_to_doc,
         cpd.pay_doctor                             AS pay_doctor_override,
         (pa.cid IS NOT NULL)                       AS is_paid_to_doctor,
@@ -266,8 +271,6 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       LEFT JOIN stripe_one so ON so.cid = c.id
       WHERE ($1::timestamp IS NULL OR c.completed_at >= $1::timestamp)
         AND ($2::timestamp IS NULL OR c.completed_at < $2::timestamp)
-        -- No doctor assigned → nobody to pay; never belongs on a payout report.
-        AND c.doctor_id IS NOT NULL
         -- ADR-046: /prueba test bypass rows are not doctor-payable; hide them.
         AND COALESCE(c.payment_source, 'stripe') <> 'test'
         AND (pt.id IS DISTINCT FROM $7)
