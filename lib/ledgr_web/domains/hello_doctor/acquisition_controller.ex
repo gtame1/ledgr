@@ -187,6 +187,13 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted); white-space: nowrap;"
+              title="Distinct patients who came back — active on ≥2 distinct Mexico-City days (all-time). % is of this campaign's unique patients."
+            >
+              Returned
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
               title="Ad clicks paused at the bot's '¿te refirió un doctor?' prompt — awaiting a yes/no button tap. Transient."
             >
               Pending routing
@@ -227,6 +234,16 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             </td>
             <td class="p-3 text-right font-semibold">{entry.leads}</td>
             <td class="p-3 text-right">{entry.unique_patients}</td>
+            <td
+              class="hd-tooltip-cell p-3 text-right"
+              style="color: var(--text-main);"
+              data-tip={"#{fmt_pct(entry.returning_rate)} of this campaign's patients returned"}
+            >
+              {entry.returning_patients}
+              <span class="text-xs" style="color: var(--text-muted);">
+                ({fmt_pct(entry.returning_rate)})
+              </span>
+            </td>
             <% pending_share = column_share(entry.pending_routing, @totals.pending_routing) %>
             <td
               class="hd-tooltip-cell p-3 text-right"
@@ -269,6 +286,16 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             <td class="p-3 pl-4 font-bold" style="white-space: nowrap;">Totals</td>
             <td class="p-3 text-right font-bold">{@totals.leads}</td>
             <td class="p-3 text-right font-bold">{@totals.unique_patients}</td>
+            <td
+              class="hd-tooltip-cell p-3 text-right font-bold"
+              style="color: var(--text-main);"
+              data-tip={"#{fmt_pct(@totals.returning_rate)} of all unique patients returned"}
+            >
+              {@totals.returning_patients}
+              <span class="text-xs" style="color: var(--text-muted);">
+                ({fmt_pct(@totals.returning_rate)})
+              </span>
+            </td>
             <td
               class="hd-tooltip-cell p-3 text-right font-bold"
               style="color: var(--text-muted);"

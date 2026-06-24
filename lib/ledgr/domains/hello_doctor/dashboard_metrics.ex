@@ -56,6 +56,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       prescription_mix: prescription_mix(start_date, end_date),
       conversations_per_patient: conversations_per_patient(start_date, end_date),
       return_cohorts: weekly_return_cohorts(start_date, end_date),
+      return_thesis: return_payment_thesis(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       direct_requests: direct_request_metrics(start_date, end_date),
       infrastructure_costs: infrastructure_costs(start_date, end_date),
@@ -88,30 +89,39 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   Return-rate cohorts grouped by weekly vintage.
 
   Each patient is assigned to a vintage = the ISO week (Mexico City) of
-  their FIRST-ever conversation. For each vintage whose first conversation
-  falls inside [start_date, end_date], returns:
+  their FIRST user message. For each vintage whose first activity falls
+  inside [start_date, end_date], returns:
 
     * `cohort_size` — patients first seen that week
-    * `returned`    — how many of them started ≥1 additional conversation
+    * `returned`    — how many were active on ≥2 DISTINCT Mexico-City days
     * `return_rate` — returned / cohort_size (%)
 
-  "Returned" is measured across ALL of a patient's conversations, not just
-  those in-period, so the rate reflects true repeat behaviour — which means
-  the most recent weeks are still maturing (a patient acquired this week
-  hasn't had much time to come back). Excludes the dashboard-owner test
-  patient. Ordered newest vintage first.
+  "Returned" = active on ≥2 distinct MX calendar days (message-based), so a
+  patient who sent everything in one sitting doesn't count even if it
+  spanned multiple conversations. Measured across ALL of a patient's
+  activity, not just in-period, so the most recent weeks are still maturing
+  (a patient acquired this week hasn't had much time to come back). Excludes
+  the dashboard-owner test patient. Ordered newest vintage first.
   """
   def weekly_return_cohorts(start_date, end_date) do
     start_naive = to_naive_start(start_date)
     end_exclusive = to_naive_end_exclusive(end_date)
 
     sql = """
-    WITH patient_convs AS (
+    WITH patient_days AS (
+      -- One row per patient: their first activity instant + how many
+      -- DISTINCT Mexico-City calendar days they sent a user message on.
+      -- "Returning" = active on >= 2 distinct MX days (message-based),
+      -- not merely >= 2 conversation rows.
       SELECT c.patient_id AS pid,
-             MIN(c.created_at) AS first_at,
-             COUNT(*) AS conv_count
-      FROM conversations c
-      WHERE c.patient_id IS NOT NULL
+             MIN(m.created_at) AS first_at,
+             COUNT(DISTINCT (
+               (m.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date
+             )) AS active_days
+      FROM messages m
+      JOIN conversations c ON c.id = m.conversation_id
+      WHERE m.role = 'user'
+        AND c.patient_id IS NOT NULL
         AND c.patient_id != $1
       GROUP BY c.patient_id
     )
@@ -121,8 +131,8 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         (first_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'
       )::date AS vintage_week,
       COUNT(*) AS cohort_size,
-      COUNT(*) FILTER (WHERE conv_count >= 2) AS returned
-    FROM patient_convs
+      COUNT(*) FILTER (WHERE active_days >= 2) AS returned
+    FROM patient_days
     WHERE first_at >= $2 AND first_at < $3
     GROUP BY vintage_week
     ORDER BY vintage_week DESC
@@ -154,6 +164,69 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       total_returned: total_returned,
       overall_rate: pct(total_returned, total_size)
     }
+  end
+
+  @doc """
+  Proof-of-thesis: do returning patients pay more? Splits patients first
+  seen in [start_date, end_date] into "returning" (active on ≥2 distinct MX
+  days) vs "one-day only", and reports how many in each segment ever had a
+  paid consultation, plus the % paid.
+
+  Paid = the patient has any consultation with `payment_status` in
+  (paid, confirmed) — the same "paid" notion the dashboard funnel uses,
+  measured across all the patient's consultations (not just in-period).
+  Excludes the dashboard-owner test patient.
+  """
+  def return_payment_thesis(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
+
+    sql = """
+    WITH patient_days AS (
+      SELECT c.patient_id AS pid,
+             MIN(m.created_at) AS first_at,
+             COUNT(DISTINCT (
+               (m.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date
+             )) AS active_days
+      FROM messages m
+      JOIN conversations c ON c.id = m.conversation_id
+      WHERE m.role = 'user'
+        AND c.patient_id IS NOT NULL
+        AND c.patient_id != $1
+      GROUP BY c.patient_id
+    ),
+    paid AS (
+      SELECT DISTINCT co.patient_id AS pid
+      FROM consultations cons
+      JOIN conversations co ON co.id = cons.conversation_id
+      WHERE cons.payment_status IN ('paid', 'confirmed')
+        AND co.patient_id IS NOT NULL
+    )
+    SELECT
+      CASE WHEN d.active_days >= 2 THEN 'returning' ELSE 'one_day' END AS segment,
+      COUNT(*) AS patients,
+      COUNT(p.pid) AS ever_paid
+    FROM patient_days d
+    LEFT JOIN paid p ON p.pid = d.pid
+    WHERE d.first_at >= $2 AND d.first_at < $3
+    GROUP BY 1
+    """
+
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [
+        @test_patient_id,
+        start_naive,
+        end_exclusive
+      ])
+
+    seg = fn name ->
+      case Enum.find(rows, fn [s, _, _] -> s == name end) do
+        [_, patients, paid] -> %{patients: patients, paid: paid, pct_paid: pct(paid, patients)}
+        nil -> %{patients: 0, paid: 0, pct_paid: 0.0}
+      end
+    end
+
+    %{returning: seg.("returning"), one_day: seg.("one_day")}
   end
 
   # ── Funnel ─────────────────────────────────────────────────────

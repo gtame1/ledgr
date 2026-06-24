@@ -429,11 +429,26 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         ) AS net_revenue
       FROM payment_conv
       GROUP BY conversation_id
+    ),
+    -- All-time active-day count per patient. "Returning" = active on >= 2
+    -- distinct Mexico-City days (message-based), independent of the window
+    -- — we want to know if the campaign's patients ever came back at all.
+    patient_days AS (
+      SELECT c.patient_id AS pid,
+             COUNT(DISTINCT (
+               (m.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date
+             )) AS active_days
+      FROM messages m
+      JOIN conversations c ON c.id = m.conversation_id
+      WHERE m.role = 'user' AND c.patient_id IS NOT NULL
+      GROUP BY c.patient_id
     )
     SELECT
       a.campaign_id,
       COUNT(*) AS leads,
       COUNT(DISTINCT a.patient_id) AS unique_patients,
+      -- Distinct attributed patients who returned (active >= 2 MX days).
+      COUNT(DISTINCT a.patient_id) FILTER (WHERE pd.active_days >= 2) AS returning_patients,
       -- Ad clicks paused at the bot's "¿te refirió un doctor?" prompt.
       -- Transient — empirically avg ~7h before tapping a button.
       COUNT(*) FILTER (
@@ -457,6 +472,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     FROM attributed a
     LEFT JOIN conv_cons cc ON cc.conversation_id = a.conversation_id
     LEFT JOIN conv_pay cp ON cp.conversation_id = a.conversation_id
+    LEFT JOIN patient_days pd ON pd.pid = a.patient_id
     WHERE a.campaign_id IS NOT NULL
     GROUP BY a.campaign_id
     """
@@ -474,6 +490,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     base = %{
       leads: 0,
       unique_patients: 0,
+      returning_patients: 0,
       pending_routing: 0,
       revenue_mxn: 0
     }
@@ -514,6 +531,9 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     base = %{
       leads: leads,
       unique_patients: row.unique_patients || 0,
+      returning_patients: row[:returning_patients] || 0,
+      # Share of the campaign's unique patients who came back (≥2 MX days).
+      returning_rate: pct(row[:returning_patients] || 0, row.unique_patients || 0),
       pending_routing: row[:pending_routing] || 0,
       revenue_mxn: to_float(row.revenue_mxn),
       pending_routing_pct: pct(row[:pending_routing] || 0, leads)
@@ -547,7 +567,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   defp totals(per_campaign) do
     summed_keys =
-      [:leads, :unique_patients, :pending_routing, :revenue_mxn] ++
+      [:leads, :unique_patients, :returning_patients, :pending_routing, :revenue_mxn] ++
         Enum.map(canonical_stages(), & &1.key) ++
         Enum.map(outcome_stages(), & &1.key)
 
@@ -568,7 +588,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       triaged: Map.get(summed, :reached_4),
       lead_to_paid: pct(Map.get(summed, :paid), leads),
       lead_to_completed: pct(Map.get(summed, :completed), leads),
-      pending_routing_pct: pct(summed.pending_routing, leads)
+      pending_routing_pct: pct(summed.pending_routing, leads),
+      returning_rate: pct(Map.get(summed, :returning_patients), Map.get(summed, :unique_patients))
     }
 
     # Per-column % of leads, for the totals row in the table — both the

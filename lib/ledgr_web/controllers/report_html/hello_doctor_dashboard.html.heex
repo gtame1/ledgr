@@ -489,9 +489,10 @@ end %>
         <% end %>
       </div>
       <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 80ch;">
-        Patients grouped by the week of their first conversation (vintage). "Returned" =
-        started at least one more conversation later. Measured across all time, so the most
-        recent weeks are still maturing.
+        Patients grouped by the week of their first message (vintage). "Returned" =
+        active on <strong>≥2 distinct Mexico-City days</strong>
+        (came back on another day, not just multiple messages in one sitting). Measured
+        across all time, so the most recent weeks are still maturing.
       </p>
       <%= if Enum.empty?(m.return_cohorts.cohorts) do %>
         <div class="hd-empty">
@@ -546,6 +547,54 @@ end %>
           </tbody>
         </table>
       <% end %>
+
+      <%!-- Proof-of-thesis: do returning patients pay more? --%>
+      <% rt = m.return_thesis %>
+      <div class="mt-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
+        <div class="hd-card-title" style="margin-bottom: 0.25rem;">
+          Do returning patients pay more?
+        </div>
+        <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 80ch;">
+          Patients first seen in this period, split by whether they came back (≥2 distinct MX
+          days). "Paid" = the patient ever had a paid/confirmed consultation.
+        </p>
+        <table class="hd-table w-full text-sm">
+          <thead>
+            <tr>
+              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Segment
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Patients
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Ever paid
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                % paid
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t" style="border-color: var(--border-subtle);">
+              <td class="p-2 font-medium" style="color: var(--text-main);">Returning (≥2 days)</td>
+              <td class="p-2 text-right" style="color: var(--text-muted);">{rt.returning.patients}</td>
+              <td class="p-2 text-right" style="color: var(--text-main);">{rt.returning.paid}</td>
+              <td class="p-2 text-right font-semibold" style="color: var(--accent);">
+                {fmt_pct.(rt.returning.pct_paid)}
+              </td>
+            </tr>
+            <tr class="border-t" style="border-color: var(--border-subtle);">
+              <td class="p-2 font-medium" style="color: var(--text-main);">One-day only</td>
+              <td class="p-2 text-right" style="color: var(--text-muted);">{rt.one_day.patients}</td>
+              <td class="p-2 text-right" style="color: var(--text-main);">{rt.one_day.paid}</td>
+              <td class="p-2 text-right font-semibold" style="color: var(--text-main);">
+                {fmt_pct.(rt.one_day.pct_paid)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
