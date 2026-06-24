@@ -191,7 +191,11 @@ if hd_url = System.get_env("HELLO_DOCTOR_DATABASE_URL") do
     ],
     stacktrace: true,
     show_sensitive_data_on_connection_error: true,
-    pool_size: 10,
+    # Neon branch computes are connection-limited (a small autoscaling
+    # compute rejects a large pool during cold-start ramp with
+    # "too many clients already"). A single local dev doesn't need 10;
+    # keep it small and overridable.
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
     priv: "priv/repos/hello_doctor"
 else
   IO.puts(
