@@ -61,6 +61,8 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       direct_requests: direct_request_metrics(start_date, end_date),
       infrastructure_costs: infrastructure_costs(start_date, end_date),
       daily_series: daily_series(start_date, end_date),
+      # Period-independent: always the trailing 8 weeks
+      conversion_trend: weekly_conversion_trend(8),
       # Infrastructure
       db_size: db_size(),
       # Totals independent of period (for footer/nav context)
@@ -372,6 +374,106 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
        }}
     end)
     |> Map.new()
+  end
+
+  # ── Weekly conversion trend (trailing N weeks) ─────────────────
+
+  @doc """
+  Conversion-to-consultation trend over the trailing `weeks` ISO weeks
+  (Monday-start, Mexico City), **independent of the dashboard's selected
+  period**. Lets you see whether top-of-funnel → consultation conversion is
+  improving week over week rather than just current-vs-prior.
+
+  Each week bucket carries the raw funnel counts plus two rates, both
+  expressed as a share of that week's conversations (the funnel entry point)
+  so they're directly comparable across weeks:
+
+    * `consultation_rate` — consultations started / conversations
+    * `paid_rate`         — paid consultations / conversations
+
+  Counts come from the reliable tables (`conversations.created_at`,
+  `consultations.assigned_at` + `payment_status`), NOT the stale
+  `funnel_stage` column. The most recent week is still in progress, so its
+  rates are partial.
+
+  Returns `weeks` oldest→newest, plus an OLS slope (percentage points per
+  week) for each rate and a coarse `direction` tag for the consultation rate.
+  """
+  def weekly_conversion_trend(weeks \\ 8) when weeks > 0 do
+    this_week_start = Date.beginning_of_week(Ledgr.Domains.HelloDoctor.today(), :monday)
+    week_starts = for i <- (weeks - 1)..0//-1, do: Date.add(this_week_start, -7 * i)
+
+    range_start = List.first(week_starts)
+    range_end = Date.add(this_week_start, 6)
+
+    # Bucket conversations + doctor-recommended by Mexico-City ISO week.
+    # Same UTC→MX shift as daily_series/2, then date_trunc to the week's
+    # Monday so a late-evening MX conversation lands in the right week.
+    conv_by_week =
+      Conversation
+      |> where_date_range(:created_at, range_start, range_end)
+      |> group_by(
+        [c],
+        fragment(
+          "date_trunc('week', ((? AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'))::date",
+          c.created_at
+        )
+      )
+      |> select(
+        [c],
+        {fragment(
+           "date_trunc('week', ((? AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'))::date",
+           c.created_at
+         ), count(c.id), filter(count(c.id), c.doctor_recommended == true)}
+      )
+      |> Repo.all()
+      |> Map.new(fn {wk, conv, rec} -> {wk, {conv, rec}} end)
+
+    consult_by_week =
+      Consultation
+      |> where_date_range(:assigned_at, range_start, range_end)
+      |> group_by(
+        [c],
+        fragment(
+          "date_trunc('week', ((? AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'))::date",
+          c.assigned_at
+        )
+      )
+      |> select(
+        [c],
+        {fragment(
+           "date_trunc('week', ((? AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'))::date",
+           c.assigned_at
+         ), count(c.id), filter(count(c.id), c.payment_status in ["paid", "confirmed"])}
+      )
+      |> Repo.all()
+      |> Map.new(fn {wk, consults, paid} -> {wk, {consults, paid}} end)
+
+    weeks_data =
+      Enum.map(week_starts, fn wk ->
+        {conversations, doctor_recommended} = Map.get(conv_by_week, wk, {0, 0})
+        {consultations, paid} = Map.get(consult_by_week, wk, {0, 0})
+
+        %{
+          week_start: wk,
+          conversations: conversations,
+          doctor_recommended: doctor_recommended,
+          consultations: consultations,
+          paid: paid,
+          consultation_rate: pct(consultations, conversations),
+          paid_rate: pct(paid, conversations)
+        }
+      end)
+
+    consultation_slope = ols_slope(Enum.map(weeks_data, & &1.consultation_rate))
+    paid_slope = ols_slope(Enum.map(weeks_data, & &1.paid_rate))
+
+    %{
+      weeks: weeks_data,
+      consultation_rate_slope: consultation_slope,
+      paid_rate_slope: paid_slope,
+      direction: direction_for(consultation_slope)
+    }
   end
 
   # ── Cost metrics: cost per consult/conv, CAC ───────────────────
@@ -1230,6 +1332,36 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   defp div_nil(n, d) when is_number(n) and is_number(d) and d != 0, do: n / d
   defp div_nil(_, _), do: 0.0
+
+  # Ordinary-least-squares slope of `values` regressed against their index
+  # (0, 1, 2, …). Returns slope in the series' own units per step — here,
+  # percentage points per week. 0.0 when fewer than two points or no spread.
+  defp ols_slope(values) do
+    n = length(values)
+
+    if n < 2 do
+      0.0
+    else
+      indices = Enum.to_list(0..(n - 1))
+      mean_x = Enum.sum(indices) / n
+      mean_y = Enum.sum(values) / n
+
+      {num, den} =
+        indices
+        |> Enum.zip(values)
+        |> Enum.reduce({0.0, 0.0}, fn {x, y}, {num, den} ->
+          dx = x - mean_x
+          {num + dx * (y - mean_y), den + dx * dx}
+        end)
+
+      if den == 0.0, do: 0.0, else: Float.round(num / den, 2)
+    end
+  end
+
+  # ±0.5 pp/week dead-band so noise doesn't read as a trend.
+  defp direction_for(slope) when slope >= 0.5, do: :improving
+  defp direction_for(slope) when slope <= -0.5, do: :declining
+  defp direction_for(_), do: :flat
 
   defp round_to(n, decimals) when is_number(n), do: Float.round(n * 1.0, decimals)
 end

@@ -356,6 +356,110 @@ end %>
     <% end %>
   </div>
 
+  <%!-- ═══ CONVERSION TREND (trailing 8 weeks) ═══ --%>
+  <% trend = m.conversion_trend %>
+  <% trend_chart = %{
+    format: "percent",
+    decimals: 1,
+    labels: Enum.map(trend.weeks, fn w -> fmt_date(w.week_start, "%b %d") end),
+    datasets: [
+      %{
+        label: "Conversation → consultation",
+        data: Enum.map(trend.weeks, & &1.consultation_rate),
+        borderColor: c_primary,
+        backgroundColor: c_primary,
+        tension: 0.3
+      },
+      %{
+        label: "Conversation → paid",
+        data: Enum.map(trend.weeks, & &1.paid_rate),
+        borderColor: c_accent,
+        backgroundColor: c_accent,
+        tension: 0.3
+      }
+    ]
+  } %>
+  <% {dir_label, dir_color} =
+    case trend.direction do
+      :improving -> {"▲ Improving", "var(--accent)"}
+      :declining -> {"▼ Declining", "#dc2626"}
+      :flat -> {"▬ Flat", "var(--text-muted)"}
+    end %>
+  <div class="mb-8">
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Conversion trend
+    </h2>
+    <div class="hd-card p-5">
+      <div class="flex items-center justify-between mb-2">
+        <div class="hd-card-title" style="margin-bottom: 0;">
+          Conversion to consultation &mdash; trailing 8 weeks
+        </div>
+        <span class="text-xs font-semibold" style={"color: #{dir_color};"}>
+          {dir_label} · {:erlang.float_to_binary(trend.consultation_rate_slope, decimals: 2)} pp/wk
+        </span>
+      </div>
+      <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 80ch;">
+        Share of each week's conversations that started a consultation (and that paid), bucketed by
+        <strong>Mexico-City ISO week</strong>. Counts come from conversations + consultations, not the
+        stale funnel-stage column. The slope is an ordinary least-squares fit (percentage points per
+        week) over the consultation rate. The current week is still in progress, so its rates are partial.
+      </p>
+      <%= if Enum.all?(trend.weeks, &(&1.conversations == 0)) do %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">📈</div>
+          <p>No conversations in the last 8 weeks</p>
+        </div>
+      <% else %>
+        <div id="conversion-trend-chart-wrapper" phx-hook="LineChart" style="height: 280px;">
+          <canvas id="conversion-trend-chart" data-chart-data={Jason.encode!(trend_chart)}></canvas>
+        </div>
+        <table class="hd-table w-full text-sm mt-4">
+          <thead>
+            <tr>
+              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Week of
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Convos
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Consults
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                → Consult
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Paid
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                → Paid
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for w <- trend.weeks do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-2 font-medium" style="color: var(--text-main);">
+                  {fmt_date(w.week_start, "%b %d")}
+                </td>
+                <td class="p-2 text-right" style="color: var(--text-muted);">{w.conversations}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{w.consultations}</td>
+                <td class="p-2 text-right font-medium">{fmt_pct.(w.consultation_rate)}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{w.paid}</td>
+                <td class="p-2 text-right font-medium" style="color: var(--accent);">
+                  {fmt_pct.(w.paid_rate)}
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+
   <%!-- ═══ PATIENTS & ENGAGEMENT ═══ --%>
   <div class="mb-8">
     <h2

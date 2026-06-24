@@ -116,6 +116,10 @@ function formatChartValue(value, format, decimals) {
   if (format === 'currency_pesos') {
     return value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
   }
+  if (format === 'percent') {
+    const d = typeof decimals === 'number' ? decimals : 1
+    return value.toFixed(d) + '%'
+  }
   if (typeof decimals === 'number') {
     return value.toLocaleString('es-MX', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
   }
@@ -270,6 +274,112 @@ const BarChart = {
   }
 }
 
+const LineChart = {
+  mounted() {
+    this.initChart()
+  },
+
+  updated() {
+    if (this.chart) {
+      this.chart.destroy()
+    }
+    this.initChart()
+  },
+
+  destroyed() {
+    if (this.chart) {
+      this.chart.destroy()
+    }
+  },
+
+  initChart() {
+    const canvas = this.el.querySelector('canvas')
+    if (!canvas) return
+
+    const dataAttr = canvas.dataset.chartData
+    if (!dataAttr) return
+
+    let data
+    try {
+      data = JSON.parse(dataAttr)
+    } catch (e) {
+      console.error('Invalid chart data:', e)
+      return
+    }
+
+    const ctx = canvas.getContext('2d')
+    const format = data.format || 'number'
+    const decimals = data.decimals
+
+    const datasets = (data.datasets || []).map(ds => ({
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      fill: false,
+      ...ds
+    }))
+
+    this.chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels || [],
+        datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: { top: 16, right: 10 }
+        },
+        plugins: {
+          legend: {
+            display: datasets.length > 1,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              font: {
+                family: 'system-ui, -apple-system, sans-serif',
+                size: 12
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#141414',
+            titleFont: { family: 'system-ui', size: 13 },
+            bodyFont: { family: 'system-ui', size: 12 },
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: function(context) {
+                const formatted = formatChartValue(context.raw, format, decimals)
+                const label = context.dataset.label ? context.dataset.label + ': ' : ''
+                return label + formatted
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'system-ui', size: 11 } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(100, 116, 139, 0.1)' },
+            ticks: {
+              font: { family: 'system-ui', size: 11 },
+              callback: function(value) {
+                return formatChartValue(value, format, decimals)
+              }
+            }
+          }
+        }
+      }
+    })
+  }
+}
+
 const DoughnutChart = {
   mounted() {
     this.initChart()
@@ -381,6 +491,7 @@ const DoughnutChart = {
 const colocatedHooks = {
   SearchableSelect,
   BarChart,
+  LineChart,
   DoughnutChart
 }
 
