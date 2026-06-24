@@ -64,7 +64,13 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
     # Meta cohort launched 2026-06-17
     "gine_manchado" => "#be185d",
     "gast_estomago" => "#0891b2",
-    "ped_bebe_enfermo" => "#ea580c"
+    "ped_bebe_enfermo" => "#ea580c",
+    # Meta cohort launched 2026-06-24
+    "gine_duda" => "#db2777",
+    "ped_hijo" => "#fb923c",
+    "gast_malestar" => "#06b6d4",
+    "cabeza" => "#8b5cf6",
+    "urologia" => "#65a30d"
   }
 
   def campaign_color(id), do: Map.get(@palette, id, "#94a3b8")

@@ -233,6 +233,64 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         phrase: "mi bebé se siente mal",
         started_on: cutoff()
       },
+      # ── Meta cohort launched 2026-06-24 ──────────────────────────
+      # New emoji coding; replaces the 2026-06-17 cohort as the current
+      # generation. Welcome messages (as deployed):
+      #   🌸  "Hola, tengo una duda 🌸"
+      #   😕  "Hola, mi hijo se siente mal 😕"
+      #   😖  "Hola, he estado sintiéndome mal 😖"
+      #   😓  "Hola, no me he estado sintiendo bien 😓"
+      #   🤕  "Hola, llevo días con molestias 🤕"
+      %__MODULE__{
+        id: "gine_duda",
+        label: "Ginecología — Duda",
+        emoji: "🌸",
+        campaign_set: "Ginecología",
+        ad_set: "GINE-02",
+        pain: "Duda ginecológica",
+        phrase: "tengo una duda",
+        started_on: ~D[2026-06-24]
+      },
+      %__MODULE__{
+        id: "ped_hijo",
+        label: "Pediatría — Hijo enfermo",
+        emoji: "😕",
+        campaign_set: "Pediatría",
+        ad_set: "PED-03",
+        pain: "Hijo enfermo",
+        phrase: "mi hijo se siente mal",
+        started_on: ~D[2026-06-24]
+      },
+      %__MODULE__{
+        id: "gast_malestar",
+        label: "Gastro — Malestar",
+        emoji: "😖",
+        campaign_set: "Gastroenterología",
+        ad_set: "GAST-02",
+        pain: "Malestar general",
+        phrase: "he estado sintiéndome mal",
+        started_on: ~D[2026-06-24]
+      },
+      %__MODULE__{
+        id: "cabeza",
+        label: "Cabeza — Malestar",
+        emoji: "😓",
+        campaign_set: "Cabeza",
+        ad_set: "CAB-01",
+        pain: "No se siente bien",
+        phrase: "no me he estado sintiendo bien",
+        started_on: ~D[2026-06-24]
+      },
+      %__MODULE__{
+        id: "urologia",
+        label: "Urología — Molestias",
+        emoji: "🤕",
+        campaign_set: "Urología",
+        ad_set: "URO-01",
+        pain: "Molestias (días)",
+        phrase: "llevo días con molestias",
+        started_on: ~D[2026-06-24]
+      },
       # ── Landing pages (evergreen — span every Meta generation) ───
       %__MODULE__{
         id: "lpc_01",
