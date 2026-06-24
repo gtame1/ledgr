@@ -179,68 +179,45 @@
     <% end %>
   </div>
 
-  <%!-- ── Per-campaign funnel, split at the cutoff ── --%>
+  <%!-- ── Per-campaign funnel, split into tracking cuts ── --%>
   <% stages = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.canonical_stages() %>
   <% outcomes = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.outcome_stages() %>
-  <% cutoff_label = Calendar.strftime(@cutoff, "%b %-d, %Y") %>
   <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Per-campaign funnel</h2>
   <p class="text-xs mb-5" style="color: var(--text-muted); max-width: 80ch;">
-    Split at the <strong>{cutoff_label}</strong>
-    campaign refresh — new Meta ad sets replaced the old ones that day. Each
-    table's numbers are windowed to its era (clamped to the range above). The numbered
-    <em>stage</em> columns (greeting → payment link) are cumulative — a conversation in
-    <em>doctor_recommended</em>
+    Split into tracking windows at each campaign cut — the most recent window is shown below;
+    earlier ones are collapsed. Each table's numbers are windowed to its own period (clamped to the
+    range above). The numbered <em>stage</em> columns (greeting → payment link) are cumulative — a
+    conversation in <em>doctor_recommended</em>
     is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. The
     <em>outcome</em> columns to the right (Paid · Consult · Done · Cancel · Failed) are measured
     from the <code>consultations</code> and <code>stripe_payments</code> tables — not from the bot's
     chat state, which stalls once a consultation starts — and are independent, not cumulative. Hover
-    any cell to see its share of that table's column total. Landing-page campaigns run across both
-    eras, so they appear in each table with their leads divided at the cutoff.
+    any cell to see its share of that table's column total. Landing-page campaigns run across every
+    window, so they appear in each table with their leads divided at the cuts.
   </p>
 
-  <%!-- From-cutoff era (current generation): new Meta + evergreen landing --%>
-  <% from_ids = Ledgr.Domains.HelloDoctor.Campaigns.from_cutoff() |> Enum.map(& &1.id) %>
-  <% from_entries = Enum.filter(@from_report.per_campaign, &(&1.campaign.id in from_ids)) %>
-  <% from_totals = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.subtotals(from_entries) %>
-  <% {from_start, from_end} = @from_report.period %>
-  <h3 class="text-base font-semibold mb-1" style="color: var(--text-main);">
-    From {cutoff_label}
-    <span class="text-xs font-normal" style="color: var(--text-muted);">
-      · new Meta ad sets + landing pages
-    </span>
-  </h3>
-  <%= if Date.compare(from_start, from_end) != :gt do %>
-    <p class="text-xs mb-2" style="color: var(--text-muted);">
-      Showing {Calendar.strftime(from_start, "%b %-d")} – {Calendar.strftime(from_end, "%b %-d, %Y")}.
-    </p>
-    <.funnel_table entries={from_entries} totals={from_totals} stages={stages} outcomes={outcomes} />
-  <% else %>
-    <p class="hd-card p-4 text-sm" style="color: var(--text-muted); margin-bottom: 2rem;">
-      The selected range ends before {cutoff_label}. Move the <em>To</em>
-      date to on/after {cutoff_label} to see the new campaigns.
-    </p>
-  <% end %>
-
-  <%!-- Before-cutoff era (legacy generation): old Meta + evergreen landing --%>
-  <% before_ids = Ledgr.Domains.HelloDoctor.Campaigns.before_cutoff() |> Enum.map(& &1.id) %>
-  <% before_entries = Enum.filter(@before_report.per_campaign, &(&1.campaign.id in before_ids)) %>
-  <% before_totals = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.subtotals(before_entries) %>
-  <% {before_start, before_end} = @before_report.period %>
-  <h3 class="text-base font-semibold mb-1" style="color: var(--text-main);">
-    Before {cutoff_label}
-    <span class="text-xs font-normal" style="color: var(--text-muted);">
-      · legacy Meta ad sets + landing pages
-    </span>
-  </h3>
-  <%= if Date.compare(before_start, before_end) != :gt do %>
-    <p class="text-xs mb-2" style="color: var(--text-muted);">
-      Showing {Calendar.strftime(before_start, "%b %-d")} – {Calendar.strftime(before_end, "%b %-d, %Y")}.
-    </p>
-    <.funnel_table entries={before_entries} totals={before_totals} stages={stages} outcomes={outcomes} />
-  <% else %>
-    <p class="hd-card p-4 text-sm" style="color: var(--text-muted); margin-bottom: 2rem;">
-      The selected range starts on/after {cutoff_label} — no legacy-era days to show.
-    </p>
+  <%= for cut <- @cut_tables do %>
+    <%= if cut.current? do %>
+      <%!-- Current cut: shown expanded --%>
+      <h3 class="text-base font-semibold mb-1" style="color: var(--text-main);">
+        {cut_title(cut)}
+        <span class="text-xs font-normal" style="color: var(--text-muted);">· current</span>
+      </h3>
+      <.cut_table cut={cut} stages={stages} outcomes={outcomes} />
+    <% else %>
+      <%!-- Earlier cuts: collapsed into a details menu --%>
+      <details class="hd-card" style="padding: 0.75rem 1rem; margin-bottom: 1rem;">
+        <summary class="text-sm font-semibold cursor-pointer" style="color: var(--text-main);">
+          {cut_title(cut)}
+          <span class="text-xs font-normal" style="color: var(--text-muted);">
+            · {cut.totals.leads} leads (click to expand)
+          </span>
+        </summary>
+        <div class="mt-3">
+          <.cut_table cut={cut} stages={stages} outcomes={outcomes} />
+        </div>
+      </details>
+    <% end %>
   <% end %>
 
   <%!-- ── Welcome-message reference ── --%>

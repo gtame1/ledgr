@@ -2,38 +2,26 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.AcquisitionMetrics
-  alias Ledgr.Domains.HelloDoctor.Campaigns
 
   def index(conn, params) do
     {start_date, end_date} = resolve_period(params)
-    cutoff = Campaigns.cutoff()
 
     # Full-range report drives the top KPI cards + daily trend chart.
     report = AcquisitionMetrics.generate(start_date, end_date)
 
-    # Each era table queries its own window, clamped to the picker so the
-    # From/To range still bounds the page. The cutoff splits the data:
-    #   before-era → [start, cutoff)   on/after start, strictly before cutoff
-    #   from-era   → [cutoff, end]     on/after cutoff
-    # When the picker range sits entirely on one side, the other era's
-    # window inverts (start > end) and `funnel/2` returns all-zero rows.
-    before_report = AcquisitionMetrics.funnel(start_date, min_date(end_date, Date.add(cutoff, -1)))
-    from_report = AcquisitionMetrics.funnel(max_date(start_date, cutoff), end_date)
+    # One funnel table per tracking cut (newest first), each windowed to
+    # its era within the picker range. See AcquisitionMetrics.cut_tables/2.
+    cut_tables = AcquisitionMetrics.cut_tables(start_date, end_date)
 
     render(conn, :index,
       report: report,
-      before_report: before_report,
-      from_report: from_report,
-      cutoff: cutoff,
+      cut_tables: cut_tables,
       start_date: start_date,
       end_date: end_date
     )
   end
 
   # ── Helpers ──────────────────────────────────────────────────────
-
-  defp min_date(a, b), do: if(Date.compare(a, b) == :gt, do: b, else: a)
-  defp max_date(a, b), do: if(Date.compare(a, b) == :lt, do: b, else: a)
 
   defp resolve_period(params) do
     {default_start, default_end} = AcquisitionMetrics.last_30_days()
@@ -313,6 +301,43 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
         </tfoot>
       </table>
     </div>
+    """
+  end
+
+  @doc """
+  Heading for a tracking-era table (from `AcquisitionMetrics.cut_tables/2`):
+  "From Jun 24, 2026" (current/open-ended), "Before Jun 17, 2026" (pre-first
+  cut), or "Jun 17 – Jun 23, 2026" (a closed window between two cuts).
+  """
+  def cut_title(%{upper: nil, lower: l}), do: "From " <> Calendar.strftime(l, "%b %-d, %Y")
+  def cut_title(%{lower: nil, upper: u}), do: "Before " <> Calendar.strftime(u, "%b %-d, %Y")
+
+  def cut_title(%{lower: l, upper: u}) do
+    Calendar.strftime(l, "%b %-d") <> " – " <> Calendar.strftime(Date.add(u, -1), "%b %-d, %Y")
+  end
+
+  @doc """
+  Renders one tracking-era funnel table, or a muted note when the picker
+  range doesn't overlap the era. Shared by the expanded (current) cut and
+  the collapsed (`<details>`) older cuts so they render identically.
+  """
+  attr :cut, :map, required: true
+  attr :stages, :list, required: true
+  attr :outcomes, :list, required: true
+
+  def cut_table(assigns) do
+    ~H"""
+    <%= if @cut.empty? do %>
+      <p class="text-sm" style="color: var(--text-muted); padding: 0.5rem 0;">
+        No days in this window for the selected range — widen the From/To dates above.
+      </p>
+    <% else %>
+      <% {win_start, win_end} = @cut.window %>
+      <p class="text-xs mb-2" style="color: var(--text-muted);">
+        Showing {Calendar.strftime(win_start, "%b %-d")} – {Calendar.strftime(win_end, "%b %-d, %Y")} · {@cut.totals.leads} leads
+      </p>
+      <.funnel_table entries={@cut.entries} totals={@cut.totals} stages={@stages} outcomes={@outcomes} />
+    <% end %>
     """
   end
 end

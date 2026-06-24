@@ -66,13 +66,73 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         }
 
   @doc """
-  The campaign-generation cutoff (Mexico City). On this date the Meta ad
-  sets were refreshed with new emoji coding. The acquisition dashboard
-  splits its funnel tables into a "before" era (legacy Meta + landing)
-  and a "from" era (new Meta + landing), windowing each table's data at
-  this boundary.
+  The current Meta generation's launch date (Mexico City). On this date
+  the Meta ad sets were refreshed with new emoji coding (see the cohort
+  in `all/0`). Campaigns of that generation carry `started_on: cutoff()`.
   """
   def cutoff, do: ~D[2026-06-17]
+
+  @doc """
+  Tracking-window boundaries (Mexico City), ascending. Each boundary
+  opens a new measurement window on the acquisition dashboard.
+
+  The first boundary is when the current Meta generation launched
+  (`cutoff/0`). Later boundaries are plain tracking cuts: they re-window
+  the SAME live campaigns (no new ad sets) so ops can watch a fresh
+  period without older leads diluting it. Add a date here to start a new
+  window; if that window also introduces new ad sets, give those
+  campaigns a matching `started_on` and they become its generation.
+  """
+  def cuts, do: [cutoff(), ~D[2026-06-24]]
+
+  @doc """
+  Campaigns live in the generation that was current on `date`: the
+  evergreen landing pages, plus the Meta ad sets of the latest generation
+  launched on or before `date` (the original legacy set — `started_on:
+  nil` — when `date` predates the first launch).
+  """
+  def generation_campaigns_at(%Date{} = date) do
+    current_launch =
+      all()
+      |> Enum.map(& &1.started_on)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+      |> Enum.sort({:asc, Date})
+      |> Enum.filter(&(Date.compare(&1, date) != :gt))
+      |> List.last()
+
+    Enum.filter(all(), fn c ->
+      cond do
+        c.channel == :landing -> true
+        is_nil(current_launch) -> is_nil(c.started_on)
+        true -> c.started_on == current_launch
+      end
+    end)
+  end
+
+  @doc """
+  The dashboard's tracking eras, oldest first. Each is a half-open
+  window `[lower, upper)` between consecutive `cuts/0` boundaries (with
+  open `nil` ends before the first / after the last cut), tagged with the
+  ids of the campaigns live in that window. The acquisition page renders
+  one funnel table per era.
+  """
+  def eras do
+    sorted = Enum.sort(cuts(), {:asc, Date})
+    earliest = hd(sorted)
+
+    ([nil] ++ sorted ++ [nil])
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [lower, upper] ->
+      rep = lower || Date.add(earliest, -1)
+
+      %{
+        lower: lower,
+        upper: upper,
+        campaign_ids: generation_campaigns_at(rep) |> Enum.map(& &1.id)
+      }
+    end)
+  end
 
   @doc """
   All tracked campaigns. Each must use a unique emoji — that emoji is the
@@ -199,30 +259,6 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
 
   @doc "Returns the campaign with the given `id`, or `nil`."
   def get(id), do: Enum.find(all(), &(&1.id == id))
-
-  @doc """
-  Campaigns active in the **before-cutoff** era: legacy Meta ad sets
-  (`started_on: nil`) plus the evergreen landing pages. These get the
-  "Before #{inspect(~D[2026-06-17])}" funnel table, windowed to data
-  before the cutoff.
-  """
-  def before_cutoff do
-    Enum.filter(all(), &(&1.channel == :landing or is_nil(&1.started_on)))
-  end
-
-  @doc """
-  Campaigns active in the **from-cutoff** era: the new Meta ad sets
-  launched on the cutoff date plus the evergreen landing pages. These
-  get the "From #{inspect(~D[2026-06-17])}" funnel table, windowed to
-  data on/after the cutoff.
-
-  Landing pages appear in both `before_cutoff/0` and `from_cutoff/0` —
-  they run continuously, so their leads divide across the two tables at
-  the cutoff boundary.
-  """
-  def from_cutoff do
-    Enum.filter(all(), &(&1.channel == :landing or &1.started_on == cutoff()))
-  end
 
   @doc """
   SQL CASE expression that maps a message-content column to a campaign

@@ -254,6 +254,44 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   """
   def subtotals(per_campaign_subset), do: totals(per_campaign_subset)
 
+  @doc """
+  One ready-to-render funnel table per tracking era (see
+  `Campaigns.eras/0`), **newest first**. Each era's window is its
+  `[lower, upper)` boundary intersected with the page's `[start, end]`
+  range, so the From/To picker still bounds the page while every table's
+  numbers auto-split at the cuts.
+
+  Each entry: `%{lower, upper, current?, window: {s, e}, empty?, entries,
+  totals}`. `entries` is the era's campaigns decorated for its window;
+  `empty?` is true when the picker range doesn't overlap the era at all
+  (window inverts) — the template shows a note instead of a table.
+  """
+  def cut_tables(start_date, end_date) do
+    Campaigns.eras()
+    |> Enum.map(fn era ->
+      win_start = if era.lower, do: max_date(era.lower, start_date), else: start_date
+      win_end = if era.upper, do: min_date(Date.add(era.upper, -1), end_date), else: end_date
+
+      report = funnel(win_start, win_end)
+      ids = MapSet.new(era.campaign_ids)
+      entries = Enum.filter(report.per_campaign, &(&1.campaign.id in ids))
+
+      %{
+        lower: era.lower,
+        upper: era.upper,
+        current?: is_nil(era.upper),
+        window: {win_start, win_end},
+        empty?: Date.compare(win_start, win_end) == :gt,
+        entries: entries,
+        totals: subtotals(entries)
+      }
+    end)
+    |> Enum.reverse()
+  end
+
+  defp min_date(a, b), do: if(Date.compare(a, b) == :gt, do: b, else: a)
+  defp max_date(a, b), do: if(Date.compare(a, b) == :lt, do: b, else: a)
+
   # ── Per-campaign funnel ─────────────────────────────────────────
 
   defp run_funnel_query(start_naive, end_exclusive) do
