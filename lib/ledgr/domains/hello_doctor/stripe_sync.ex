@@ -61,7 +61,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         {:ok, %{data: sessions}} ->
           results =
             sessions
-            |> Enum.filter(&(&1.payment_status in ["paid", "unpaid"]))
+            # "no_payment_required" = a 100%-discount checkout ($0 charged):
+            # no money moves, but we still record it so the promo code
+            # (e.g. SALUD26) is tracked and the doctor is payable.
+            |> Enum.filter(&(&1.payment_status in ["paid", "unpaid", "no_payment_required"]))
             |> Enum.map(&upsert_payment(&1, api_key))
 
           new_count = Enum.count(results, &match?({:ok, %StripePayment{}}, &1))
@@ -318,6 +321,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
 
         if hellodoctor_session?(line_item_product_ids) do
           {discount_code, discount_amount} = fetch_discount_info(session, api_key)
+          # 100%-discount checkout — Stripe charged nothing.
+          no_payment? = session.payment_status == "no_payment_required"
           amount_pesos = (session.amount_total || 0) / 100.0
           customer_email = session.customer_details && session.customer_details.email
           customer_name = session.customer_details && session.customer_details.name
@@ -337,10 +342,12 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             end
 
           # Single Stripe API round trip — yields fee, refund state, status,
-          # and the *actual* charge time.
+          # and the *actual* charge time. (For no-payment sessions there's no
+          # payment_intent, so this returns the create-time fallback.)
           charge_info = fetch_charge_info(session, api_key)
           fee_pesos = if charge_info.fee_cents, do: charge_info.fee_cents / 100.0, else: nil
           amount_refunded_pesos = charge_info.amount_refunded_cents / 100.0
+          status = if no_payment?, do: "no_payment", else: charge_info.status
 
           attrs = %{
             stripe_session_id: session.id,
@@ -348,7 +355,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             amount: amount_pesos,
             amount_refunded: amount_refunded_pesos,
             currency: session.currency || "mxn",
-            status: charge_info.status,
+            status: status,
             customer_email: customer_email,
             customer_name: customer_name,
             consultation_id: consultation_id,
@@ -359,42 +366,60 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
             paid_at: charge_info.paid_at_naive
           }
 
-          # Insert the payment AND its journal entry inside one transaction —
-          # avoids orphaning a payment row if the GL side fails. If anything
-          # rolls back, both sides are gone and the next sync/webhook will
-          # cleanly retry.
-          Repo.transaction(fn ->
-            case %StripePayment{}
-                 |> StripePayment.changeset(attrs)
-                 |> Repo.insert() do
+          if no_payment? do
+            # No money moved, so no journal entry — this row exists only to
+            # track the redemption (promo code) and keep the consultation
+            # payable. The doctor's share is booked when the payout is
+            # recorded, not here.
+            case %StripePayment{} |> StripePayment.changeset(attrs) |> Repo.insert() do
               {:ok, payment} ->
-                je_result =
-                  if consultation_id do
-                    link_to_consultation(
-                      consultation_id,
-                      amount_pesos,
-                      session.id,
-                      charge_info.fee_cents
-                    )
-                  else
-                    create_payment_journal_entry(payment)
-                  end
-
-                case je_result do
-                  {:ok, _} -> payment
-                  {:error, reason} -> Repo.rollback(reason)
-                  :ok -> payment
-                  _ -> payment
-                end
+                {:ok, payment}
 
               {:error, changeset} ->
                 Logger.warning(
-                  "[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}"
+                  "[HelloDoctor StripeSync] Failed to insert no-payment redemption for session #{session.id}: #{inspect(changeset.errors)}"
                 )
 
-                Repo.rollback(changeset)
+                {:error, changeset}
             end
-          end)
+          else
+            # Insert the payment AND its journal entry inside one transaction —
+            # avoids orphaning a payment row if the GL side fails. If anything
+            # rolls back, both sides are gone and the next sync/webhook will
+            # cleanly retry.
+            Repo.transaction(fn ->
+              case %StripePayment{}
+                   |> StripePayment.changeset(attrs)
+                   |> Repo.insert() do
+                {:ok, payment} ->
+                  je_result =
+                    if consultation_id do
+                      link_to_consultation(
+                        consultation_id,
+                        amount_pesos,
+                        session.id,
+                        charge_info.fee_cents
+                      )
+                    else
+                      create_payment_journal_entry(payment)
+                    end
+
+                  case je_result do
+                    {:ok, _} -> payment
+                    {:error, reason} -> Repo.rollback(reason)
+                    :ok -> payment
+                    _ -> payment
+                  end
+
+                {:error, changeset} ->
+                  Logger.warning(
+                    "[HelloDoctor StripeSync] Failed to insert payment for session #{session.id}: #{inspect(changeset.errors)}"
+                  )
+
+                  Repo.rollback(changeset)
+              end
+            end)
+          end
         else
           Logger.warning(
             "[HelloDoctor StripeSync] Skipping session #{session.id} — product_ids=#{inspect(line_item_product_ids)} did not match #{inspect(hellodoctor_product_ids())}"

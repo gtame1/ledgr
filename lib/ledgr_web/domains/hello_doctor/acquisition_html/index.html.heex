@@ -98,11 +98,9 @@
       <div class="hd-kpi-sub">{fmt_pct(@report.totals.lead_to_paid)} of leads</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">Paid w/ discount</div>
+      <div class="hd-kpi-label">Discount used</div>
       <div class="hd-kpi-value" style="color: #7c3aed;">{@report.totals.discounted}</div>
-      <div class="hd-kpi-sub">
-        {fmt_pct(column_share(@report.totals.discounted, @report.totals.paid))} of paid · used a code
-      </div>
+      <div class="hd-kpi-sub">redeemed a code (incl. 100%-off)</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Completed</div>

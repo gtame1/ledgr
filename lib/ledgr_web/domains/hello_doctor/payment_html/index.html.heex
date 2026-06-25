@@ -198,7 +198,12 @@ end %>
                 </td>
                 <td class="p-3">
                   <span class={"hd-badge hd-badge--#{pay.status}"}>
-                    {pay.status |> to_string() |> String.capitalize()}
+                    <%= case pay.status do %>
+                      <% "no_payment" -> %>
+                        Free (100% off)
+                      <% s -> %>
+                        {s |> to_string() |> String.capitalize()}
+                    <% end %>
                   </span>
                 </td>
                 <td class="p-3">

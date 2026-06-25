@@ -138,8 +138,9 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   def outcome_stages do
     [
       %{key: :paid, label: "Paid", short: "Paid", color: "#16a34a"},
-      # Of the paid conversations, how many used any promo/discount code.
-      %{key: :discounted, label: "Paid w/ discount", short: "Disc", color: "#7c3aed"},
+      # Conversations that redeemed a promo/discount code (incl. 100%-off
+      # $0 redemptions, which don't count as "paid").
+      %{key: :discounted, label: "Discount used", short: "Disc", color: "#7c3aed"},
       %{
         key: :doctor_matched,
         label: "Consultation started",
@@ -417,8 +418,9 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       SELECT
         conversation_id,
         bool_or(status = 'paid') AS has_paid,
-        -- Paid with any promo/discount code applied at checkout.
-        bool_or(status = 'paid' AND discount_code IS NOT NULL) AS used_discount,
+        -- Any promo/discount code applied at checkout — INCLUDING 100%-off
+        -- redemptions (status 'no_payment', $0 charged) so free uses count.
+        bool_or(discount_code IS NOT NULL) AS used_discount,
         -- Net of refunds: a fully-refunded payment (status='refunded')
         -- and a partial refund on a still-'paid' row both reduce to
         -- (amount - amount_refunded). Excludes non-settled statuses.
