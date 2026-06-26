@@ -46,6 +46,84 @@
     </div>
   </div>
 
+  <%!-- Usage mini-dashboard --%>
+  <% u = @usage %>
+  <div class="hd-card p-5 mb-8">
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+      <h2 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
+        Usage
+      </h2>
+      <span class="text-xs" style="color: var(--text-muted);">
+        Completed corporate consultations · cost = {fmt_mxn(u.cost_per_consult)} doctor fee / consult
+      </span>
+    </div>
+
+    <%= if u.uses_consultations? do %>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <div>
+          <div class="text-xs uppercase mb-1" style="color: var(--text-muted);">Total consults</div>
+          <div class="text-2xl font-bold" style="color: var(--text-main);">{u.total_consults}</div>
+          <div class="text-xs" style="color: var(--text-muted);">
+            across {u.months_with_usage} month(s)
+          </div>
+        </div>
+        <div>
+          <div class="text-xs uppercase mb-1" style="color: var(--text-muted);">Consults / month</div>
+          <div class="text-2xl font-bold" style="color: var(--text-main);">{u.avg_consults_per_month}</div>
+          <div class="text-xs" style="color: var(--text-muted);">avg over active months</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase mb-1" style="color: var(--text-muted);">Total cost</div>
+          <div class="text-2xl font-bold" style="color: var(--text-main);">{fmt_mxn(u.total_cost)}</div>
+          <div class="text-xs" style="color: var(--text-muted);">doctor fees</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase mb-1" style="color: var(--text-muted);">Cost / employee / mo</div>
+          <div class="text-2xl font-bold" style="color: var(--accent);">
+            {fmt_mxn(u.avg_cost_per_employee_per_month)}
+          </div>
+          <div class="text-xs" style="color: var(--text-muted);">
+            over {u.member_count} active member(s)
+          </div>
+        </div>
+      </div>
+
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <th class="text-left py-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+              Month
+            </th>
+            <th class="text-right py-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+              Consults
+            </th>
+            <th class="text-right py-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+              Cost
+            </th>
+            <th class="text-right py-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+              Cost / employee
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for row <- u.months do %>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="py-2" style="color: var(--text-main);">{row.label}</td>
+              <td class="py-2 text-right" style="color: var(--text-main);">{row.consults}</td>
+              <td class="py-2 text-right" style="color: var(--text-main);">{fmt_mxn(row.cost)}</td>
+              <td class="py-2 text-right" style="color: var(--text-muted);">{fmt_mxn(row.cost_per_employee)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="py-6 text-center" style="color: var(--text-muted);">
+        <div class="text-3xl opacity-30 mb-2">🩺</div>
+        No completed corporate consultations yet — this company hasn't used the service.
+      </div>
+    <% end %>
+  </div>
+
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <%!-- Left: account info + edit --%>
     <div class="lg:col-span-1 flex flex-col gap-6">

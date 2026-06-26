@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.BotAdmin
+  alias Ledgr.Domains.HelloDoctor.CorporateUsage
   alias Ledgr.Domains.HelloDoctor.PatientSegments
 
   # ── List + create company ────────────────────────────────────────
@@ -70,11 +71,23 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
         |> Enum.reject(&is_nil/1)
         |> PatientSegments.tiers_by_phone()
 
+      member_count = Map.get(members_body, "count", 0)
+
+      # Active employees drive cost-per-employee; fall back to total count.
+      active_count =
+        case Enum.count(members, &(&1["status"] == "active")) do
+          0 -> member_count
+          n -> n
+        end
+
+      usage = CorporateUsage.summary(account["id"], active_count)
+
       render(conn, :show,
         account: account,
         members: members,
         member_tiers: member_tiers,
-        member_count: Map.get(members_body, "count", 0),
+        member_count: member_count,
+        usage: usage,
         include_removed?: include_removed?
       )
     else
@@ -309,6 +322,26 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateHTML do
   def render_rate(nil), do: {:safe, "<span style=\"color: var(--text-muted);\">—</span>"}
   def render_rate(n) when is_integer(n), do: "$" <> Integer.to_string(n) <> " MXN"
   def render_rate(n), do: to_string(n)
+
+  @doc "Format a MXN amount with thousands separators, e.g. `$1,234.50`."
+  def fmt_mxn(n) when is_number(n) do
+    whole = trunc(n)
+    cents = round((n - whole) * 100)
+
+    int_str =
+      whole
+      |> abs()
+      |> Integer.to_string()
+      |> String.reverse()
+      |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+      |> String.reverse()
+
+    sign = if n < 0, do: "-", else: ""
+    cents_str = cents |> abs() |> Integer.to_string() |> String.pad_leading(2, "0")
+    "#{sign}$#{int_str}.#{cents_str}"
+  end
+
+  def fmt_mxn(_), do: "$0.00"
 
   @doc "Format ISO datetime as 'YYYY-MM-DD HH:MM' or pass through."
   def fmt_iso(nil), do: ""
