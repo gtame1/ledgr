@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.BotAdmin
+  alias Ledgr.Domains.HelloDoctor.PatientSegments
 
   # ── List + create company ────────────────────────────────────────
 
@@ -61,9 +62,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
     with {:ok, account} <- BotAdmin.get_corporate_account(slug),
          {:ok, members_body} <-
            BotAdmin.list_corporate_members(slug, include_removed: include_removed?) do
+      members = Map.get(members_body, "members", [])
+
+      member_tiers =
+        members
+        |> Enum.map(& &1["phone"])
+        |> Enum.reject(&is_nil/1)
+        |> PatientSegments.tiers_by_phone()
+
       render(conn, :show,
         account: account,
-        members: Map.get(members_body, "members", []),
+        members: members,
+        member_tiers: member_tiers,
         member_count: Map.get(members_body, "count", 0),
         include_removed?: include_removed?
       )

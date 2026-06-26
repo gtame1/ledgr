@@ -154,6 +154,18 @@
             <h3 class="text-sm font-semibold uppercase" style="color: var(--text-muted);">
               Members ({@member_count})
             </h3>
+            <% tc = @member_tiers |> Map.values() |> Enum.frequencies_by(& &1.tier) %>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Tiers —
+              <span style="color:#7c3aed;font-weight:600;">L3 {Map.get(tc, "L3", 0)}</span>
+              ·
+              <span style="color:#16a34a;font-weight:600;">L2 {Map.get(tc, "L2", 0)}</span>
+              ·
+              <span style="color:#0ea5e9;font-weight:600;">L1 {Map.get(tc, "L1", 0)}</span>
+              ·
+              <span style="color:#94a3b8;font-weight:600;">L0 {Map.get(tc, "L0", 0)}</span>
+              · {@member_count - map_size(@member_tiers)} no profile
+            </p>
           </div>
           <div class="flex items-center gap-2 text-xs">
             <%= if @include_removed? do %>
@@ -190,6 +202,12 @@
                   Phone
                 </th>
                 <th
+                  class="text-left p-3 text-xs font-semibold uppercase"
+                  style="color: var(--text-muted);"
+                >
+                  Tier
+                </th>
+                <th
                   class="text-center p-3 text-xs font-semibold uppercase"
                   style="color: var(--text-muted);"
                 >
@@ -214,6 +232,23 @@
                 <tr style="border-bottom: 1px solid var(--border-subtle);">
                   <td class="p-3 pl-4 font-mono" style="color: var(--text-main);">
                     {m["phone"]}
+                  </td>
+                  <td class="p-3">
+                    <% mt = Map.get(@member_tiers, m["phone"]) %>
+                    <%= if mt do %>
+                      <% tmeta = Ledgr.Domains.HelloDoctor.PatientSegments.tier_meta(mt.tier) %>
+                      <span
+                        class="text-xs font-semibold"
+                        style={"display:inline-block;padding:0.1rem 0.5rem;border-radius:9999px;background:#{tmeta.color}1f;color:#{tmeta.color};"}
+                        title={"#{mt.inbound_messages} inbound msgs · #{mt.consult_count} completed consults"}
+                      >
+                        {tmeta.label}
+                      </span>
+                    <% else %>
+                      <span class="text-xs" style="color: var(--text-muted);" title="No matching patient profile yet">
+                        —
+                      </span>
+                    <% end %>
                   </td>
                   <td class="p-3 text-center">
                     <%= case m["status"] do %>

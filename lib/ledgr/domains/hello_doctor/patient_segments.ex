@@ -101,6 +101,27 @@ defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
   end
 
   @doc """
+  Returns `%{phone => %{tier, inbound_messages, consult_count}}` for the
+  given phone numbers (live). Used by the corporate pages to tier members
+  by their phone. The test patient is excluded, so its phone won't appear.
+  """
+  def tiers_by_phone(phones) when is_list(phones) do
+    sql = """
+    WITH #{tier_cte()}
+    SELECT p.phone, pt.tier, pt.inbound_messages, pt.consult_count
+    FROM patients p
+    JOIN patient_tiers pt ON pt.patient_id = p.id
+    WHERE p.phone = ANY($1)
+    """
+
+    %{rows: rows} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [phones])
+
+    Map.new(rows, fn [phone, tier, inbound, consults] ->
+      {phone, %{tier: tier, inbound_messages: inbound, consult_count: consults}}
+    end)
+  end
+
+  @doc """
   Recomputes every patient's tier and upserts it into `patient_segments`
   (the snapshot the bot reads). Returns `%{"L0" => n, ...}` counts.
   """
