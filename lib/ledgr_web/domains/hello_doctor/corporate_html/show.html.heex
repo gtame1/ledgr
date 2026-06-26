@@ -54,8 +54,38 @@
         Usage
       </h2>
       <span class="text-xs" style="color: var(--text-muted);">
-        Completed corporate consultations · cost = {fmt_mxn(u.cost_per_consult)} doctor fee / consult
+        Completed corporate consultations · cost = {fmt_mxn(u.cost_per_consult)} doctor fee · billed at {render_rate(u.rate)}
       </span>
+    </div>
+
+    <%!-- Ongoing invoice — what we'll charge for the current month so far --%>
+    <div
+      class="rounded-lg p-4 mb-5 flex items-center justify-between flex-wrap gap-2"
+      style="background: rgba(2, 186, 151, 0.08); border: 1px solid rgba(2, 186, 151, 0.25);"
+    >
+      <div>
+        <div class="text-xs uppercase font-semibold" style="color: var(--text-muted);">
+          Ongoing invoice · {u.current_month_label}
+        </div>
+        <%= if u.rate do %>
+          <div class="text-xs mt-1" style="color: var(--text-muted);">
+            {u.current_month_consults} consult(s) × {render_rate(u.rate)} this month
+          </div>
+        <% else %>
+          <div class="text-xs mt-1" style="color: var(--text-muted);">
+            No rate set — off-platform billing
+          </div>
+        <% end %>
+      </div>
+      <div class="text-right">
+        <%= if u.rate do %>
+          <div class="text-2xl font-bold" style="color: var(--accent);">
+            {fmt_mxn(u.current_month_billed)}
+          </div>
+        <% else %>
+          <div class="text-xl font-bold" style="color: var(--text-muted);">—</div>
+        <% end %>
+      </div>
     </div>
 
     <%= if u.uses_consultations? do %>
@@ -103,6 +133,9 @@
             <th class="text-right py-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
               Cost / employee
             </th>
+            <th class="text-right py-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">
+              Billed
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -112,6 +145,18 @@
               <td class="py-2 text-right" style="color: var(--text-main);">{row.consults}</td>
               <td class="py-2 text-right" style="color: var(--text-main);">{fmt_mxn(row.cost)}</td>
               <td class="py-2 text-right" style="color: var(--text-muted);">{fmt_mxn(row.cost_per_employee)}</td>
+              <td class="py-2 text-right font-semibold" style="color: var(--text-main);">
+                {if row.billed, do: fmt_mxn(row.billed), else: "—"}
+              </td>
+            </tr>
+          <% end %>
+          <%= if u.total_billed do %>
+            <tr style="border-top: 2px solid var(--border-subtle);">
+              <td class="py-2 font-semibold" style="color: var(--text-main);">Total</td>
+              <td class="py-2 text-right font-semibold" style="color: var(--text-main);">{u.total_consults}</td>
+              <td class="py-2 text-right font-semibold" style="color: var(--text-main);">{fmt_mxn(u.total_cost)}</td>
+              <td class="py-2 text-right" style="color: var(--text-muted);">—</td>
+              <td class="py-2 text-right font-semibold" style="color: var(--accent);">{fmt_mxn(u.total_billed)}</td>
             </tr>
           <% end %>
         </tbody>

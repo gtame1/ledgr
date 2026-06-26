@@ -80,7 +80,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
           n -> n
         end
 
-      usage = CorporateUsage.summary(account["id"], active_count)
+      usage = CorporateUsage.summary(account["id"], active_count, account["consultation_rate_mxn"])
 
       render(conn, :show,
         account: account,
