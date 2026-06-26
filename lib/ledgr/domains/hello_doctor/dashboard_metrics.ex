@@ -47,7 +47,6 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   def all(start_date, end_date) do
     %{
       funnel: funnel_metrics(start_date, end_date),
-      funnel_segments: funnel_by_segment(start_date, end_date),
       cost_metrics: cost_metrics(start_date, end_date),
       user_metrics: user_metrics(start_date, end_date),
       rating_metrics: rating_metrics(start_date, end_date),
@@ -59,6 +58,8 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       return_cohorts: weekly_return_cohorts(start_date, end_date),
       return_thesis: return_payment_thesis(start_date, end_date),
       patient_tiers: PatientSegments.weekly_cohorts(start_date, end_date),
+      patient_overall: PatientSegments.overall(),
+      patient_by_channel: PatientSegments.by_channel(),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       direct_requests: direct_request_metrics(start_date, end_date),
       infrastructure_costs: infrastructure_costs(start_date, end_date),

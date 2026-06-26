@@ -191,16 +191,13 @@ end %>
     </div>
 
     <div class="hd-kpi">
-      <div class="flex items-center justify-between">
-        <div class="hd-kpi-label" style="margin-bottom: 0;">Conversion</div>
-        <.hd_delta_chip
-          current={m.funnel.overall_conversion}
-          prior={cmp && cmp.funnel.overall_conversion}
-          mode={:point}
-        />
+      <div class="hd-kpi-label">Conversion (→L2+)</div>
+      <div class="hd-kpi-value mt-2" style="color: var(--accent);">
+        {fmt_pct.(m.patient_overall.conversion_rate)}
       </div>
-      <div class="hd-kpi-value mt-2">{fmt_pct.(m.funnel.overall_conversion)}</div>
-      <div class="hd-kpi-sub">lead → paid</div>
+      <div class="hd-kpi-sub">
+        {m.patient_overall.converted}/{m.patient_overall.total} leads · all-time
+      </div>
     </div>
 
     <div class="hd-kpi">
@@ -236,6 +233,138 @@ end %>
         <% end %>
       </div>
       <div class="hd-kpi-sub">{m.operations.rated_count} consults rated</div>
+    </div>
+  </div>
+
+  <%!-- ═══ PATIENT LIFECYCLE — CURRENT STATE ═══ --%>
+  <% po = m.patient_overall %>
+  <div class="mb-8">
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Patient lifecycle — current state
+    </h2>
+    <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 92ch;">
+      Whole patient base, all-time (not period-scoped).
+      <span style="color:#94a3b8;font-weight:600;">L0 Lead</span>
+      (&lt;3 inbound msgs — not a patient) ·
+      <span style="color:#0ea5e9;font-weight:600;">L1 Engaged</span> ·
+      <span style="color:#16a34a;font-weight:600;">L2 Converted</span>
+      (≥1 consult) ·
+      <span style="color:#7c3aed;font-weight:600;">L3 Core</span>
+      (≥2 consults). <strong>Conversion = reached ≥L2 ÷ all leads.</strong>
+    </p>
+
+    <%!-- Overall tier snapshot --%>
+    <div class="hd-kpi-grid mb-4">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">L0 Lead</div>
+        <div class="hd-kpi-value" style="color: #94a3b8;">{po.l0}</div>
+        <div class="hd-kpi-sub">pinged, not a patient</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">L1 Engaged</div>
+        <div class="hd-kpi-value" style="color: #0ea5e9;">{po.l1}</div>
+        <div class="hd-kpi-sub">≥3 msgs, no consult</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">L2 Converted</div>
+        <div class="hd-kpi-value" style="color: #16a34a;">{po.l2}</div>
+        <div class="hd-kpi-sub">1 consult</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">L3 Core</div>
+        <div class="hd-kpi-value" style="color: #7c3aed;">{po.l3}</div>
+        <div class="hd-kpi-sub">≥2 consults</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Conversion (→L2+)</div>
+        <div class="hd-kpi-value" style="color: var(--accent);">{fmt_pct.(po.conversion_rate)}</div>
+        <div class="hd-kpi-sub">{po.converted} of {po.total} leads</div>
+      </div>
+    </div>
+
+    <%!-- By acquisition channel (direct vs MVP, first-touch) --%>
+    <div class="hd-card p-5 mb-4">
+      <div class="hd-card-title">By acquisition channel</div>
+      <p class="text-xs mb-3" style="color: var(--text-muted);">
+        Each patient assigned to one channel by their first conversation's tenant.
+      </p>
+      <table class="hd-table w-full text-sm">
+        <thead>
+          <tr>
+            <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Channel</th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">L0</th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">L1</th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">L2</th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">L3</th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Total</th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-main);">Conversion (→L2+)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for seg <- m.patient_by_channel do %>
+            <tr class="border-t" style="border-color: var(--border-subtle);">
+              <td class="p-2 font-medium" style="color: var(--text-main);">{seg.channel}</td>
+              <td class="p-2 text-right" style="color: var(--text-muted);">{seg.l0}</td>
+              <td class="p-2 text-right" style="color: var(--text-main);">{seg.l1}</td>
+              <td class="p-2 text-right" style="color: var(--text-main);">{seg.l2}</td>
+              <td class="p-2 text-right" style="color: var(--text-main);">{seg.l3}</td>
+              <td class="p-2 text-right" style="color: var(--text-muted);">{seg.total}</td>
+              <td class="p-2 text-right font-semibold" style="color: var(--accent);">
+                {fmt_pct.(seg.conversion_rate)}
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <%!-- New patients by tier & signup week --%>
+    <div class="hd-card p-5">
+      <div class="hd-card-title" style="margin-bottom: 0.25rem;">New patients by tier &amp; signup week</div>
+      <p class="text-xs mb-3" style="color: var(--text-muted);">
+        Bucketed by the week each patient was created (in the selected range), by current tier.
+        Tiers are lifetime, so recent weeks still mature.
+      </p>
+      <%= if Enum.empty?(m.patient_tiers) do %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">👥</div>
+          <p>No patients created in this period</p>
+        </div>
+      <% else %>
+        <table class="hd-table w-full text-sm">
+          <thead>
+            <tr>
+              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Week of</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">L0</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">L1</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">L2</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">L3</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Patients (L1+)</th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-main);">Conversion</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for r <- m.patient_tiers do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-2 font-medium" style="color: var(--text-main);">
+                  {fmt_date(r.week_start, "%b %d, %Y")}
+                </td>
+                <td class="p-2 text-right" style="color: var(--text-muted);">{r.l0}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{r.l1}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{r.l2}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{r.l3}</td>
+                <td class="p-2 text-right" style="color: var(--text-muted);">{r.patients}</td>
+                <td class="p-2 text-right font-semibold" style="color: var(--accent);">
+                  {fmt_pct.(r.conversion_rate)}
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
     </div>
   </div>
 
@@ -287,73 +416,18 @@ end %>
           class="mt-3 pt-3 text-xs"
           style="color: var(--text-muted); border-top: 1px solid var(--border-subtle);"
         >
-          Overall lead → paid conversion
+          Paid this period (conversation → paid)
           <span class="font-semibold" style="color: var(--text-main);">
             {fmt_pct.(m.funnel.overall_conversion)}
           </span>
           · {fmt_pct.(m.direct_requests.targeted_rate)} of consultations were direct doctor requests
+          <br />
+          <span style="color: var(--text-muted);">
+            Lifecycle conversion (patient → L2+) is shown in <em>Patient lifecycle</em> above.
+          </span>
         </div>
       <% end %>
     </div>
-
-    <%!-- Funnel split by user type × tenant --%>
-    <h3 class="text-xs font-semibold uppercase mb-2" style="color: var(--text-muted);">
-      Split by user type &amp; tenant
-    </h3>
-    <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 70ch;">
-      One table per (user type × tenant). New = patient created in the same
-      calendar month as the conversation. Excludes the dashboard owner's test
-      patient and any bot test/bypass conversations.
-    </p>
-
-    <%= if Enum.empty?(m.funnel_segments) do %>
-      <div class="hd-empty">
-        <div class="hd-empty-icon">📊</div>
-        <p>No conversations in this period.</p>
-      </div>
-    <% else %>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <%= for {{user_type, tenant}, seg} <- Enum.sort(m.funnel_segments) do %>
-          <div class="hd-card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <div class="hd-card-title" style="margin-bottom: 0;">
-                {String.capitalize(user_type)} users · {tenant}
-              </div>
-              <span class="text-xs font-semibold" style="color: var(--accent);">
-                {seg.conversations} convs → {seg.completed} completed
-                ({fmt_pct.(seg.overall_conversion)})
-              </span>
-            </div>
-            <table class="w-full text-sm">
-              <thead>
-                <tr style="color: var(--text-muted); border-bottom: 1px solid var(--border-subtle);">
-                  <th class="text-left p-2 text-xs font-medium uppercase">Stage</th>
-                  <th class="text-right p-2 text-xs font-medium uppercase">Count</th>
-                  <th class="text-right p-2 text-xs font-medium uppercase">% of convs</th>
-                </tr>
-              </thead>
-              <tbody>
-                <%= for {label, count, rate} <- [
-                  {"Conversation", seg.conversations, 100.0},
-                  {"Doctor offered", seg.offered, seg.offered_rate},
-                  {"Accepted", seg.accepted, seg.accepted_rate},
-                  {"Paid", seg.paid, seg.paid_rate},
-                  {"Completed", seg.completed, seg.completed_rate}
-                ] do %>
-                  <tr style="border-bottom: 1px solid var(--border-subtle);">
-                    <td class="p-2" style="color: var(--text-main);">{label}</td>
-                    <td class="p-2 text-right font-medium">{count}</td>
-                    <td class="p-2 text-right" style="color: var(--text-muted);">
-                      {fmt_pct.(rate)}
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
   </div>
 
   <%!-- ═══ CONVERSION TREND (trailing 8 weeks) ═══ --%>
@@ -390,12 +464,12 @@ end %>
       class="text-sm font-semibold uppercase mb-3"
       style="color: var(--text-muted); letter-spacing: 0.05em;"
     >
-      Conversion trend
+      Weekly throughput
     </h2>
     <div class="hd-card p-5">
       <div class="flex items-center justify-between mb-2">
         <div class="hd-card-title" style="margin-bottom: 0;">
-          Conversion to consultation &mdash; trailing 8 weeks
+          Conversation → consultation / paid &mdash; trailing 8 weeks
         </div>
         <span class="text-xs font-semibold" style={"color: #{dir_color};"}>
           {dir_label} · {:erlang.float_to_binary(trend.consultation_rate_slope, decimals: 2)} pp/wk
@@ -699,74 +773,6 @@ end %>
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
-
-  <%!-- ═══ PATIENT LIFECYCLE TIERS ═══ --%>
-  <div class="mb-8">
-    <h2
-      class="text-sm font-semibold uppercase mb-3"
-      style="color: var(--text-muted); letter-spacing: 0.05em;"
-    >
-      Patient lifecycle
-    </h2>
-    <div class="hd-card p-5">
-      <div class="hd-card-title" style="margin-bottom: 0.25rem;">New patients by tier &amp; signup week</div>
-      <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 88ch;">
-        Bucketed by the week each patient was created, by current tier.
-        <span style="color:#94a3b8;font-weight:600;">L0 Lead</span>
-        (&lt;3 inbound msgs — not counted as a patient) ·
-        <span style="color:#0ea5e9;font-weight:600;">L1 Engaged</span> ·
-        <span style="color:#16a34a;font-weight:600;">L2 Converted</span>
-        (1 consult) ·
-        <span style="color:#7c3aed;font-weight:600;">L3 Core</span>
-        (≥2 consults). Tiers are lifetime, so recent weeks still mature.
-      </p>
-      <%= if Enum.empty?(m.patient_tiers) do %>
-        <div class="hd-empty">
-          <div class="hd-empty-icon">👥</div>
-          <p>No patients created in this period</p>
-        </div>
-      <% else %>
-        <table class="hd-table w-full text-sm">
-          <thead>
-            <tr>
-              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
-                Week of
-              </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">
-                L0 Lead
-              </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">
-                L1 Engaged
-              </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">
-                L2 Converted
-              </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">
-                L3 Core
-              </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-main);">
-                Patients (L1+)
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for r <- m.patient_tiers do %>
-              <tr class="border-t" style="border-color: var(--border-subtle);">
-                <td class="p-2 font-medium" style="color: var(--text-main);">
-                  {fmt_date(r.week_start, "%b %d, %Y")}
-                </td>
-                <td class="p-2 text-right" style="color: var(--text-muted);">{r.l0}</td>
-                <td class="p-2 text-right" style="color: var(--text-main);">{r.l1}</td>
-                <td class="p-2 text-right" style="color: var(--text-main);">{r.l2}</td>
-                <td class="p-2 text-right" style="color: var(--text-main);">{r.l3}</td>
-                <td class="p-2 text-right font-semibold" style="color: var(--accent);">{r.patients}</td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% end %>
     </div>
   </div>
 

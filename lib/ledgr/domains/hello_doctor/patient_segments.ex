@@ -182,7 +182,79 @@ defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
       Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_exclusive])
 
     Enum.map(rows, fn [week, l0, l1, l2, l3] ->
-      %{week_start: week, l0: l0, l1: l1, l2: l2, l3: l3, patients: l1 + l2 + l3}
+      decorate_counts(%{week_start: week}, l0, l1, l2, l3)
     end)
   end
+
+  @doc """
+  Current-state snapshot of the WHOLE patient base (all-time, not
+  period-scoped): tier counts + converted (L2+) + conversion rate.
+  Conversion rate = L2+ over everyone who pinged (incl. L0 leads).
+  """
+  def overall do
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(
+        Repo.active_repo(),
+        "WITH #{tier_cte()} SELECT tier, COUNT(*) FROM patient_tiers GROUP BY tier",
+        []
+      )
+
+    by = Map.new(rows, fn [t, n] -> {t, n} end)
+    decorate_counts(%{}, by["L0"] || 0, by["L1"] || 0, by["L2"] || 0, by["L3"] || 0)
+  end
+
+  @doc """
+  Same snapshot split by acquisition channel — each patient assigned to
+  ONE channel by their first conversation's tenant (`direct` / `mvp` /
+  `unknown`), so a patient with both isn't double-counted. Ordered by
+  total desc.
+  """
+  def by_channel do
+    sql = """
+    WITH #{tier_cte()},
+    first_touch AS (
+      SELECT DISTINCT ON (c.patient_id) c.patient_id AS pid, c.tenant
+      FROM conversations c
+      WHERE c.patient_id IS NOT NULL
+      ORDER BY c.patient_id, c.created_at ASC
+    )
+    SELECT
+      COALESCE(ft.tenant, 'unknown') AS channel,
+      COUNT(*) FILTER (WHERE pt.tier = 'L0') AS l0,
+      COUNT(*) FILTER (WHERE pt.tier = 'L1') AS l1,
+      COUNT(*) FILTER (WHERE pt.tier = 'L2') AS l2,
+      COUNT(*) FILTER (WHERE pt.tier = 'L3') AS l3
+    FROM patient_tiers pt
+    LEFT JOIN first_touch ft ON ft.pid = pt.patient_id
+    GROUP BY channel
+    """
+
+    %{rows: rows} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [])
+
+    rows
+    |> Enum.map(fn [channel, l0, l1, l2, l3] ->
+      decorate_counts(%{channel: channel}, l0, l1, l2, l3)
+    end)
+    |> Enum.sort_by(& &1.total, :desc)
+  end
+
+  # Adds derived figures to a tier-count row: total (all incl. L0),
+  # patients (L1+), converted (L2+), and conversion_rate (L2+ over all).
+  defp decorate_counts(base, l0, l1, l2, l3) do
+    total = l0 + l1 + l2 + l3
+
+    Map.merge(base, %{
+      l0: l0,
+      l1: l1,
+      l2: l2,
+      l3: l3,
+      total: total,
+      patients: l1 + l2 + l3,
+      converted: l2 + l3,
+      conversion_rate: pct(l2 + l3, total)
+    })
+  end
+
+  defp pct(_n, 0), do: 0.0
+  defp pct(n, d), do: Float.round(n / d * 100, 1)
 end
