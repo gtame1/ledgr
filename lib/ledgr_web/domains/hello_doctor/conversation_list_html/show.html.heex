@@ -502,13 +502,25 @@
               {String.first(conv.patient.full_name || conv.patient.display_name || "?")}
             </div>
             <div>
-              <.link
-                navigate={dp(@domain_path_prefix, "/patients/#{conv.patient.id}")}
-                class="text-sm font-medium"
-                style="color: var(--accent);"
-              >
-                {conv.patient.full_name || conv.patient.display_name || "Unknown"}
-              </.link>
+              <div class="flex items-center gap-2 flex-wrap">
+                <.link
+                  navigate={dp(@domain_path_prefix, "/patients/#{conv.patient.id}")}
+                  class="text-sm font-medium"
+                  style="color: var(--accent);"
+                >
+                  {conv.patient.full_name || conv.patient.display_name || "Unknown"}
+                </.link>
+                <%= if @patient_tier do %>
+                  <% tmeta = Ledgr.Domains.HelloDoctor.PatientSegments.tier_meta(@patient_tier.tier) %>
+                  <span
+                    class="text-xs font-semibold"
+                    style={"display:inline-block;padding:0.1rem 0.5rem;border-radius:9999px;background:#{tmeta.color}1f;color:#{tmeta.color};"}
+                    title={"#{@patient_tier.inbound_messages} inbound msgs · #{@patient_tier.consult_count} completed consults"}
+                  >
+                    {tmeta.label}
+                  </span>
+                <% end %>
+              </div>
               <div class="text-xs" style="color: var(--text-muted);">
                 {conv.patient.phone || ""}
               </div>

@@ -81,6 +81,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       c.tenant                                                              AS tn,
       p.id                                                                  AS patient_id,
       left(COALESCE(p.display_name, p.full_name, '-'), 18)                  AS patient,
+      -- Lifecycle tier (L0–L3) from the patient_segments snapshot.
+      COALESCE(ps.tier, 'L0')                                               AS tier,
       -- New this month vs. already existed (relative to the conversation's
       -- calendar month, not "now"). Y = patient was created in the same
       -- calendar month as the conversation. - = pre-existing.
@@ -123,6 +125,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       COALESCE(lc.patient_rating::text, '-')                                 AS rating
     FROM conversations c
     LEFT JOIN patients         p  ON p.id = c.patient_id
+    LEFT JOIN patient_segments ps ON ps.patient_id = c.patient_id
     LEFT JOIN funnel_stages    fs ON fs.stage = c.funnel_stage
     LEFT JOIN last_consult     lc ON lc.conversation_id = c.id
     LEFT JOIN doctors          d  ON d.id = lc.doctor_id

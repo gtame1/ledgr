@@ -59,6 +59,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
       CASE WHEN cs.completed_at IS NOT NULL THEN 'Y' ELSE '-' END         AS done,
       cs.patient_id                                                       AS patient_id,
       left(COALESCE(p.display_name, p.full_name, '-'), 16)                AS patient,
+      -- Lifecycle tier (L0–L3) from the patient_segments snapshot.
+      COALESCE(ps.tier, 'L0')                                             AS tier,
       p.phone                                                             AS phone,
       cs.doctor_id                                                        AS doctor_id,
       left(COALESCE(d.name, '-'), 22)                                     AS doctor,
@@ -83,6 +85,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
     FROM consultations cs
     LEFT JOIN conversations conv ON conv.id = cs.conversation_id
     LEFT JOIN patients      p    ON p.id    = cs.patient_id
+    LEFT JOIN patient_segments ps ON ps.patient_id = cs.patient_id
     LEFT JOIN doctors       d    ON d.id    = cs.doctor_id
     LEFT JOIN rx_counts     rx   ON rx.consultation_id = cs.id
     LEFT JOIN call_flag     cf   ON cf.consultation_id = cs.id

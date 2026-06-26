@@ -5,6 +5,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
   alias Ledgr.Domains.HelloDoctor.ConversationFeedback
   alias Ledgr.Domains.HelloDoctor.Conversations
   alias Ledgr.Domains.HelloDoctor.ConversationFunnelExport
+  alias Ledgr.Domains.HelloDoctor.PatientSegments
 
   def index(conn, params) do
     filters = filter_opts(params)
@@ -27,8 +28,15 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
 
     %{prev_id: prev_id, next_id: next_id} = Conversations.neighbors(conversation, filters)
 
+    patient_tier =
+      case conversation.patient do
+        %{id: pid} -> PatientSegments.tier_for(pid)
+        _ -> nil
+      end
+
     render(conn, :show,
       conversation: conversation,
+      patient_tier: patient_tier,
       prev_id: prev_id,
       next_id: next_id,
       filter_qs: encode_filter_qs(filters),
