@@ -21,12 +21,17 @@ end %>
       {String.first(p.full_name || p.display_name || "Unknown")}
     </div>
     <div class="flex-1">
-      <h1 class="text-2xl font-bold" style="color: var(--text-main);">
-        {p.full_name || p.display_name || "Unknown"}
-      </h1>
+      <div class="flex items-center gap-2 flex-wrap">
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);">
+          {p.full_name || p.display_name || "Unknown"}
+        </h1>
+        <.tier_badge tier={@tier.tier} />
+      </div>
       <div class="text-sm" style="color: var(--text-muted);">
         {if p.date_of_birth, do: "DOB: #{p.date_of_birth}"}
         {if p.gender, do: " - #{p.gender |> to_string() |> String.capitalize()}"}
+        <span style="color: var(--border-strong);">·</span>
+        {@tier.inbound_messages} inbound msgs · {@tier.consult_count} completed consults
       </div>
     </div>
     <.link

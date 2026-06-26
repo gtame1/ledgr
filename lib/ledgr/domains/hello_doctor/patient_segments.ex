@@ -1,0 +1,167 @@
+defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
+  @moduledoc """
+  Patient lifecycle tiers (L0–L3) for HelloDoctor.
+
+  Tiers are derived from existing data — no bot dependency:
+
+    * **L0 Lead** — fewer than 3 inbound (patient) messages. A ping with no
+      real engagement. NOT counted as a patient.
+    * **L1 Engaged** — ≥3 inbound messages but no consultation yet.
+    * **L2 Converted** — exactly 1 completed consultation (free consults
+      count — see note).
+    * **L3 Core** — ≥2 completed consultations (monetizes repeatedly).
+
+  "Consultation" here = a `consultations` row with `status = 'completed'`
+  (excluding `/prueba` test rows). Per product decision, a 100%-discount /
+  free consult still counts toward L2/L3.
+
+  The tier is computed **live** for the Ledgr UI (always current) and also
+  materialized into the Ledgr-owned `patient_segments` table by
+  `recompute/0` so the bot can read it. The `patients` table is bot-owned,
+  hence the side table rather than a column on it.
+  """
+
+  alias Ledgr.Repo
+
+  @test_patient_id "2ed77952-cead-4bc4-bc44-51f5b5052d76"
+
+  @doc "Tier display metadata, ordered L0 → L3."
+  def tiers do
+    [
+      %{key: "L0", label: "L0 Lead", short: "Lead", color: "#94a3b8", patient?: false},
+      %{key: "L1", label: "L1 Engaged", short: "Engaged", color: "#0ea5e9", patient?: true},
+      %{key: "L2", label: "L2 Converted", short: "Converted", color: "#16a34a", patient?: true},
+      %{key: "L3", label: "L3 Core", short: "Core", color: "#7c3aed", patient?: true}
+    ]
+  end
+
+  def tier_meta(key), do: Enum.find(tiers(), &(&1.key == key)) || List.first(tiers())
+
+  # The shared CTE: one row per (non-test) patient with their inbound
+  # message count, completed-consult count, and derived tier. Test patient
+  # id is a constant, safe to inline.
+  defp tier_cte do
+    """
+    patient_tiers AS (
+      SELECT
+        p.id AS patient_id,
+        COALESCE(msg.inbound, 0)  AS inbound_messages,
+        COALESCE(con.consults, 0) AS consult_count,
+        CASE
+          WHEN COALESCE(con.consults, 0) >= 2 THEN 'L3'
+          WHEN COALESCE(con.consults, 0) >= 1 THEN 'L2'
+          WHEN COALESCE(msg.inbound, 0) >= 3 THEN 'L1'
+          ELSE 'L0'
+        END AS tier
+      FROM patients p
+      LEFT JOIN (
+        SELECT c.patient_id AS pid, COUNT(*) AS inbound
+        FROM messages m
+        JOIN conversations c ON c.id = m.conversation_id
+        WHERE m.role = 'user' AND c.patient_id IS NOT NULL
+        GROUP BY c.patient_id
+      ) msg ON msg.pid = p.id
+      LEFT JOIN (
+        SELECT patient_id AS pid, COUNT(*) AS consults
+        FROM consultations
+        WHERE status = 'completed'
+          AND patient_id IS NOT NULL
+          AND COALESCE(payment_source, 'stripe') <> 'test'
+        GROUP BY patient_id
+      ) con ON con.pid = p.id
+      WHERE p.id <> '#{@test_patient_id}'
+    )
+    """
+  end
+
+  @doc """
+  Returns `%{patient_id => %{tier, inbound_messages, consult_count}}` for
+  the given patient ids (or all non-test patients when `nil`). Computed
+  live.
+  """
+  def tiers_map(patient_ids \\ nil) do
+    {where, params} =
+      case patient_ids do
+        nil -> {"", []}
+        ids when is_list(ids) -> {"WHERE patient_id = ANY($1)", [ids]}
+      end
+
+    sql = "WITH #{tier_cte()} SELECT patient_id, tier, inbound_messages, consult_count FROM patient_tiers #{where}"
+
+    %{rows: rows} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, params)
+
+    Map.new(rows, fn [pid, tier, inbound, consults] ->
+      {pid, %{tier: tier, inbound_messages: inbound, consult_count: consults}}
+    end)
+  end
+
+  @doc "Tier for a single patient (or nil if not found)."
+  def tier_for(patient_id) when is_binary(patient_id) do
+    tiers_map([patient_id]) |> Map.get(patient_id)
+  end
+
+  @doc """
+  Recomputes every patient's tier and upserts it into `patient_segments`
+  (the snapshot the bot reads). Returns `%{"L0" => n, ...}` counts.
+  """
+  def recompute do
+    sql = """
+    WITH #{tier_cte()}
+    INSERT INTO patient_segments
+      (patient_id, tier, inbound_messages, consult_count, computed_at, inserted_at, updated_at)
+    SELECT patient_id, tier, inbound_messages, consult_count, NOW(), NOW(), NOW()
+    FROM patient_tiers
+    ON CONFLICT (patient_id) DO UPDATE SET
+      tier = EXCLUDED.tier,
+      inbound_messages = EXCLUDED.inbound_messages,
+      consult_count = EXCLUDED.consult_count,
+      computed_at = EXCLUDED.computed_at,
+      updated_at = NOW()
+    """
+
+    Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [])
+
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(
+        Repo.active_repo(),
+        "SELECT tier, COUNT(*) FROM patient_segments GROUP BY tier",
+        []
+      )
+
+    Map.new(rows, fn [tier, n] -> {tier, n} end)
+  end
+
+  @doc """
+  Per-week tier distribution, bucketed by the patient's `created_at` week
+  (Mexico City). For the dashboard. Pass `nil`/`nil` for all-time.
+  Returns rows newest week first: `%{week_start, l0, l1, l2, l3, patients}`
+  where `patients` = L1+L2+L3 (L0 leads are not counted as patients).
+  """
+  def weekly_cohorts(start_date, end_date) do
+    start_naive = start_date && Ledgr.Domains.HelloDoctor.mx_day_start_utc_naive(start_date)
+    end_exclusive = end_date && Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
+
+    sql = """
+    WITH #{tier_cte()}
+    SELECT
+      date_trunc('week', (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))::date AS week_start,
+      COUNT(*) FILTER (WHERE pt.tier = 'L0') AS l0,
+      COUNT(*) FILTER (WHERE pt.tier = 'L1') AS l1,
+      COUNT(*) FILTER (WHERE pt.tier = 'L2') AS l2,
+      COUNT(*) FILTER (WHERE pt.tier = 'L3') AS l3
+    FROM patients p
+    JOIN patient_tiers pt ON pt.patient_id = p.id
+    WHERE ($1::timestamp IS NULL OR p.created_at >= $1::timestamp)
+      AND ($2::timestamp IS NULL OR p.created_at < $2::timestamp)
+    GROUP BY week_start
+    ORDER BY week_start DESC
+    """
+
+    %{rows: rows} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_exclusive])
+
+    Enum.map(rows, fn [week, l0, l1, l2, l3] ->
+      %{week_start: week, l0: l0, l1: l1, l2: l2, l3: l3, patients: l1 + l2 + l3}
+    end)
+  end
+end

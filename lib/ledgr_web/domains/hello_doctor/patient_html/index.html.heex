@@ -1,11 +1,33 @@
 <div class="hd-page">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold" style="color: var(--text-main);">Patients</h1>
+  <% l0 = Map.get(@counts, "L0", 0) %>
+  <% l1 = Map.get(@counts, "L1", 0) %>
+  <% l2 = Map.get(@counts, "L2", 0) %>
+  <% l3 = Map.get(@counts, "L3", 0) %>
+  <% patients_n = l1 + l2 + l3 %>
+  <% qs = fn tier -> "?" <> URI.encode_query(Enum.reject([{"tier", tier}, {"search", @current_search}], fn {_, v} -> v in [nil, ""] end)) end %>
+
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Patients</h1>
+      <p class="text-sm mt-1" style="color: var(--text-muted);">
+        {patients_n} patients (L1+) · {l0} leads (L0)
+      </p>
+    </div>
+    <.link
+      href={dp(@domain_path_prefix, "/patients/recompute-tiers")}
+      method="post"
+      class="hd-btn-secondary text-sm"
+      style="padding: 0.5rem 0.95rem;"
+      data-confirm="Recompute every patient's tier from current messages + consultations and refresh the stored snapshot (used by the bot). Continue?"
+    >
+      ↻ Recompute tiers
+    </.link>
   </div>
 
   <%!-- Search --%>
-  <div class="hd-card p-4 mb-6">
+  <div class="hd-card p-4 mb-4">
     <form method="get" action={dp(@domain_path_prefix, "/patients")} class="flex gap-3 items-end">
+      <input :if={@current_tier} type="hidden" name="tier" value={@current_tier} />
       <div class="flex-1">
         <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">
           Search
@@ -23,52 +45,50 @@
     </form>
   </div>
 
+  <%!-- Tier filter chips --%>
+  <div class="flex flex-wrap items-center gap-2 mb-6">
+    <%= for {key, label} <- [{"patients", "Patients (L1+) · #{patients_n}"}, {"leads", "Leads L0 · #{l0}"}, {"all", "All"}, {"L1", "L1 · #{l1}"}, {"L2", "L2 · #{l2}"}, {"L3", "L3 · #{l3}"}] do %>
+      <.link
+        navigate={dp(@domain_path_prefix, "/patients") <> qs.(key)}
+        class={"hd-btn-sm #{if @current_tier == key, do: "hd-btn-primary", else: ""}"}
+      >
+        {label}
+      </.link>
+    <% end %>
+  </div>
+
   <%!-- Patients Table --%>
   <div class="hd-card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="hd-table w-full">
         <thead>
           <tr>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: var(--text-muted);"
-            >
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
               Name
             </th>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: var(--text-muted);"
-            >
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Tier
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
               Phone
             </th>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: var(--text-muted);"
-            >
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
               Gender
             </th>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: var(--text-muted);"
-            >
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
               Date of Birth
-            </th>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: var(--text-muted);"
-            >
-              Insurance
-            </th>
-            <th
-              class="text-left p-3 text-xs font-medium uppercase"
-              style="color: var(--text-muted);"
-            >
-              Registered
             </th>
             <th
               class="text-right p-3 text-xs font-medium uppercase"
               style="color: var(--text-muted);"
+              title="Inbound messages / completed consultations"
             >
+              Msgs / Consults
+            </th>
+            <th class="text-left p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              Registered
+            </th>
+            <th class="text-right p-3 text-xs font-medium uppercase" style="color: var(--text-muted);">
               Actions
             </th>
           </tr>
@@ -76,12 +96,12 @@
         <tbody>
           <%= if Enum.empty?(@patients) do %>
             <tr>
-              <td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">
+              <td colspan="8" class="p-6 text-center" style="color: var(--text-muted);">
                 No patients found.
               </td>
             </tr>
           <% else %>
-            <%= for patient <- @patients do %>
+            <%= for {patient, t} <- @patients do %>
               <tr class="border-t" style="border-color: var(--border-subtle);">
                 <td class="p-3">
                   <.link
@@ -91,6 +111,9 @@
                   >
                     {patient.full_name || patient.display_name || "Unknown"}
                   </.link>
+                </td>
+                <td class="p-3">
+                  <.tier_badge tier={t.tier} />
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-main);">
                   {patient.phone || "---"}
@@ -103,8 +126,8 @@
                 <td class="p-3 text-sm" style="color: var(--text-main);">
                   {patient.date_of_birth || "---"}
                 </td>
-                <td class="p-3 text-sm" style="color: var(--text-main);">
-                  {patient.insurance_provider || "---"}
+                <td class="p-3 text-sm text-right" style="color: var(--text-muted);">
+                  {t.inbound_messages} / {t.consult_count}
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
                   {fmt_date(patient.created_at) || "---"}

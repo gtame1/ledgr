@@ -511,6 +511,8 @@ defmodule LedgrWeb.Router do
 
     # Patients (mostly bot-managed; the admin UI can edit a curated subset
     # of demographic fields — see Patient.editable_fields/0).
+    post "/patients/recompute-tiers", Domains.HelloDoctor.PatientController, :recompute_tiers
+
     resources "/patients", Domains.HelloDoctor.PatientController,
       only: [:index, :show, :edit, :update]
 

@@ -19,6 +19,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   alias Ledgr.Domains.HelloDoctor.Prescriptions.Prescription
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
+  alias Ledgr.Domains.HelloDoctor.PatientSegments
 
   @commission_rate 0.15
 
@@ -57,6 +58,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       conversations_per_patient: conversations_per_patient(start_date, end_date),
       return_cohorts: weekly_return_cohorts(start_date, end_date),
       return_thesis: return_payment_thesis(start_date, end_date),
+      patient_tiers: PatientSegments.weekly_cohorts(start_date, end_date),
       top_doctors: top_doctors_with_ratings(10, start_date, end_date),
       direct_requests: direct_request_metrics(start_date, end_date),
       infrastructure_costs: infrastructure_costs(start_date, end_date),

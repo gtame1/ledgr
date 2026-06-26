@@ -702,6 +702,74 @@ end %>
     </div>
   </div>
 
+  <%!-- ═══ PATIENT LIFECYCLE TIERS ═══ --%>
+  <div class="mb-8">
+    <h2
+      class="text-sm font-semibold uppercase mb-3"
+      style="color: var(--text-muted); letter-spacing: 0.05em;"
+    >
+      Patient lifecycle
+    </h2>
+    <div class="hd-card p-5">
+      <div class="hd-card-title" style="margin-bottom: 0.25rem;">New patients by tier &amp; signup week</div>
+      <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 88ch;">
+        Bucketed by the week each patient was created, by current tier.
+        <span style="color:#94a3b8;font-weight:600;">L0 Lead</span>
+        (&lt;3 inbound msgs — not counted as a patient) ·
+        <span style="color:#0ea5e9;font-weight:600;">L1 Engaged</span> ·
+        <span style="color:#16a34a;font-weight:600;">L2 Converted</span>
+        (1 consult) ·
+        <span style="color:#7c3aed;font-weight:600;">L3 Core</span>
+        (≥2 consults). Tiers are lifetime, so recent weeks still mature.
+      </p>
+      <%= if Enum.empty?(m.patient_tiers) do %>
+        <div class="hd-empty">
+          <div class="hd-empty-icon">👥</div>
+          <p>No patients created in this period</p>
+        </div>
+      <% else %>
+        <table class="hd-table w-full text-sm">
+          <thead>
+            <tr>
+              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                Week of
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">
+                L0 Lead
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">
+                L1 Engaged
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">
+                L2 Converted
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">
+                L3 Core
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-main);">
+                Patients (L1+)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for r <- m.patient_tiers do %>
+              <tr class="border-t" style="border-color: var(--border-subtle);">
+                <td class="p-2 font-medium" style="color: var(--text-main);">
+                  {fmt_date(r.week_start, "%b %d, %Y")}
+                </td>
+                <td class="p-2 text-right" style="color: var(--text-muted);">{r.l0}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{r.l1}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{r.l2}</td>
+                <td class="p-2 text-right" style="color: var(--text-main);">{r.l3}</td>
+                <td class="p-2 text-right font-semibold" style="color: var(--accent);">{r.patients}</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+
   <%!-- ═══ OPERATIONS & QUALITY ═══ --%>
   <div class="mb-8">
     <h2
