@@ -256,28 +256,48 @@ end %>
       (≥2 consults). <strong>Conversion = reached ≥L2 ÷ all leads.</strong>
     </p>
 
-    <%!-- Overall tier snapshot --%>
+    <%!-- Overall tier snapshot — cards link to the matching patient list --%>
     <div class="hd-kpi-grid mb-4">
-      <div class="hd-kpi">
+      <.link
+        navigate={dp(@domain_path_prefix, "/patients?tier=leads")}
+        class="hd-kpi"
+        style="text-decoration: none; display: block; cursor: pointer;"
+        title="View all L0 leads"
+      >
         <div class="hd-kpi-label">L0 Lead</div>
         <div class="hd-kpi-value" style="color: #94a3b8;">{po.l0}</div>
-        <div class="hd-kpi-sub">pinged, not a patient</div>
-      </div>
-      <div class="hd-kpi">
+        <div class="hd-kpi-sub">pinged, not a patient →</div>
+      </.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/patients?tier=L1")}
+        class="hd-kpi"
+        style="text-decoration: none; display: block; cursor: pointer;"
+        title="View all L1 engaged patients"
+      >
         <div class="hd-kpi-label">L1 Engaged</div>
         <div class="hd-kpi-value" style="color: #0ea5e9;">{po.l1}</div>
-        <div class="hd-kpi-sub">≥3 msgs, no consult</div>
-      </div>
-      <div class="hd-kpi">
+        <div class="hd-kpi-sub">≥3 msgs, no consult →</div>
+      </.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/patients?tier=L2")}
+        class="hd-kpi"
+        style="text-decoration: none; display: block; cursor: pointer;"
+        title="View all L2 converted patients"
+      >
         <div class="hd-kpi-label">L2 Converted</div>
         <div class="hd-kpi-value" style="color: #16a34a;">{po.l2}</div>
-        <div class="hd-kpi-sub">1 consult</div>
-      </div>
-      <div class="hd-kpi">
+        <div class="hd-kpi-sub">1 consult →</div>
+      </.link>
+      <.link
+        navigate={dp(@domain_path_prefix, "/patients?tier=L3")}
+        class="hd-kpi"
+        style="text-decoration: none; display: block; cursor: pointer;"
+        title="View all L3 core patients"
+      >
         <div class="hd-kpi-label">L3 Core</div>
         <div class="hd-kpi-value" style="color: #7c3aed;">{po.l3}</div>
-        <div class="hd-kpi-sub">≥2 consults</div>
-      </div>
+        <div class="hd-kpi-sub">≥2 consults →</div>
+      </.link>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Conversion (→L2+)</div>
         <div class="hd-kpi-value" style="color: var(--accent);">{fmt_pct.(po.conversion_rate)}</div>
