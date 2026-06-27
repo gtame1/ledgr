@@ -23,6 +23,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
   alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
+  alias Ledgr.Domains.HelloDoctor.ConsultationPayouts
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
   alias Ledgr.Domains.HelloDoctor.Patients.Patient
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
@@ -354,7 +355,12 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   """
   def payout_summary_for_consultation(consultation_id) when is_binary(consultation_id) do
     payout_summary_for([consultation_id])
-    |> Map.get(consultation_id, %{count: 0, last_date: nil, last_payout_id: nil})
+    |> Map.get(consultation_id, %{
+      count: 0,
+      last_date: nil,
+      last_payout_id: nil,
+      paid_amount_cents: 0
+    })
   end
 
   defp payout_summary_for([]), do: %{}
@@ -370,10 +376,14 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         on: p.id == j.doctor_payout_id,
         where: j.consultation_id in ^consultation_ids,
         group_by: j.consultation_id,
-        select: {j.consultation_id, count(j.id), max(p.payout_date)}
+        select:
+          {j.consultation_id, count(j.id), max(p.payout_date),
+           coalesce(sum(j.amount_cents), 0)}
       )
       |> Repo.all()
-      |> Map.new(fn {cid, n, max_date} -> {cid, %{count: n, last_date: max_date}} end)
+      |> Map.new(fn {cid, n, max_date, paid_cents} ->
+        {cid, %{count: n, last_date: max_date, paid_amount_cents: paid_cents}}
+      end)
 
     last_payouts =
       from(j in DoctorPayoutConsultation,
@@ -453,7 +463,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                    attrs[:notes],
                    je && je.id
                  ),
-               :ok <- insert_payout_joins(payout.id, consultation_ids) do
+               :ok <- insert_payout_joins(payout.id, consultation_ids, amount_cents) do
             Repo.preload(payout, :payout_consultations)
           else
             {:error, reason} -> Repo.rollback(reason)
@@ -522,7 +532,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
                    notes: attrs[:notes],
                    journal_entry_id: new_je_id
                  }),
-               :ok <- replace_payout_joins(payout.id, consultation_ids) do
+               :ok <- replace_payout_joins(payout.id, consultation_ids, amount_cents) do
             Repo.preload(updated, :payout_consultations, force: true)
           else
             {:error, reason} -> Repo.rollback(reason)
@@ -645,10 +655,10 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     |> Repo.update()
   end
 
-  defp replace_payout_joins(payout_id, consultation_ids) do
+  defp replace_payout_joins(payout_id, consultation_ids, amount_cents) do
     Repo.delete_all(from j in DoctorPayoutConsultation, where: j.doctor_payout_id == ^payout_id)
 
-    insert_payout_joins(payout_id, consultation_ids)
+    insert_payout_joins(payout_id, consultation_ids, amount_cents)
   end
 
   @doc """
@@ -956,14 +966,16 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     |> Repo.insert()
   end
 
-  defp insert_payout_joins(payout_id, consultation_ids) do
+  defp insert_payout_joins(payout_id, consultation_ids, amount_cents) do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    allocation = allocate_amounts(amount_cents, consultation_ids)
 
     rows =
       Enum.map(consultation_ids, fn cid ->
         %{
           doctor_payout_id: payout_id,
           consultation_id: cid,
+          amount_cents: Map.fetch!(allocation, cid),
           inserted_at: now,
           updated_at: now
         }
@@ -973,6 +985,51 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       {n, _} when n == length(rows) -> :ok
       _ -> {:error, "failed to link consultations"}
     end
+  end
+
+  # Allocates the payout's actual `amount_cents` across its consultations.
+  #
+  # Rule: take each consultation's calculated (frozen) share; if those shares
+  # sum exactly to what was paid, use them as-is (the clean, no-retention
+  # case). Otherwise fall back to an even split of the actual amount, handing
+  # the remainder to the earliest consultations — so the parts always
+  # reconcile to `amount_cents`. Returns `%{consultation_id => cents}`.
+  defp allocate_amounts(amount_cents, consultation_ids) do
+    shares = frozen_shares(consultation_ids)
+
+    amounts =
+      if Enum.sum(shares) == amount_cents do
+        shares
+      else
+        even_split(amount_cents, length(consultation_ids))
+      end
+
+    consultation_ids |> Enum.zip(amounts) |> Map.new()
+  end
+
+  # Per-consultation calculated share, in order, from the frozen snapshot
+  # (falling back to the current flat share for any consultation without a
+  # snapshot row yet).
+  defp frozen_shares(consultation_ids) do
+    frozen = ConsultationPayouts.map(consultation_ids)
+    default = ConsultationPayouts.share_cents()
+
+    Enum.map(consultation_ids, fn cid ->
+      case Map.get(frozen, cid) do
+        %{doctor_share_cents: c} when is_integer(c) -> c
+        _ -> default
+      end
+    end)
+  end
+
+  # Splits `amount` into `n` integer parts that sum to `amount`; the first
+  # `rem` parts get one extra cent.
+  defp even_split(_amount, 0), do: []
+
+  defp even_split(amount, n) do
+    base = div(amount, n)
+    extra = rem(amount, n)
+    Enum.map(0..(n - 1), fn i -> base + if(i < extra, do: 1, else: 0) end)
   end
 
   # ── Helpers ─────────────────────────────────────────────────────
