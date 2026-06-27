@@ -691,6 +691,34 @@ end %>
             <% end %>
           </div>
 
+          <%= if @payout_snapshot do %>
+            <% earned = @payout_snapshot.doctor_share_cents / 100 %>
+            <div class="flex justify-between items-center">
+              <span style="color: var(--text-muted);" title="Flat doctor share, frozen at the rate in effect when this consultation was delivered.">
+                Doctor share earned
+              </span>
+              <span class="font-semibold" style="color: var(--text-main);">{fmt.(earned)}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span style="color: var(--text-muted);" title="What we'll actually pay = earned share if 'pay doctor' is yes, else $0.">
+                Net to pay
+              </span>
+              <span
+                class="font-semibold"
+                style={"color: #{if @pay_doctor, do: "#065f46", else: "#991b1b"};"}
+              >
+                {fmt.(if @pay_doctor, do: earned, else: 0.0)}
+              </span>
+            </div>
+            <div class="text-xs" style="color: var(--text-muted);">
+              Frozen {fmt_datetime(@payout_snapshot.computed_at)} · rate pinned at delivery
+            </div>
+          <% else %>
+            <div class="text-xs" style="color: var(--text-muted);">
+              No frozen payout amount — not a doctor-payable consultation (or not yet billed).
+            </div>
+          <% end %>
+
           <%= if @payout_decision do %>
             <div
               class="text-xs mt-2 pt-2"

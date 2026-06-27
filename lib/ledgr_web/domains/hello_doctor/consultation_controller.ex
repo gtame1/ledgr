@@ -4,6 +4,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConsultationController do
   alias Ledgr.Domains.HelloDoctor.Consultations
   alias Ledgr.Domains.HelloDoctor.ConsultationFunnelExport
   alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
+  alias Ledgr.Domains.HelloDoctor.ConsultationPayouts
 
   def index(conn, params) do
     filters = %{
@@ -23,11 +24,15 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConsultationController do
   def show(conn, %{"id" => id}) do
     consultation = Consultations.get_consultation!(id)
     decision = ConsultationPayoutDecisions.get(id)
+    # Frozen-at-delivery doctor share; lazily freezes if this billed
+    # consultation predates the last sweep. nil = not doctor-payable.
+    payout_snapshot = ConsultationPayouts.ensure_frozen(id)
 
     render(conn, :show,
       consultation: consultation,
       pay_doctor: if(decision, do: decision.pay_doctor, else: true),
-      payout_decision: decision
+      payout_decision: decision,
+      payout_snapshot: payout_snapshot
     )
   end
 

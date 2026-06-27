@@ -103,7 +103,8 @@ defmodule Ledgr.Application do
           do: [
             Ledgr.Domains.HelloDoctor.BillingSyncWorker,
             Ledgr.Domains.HelloDoctor.ExchangeRateWorker,
-            Ledgr.Domains.HelloDoctor.PatientSegmentsWorker
+            Ledgr.Domains.HelloDoctor.PatientSegmentsWorker,
+            Ledgr.Domains.HelloDoctor.ConsultationPayoutsWorker
           ],
           else: []
         ) ++
