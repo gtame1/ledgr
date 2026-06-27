@@ -346,6 +346,17 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     end)
   end
 
+  @doc """
+  Per-consultation payout summary for a single consultation:
+  `%{count, last_date, last_payout_id}` (count 0 if never paid). Lets the
+  consultation detail page show paid-status by reading the existing
+  payout/join tables — no denormalization onto `consultation_payouts`.
+  """
+  def payout_summary_for_consultation(consultation_id) when is_binary(consultation_id) do
+    payout_summary_for([consultation_id])
+    |> Map.get(consultation_id, %{count: 0, last_date: nil, last_payout_id: nil})
+  end
+
   defp payout_summary_for([]), do: %{}
 
   defp payout_summary_for(consultation_ids) do

@@ -710,6 +710,29 @@ end %>
                 {fmt.(if @pay_doctor, do: earned, else: 0.0)}
               </span>
             </div>
+            <div class="flex justify-between items-center">
+              <span style="color: var(--text-muted);">Paid out?</span>
+              <%= if @paid_summary.count > 0 do %>
+                <%= if @paid_summary.last_payout_id do %>
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/doctor-payouts/#{@paid_summary.last_payout_id}/edit")}
+                    class="hd-badge"
+                    style="background: #d1fae5; color: #065f46;"
+                    title="View the payout that covers this consultation"
+                  >
+                    Paid · {@paid_summary.last_date} ✎
+                  </.link>
+                <% else %>
+                  <span class="hd-badge" style="background: #d1fae5; color: #065f46;">
+                    Paid · {@paid_summary.last_date}
+                  </span>
+                <% end %>
+              <% else %>
+                <span class="hd-badge" style="background: var(--bg-secondary); color: var(--text-muted);">
+                  Not yet
+                </span>
+              <% end %>
+            </div>
             <div class="text-xs" style="color: var(--text-muted);">
               Frozen {fmt_datetime(@payout_snapshot.computed_at)} · rate pinned at delivery
             </div>
