@@ -86,6 +86,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
       cs.status                                                          AS status,
       cs.consultation_type                                                AS type,
       (cs.assigned_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date AS assigned,
+      date_trunc('month', cs.assigned_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date AS month_created,
       to_char(cs.accepted_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'MM-DD HH24:MI')  AS accepted,
       to_char(cs.completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'MM-DD HH24:MI') AS completed,
       cs.duration_minutes                                                 AS dur_min,
