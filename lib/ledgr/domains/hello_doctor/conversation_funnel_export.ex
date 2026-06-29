@@ -79,11 +79,11 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
              COUNT(*) FILTER (WHERE level='CRITICAL' AND resolved_at IS NULL) AS open_crit
       FROM alert_events GROUP BY conv_id
     ),
-    -- Revenue breakdown per billed, non-test consultation (joined to the
-    -- conversation's last consultation below). Mirrors ConsultationRevenue.
+    -- Revenue breakdown per billed, non-test consultation. Mirrors
+    -- ConsultationRevenue; aggregated to the conversation in rev_conv below.
     rev AS (
       SELECT
-        c.id AS cid,
+        c.conversation_id AS conv_id,
         COALESCE(spx.amount, c.payment_amount)                            AS gross,
         COALESCE(spx.stripe_fee, 0)                                       AS stripe_fee,
         COALESCE(cp.doctor_share_cents / 100.0, #{share})                 AS doctor_share,
@@ -105,6 +105,19 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       LEFT JOIN consultation_payouts cp ON cp.consultation_id = c.id
       WHERE c.payment_status IN ('paid', 'confirmed', 'refunded')
         AND COALESCE(c.payment_source, 'stripe') <> 'test'
+    ),
+    -- Summed across ALL of a conversation's billed consultations (matches
+    -- the conversation list page), not just the last one.
+    rev_conv AS (
+      SELECT
+        conv_id,
+        SUM(gross)        AS gross,
+        SUM(doctor_share) AS doctor_share,
+        SUM(stripe_fee)   AS stripe_fee,
+        SUM(hd_net)       AS hd_net
+      FROM rev
+      WHERE conv_id IS NOT NULL
+      GROUP BY conv_id
     )
     SELECT
       'id-' || substr(c.id, 1, 8)                                          AS conv_id,
@@ -153,10 +166,10 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       COALESCE(pc.crit, 0)                                                   AS pcrit,
       COALESCE(ac.open_crit, 0)                                              AS alerts,
       COALESCE(lc.patient_rating::text, '-')                                 AS rating,
-      rev.gross                                                              AS gross,
-      rev.doctor_share                                                       AS doctor_share,
-      rev.stripe_fee                                                         AS stripe_fee,
-      rev.hd_net                                                             AS hd_net
+      rev_conv.gross                                                         AS gross,
+      rev_conv.doctor_share                                                  AS doctor_share,
+      rev_conv.stripe_fee                                                    AS stripe_fee,
+      rev_conv.hd_net                                                        AS hd_net
     FROM conversations c
     LEFT JOIN patients         p  ON p.id = c.patient_id
     LEFT JOIN patient_segments ps ON ps.patient_id = c.patient_id
@@ -167,7 +180,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
     LEFT JOIN msg_counts       mc ON mc.conversation_id = c.id
     LEFT JOIN policing_counts  pc ON pc.conv_id = c.id
     LEFT JOIN alert_counts     ac ON ac.conv_id = c.id
-    LEFT JOIN rev                 ON rev.cid = lc.id
+    LEFT JOIN rev_conv            ON rev_conv.conv_id = c.id
     """
 
     {where_sql, params} = build_filters(opts)
