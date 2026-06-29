@@ -17,6 +17,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
   """
 
   alias Ledgr.Repo
+  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
 
   @doc """
   Returns the CSV body as a string.
@@ -38,6 +39,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
   # ── Query assembly ──────────────────────────────────────────────
 
   defp build_query(opts) do
+    share = ConsultationAccounting.doctor_share_mxn()
+
     base = """
     WITH rx_counts AS (
       SELECT consultation_id, COUNT(*) AS n
@@ -45,6 +48,33 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
     ),
     call_flag AS (
       SELECT DISTINCT consultation_id, 1 AS has_call FROM consultation_calls
+    ),
+    -- Revenue breakdown per billed, non-test consultation. Mirrors
+    -- ConsultationRevenue (gross / doctor share / Stripe fee / HD net).
+    rev AS (
+      SELECT
+        c.id AS cid,
+        COALESCE(spx.amount, c.payment_amount)                            AS gross,
+        COALESCE(spx.stripe_fee, 0)                                       AS stripe_fee,
+        COALESCE(cp.doctor_share_cents / 100.0, #{share})                 AS doctor_share,
+        COALESCE(spx.amount, c.payment_amount)
+          - COALESCE(spx.stripe_fee, 0)
+          - COALESCE(cp.doctor_share_cents / 100.0, #{share})
+          - COALESCE(spx.amount_refunded, 0)                             AS hd_net
+      FROM consultations c
+      LEFT JOIN LATERAL (
+        SELECT sp.amount, sp.stripe_fee, sp.amount_refunded
+        FROM stripe_payments sp
+        WHERE sp.consultation_id = c.id
+           OR (sp.consultation_id IS NULL
+               AND c.stripe_payment_intent_id IS NOT NULL
+               AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id)
+        ORDER BY sp.id
+        LIMIT 1
+      ) spx ON TRUE
+      LEFT JOIN consultation_payouts cp ON cp.consultation_id = c.id
+      WHERE c.payment_status IN ('paid', 'confirmed', 'refunded')
+        AND COALESCE(c.payment_source, 'stripe') <> 'test'
     )
     SELECT
       substr(cs.id, 1, 8)                                                AS consult_id,
@@ -67,6 +97,10 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
       left(COALESCE(d.specialty, '-'), 18)                                AS specialty,
       cs.payment_status                                                   AS pay,
       cs.payment_amount                                                   AS amount,
+      rev.gross                                                           AS gross,
+      rev.doctor_share                                                    AS doctor_share,
+      rev.stripe_fee                                                      AS stripe_fee,
+      rev.hd_net                                                          AS hd_net,
       COALESCE(conv.platform_fee_amount::text, '-')                       AS plat_fee,
       COALESCE(conv.doctor_fee_amount::text, '-')                         AS doc_fee,
       COALESCE(cs.stripe_payment_intent_id, '-')                          AS stripe_pi,
@@ -89,6 +123,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
     LEFT JOIN doctors       d    ON d.id    = cs.doctor_id
     LEFT JOIN rx_counts     rx   ON rx.consultation_id = cs.id
     LEFT JOIN call_flag     cf   ON cf.consultation_id = cs.id
+    LEFT JOIN rev                ON rev.cid = cs.id
     """
 
     {where_sql, params} = build_filters(opts)

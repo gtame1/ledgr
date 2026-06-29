@@ -5,6 +5,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConsultationController do
   alias Ledgr.Domains.HelloDoctor.ConsultationFunnelExport
   alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
   alias Ledgr.Domains.HelloDoctor.ConsultationPayouts
+  alias Ledgr.Domains.HelloDoctor.ConsultationRevenue
   alias Ledgr.Domains.HelloDoctor.DoctorPayouts
 
   def index(conn, params) do
@@ -14,9 +15,11 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConsultationController do
     }
 
     consultations = Consultations.list_consultations(filters)
+    revenue = ConsultationRevenue.for_consultations(Enum.map(consultations, & &1.id))
 
     render(conn, :index,
       consultations: consultations,
+      revenue: revenue,
       current_status: params["status"],
       current_search: params["search"]
     )

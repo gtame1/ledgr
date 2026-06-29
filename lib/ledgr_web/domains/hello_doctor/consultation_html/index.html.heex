@@ -97,7 +97,27 @@ end %>
               class="text-right p-3 text-xs font-medium uppercase"
               style="color: var(--text-muted);"
             >
-              Amount
+              Gross
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+              title="Doctor's flat share, frozen at delivery"
+            >
+              Doctor share
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Stripe fee
+            </th>
+            <th
+              class="text-right p-3 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+              title="What HelloDoctor keeps: gross − doctor share − Stripe fee − refunds"
+            >
+              HD net
             </th>
             <th
               class="text-left p-3 text-xs font-medium uppercase"
@@ -116,7 +136,7 @@ end %>
         <tbody>
           <%= if Enum.empty?(@consultations) do %>
             <tr>
-              <td colspan="7" class="p-6 text-center" style="color: var(--text-muted);">
+              <td colspan="10" class="p-6 text-center" style="color: var(--text-muted);">
                 No consultations found.
               </td>
             </tr>
@@ -145,8 +165,21 @@ end %>
                     <span class="text-sm" style="color: var(--text-muted);">---</span>
                   <% end %>
                 </td>
+                <% rev = Map.get(@revenue, c.id) %>
                 <td class="p-3 text-sm text-right font-medium" style="color: var(--text-main);">
-                  {fmt.(c.payment_amount)}
+                  {fmt.(if rev, do: rev.gross, else: c.payment_amount)}
+                </td>
+                <td class="p-3 text-sm text-right" style="color: var(--text-muted);">
+                  {if rev, do: fmt.(rev.doctor_share), else: "—"}
+                </td>
+                <td class="p-3 text-sm text-right" style="color: var(--text-muted);">
+                  {if rev, do: fmt.(rev.stripe_fee), else: "—"}
+                </td>
+                <td
+                  class="p-3 text-sm text-right font-medium"
+                  style={"color: #{if rev && rev.hd_net < 0, do: "#dc2626", else: "var(--text-main)"};"}
+                >
+                  {if rev, do: fmt.(rev.hd_net), else: "—"}
                 </td>
                 <td class="p-3 text-sm" style="color: var(--text-muted);">
                   {fmt_date(c.assigned_at) || "---"}

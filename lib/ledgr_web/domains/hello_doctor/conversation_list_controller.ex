@@ -5,15 +5,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
   alias Ledgr.Domains.HelloDoctor.ConversationFeedback
   alias Ledgr.Domains.HelloDoctor.Conversations
   alias Ledgr.Domains.HelloDoctor.ConversationFunnelExport
+  alias Ledgr.Domains.HelloDoctor.ConsultationRevenue
   alias Ledgr.Domains.HelloDoctor.PatientSegments
 
   def index(conn, params) do
     filters = filter_opts(params)
 
     conversations = Conversations.list_conversations(filters)
+    revenue = ConsultationRevenue.for_conversations(Enum.map(conversations, & &1.id))
 
     render(conn, :index,
       conversations: conversations,
+      revenue: revenue,
       current_status: params["status"],
       current_funnel_stage: params["funnel_stage"],
       current_search: params["search"],
