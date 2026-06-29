@@ -120,7 +120,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       GROUP BY conv_id
     )
     SELECT
-      'id-' || substr(c.id, 1, 8)                                          AS conv_id,
+      c.id                                                                 AS conv_id,
       c.tenant                                                              AS tn,
       p.id                                                                  AS patient_id,
       left(COALESCE(p.display_name, p.full_name, '-'), 18)                  AS patient,
@@ -136,6 +136,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       END                                                                   AS pnew,
       p.phone                                                               AS phone,
       c.created_at::date                                                    AS created,
+      date_trunc('month', c.created_at)                                     AS month_created,
       to_char(c.last_message_at, 'MM-DD HH24:MI')                           AS last_msg,
       CASE WHEN c.doctor_recommended OR fs.idx >= 4 THEN 'Y' ELSE '-' END   AS rec,
       CASE WHEN c.doctor_declined_by_patient                THEN 'X'
