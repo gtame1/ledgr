@@ -135,6 +135,10 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
         ELSE '-'
       END                                                                   AS pnew,
       p.phone                                                               AS phone,
+      CASE
+        WHEN p.phone IN ('5215512950400', '5215543408539', '5215536713304')
+        THEN 'Y' ELSE 'N'
+      END                                                                   AS is_test,
       c.created_at::date                                                    AS created,
       date_trunc('month', c.created_at)                                     AS month_created,
       to_char(c.last_message_at, 'MM-DD HH24:MI')                           AS last_msg,
