@@ -143,7 +143,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
         THEN 'Y' ELSE 'N'
       END                                                                   AS is_test,
       (c.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date AS created,
-      date_trunc('month', c.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City') AS month_created,
+      date_trunc('month', c.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date AS month_created,
       to_char(c.last_message_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'MM-DD HH24:MI') AS last_msg,
       CASE WHEN c.doctor_recommended OR fs.idx >= 4 THEN 'Y' ELSE '-' END   AS rec,
       CASE WHEN c.doctor_declined_by_patient                THEN 'X'
