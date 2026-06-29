@@ -30,23 +30,29 @@ defmodule Ledgr.Domains.HelloDoctor.TestAccounts do
   def patient_ids_sql, do: sql_list(@test_patient_ids)
 
   @doc """
-  A SQL `NOT EXISTS (...)` predicate that is true when the patient referenced
-  by `patient_id_expr` is NOT a test account (neither a test phone nor a test
-  patient id). Drop it into a WHERE/AND to exclude test patients uniformly.
+  A SQL `EXISTS (...)` predicate, true when the patient referenced by
+  `patient_id_expr` IS a test account (test phone OR test patient id).
 
   `patient_id_expr` is a SQL expression for the patient id column in scope,
-  e.g. `"c.patient_id"` or `"p.id"`. A NULL patient id passes the filter
-  (it isn't a test patient).
+  e.g. `"c.patient_id"`, `"p.id"`, `"ps.patient_id"`.
   """
-  def not_test_patient_sql(patient_id_expr) do
+  def is_test_patient_sql(patient_id_expr) do
     """
-    NOT EXISTS (
+    EXISTS (
       SELECT 1 FROM patients tp
       WHERE tp.id = #{patient_id_expr}
         AND (tp.phone IN (#{phones_sql()}) OR tp.id IN (#{patient_ids_sql()}))
     )
     """
   end
+
+  @doc """
+  Negation of `is_test_patient_sql/1` — true when the patient is NOT a test
+  account. Drop into a WHERE/AND to exclude test patients uniformly. Uses
+  `NOT EXISTS`, so a NULL patient id passes (it isn't a test patient) — note
+  `patient_id NOT IN (...)` would wrongly drop NULLs.
+  """
+  def not_test_patient_sql(patient_id_expr), do: "NOT " <> is_test_patient_sql(patient_id_expr)
 
   defp sql_list(values), do: Enum.map_join(values, ", ", &"'#{&1}'")
 end

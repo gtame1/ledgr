@@ -68,7 +68,7 @@ defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
           AND COALESCE(payment_source, 'stripe') <> 'test'
         GROUP BY patient_id
       ) con ON con.pid = p.id
-      WHERE p.id NOT IN (#{TestAccounts.patient_ids_sql()})
+      WHERE #{TestAccounts.not_test_patient_sql("p.id")}
     )
     """
   end
@@ -140,6 +140,15 @@ defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
     """
 
     Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [])
+
+    # Prune any rows that no longer qualify (e.g. patients newly classified
+    # as test accounts) — the upsert above never deletes, so do it here so
+    # the snapshot the bot reads stays in sync with the live tier rule.
+    Ecto.Adapters.SQL.query!(
+      Repo.active_repo(),
+      "DELETE FROM patient_segments ps WHERE #{TestAccounts.is_test_patient_sql("ps.patient_id")}",
+      []
+    )
 
     %{rows: rows} =
       Ecto.Adapters.SQL.query!(
