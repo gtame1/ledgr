@@ -20,6 +20,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @doc """
   Returns the CSV body as a string.
@@ -131,17 +132,18 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       -- calendar month as the conversation. - = pre-existing.
       CASE
         WHEN p.id IS NULL THEN '-'
-        WHEN date_trunc('month', p.created_at) = date_trunc('month', c.created_at) THEN 'Y'
+        WHEN date_trunc('month', p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')
+           = date_trunc('month', c.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City') THEN 'Y'
         ELSE '-'
       END                                                                   AS pnew,
       p.phone                                                               AS phone,
       CASE
-        WHEN p.phone IN ('5215512950400', '5215543408539', '5215536713304')
+        WHEN p.phone IN (#{TestAccounts.phones_sql()})
         THEN 'Y' ELSE 'N'
       END                                                                   AS is_test,
-      c.created_at::date                                                    AS created,
-      date_trunc('month', c.created_at)                                     AS month_created,
-      to_char(c.last_message_at, 'MM-DD HH24:MI')                           AS last_msg,
+      (c.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date AS created,
+      date_trunc('month', c.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City') AS month_created,
+      to_char(c.last_message_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'MM-DD HH24:MI') AS last_msg,
       CASE WHEN c.doctor_recommended OR fs.idx >= 4 THEN 'Y' ELSE '-' END   AS rec,
       CASE WHEN c.doctor_declined_by_patient                THEN 'X'
            WHEN c.consultation_type IS NOT NULL             THEN 'Y'

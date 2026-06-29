@@ -22,8 +22,7 @@ defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
   """
 
   alias Ledgr.Repo
-
-  @test_patient_id "2ed77952-cead-4bc4-bc44-51f5b5052d76"
+  alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @doc "Tier display metadata, ordered L0 → L3."
   def tiers do
@@ -39,7 +38,7 @@ defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
 
   # The shared CTE: one row per (non-test) patient with their inbound
   # message count, completed-consult count, and derived tier. Test patient
-  # id is a constant, safe to inline.
+  # ids come from TestAccounts (constants, safe to inline).
   defp tier_cte do
     """
     patient_tiers AS (
@@ -69,7 +68,7 @@ defmodule Ledgr.Domains.HelloDoctor.PatientSegments do
           AND COALESCE(payment_source, 'stripe') <> 'test'
         GROUP BY patient_id
       ) con ON con.pid = p.id
-      WHERE p.id <> '#{@test_patient_id}'
+      WHERE p.id NOT IN (#{TestAccounts.patient_ids_sql()})
     )
     """
   end
