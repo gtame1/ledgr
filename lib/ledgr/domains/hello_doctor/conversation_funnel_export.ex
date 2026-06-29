@@ -47,7 +47,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
   # ── Query assembly ──────────────────────────────────────────────
 
   defp build_query(opts) do
-    share = ConsultationAccounting.doctor_share_mxn()
+    share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     base = """
     WITH funnel_stages(stage, idx) AS (VALUES
@@ -93,6 +93,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
           - COALESCE(cp.doctor_share_cents / 100.0, #{share})
           - COALESCE(spx.amount_refunded, 0)                             AS hd_net
       FROM consultations c
+      LEFT JOIN conversations conv ON conv.id = c.conversation_id
+      LEFT JOIN doctors d ON d.id = c.doctor_id
       LEFT JOIN LATERAL (
         SELECT sp.amount, sp.stripe_fee, sp.amount_refunded
         FROM stripe_payments sp

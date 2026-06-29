@@ -24,6 +24,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
   alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
   alias Ledgr.Domains.HelloDoctor.ConsultationPayouts
+  alias Ledgr.Domains.HelloDoctor.Conversations.Conversation
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
   alias Ledgr.Domains.HelloDoctor.Patients.Patient
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
@@ -71,7 +72,6 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     * `:dir` — `:asc` or `:desc` (defaults: date→desc, doctor→asc, billed→desc, hd_net→desc)
   """
   def list_consultations_with_payouts(start_date, end_date, opts \\ []) do
-    share = ConsultationAccounting.doctor_share_mxn()
     start_naive = to_naive_start(start_date)
     end_exclusive = to_naive_end_exclusive(end_date)
     doctor_id = opts[:doctor_id]
@@ -93,6 +93,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         on: c.doctor_id == d.id,
         left_join: p in Patient,
         on: c.patient_id == p.id,
+        left_join: conv in Conversation,
+        on: conv.id == c.conversation_id,
         # Exclude bot test/bypass flows (pi_test_bypass_*, cs_no_payment_*).
         # Real charges either land in stripe_payments (sp.id non-null) or
         # at least carry an amount on the consultation. Test/bypass rows
@@ -147,7 +149,10 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
           consultation_payment_status: c.payment_status,
           # ADR-046: drives payable/discount/corporate disambiguation.
           payment_source: c.payment_source,
-          corporate_account_id: c.corporate_account_id
+          corporate_account_id: c.corporate_account_id,
+          # Tenant + doctor's negotiated fee drive the tenant-aware share.
+          tenant: conv.tenant,
+          doctor_fee_mxn: d.consultation_fee_mxn
         }
       )
 
@@ -173,6 +178,8 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
 
       refunded = to_float(row.amount_refunded)
       fee = to_float(row.stripe_fee)
+      # Tenant-aware: direct patients pay the doctor's own fee, else flat.
+      share = ConsultationAccounting.doctor_share_mxn(row.tenant, to_float(row.doctor_fee_mxn))
       hd_net = billed - fee - share - refunded
 
       summary =

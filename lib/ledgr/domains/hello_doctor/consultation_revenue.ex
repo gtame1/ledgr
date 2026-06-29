@@ -50,7 +50,9 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
   defp rows([], _filter_col), do: []
 
   defp rows(ids, filter_col) when is_list(ids) do
-    share = ConsultationAccounting.doctor_share_mxn()
+    # Fallback share (for any consult not yet frozen) is tenant-aware, same
+    # rule as the frozen value: direct → the doctor's fee, else flat.
+    share_fallback = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     sql = """
     SELECT
@@ -59,10 +61,12 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
       COALESCE(spx.amount, c.payment_amount)        AS gross,
       COALESCE(spx.stripe_fee, 0)                   AS stripe_fee,
       COALESCE(spx.amount_refunded, 0)              AS refunded,
-      COALESCE(cp.doctor_share_cents / 100.0, #{share}) AS doctor_share,
+      COALESCE(cp.doctor_share_cents / 100.0, #{share_fallback}) AS doctor_share,
       COALESCE(c.payment_source, 'stripe')          AS payment_source,
       (spx.amount IS NOT NULL)                      AS stripe_synced
     FROM consultations c
+    LEFT JOIN conversations conv ON conv.id = c.conversation_id
+    LEFT JOIN doctors d ON d.id = c.doctor_id
     LEFT JOIN LATERAL (
       SELECT sp.amount, sp.stripe_fee, sp.amount_refunded
       FROM stripe_payments sp

@@ -41,6 +41,28 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   def doctor_share_cents, do: round(@doctor_share_mxn * 100)
 
   @doc """
+  Tenant-aware doctor share, in MXN pesos. A doctor's own DIRECT patients
+  (conversation tenant `"direct"`) pay that doctor's negotiated rate
+  (`consultation_fee_mxn`); HD-sourced MVP — and anything not `"direct"`,
+  or a direct consult with no configured fee — pays the flat share. Mirrors
+  the rule in `MonthlyReport`; single source of truth for "what the doctor
+  earns per consultation".
+  """
+  def doctor_share_mxn(tenant, fee) do
+    if tenant == "direct" and is_number(fee) and fee > 0, do: fee * 1.0, else: @doctor_share_mxn
+  end
+
+  @doc """
+  SQL-expression form of `doctor_share_mxn/2` for raw-SQL contexts. Pass the
+  in-scope SQL expressions for the conversation tenant and the doctor's
+  `consultation_fee_mxn`; returns pesos as float8.
+  """
+  def doctor_share_sql(tenant_expr, fee_expr) do
+    "(CASE WHEN #{tenant_expr} = 'direct' AND COALESCE(#{fee_expr}, 0) > 0 " <>
+      "THEN (#{fee_expr})::float8 ELSE #{@doctor_share_mxn} END)"
+  end
+
+  @doc """
   Records a consultation payment as journal entries.
 
   `consultation` must have patient and doctor preloaded.

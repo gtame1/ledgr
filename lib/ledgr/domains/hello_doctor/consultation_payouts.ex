@@ -2,66 +2,52 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
   @moduledoc """
   Frozen-at-delivery snapshot of the doctor share earned per consultation.
 
-  The amount the doctor earns is computed by the *same* logic the Doctor
-  Payouts page uses (`DoctorPayouts.list_consultations_with_payouts/3`):
-  a flat `ConsultationAccounting.doctor_share_mxn/0` for every billed,
-  non-test consultation. We materialize it into the Ledgr-owned
-  `consultation_payouts` table so it can be read per-consultation and so
-  the rate is **pinned at delivery** — once a row exists we never rewrite
-  its `doctor_share_cents`, so a future change to the flat share leaves
-  history untouched.
+  The share is **tenant-aware** (same rule as `MonthlyReport` /
+  `ConsultationAccounting.doctor_share_mxn/2`): a doctor's own DIRECT
+  patients pay that doctor's `consultation_fee_mxn`; MVP/other pay the flat
+  share. We materialize it into the Ledgr-owned `consultation_payouts`
+  table so it can be read per-consultation and so the amount is **pinned at
+  delivery** — once a row exists we never rewrite its `doctor_share_cents`,
+  so a later fee change leaves history untouched.
 
-  Note the split of concerns:
+  Split of concerns:
 
-    * **earned** (this table) — frozen gross share, $100 at the rate of the
-      day. One row per billed consultation.
+    * **earned** (this table) — frozen share. One row per billed, non-test
+      consultation.
     * **payable** (`ConsultationPayoutDecisions`) — the mutable operator
       decision of whether we actually pay it. `net = if pay_doctor?, do:
       earned, else: 0`, derived live.
 
   Populated by `ConsultationPayoutsWorker` (boot + daily) via `recompute/0`,
   and lazily by `ensure_frozen/1` when a consultation page is viewed before
-  the next sweep. Both insert with `ON CONFLICT DO NOTHING`, so they're
-  idempotent and never clobber a frozen amount.
+  the next sweep. Inserts use `ON CONFLICT DO NOTHING`, so they're idempotent
+  and never clobber a frozen amount.
   """
 
   import Ecto.Query
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
-  alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
-  alias Ledgr.Domains.HelloDoctor.DoctorPayouts
   alias Ledgr.Domains.HelloDoctor.ConsultationPayouts.ConsultationPayout
+  alias Ledgr.Domains.HelloDoctor.TestAccounts
 
-  # Mirrors DoctorPayouts.@payable_statuses — used only by the single-row
-  # lazy-freeze gate. The bulk recompute reuses the report query directly.
-  @payable_statuses ~w[paid confirmed refunded]
-
-  # All-time window for the bulk sweep.
-  @epoch ~D[2000-01-01]
-  @far_future ~D[2100-01-01]
-
-  @doc "Flat doctor share per consultation, in centavos (the frozen rate)."
+  @doc "Flat doctor share per consultation, in centavos (the MVP default)."
   def share_cents, do: ConsultationAccounting.doctor_share_cents()
 
   @doc """
-  Freezes the doctor share for every billed, non-test consultation that
-  doesn't already have a row. Returns the number of newly-frozen rows.
+  Freezes the (tenant-aware) doctor share for every billed, non-test
+  consultation that doesn't already have a row, and prunes any rows that are
+  now test accounts. Returns the number of newly-frozen rows.
   """
   def recompute do
-    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    %{num_rows: inserted} = Ecto.Adapters.SQL.query!(Repo.active_repo(), freeze_sql(""), [])
 
-    entries =
-      DoctorPayouts.list_consultations_with_payouts(@epoch, @far_future, status: :all)
-      |> Enum.uniq_by(& &1.consultation_id)
-      |> Enum.reject(&is_nil(&1.consultation_id))
-      |> Enum.map(&row_attrs(&1.consultation_id, &1.doctor_id, &1.payment_source, now))
-
-    {inserted, _} =
-      Repo.insert_all(ConsultationPayout, entries,
-        on_conflict: :nothing,
-        conflict_target: :consultation_id
-      )
+    # Drop rows that are now classified as test accounts (snapshot hygiene).
+    Ecto.Adapters.SQL.query!(
+      Repo.active_repo(),
+      "DELETE FROM consultation_payouts cp WHERE #{TestAccounts.is_test_patient_sql("cp.patient_id")}",
+      []
+    )
 
     inserted
   end
@@ -91,42 +77,48 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
         row
 
       nil ->
-        with %Consultation{} = c <- Repo.get(Consultation, consultation_id),
-             true <- payable_population?(c) do
-          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+        Ecto.Adapters.SQL.query!(
+          Repo.active_repo(),
+          freeze_sql("AND c.id = $1"),
+          [consultation_id]
+        )
 
-          Repo.insert_all(
-            ConsultationPayout,
-            [row_attrs(c.id, c.doctor_id, c.payment_source, now)],
-            on_conflict: :nothing,
-            conflict_target: :consultation_id
-          )
-
-          get(consultation_id)
-        else
-          _ -> nil
-        end
+        get(consultation_id)
     end
   end
 
-  # A consultation is in the doctor-payable population when it's billed and
-  # not a /prueba test/bypass row. Mirrors the report's gate closely enough
-  # for the lazy path; the daily recompute is canonical.
-  defp payable_population?(%Consultation{} = c) do
-    c.payment_status in @payable_statuses and
-      (c.payment_source || "stripe") != "test" and
-      not is_nil(c.payment_amount)
-  end
+  # INSERT … SELECT that freezes the tenant-aware share for the billed,
+  # non-test population. `extra_where` lets the lazy path scope to one id.
+  defp freeze_sql(extra_where) do
+    share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
-  defp row_attrs(consultation_id, doctor_id, payment_source, now) do
-    %{
-      consultation_id: consultation_id,
-      doctor_id: doctor_id,
-      doctor_share_cents: share_cents(),
-      payment_source: payment_source || "stripe",
-      computed_at: now,
-      inserted_at: now,
-      updated_at: now
-    }
+    """
+    INSERT INTO consultation_payouts
+      (consultation_id, doctor_id, doctor_share_cents, payment_source, computed_at, inserted_at, updated_at)
+    SELECT
+      c.id,
+      c.doctor_id,
+      ROUND(#{share} * 100)::int,
+      COALESCE(c.payment_source, 'stripe'),
+      NOW(), NOW(), NOW()
+    FROM consultations c
+    LEFT JOIN conversations conv ON conv.id = c.conversation_id
+    LEFT JOIN doctors d ON d.id = c.doctor_id
+    WHERE c.payment_status IN ('paid', 'confirmed', 'refunded')
+      AND COALESCE(c.payment_source, 'stripe') <> 'test'
+      AND (
+        EXISTS (
+          SELECT 1 FROM stripe_payments sp
+          WHERE sp.consultation_id = c.id
+             OR (sp.consultation_id IS NULL
+                 AND c.stripe_payment_intent_id IS NOT NULL
+                 AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id)
+        )
+        OR (c.payment_amount IS NOT NULL AND c.payment_amount >= 0)
+      )
+      AND #{TestAccounts.not_test_patient_sql("c.patient_id")}
+      #{extra_where}
+    ON CONFLICT (consultation_id) DO NOTHING
+    """
   end
 end
