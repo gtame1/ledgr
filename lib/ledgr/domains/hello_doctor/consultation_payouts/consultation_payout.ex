@@ -12,7 +12,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts.ConsultationPayout do
     field :doctor_id, :string
     field :doctor_share_cents, :integer
     field :payment_source, :string
-    field :computed_at, :utc_datetime
+    field :computed_at, :naive_datetime
 
     timestamps()
   end

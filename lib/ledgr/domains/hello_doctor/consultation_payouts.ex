@@ -49,7 +49,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
   doesn't already have a row. Returns the number of newly-frozen rows.
   """
   def recompute do
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
     entries =
       DoctorPayouts.list_consultations_with_payouts(@epoch, @far_future, status: :all)
@@ -93,7 +93,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
       nil ->
         with %Consultation{} = c <- Repo.get(Consultation, consultation_id),
              true <- payable_population?(c) do
-          now = DateTime.utc_now() |> DateTime.truncate(:second)
+          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
           Repo.insert_all(
             ConsultationPayout,
