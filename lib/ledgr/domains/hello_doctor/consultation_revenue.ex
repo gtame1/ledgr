@@ -25,6 +25,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @doc "Revenue keyed by consultation id, for the given consultation ids."
   def for_consultations(ids) when is_list(ids) do
@@ -76,6 +77,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
     WHERE #{filter_col} = ANY($1)
       AND c.payment_status IN ('paid', 'confirmed', 'refunded')
       AND COALESCE(c.payment_source, 'stripe') <> 'test'
+      AND #{TestAccounts.not_test_patient_sql("c.patient_id")}
     """
 
     %{rows: rows} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [ids])

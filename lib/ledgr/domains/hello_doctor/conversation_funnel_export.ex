@@ -106,6 +106,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       LEFT JOIN consultation_payouts cp ON cp.consultation_id = c.id
       WHERE c.payment_status IN ('paid', 'confirmed', 'refunded')
         AND COALESCE(c.payment_source, 'stripe') <> 'test'
+        AND #{TestAccounts.not_test_patient_sql("c.patient_id")}
     ),
     -- Summed across ALL of a conversation's billed consultations (matches
     -- the conversation list page), not just the last one.

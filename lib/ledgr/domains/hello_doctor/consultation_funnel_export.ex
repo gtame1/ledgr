@@ -18,6 +18,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @doc """
   Returns the CSV body as a string.
@@ -75,6 +76,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationFunnelExport do
       LEFT JOIN consultation_payouts cp ON cp.consultation_id = c.id
       WHERE c.payment_status IN ('paid', 'confirmed', 'refunded')
         AND COALESCE(c.payment_source, 'stripe') <> 'test'
+        AND #{TestAccounts.not_test_patient_sql("c.patient_id")}
     )
     SELECT
       substr(cs.id, 1, 8)                                                AS consult_id,
