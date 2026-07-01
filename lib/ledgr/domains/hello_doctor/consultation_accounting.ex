@@ -13,11 +13,12 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
      DEBIT  6000 Payment Processing    $5     (actual Stripe fee)
      CREDIT 1200 Stripe Receivable     $5     (deducted from receivable)
 
-  3. Doctor payout (flat $100 MXN per paid consultation):
-     DEBIT  4000 Consultation Revenue  $100   (reclassify doctor's share)
-     CREDIT 2000 Doctor Payable        $100   (owe doctor $100)
+  3. Doctor payout (tenant-aware share per paid consultation — flat $100 for
+     HD-sourced MVP, the doctor's negotiated fee for their own DIRECT patients):
+     DEBIT  4000 Consultation Revenue  $share   (reclassify doctor's share)
+     CREDIT 2000 Doctor Payable        $share   (owe doctor their share)
 
-  Net result: HelloDoctor keeps (amount − $100) commission minus Stripe fees.
+  Net result: HelloDoctor keeps (amount − doctor share) commission minus Stripe fees.
   """
 
   require Logger
@@ -52,6 +53,16 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
     if tenant == "direct" and is_number(fee) and fee > 0, do: fee * 1.0, else: @doctor_share_mxn
   end
 
+  # Doctor share in centavos for a specific consultation, tenant-aware. Loads
+  # the conversation tenant + doctor's negotiated fee and applies the same rule
+  # as `doctor_share_mxn/2`. Falls back to the flat share when either is absent.
+  defp tenant_aware_doctor_cents(consultation) do
+    consultation = Ledgr.Repo.preload(consultation, [:conversation, :doctor])
+    tenant = consultation.conversation && consultation.conversation.tenant
+    fee = consultation.doctor && consultation.doctor.consultation_fee_mxn
+    round(doctor_share_mxn(tenant, fee) * 100)
+  end
+
   @doc """
   SQL-expression form of `doctor_share_mxn/2` for raw-SQL contexts. Pass the
   in-scope SQL expressions for the conversation tenant and the doctor's
@@ -75,7 +86,11 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   """
   def record_payment(consultation, amount_pesos, opts \\ []) do
     amount_cents = round(amount_pesos * 100)
-    doctor_payout_cents = doctor_share_cents()
+    # Tenant-aware doctor share: a doctor's own DIRECT patients (conversation
+    # tenant "direct") pay that doctor's negotiated fee; everything else pays
+    # the flat share. Mirrors the reports so the GL and the payout report agree
+    # (a $200 direct consult reclassifies $200 to Doctor Payable, not $100).
+    doctor_payout_cents = tenant_aware_doctor_cents(consultation)
 
     stripe_session_id = opts[:stripe_session_id]
 
@@ -141,7 +156,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
         credit_cents: fee_cents,
         description: "Stripe fee deducted from receivable"
       },
-      # 3. Doctor payout (flat $100 MXN): reclassify from revenue to payable
+      # 3. Doctor payout (tenant-aware share): reclassify from revenue to payable
       %{
         account_id: consultation_revenue.id,
         debit_cents: doctor_payout_cents,

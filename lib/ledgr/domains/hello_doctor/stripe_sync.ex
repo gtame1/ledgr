@@ -40,8 +40,11 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   Fetches recent completed checkout sessions from Stripe and upserts them
   into the local stripe_payments table. Returns {:ok, count_synced}.
 
-  Only sessions that contain a HelloDoctor product (matched by product ID) are
-  stored — everything else from the shared Stripe account is silently skipped.
+  A session is treated as HelloDoctor's if it contains an allowlisted product
+  ID OR carries an HD marker in its metadata (tenant / doctor_id /
+  conversation_id / consultation_id) — the latter covers direct-payment
+  sessions, which use dynamic price_data with no catalog product. Everything
+  else from the shared Stripe account is silently skipped.
   """
   def sync_recent_payments(opts \\ []) do
     api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
@@ -319,7 +322,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
           "[HelloDoctor StripeSync] Session #{session.id} product_ids=#{inspect(line_item_product_ids)}"
         )
 
-        if hellodoctor_session?(line_item_product_ids) do
+        if hellodoctor_session?(line_item_product_ids, session.metadata) do
           {discount_code, discount_amount} = fetch_discount_info(session, api_key)
           # 100%-discount checkout — Stripe charged nothing.
           no_payment? = session.payment_status == "no_payment_required"
@@ -811,9 +814,28 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     end
   end
 
-  defp hellodoctor_session?(product_ids) do
+  defp hellodoctor_session?(product_ids, metadata \\ %{}) do
     allowlist = hellodoctor_product_ids()
-    Enum.any?(product_ids, &(&1 in allowlist))
+    Enum.any?(product_ids, &(&1 in allowlist)) or hd_metadata?(metadata)
+  end
+
+  # Direct-payment sessions (and any bot checkout using dynamic `price_data`
+  # instead of a catalog product) can't match the product allowlist — they
+  # carry no allowlisted product ID. The bot instead tags them in session
+  # metadata (tenant / doctor_id / conversation_id / consultation_id). Treat a
+  # session bearing any of those markers as HelloDoctor's. Without this, direct
+  # consults never get a stripe_payments row and drop out of the payout report.
+  defp hd_metadata?(metadata) do
+    metadata = metadata || %{}
+
+    ~w[tenant doctor_id conversation_id consultation_id]
+    |> Enum.any?(fn key ->
+      case Map.get(metadata, key) do
+        v when is_binary(v) -> v != ""
+        nil -> false
+        _ -> true
+      end
+    end)
   end
 
   defp find_consultation_by_conversation(conversation_id) do
