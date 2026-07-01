@@ -1,0 +1,70 @@
+<div class="hd-page">
+  <%!-- ── Header ── --%>
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold mb-2" style="color: var(--text-main);">
+      Experiments
+    </h1>
+    <p class="text-sm" style="color: var(--text-muted); max-width: 82ch;">
+      A/B tests under the <strong>Scientist framework</strong>. Every experiment is
+      pre-registered before launch (hypothesis, arms, primary metric, guardrails, and a
+      decision rule fixed in advance). Click one to see its live per-arm readout —
+      SRM check, funnel reach, safety guardrail, and repeat-usage.
+    </p>
+  </div>
+
+  <%!-- ── Scoreboard ── --%>
+  <div class="hd-card p-0 overflow-hidden">
+    <table class="hd-table w-full">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <th class="text-left p-3" style="color: var(--text-muted); font-size: 0.75rem;">Experiment</th>
+          <th class="text-left p-3" style="color: var(--text-muted); font-size: 0.75rem;">Status</th>
+          <th class="text-left p-3" style="color: var(--text-muted); font-size: 0.75rem;">Arms</th>
+          <th class="text-left p-3" style="color: var(--text-muted); font-size: 0.75rem;">Primary metric</th>
+          <th class="text-left p-3" style="color: var(--text-muted); font-size: 0.75rem;">Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for exp <- @experiments do %>
+          <% {label, bg, fg} = exp_status_badge(exp.status) %>
+          <tr
+            class="cursor-pointer"
+            style="border-bottom: 1px solid var(--border-subtle);"
+            onclick={"window.location.href='#{dp(@domain_path_prefix, "/experiments/#{exp.id}")}'"}
+          >
+            <td class="p-3">
+              <a
+                href={dp(@domain_path_prefix, "/experiments/#{exp.id}")}
+                class="font-semibold"
+                style="color: var(--accent); text-decoration: none;"
+              >
+                {exp.name}
+              </a>
+              <div style="color: var(--text-muted); font-size: 0.7rem; font-family: monospace;">
+                {exp.id}
+              </div>
+            </td>
+            <td class="p-3">
+              <span style={"background: #{bg}; color: #{fg}; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; white-space: nowrap;"}>
+                {label}
+              </span>
+            </td>
+            <td class="p-3" style="color: var(--text-main); font-size: 0.8rem;">
+              {Enum.map_join(exp.arms, " vs ", & &1.name)}
+            </td>
+            <td class="p-3" style="color: var(--text-muted); font-size: 0.8rem; max-width: 34ch;">
+              {exp.primary_metric |> String.split(".") |> List.first()}
+            </td>
+            <td class="p-3" style="color: var(--text-muted); font-size: 0.8rem;">{exp.owner}</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mt-4 text-xs" style="color: var(--text-muted);">
+    New experiments are added to the registry in
+    <code>Ledgr.Domains.HelloDoctor.Experiments</code>, mirroring the bot's
+    pre-registration under <code>.claude/experiments/</code>.
+  </p>
+</div>

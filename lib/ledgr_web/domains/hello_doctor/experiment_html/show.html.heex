@@ -1,0 +1,228 @@
+<% {status_label, status_bg, status_fg} = exp_status_badge(@experiment.status) %>
+<div class="hd-page">
+  <%!-- ── Header ── --%>
+  <div class="mb-6">
+    <a
+      href={dp(@domain_path_prefix, "/experiments")}
+      class="text-sm"
+      style="color: var(--text-muted); text-decoration: none;"
+    >
+      ← All experiments
+    </a>
+    <div class="flex items-baseline justify-between gap-4 flex-wrap mt-2 mb-1">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">{@experiment.name}</h1>
+      <span style={"background: #{status_bg}; color: #{status_fg}; padding: 0.2rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600;"}>
+        {status_label}
+      </span>
+    </div>
+    <div style="color: var(--text-muted); font-size: 0.75rem; font-family: monospace;">
+      {@experiment.id}
+    </div>
+  </div>
+
+  <%!-- ── Meta strip ── --%>
+  <div class="hd-card p-4 mb-4">
+    <div class="grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+      <div>
+        <div style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Owner</div>
+        <div style="color: var(--text-main); font-weight: 600;">{@experiment.owner}</div>
+      </div>
+      <div>
+        <div style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Registered</div>
+        <div style="color: var(--text-main); font-weight: 600;">{@experiment.registered}</div>
+      </div>
+      <div>
+        <div style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Launched</div>
+        <div style="color: var(--text-main); font-weight: 600;">{@experiment.launched || "—"}</div>
+      </div>
+      <div>
+        <div style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Horizon</div>
+        <div style="color: var(--text-main); font-weight: 600; font-size: 0.85rem;">{@experiment.horizon}</div>
+      </div>
+      <div>
+        <div style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Tenants</div>
+        <div style="color: var(--text-main); font-weight: 600;">{Enum.join(@experiment.tenants, ", ")}</div>
+      </div>
+    </div>
+  </div>
+
+  <%!-- ── Pre-registration spec ── --%>
+  <div class="hd-card p-4 mb-4">
+    <h2 class="text-sm font-bold mb-2" style="color: var(--text-main);">Hypothesis</h2>
+    <p class="text-sm mb-4" style="color: var(--text-muted); max-width: 90ch;">{@experiment.hypothesis}</p>
+
+    <h2 class="text-sm font-bold mb-2" style="color: var(--text-main);">Arms</h2>
+    <div class="flex flex-col gap-2 mb-4">
+      <%= for arm <- @experiment.arms do %>
+        <div style="border-left: 3px solid var(--accent); padding-left: 0.75rem;">
+          <span class="font-semibold" style="color: var(--text-main); text-transform: capitalize;">{arm.name}</span>
+          <span style="color: var(--text-muted); font-size: 0.85rem;"> — {arm.description}</span>
+        </div>
+      <% end %>
+      <div style="color: var(--text-muted); font-size: 0.8rem;"><strong>Split:</strong> {@experiment.split}</div>
+    </div>
+
+    <h2 class="text-sm font-bold mb-2" style="color: var(--text-main);">Primary metric (OEC)</h2>
+    <p class="text-sm mb-4" style="color: var(--text-muted); max-width: 90ch;">{@experiment.primary_metric}</p>
+
+    <h2 class="text-sm font-bold mb-2" style="color: var(--text-main);">Guardrails (blocking)</h2>
+    <ul class="mb-4" style="list-style: disc; padding-left: 1.25rem;">
+      <%= for g <- @experiment.guardrails do %>
+        <li class="text-sm" style="color: var(--text-muted); max-width: 90ch;">{g}</li>
+      <% end %>
+    </ul>
+
+    <h2 class="text-sm font-bold mb-2" style="color: var(--text-main);">Decision rule (pre-committed)</h2>
+    <div class="flex flex-col gap-1">
+      <%= for {verdict, rule} <- @experiment.decision_rule do %>
+        <div class="text-sm" style="color: var(--text-muted); max-width: 90ch;">
+          <strong style="color: var(--text-main);">{verdict}:</strong> {rule}
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- ── Live readout ── --%>
+  <h2 class="text-lg font-bold mb-3 mt-6" style="color: var(--text-main);">Results readout</h2>
+
+  <%= case @readout do %>
+    <% {:not_launched, reason} -> %>
+      <div class="hd-card p-6" style="text-align: center;">
+        <div style="font-size: 2rem;">🧪</div>
+        <div class="font-semibold mt-2 mb-1" style="color: var(--text-main);">No data yet</div>
+        <p class="text-sm mx-auto" style="color: var(--text-muted); max-width: 64ch;">
+          {not_launched_reason(reason)}
+        </p>
+        <p class="text-xs mt-3 mx-auto" style="color: var(--text-muted); max-width: 64ch;">
+          Once enrollment starts, this section fills in with the SRM check, funnel reach per
+          arm, the safety guardrail, and repeat-usage — all per the queries in
+          <code>scripts/metrics/experiment.sql</code>.
+        </p>
+      </div>
+
+    <% {:ok, r} -> %>
+      <%!-- Block 1: SRM check --%>
+      <div class="hd-card p-4 mb-4">
+        <h3 class="text-sm font-bold mb-1" style="color: var(--text-main);">1 · Sample-ratio check (SRM)</h3>
+        <p class="text-xs mb-3" style="color: var(--text-muted);">
+          Arm sizes should be ~50/50. If they're not, assignment is broken and the rest is void — check this first.
+        </p>
+        <% max_enrolled = r.srm |> Enum.map(&to_num(&1.enrolled)) |> Enum.max(fn -> 0 end) %>
+        <%= for row <- r.srm do %>
+          <div class="flex items-center gap-3 mb-2">
+            <div style="width: 6rem; color: var(--text-main); font-size: 0.85rem; text-transform: capitalize;">{row.variant}</div>
+            <div style="flex: 1; background: var(--bg-secondary); border-radius: 0.25rem; height: 1.25rem; overflow: hidden;">
+              <div style={"width: #{bar_pct(row.enrolled, max_enrolled)}%; background: var(--accent); height: 100%;"}></div>
+            </div>
+            <div style="width: 4rem; text-align: right; color: var(--text-main); font-weight: 600;">{int_str(row.enrolled)}</div>
+          </div>
+        <% end %>
+      </div>
+
+      <%!-- Block 2: funnel reach + primary --%>
+      <div class="hd-card p-4 mb-4">
+        <h3 class="text-sm font-bold mb-1" style="color: var(--text-main);">2 · Funnel reach per arm</h3>
+        <p class="text-xs mb-3" style="color: var(--text-muted);">
+          Per enrolled patient (furthest stage reached). % paid = reached payment-confirmed.
+        </p>
+        <div class="flex flex-col gap-3 mb-4">
+          <%= for v <- variants(r.funnel) do %>
+            <div>
+              <div style="color: var(--text-main); font-size: 0.8rem; font-weight: 600; text-transform: capitalize; margin-bottom: 0.25rem;">{v}</div>
+              <div class="flex items-center gap-2 mb-1">
+                <div style="width: 8rem; color: var(--text-muted); font-size: 0.75rem;">Reached orientation</div>
+                <div style="flex: 1; background: var(--bg-secondary); border-radius: 0.25rem; height: 1rem; overflow: hidden;">
+                  <div style={"width: #{to_num(cell(r.funnel, v, :pct_orientation))}%; background: #94a3b8; height: 100%;"}></div>
+                </div>
+                <div style="width: 4rem; text-align: right; color: var(--text-main); font-size: 0.8rem;">{pct_str(cell(r.funnel, v, :pct_orientation))}</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <div style="width: 8rem; color: var(--text-muted); font-size: 0.75rem;">% paid</div>
+                <div style="flex: 1; background: var(--bg-secondary); border-radius: 0.25rem; height: 1rem; overflow: hidden;">
+                  <div style={"width: #{to_num(cell(r.funnel, v, :pct_paid))}%; background: var(--accent); height: 100%;"}></div>
+                </div>
+                <div style="width: 4rem; text-align: right; color: var(--text-main); font-size: 0.8rem;">{pct_str(cell(r.funnel, v, :pct_paid))}</div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <table class="hd-table w-full" style="font-size: 0.8rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+              <th class="text-left p-2">Arm</th>
+              <th class="text-right p-2">N</th>
+              <th class="text-right p-2">Orientation</th>
+              <th class="text-right p-2">Payment link</th>
+              <th class="text-right p-2">Paid</th>
+              <th class="text-right p-2">% paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for row <- r.funnel do %>
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td class="p-2" style="text-transform: capitalize; color: var(--text-main);">{row.variant}</td>
+                <td class="p-2 text-right">{int_str(row.n)}</td>
+                <td class="p-2 text-right">{int_str(row.reached_orientation)}</td>
+                <td class="p-2 text-right">{int_str(row.reached_payment_link)}</td>
+                <td class="p-2 text-right">{int_str(row.reached_payment_confirmed)}</td>
+                <td class="p-2 text-right font-semibold" style="color: var(--accent);">{pct_str(row.pct_paid)}</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <%!-- Block 3: guardrail --%>
+      <div class="hd-card p-4 mb-4">
+        <h3 class="text-sm font-bold mb-1" style="color: var(--text-main);">3 · Safety guardrail (blocking)</h3>
+        <p class="text-xs mb-3" style="color: var(--text-muted);">
+          Patients with ≥1 policing event, by severity. A CRITICAL rise in treatment sinks the arm regardless of primary lift.
+        </p>
+        <%= if r.guardrail == [] do %>
+          <div class="text-sm" style="color: #065f46;">✓ No policing events in either arm.</div>
+        <% else %>
+          <table class="hd-table w-full" style="font-size: 0.8rem;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+                <th class="text-left p-2">Arm</th>
+                <th class="text-left p-2">Severity</th>
+                <th class="text-right p-2">Patients hit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for row <- r.guardrail do %>
+                <tr style="border-bottom: 1px solid var(--border-subtle);">
+                  <td class="p-2" style="text-transform: capitalize; color: var(--text-main);">{row.variant}</td>
+                  <td class="p-2">
+                    <span style={"font-weight: 600; color: #{if row.severity == "CRITICAL", do: "#991b1b", else: "var(--text-muted)"};"}>{row.severity}</span>
+                  </td>
+                  <td class="p-2 text-right">{int_str(row.patients_hit)}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+
+      <%!-- Block 4: lagging retention --%>
+      <div class="hd-card p-4 mb-4">
+        <h3 class="text-sm font-bold mb-1" style="color: var(--text-main);">4 · Repeat usage (lagging)</h3>
+        <p class="text-xs mb-3" style="color: var(--text-muted);">
+          Enrolled patients active on ≥2 Mexico-City days. Right-censored — read only once cohorts have matured (~2 weeks).
+        </p>
+        <div class="flex flex-col gap-2 mb-3">
+          <%= for row <- r.retention do %>
+            <div class="flex items-center gap-3">
+              <div style="width: 6rem; color: var(--text-main); font-size: 0.85rem; text-transform: capitalize;">{row.variant}</div>
+              <div style="flex: 1; background: var(--bg-secondary); border-radius: 0.25rem; height: 1.25rem; overflow: hidden;">
+                <div style={"width: #{to_num(row.pct_returning)}%; background: var(--accent); height: 100%;"}></div>
+              </div>
+              <div style="width: 8rem; text-align: right; color: var(--text-main); font-size: 0.8rem;">
+                {pct_str(row.pct_returning)} <span style="color: var(--text-muted);">({int_str(row.returning)}/{int_str(row.patients_with_msgs)})</span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+  <% end %>
+</div>

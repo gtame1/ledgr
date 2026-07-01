@@ -589,6 +589,10 @@ defmodule LedgrWeb.Router do
     get "/reports/monthly/download", Domains.HelloDoctor.MonthlyReportController, :download
     get "/reports/monthly/xlsx", Domains.HelloDoctor.MonthlyReportController, :download_xlsx
 
+    # A/B experiment tracker (Scientist framework) — registry + per-arm readout
+    get "/experiments", Domains.HelloDoctor.ExperimentController, :index
+    get "/experiments/:id", Domains.HelloDoctor.ExperimentController, :show
+
     # Acquisition / Meta ad attribution dashboard
     get "/acquisition", Domains.HelloDoctor.AcquisitionController, :index
 
