@@ -209,16 +209,35 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
     end_exclusive = end_date && Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
 
     sql = """
-    WITH pay_agg AS (
-      -- Sum every payout a consultation appears in (it can span more than
-      -- one), so paid-out / retentions-applied are per-consultation totals.
+    payout_totals AS (
+      -- Total cash allocated across each payout's consultations — used to
+      -- apportion the payout-level retentions down to each consultation.
+      SELECT doctor_payout_id, SUM(amount_cents) AS total_amount_cents
+      FROM doctor_payout_consultations
+      GROUP BY doctor_payout_id
+    ),
+    pay_agg AS (
+      -- Per-consultation paid-out + retentions, summed across every payout a
+      -- consultation appears in (it can span more than one). Cash uses the
+      -- per-consultation allocation frozen on the join row (dpc.amount_cents),
+      -- NOT the payout total (dp.amount_cents) — otherwise a payout spanning N
+      -- consultations credits each one the ENTIRE payout. Retentions live only
+      -- at the payout level, so apportion them to each consultation in
+      -- proportion to its share of the payout's cash.
       SELECT dpc.consultation_id            AS cid,
-             SUM(dp.amount_cents)           AS amount_cents,
-             SUM(dp.iva_retention_cents)    AS iva_cents,
-             SUM(dp.isr_retention_cents)    AS isr_cents,
+             SUM(dpc.amount_cents)          AS amount_cents,
+             SUM(CASE WHEN pt.total_amount_cents > 0
+                      THEN ROUND(dp.iva_retention_cents::numeric
+                                 * dpc.amount_cents / pt.total_amount_cents)
+                      ELSE 0 END)           AS iva_cents,
+             SUM(CASE WHEN pt.total_amount_cents > 0
+                      THEN ROUND(dp.isr_retention_cents::numeric
+                                 * dpc.amount_cents / pt.total_amount_cents)
+                      ELSE 0 END)           AS isr_cents,
              MAX(dp.payout_date)            AS payout_date
       FROM doctor_payout_consultations dpc
       JOIN doctor_payouts dp ON dp.id = dpc.doctor_payout_id
+      JOIN payout_totals pt ON pt.doctor_payout_id = dpc.doctor_payout_id
       GROUP BY dpc.consultation_id
     ),
     stripe_one AS (
@@ -332,10 +351,17 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
     )
     SELECT
       main.*,
-      (doctor_share - paid_out_amount)                 AS owed_to_doctor,
-      ((doctor_share - paid_out_amount)
-       - (iva_retention_to_apply - iva_retentions_applied)
-       - (isr_retention_to_apply - isr_retentions_applied)) AS net_payment_pending
+      -- Gross still owed the doctor, net of BOTH cash already sent AND tax
+      -- already withheld on their behalf. A retention settles part of the
+      -- gross share exactly like cash does (share = cash + withholding), so it
+      -- must be subtracted here. Without the applied-retention terms, a
+      -- fully-paid consult shows a phantom balance equal to the withheld ISR.
+      (doctor_share - paid_out_amount
+       - iva_retentions_applied - isr_retentions_applied) AS owed_to_doctor,
+      -- Net CASH still to send = the doctor's after-tax target
+      -- (share − retentions due) minus cash already paid.
+      ((doctor_share - iva_retention_to_apply - isr_retention_to_apply)
+       - paid_out_amount)                               AS net_payment_pending
     FROM main
     ORDER BY doctor_name ASC, completed_at ASC
     """
