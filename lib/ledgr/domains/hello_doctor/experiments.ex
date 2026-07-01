@@ -47,9 +47,12 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
     {"consultation_failed", 12}
   ]
 
-  # ── Registry ────────────────────────────────────────────────────
-  # Mirrors the bot's pre-registration artifacts. Newest first.
-  @registry [
+  # ── Fallback registry ───────────────────────────────────────────
+  # Used only when the bot hasn't published a live `experiment_definitions`
+  # row for an experiment yet (e.g. before the bot's registry-sync ships, or
+  # for a dark experiment the DB doesn't carry). The live DB table is the
+  # source of truth when present; see `list_experiments/0`. Newest first.
+  @fallback_registry [
     %{
       id: "EXP-001-free-first-consult",
       name: "Free first consultation → repeat usage",
@@ -96,11 +99,184 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
     }
   ]
 
-  @doc "All registered experiments, newest first."
-  def list_experiments, do: @registry
+  @doc """
+  All experiments to show, newest-registered first. Merges three sources so
+  new experiments import automatically, by precedence:
 
-  @doc "Fetch one experiment spec by id, or nil."
-  def get_experiment(id), do: Enum.find(@registry, &(&1.id == id))
+    1. **Live** — rows the bot publishes to `experiment_definitions` in the
+       shared DB (source of truth; includes pre-launch/dark ones).
+    2. **Fallback** — the hardcoded `@fallback_registry` for any id the DB
+       doesn't carry (keeps Ledgr working before the bot's sync ships).
+    3. **Discovered** — any `experiment_id` present in `experiment_assignments`
+       but described by neither of the above, shown as a minimal stub so a
+       launched experiment is never invisible even if its definition is missing.
+  """
+  def list_experiments do
+    live = definitions_from_db()
+    live_ids = MapSet.new(live, & &1.id)
+
+    fallback = Enum.reject(@fallback_registry, &MapSet.member?(live_ids, &1.id))
+    covered = MapSet.union(live_ids, MapSet.new(fallback, & &1.id))
+
+    discovered =
+      discovered_ids()
+      |> Enum.reject(&MapSet.member?(covered, &1))
+      |> Enum.map(&stub_experiment/1)
+
+    (live ++ fallback ++ discovered)
+    |> Enum.sort_by(&(&1[:registered] || ~D[1970-01-01]), {:desc, Date})
+  end
+
+  @doc "Fetch one experiment (same precedence as `list_experiments/0`), or nil."
+  def get_experiment(id), do: Enum.find(list_experiments(), &(&1.id == id))
+
+  # ── Source 1: live definitions the bot publishes ────────────────
+
+  defp definitions_from_db do
+    if table_exists?("experiment_definitions") do
+      "SELECT id, name, status, owner, registered_at, launched_at, horizon, split, tenants, hypothesis, primary_metric, arms, guardrails, decision_rule FROM experiment_definitions"
+      |> query([])
+      |> Enum.map(&from_db_row/1)
+    else
+      []
+    end
+  rescue
+    e ->
+      Logger.warning("[HD Experiments] failed reading experiment_definitions: #{inspect(e)}")
+      []
+  end
+
+  # Map a DB row (bot stores list/object fields as JSON text) to the display
+  # shape the page expects. Tolerant of nulls / older rows missing columns.
+  defp from_db_row(row) do
+    %{
+      id: row.id,
+      name: row.name || row.id,
+      status: parse_status(row[:status]),
+      status_label: row[:status] || "—",
+      owner: row[:owner],
+      registered: parse_date(row[:registered_at]),
+      launched: parse_date(row[:launched_at]),
+      horizon: row[:horizon],
+      tenants: parse_json_list(row[:tenants]),
+      split: row[:split],
+      hypothesis: row[:hypothesis],
+      primary_metric: row[:primary_metric],
+      arms: parse_arms(row[:arms]),
+      guardrails: parse_json_list(row[:guardrails]),
+      decision_rule: parse_decision_rule(row[:decision_rule])
+    }
+  end
+
+  # ── Source 3: ids seen in the wild (enrolled) but undescribed ────
+
+  defp discovered_ids do
+    if table_exists?("experiment_assignments") do
+      "SELECT DISTINCT experiment_id FROM experiment_assignments"
+      |> query([])
+      |> Enum.map(& &1.experiment_id)
+      |> Enum.reject(&is_nil/1)
+    else
+      []
+    end
+  rescue
+    _ -> []
+  end
+
+  defp stub_experiment(id) do
+    %{
+      id: id,
+      name: id,
+      status: :running,
+      status_label: "Enrolling (no published definition)",
+      owner: nil,
+      registered: nil,
+      launched: nil,
+      horizon: nil,
+      tenants: [],
+      split: nil,
+      hypothesis:
+        "This experiment is enrolling patients but its definition hasn't been published to " <>
+          "experiment_definitions yet. The readout below is live; the spec will fill in once " <>
+          "the bot syncs its registry.",
+      primary_metric: nil,
+      arms: [],
+      guardrails: [],
+      decision_rule: []
+    }
+  end
+
+  # ── JSON / value parsing helpers (bot stores JSON as text) ──────
+
+  defp parse_status(s) when is_binary(s) do
+    case String.downcase(s) do
+      "dark" <> _ -> :dark
+      "running" -> :running
+      "concluded" -> :concluded
+      _ -> :running
+    end
+  end
+
+  defp parse_status(_), do: :running
+
+  defp parse_date(%Date{} = d), do: d
+  defp parse_date(%NaiveDateTime{} = dt), do: NaiveDateTime.to_date(dt)
+  defp parse_date(%DateTime{} = dt), do: DateTime.to_date(dt)
+
+  defp parse_date(s) when is_binary(s) do
+    case Date.from_iso8601(String.slice(s, 0, 10)) do
+      {:ok, d} -> d
+      _ -> nil
+    end
+  end
+
+  defp parse_date(_), do: nil
+
+  # Accepts a JSON array string, a Postgres text[] (already a list), or nil.
+  defp parse_json_list(list) when is_list(list), do: list
+
+  defp parse_json_list(s) when is_binary(s) do
+    case Jason.decode(s) do
+      {:ok, list} when is_list(list) -> list
+      _ -> String.split(s, ",", trim: true) |> Enum.map(&String.trim/1)
+    end
+  end
+
+  defp parse_json_list(_), do: []
+
+  # Arms: JSON array of {name, description} objects → list of maps with atom keys.
+  defp parse_arms(s) when is_binary(s) do
+    case Jason.decode(s) do
+      {:ok, arms} when is_list(arms) ->
+        Enum.map(arms, fn a ->
+          %{name: a["name"] || a["arm"] || "", description: a["description"] || a["desc"] || ""}
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  defp parse_arms(arms) when is_list(arms), do: arms
+  defp parse_arms(_), do: []
+
+  # Decision rule: JSON array of {verdict, rule} (objects or 2-tuples) → tuples.
+  defp parse_decision_rule(s) when is_binary(s) do
+    case Jason.decode(s) do
+      {:ok, rules} when is_list(rules) ->
+        Enum.map(rules, fn
+          %{"verdict" => v, "rule" => r} -> {v, r}
+          [v, r] -> {v, r}
+          other -> {"", to_string(other)}
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  defp parse_decision_rule(rules) when is_list(rules), do: rules
+  defp parse_decision_rule(_), do: []
 
   @doc """
   Runs the four per-arm readout blocks for `experiment_id`. Returns
@@ -112,7 +288,7 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
   """
   def readout(experiment_id) do
     cond do
-      not assignments_table_exists?() ->
+      not table_exists?("experiment_assignments") ->
         {:not_launched, :no_table}
 
       enrolled_count(experiment_id) == 0 ->
@@ -131,15 +307,15 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
 
   # ── Block 0: existence / enrollment guards ──────────────────────
 
-  defp assignments_table_exists? do
+  defp table_exists?(name) do
     sql = """
     SELECT EXISTS (
       SELECT 1 FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_name = 'experiment_assignments'
-    )
+      WHERE table_schema = 'public' AND table_name = $1
+    ) AS exists
     """
 
-    case query(sql, []) do
+    case query(sql, [name]) do
       [%{exists: true}] -> true
       _ -> false
     end

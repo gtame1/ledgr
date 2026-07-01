@@ -53,7 +53,7 @@
               {Enum.map_join(exp.arms, " vs ", & &1.name)}
             </td>
             <td class="p-3" style="color: var(--text-muted); font-size: 0.8rem; max-width: 34ch;">
-              {exp.primary_metric |> String.split(".") |> List.first()}
+              {(exp.primary_metric || "—") |> String.split(".") |> List.first()}
             </td>
             <td class="p-3" style="color: var(--text-muted); font-size: 0.8rem;">{exp.owner}</td>
           </tr>
