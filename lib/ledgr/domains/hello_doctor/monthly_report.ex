@@ -254,7 +254,15 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         COALESCE(d.has_correct_rfc, FALSE)         AS has_correct_rfc,
         pt.id                                      AS patient_id,
         COALESCE(pt.full_name, pt.display_name)    AS patient_name,
-        so.amount                                  AS stripe_amount,
+        -- Amount charged to the patient. Prefer the synced Stripe row; fall
+        -- back to the consultation's own `payment_amount` when no Stripe row
+        -- has landed yet (e.g. direct consults, which don't produce a
+        -- stripe_payments row). Without the fallback the charged amount and
+        -- HD commission read blank while the doctor is still owed — the row
+        -- looks like "$0 collected, $200 owed". The Stripe *fee* has no such
+        -- fallback (it's unknowable without the balance transaction), so it
+        -- stays NULL until the row syncs.
+        COALESCE(so.amount, c.payment_amount)      AS stripe_amount,
         so.stripe_fee,
         so.paid_at                                 AS stripe_paid_at,
         so.discount_code,
