@@ -593,6 +593,9 @@ defmodule LedgrWeb.Router do
     get "/experiments", Domains.HelloDoctor.ExperimentController, :index
     get "/experiments/:id", Domains.HelloDoctor.ExperimentController, :show
 
+    # NPS tracker (post-consultation survey responses)
+    get "/nps", Domains.HelloDoctor.NpsController, :index
+
     # Acquisition / Meta ad attribution dashboard
     get "/acquisition", Domains.HelloDoctor.AcquisitionController, :index
 
