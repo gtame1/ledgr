@@ -505,9 +505,9 @@ defmodule LedgrWeb.Router do
          Domains.HelloDoctor.DoctorController,
          :toggle_correct_rfc
 
-    post "/doctors/:id/retry-prescrypto",
+    post "/doctors/:id/provision-medikit",
          Domains.HelloDoctor.DoctorController,
-         :retry_prescrypto_sync
+         :provision_medikit
 
     # Patients (mostly bot-managed; the admin UI can edit a curated subset
     # of demographic fields — see Patient.editable_fields/0).

@@ -3,6 +3,7 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
 
   alias Ledgr.Domains.HelloDoctor.Medikit
   alias Ledgr.Domains.HelloDoctor.MedikitProvisioning
+  alias Ledgr.Domains.HelloDoctor.MedikitSpecialties
   alias Ledgr.Domains.HelloDoctor.Doctors
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
 
@@ -196,10 +197,51 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
     end
 
     test "lists each blank required field" do
-      missing = Medikit.missing_register_fields(complete_struct(%{birthdate: nil, address_city: ""}))
+      missing =
+        Medikit.missing_register_fields(complete_struct(%{birthdate: nil, address_city: ""}))
+
       assert :birthdate in missing
       assert :address_city in missing
       refute :email in missing
+    end
+  end
+
+  # ── MedikitSpecialties catalog ────────────────────────────────────────────
+
+  describe "MedikitSpecialties" do
+    test "embedded PRD catalog is populated and options are sorted by name" do
+      assert length(MedikitSpecialties.default_catalog()) > 200
+      options = MedikitSpecialties.options()
+      assert {"Medicina General", "0bc8c000000XcnDAAS"} in options
+      names = Enum.map(options, &elem(&1, 0))
+      assert names == Enum.sort(names)
+    end
+
+    test "valid_id?/1 recognizes catalog ids and rejects unknowns" do
+      assert MedikitSpecialties.valid_id?("0bc8c000000XcnGAAS")
+      refute MedikitSpecialties.valid_id?("nope")
+      refute MedikitSpecialties.valid_id?(nil)
+    end
+
+    test "resolve_id/1 is accent- and case-insensitive; nil on no match" do
+      assert MedikitSpecialties.resolve_id("Medicina General") == "0bc8c000000XcnDAAS"
+      assert MedikitSpecialties.resolve_id("medicina general") == "0bc8c000000XcnDAAS"
+      assert MedikitSpecialties.resolve_id("  Cardiología Clínica ") == "0bc8c000000XclYAAS"
+      assert MedikitSpecialties.resolve_id("Cardiologia Clinica") == "0bc8c000000XclYAAS"
+      assert MedikitSpecialties.resolve_id("Totally Made Up") == nil
+      assert MedikitSpecialties.resolve_id(nil) == nil
+    end
+
+    test "config :specialty_catalog overrides the embedded catalog when non-empty" do
+      original = Application.get_env(:ledgr, :medikit)
+
+      Application.put_env(:ledgr, :medikit, specialty_catalog: [%{name: "Only One", id: "OVR-1"}])
+
+      on_exit(fn -> Application.put_env(:ledgr, :medikit, original) end)
+
+      assert MedikitSpecialties.catalog() == [%{name: "Only One", id: "OVR-1"}]
+      assert MedikitSpecialties.resolve_id("only one") == "OVR-1"
+      refute MedikitSpecialties.valid_id?("0bc8c000000XcnDAAS")
     end
   end
 
@@ -238,13 +280,18 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
 
     test "400 valid:false → {:ok, :invalid} (RAML returns 400 for bad license)" do
       enable_medikit()
-      Req.Test.stub(Medikit, fn conn -> json(conn, 400, %{"valid" => false, "message" => "no"}) end)
+
+      Req.Test.stub(Medikit, fn conn ->
+        json(conn, 400, %{"valid" => false, "message" => "no"})
+      end)
+
       assert Medikit.validate_professional_license(complete_struct(%{})) == {:ok, :invalid}
     end
 
     test "500 → {:error, {:unexpected_status, 500}} (fail-closed)" do
       enable_medikit()
       Req.Test.stub(Medikit, fn conn -> json(conn, 500, %{"error" => "boom"}) end)
+
       assert {:error, {:unexpected_status, 500}} =
                Medikit.validate_professional_license(complete_struct(%{}))
     end
@@ -290,6 +337,16 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
       end)
 
       assert {:error, {:rejected, 200, _}} = Medikit.register_doctor(complete_struct(%{}))
+    end
+
+    test "tolerates lowercase status/data envelope keys" do
+      enable_medikit()
+
+      Req.Test.stub(Medikit, fn conn ->
+        json(conn, 200, %{"status" => "OK", "data" => "0cmLOWER123"})
+      end)
+
+      assert Medikit.register_doctor(complete_struct(%{})) == {:ok, "0cmLOWER123"}
     end
   end
 
@@ -411,9 +468,50 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
         "deactivated_at" => DateTime.utc_now() |> DateTime.truncate(:second)
       })
 
-      insert_doctor(%{"terms_accepted" => true, "medikit_healthcare_provider_id" => "HP-EXISTING"})
+      insert_doctor(%{
+        "terms_accepted" => true,
+        "medikit_healthcare_provider_id" => "HP-EXISTING"
+      })
 
       assert MedikitProvisioning.run().total == 0
+    end
+  end
+
+  # ── provision_doctor/1 (single-doctor, on-demand) ─────────────────────────
+
+  describe "provision_doctor/1" do
+    setup do
+      enable_medikit()
+      :ok
+    end
+
+    test "provisions one complete doctor and writes both columns" do
+      Req.Test.stub(Medikit, fn conn ->
+        case conn.request_path do
+          @validate_path -> json(conn, 200, %{"valid" => true})
+          @register_path -> json(conn, 200, %{"Status" => "OK", "Data" => "HP-ONE"})
+        end
+      end)
+
+      doctor = insert_doctor(%{"terms_accepted" => true})
+
+      assert {:provisioned, "HP-ONE"} = MedikitProvisioning.provision_doctor(doctor)
+      assert Ledgr.Repo.get!(Doctor, doctor.id).medikit_healthcare_provider_id == "HP-ONE"
+    end
+
+    test "already-provisioned doctor is returned untouched (no HTTP)" do
+      # No stub: any API call would raise.
+      doctor =
+        insert_doctor(%{"terms_accepted" => true, "medikit_healthcare_provider_id" => "HP-X"})
+
+      assert MedikitProvisioning.provision_doctor(doctor) == {:already_provisioned, "HP-X"}
+    end
+
+    test "incomplete doctor is reported, column stays NULL (no HTTP)" do
+      doctor = insert_doctor(%{"terms_accepted" => true, "birthdate" => nil})
+      assert {:incomplete, missing} = MedikitProvisioning.provision_doctor(doctor)
+      assert :birthdate in missing
+      assert is_nil(Ledgr.Repo.get!(Doctor, doctor.id).medikit_healthcare_provider_id)
     end
   end
 end

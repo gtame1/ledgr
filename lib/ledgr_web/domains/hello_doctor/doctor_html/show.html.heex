@@ -22,7 +22,7 @@
           <span
             class="hd-badge"
             style="background: #d1fae5; color: #065f46;"
-            title="terms accepted · marked available · cédula verified · not deactivated"
+            title="terms accepted · marked available · provisioned in Medikit · not deactivated"
           >
             ✓ Eligible for consultations
           </span>
@@ -245,9 +245,15 @@
         </div>
       </div>
 
-      <%!-- Prescrypto Card --%>
+      <%!-- Prescrypto Card (legacy — provisioning retired in favor of Medikit; kept as history) --%>
       <div class="hd-card p-6">
-        <h2 class="text-lg font-semibold mb-5" style="color: var(--text-main);">Prescrypto</h2>
+        <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">
+          Prescrypto
+          <span class="text-sm font-normal" style="color: var(--text-muted);">(legacy)</span>
+        </h2>
+        <p class="text-xs mb-5" style="color: var(--text-muted);">
+          Retired — prescribing is now gated by Medikit provisioning. Shown for historical reference.
+        </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <div class="text-xs uppercase font-medium mb-1" style="color: var(--text-muted);">
@@ -297,55 +303,6 @@
               {if d.prescrypto_synced_at, do: fmt_date(d.prescrypto_synced_at), else: "---"}
             </div>
           </div>
-        </div>
-        <div class="mt-5">
-          <% # Only email + cédula profesional are strictly required by us
-          # (Prescrypto only requires email/name/password). Specialty cédula is optional.
-          missing =
-            Enum.reject(
-              [
-                if(is_nil(d.email), do: "email", else: nil),
-                if(is_nil(d.cedula_profesional), do: "Cédula Profesional", else: nil)
-              ],
-              &is_nil/1
-            ) %>
-          <%= cond do %>
-            <% missing != [] -> %>
-              <div
-                class="flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm"
-                style="background: #fef9c3; border: 1px solid #fde68a; color: #92400e;"
-              >
-                <span class="mt-0.5">⚠️</span>
-                <div>
-                  <span class="font-medium">Can't sync to Prescrypto.</span>
-                  Missing: {Enum.join(missing, ", ")}.
-                  <.link
-                    navigate={dp(@domain_path_prefix, "/doctors/#{d.id}/edit")}
-                    style="color: #92400e; text-decoration: underline;"
-                  >
-                    Edit doctor
-                  </.link>
-                  to add these fields.
-                </div>
-              </div>
-            <% is_nil(d.prescrypto_medic_id) -> %>
-              <.link
-                href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
-                method="post"
-                class="hd-btn-secondary"
-              >
-                Sync to Prescrypto
-              </.link>
-            <% true -> %>
-              <.link
-                href={dp(@domain_path_prefix, "/doctors/#{d.id}/retry-prescrypto")}
-                method="post"
-                class="hd-btn-secondary"
-                title="Re-fetches the medic from Prescrypto to update verification status"
-              >
-                Refresh from Prescrypto
-              </.link>
-          <% end %>
         </div>
       </div>
 
@@ -424,8 +381,21 @@
               </div>
             <% true -> %>
               <div class="text-sm" style="color: var(--text-muted);">
-                Ready — will be provisioned on the next Medikit backfill run.
+                Ready to provision in Medikit.
               </div>
+          <% end %>
+
+          <%= if medikit_enabled?() and is_nil(d.medikit_healthcare_provider_id) and missing == [] do %>
+            <div class="mt-3">
+              <.link
+                href={dp(@domain_path_prefix, "/doctors/#{d.id}/provision-medikit")}
+                method="post"
+                class="hd-btn-primary"
+                data-confirm="Validate this doctor's cédula and register them with Medikit now?"
+              >
+                Provision with Medikit
+              </.link>
+            </div>
           <% end %>
         </div>
       </div>

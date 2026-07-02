@@ -56,6 +56,21 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitProvisioning do
     summary
   end
 
+  @doc """
+  Provisions a single doctor on demand (the "Provision with Medikit" button on
+  the doctor page, and the live UAT smoke test). Same fail-closed pipeline as
+  the batch — validate → register → write the two medikit columns — returning
+  the per-doctor outcome: `{:provisioned, hp_id}`, `:invalid_license`,
+  `{:incomplete, missing}`, or `{:error, reason}`. Idempotent: a doctor already
+  carrying a `medikit_healthcare_provider_id` is returned untouched as
+  `{:already_provisioned, id}`.
+  """
+  def provision_doctor(%Doctor{medikit_healthcare_provider_id: id})
+      when is_binary(id) and id != "",
+      do: {:already_provisioned, id}
+
+  def provision_doctor(%Doctor{} = doctor), do: provision(doctor)
+
   # Active doctors not yet provisioned in Medikit.
   defp candidates_query do
     from d in Doctor,

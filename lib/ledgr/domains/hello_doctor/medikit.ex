@@ -116,17 +116,22 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
           test_plug_opts()
 
       case Req.post(Req.new(base_url: base_url), req_opts) do
-        {:ok, %{status: 200, body: %{"Status" => "OK", "Data" => id}}}
-        when is_binary(id) and id != "" ->
-          {:ok, id}
+        {:ok, %{status: 200, body: body}} = response ->
+          # RAML envelope is {"Status":"OK","Data":"<id>"} but the live UAT
+          # host has been observed returning lowercase keys — tolerate both.
+          case {response_status(body), response_data(body)} do
+            {"OK", id} when is_binary(id) and id != "" ->
+              {:ok, id}
 
-        {:ok, %{status: status, body: resp}} ->
-          # Includes 200-with-Status:"Error" and 400 — Data carries the message.
-          Logger.warning(
-            "[Medikit] register_doctor #{doctor.id} rejected status=#{status} body=#{inspect(resp)}"
-          )
+            _ ->
+              # 200 with Status:"Error" (Data carries the message) or an
+              # unexpected shape — fail-closed.
+              reject(doctor, response)
+          end
 
-          {:error, {:rejected, status, resp}}
+        {:ok, %{status: status}} = response when status != 200 ->
+          # Non-200 (e.g. 400) — Data carries the message.
+          reject(doctor, response)
 
         {:error, reason} ->
           Logger.warning("[Medikit] register_doctor #{doctor.id} HTTP error: #{inspect(reason)}")
@@ -134,6 +139,24 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
       end
     end
   end
+
+  defp reject(doctor, {:ok, %{status: status, body: resp}}) do
+    Logger.warning(
+      "[Medikit] register_doctor #{doctor.id} rejected status=#{status} body=#{inspect(resp)}"
+    )
+
+    {:error, {:rejected, status, resp}}
+  end
+
+  # Envelope key casing varies between the RAML spec ("Status"/"Data") and the
+  # live UAT host ("status"/"data") — read either.
+  defp response_status(%{"Status" => s}), do: s
+  defp response_status(%{"status" => s}), do: s
+  defp response_status(_), do: nil
+
+  defp response_data(%{"Data" => d}), do: d
+  defp response_data(%{"data" => d}), do: d
+  defp response_data(_), do: nil
 
   @doc """
   Returns the list of RAML-required `/doctors` fields that are missing/blank on
