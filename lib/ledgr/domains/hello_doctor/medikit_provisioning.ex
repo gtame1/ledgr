@@ -98,6 +98,19 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitProvisioning do
   end
 
   defp validate_then_register(%Doctor{} = doctor) do
+    if Medikit.skip_license_validation?() do
+      Logger.warning(
+        "[Medikit] Doctor #{doctor.id}: license validation SKIPPED " <>
+          "(MEDIKIT_SKIP_LICENSE_VALIDATION) — registering without the cédula check"
+      )
+
+      register_and_write(doctor)
+    else
+      do_validate_then_register(doctor)
+    end
+  end
+
+  defp do_validate_then_register(%Doctor{} = doctor) do
     case Medikit.validate_professional_license(doctor) do
       {:ok, :valid} ->
         register_and_write(doctor)

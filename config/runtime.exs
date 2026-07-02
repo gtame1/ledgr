@@ -235,7 +235,11 @@ if api_key = System.get_env("MEDIKIT_API_KEY") do
     purchaser_plan: System.get_env("MEDIKIT_PURCHASER_PLAN_ID"),
     organization_id: System.get_env("MEDIKIT_ORGANIZATION_ID"),
     source_system: System.get_env("MEDIKIT_SOURCE_SYSTEM_ID"),
-    country: System.get_env("MEDIKIT_DEFAULT_COUNTRY", "MX")
+    country: System.get_env("MEDIKIT_DEFAULT_COUNTRY", "MX"),
+    # Escape hatch: skip the SEP cédula validate step (which hangs/503s when the
+    # upstream is degraded) and register directly. Only for testing / SEP
+    # outages — leave unset in normal prod operation.
+    skip_license_validation: System.get_env("MEDIKIT_SKIP_LICENSE_VALIDATION") == "true"
 end
 
 # CallMeBot (WhatsApp) — free per-recipient WhatsApp sender used for
