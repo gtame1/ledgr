@@ -241,6 +241,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
       #   😖  "Hola, he estado sintiéndome mal 😖"
       #   😓  "Hola, no me he estado sintiendo bien 😓"
       #   🤕  "Hola, llevo días con molestias 🤕"
+      #   🥼  "Hola, me gustaria hablar con un medico 🥼"
       %__MODULE__{
         id: "gine_duda",
         label: "Ginecología — Duda",
@@ -289,6 +290,16 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         ad_set: "URO-01",
         pain: "Molestias (días)",
         phrase: "llevo días con molestias",
+        started_on: ~D[2026-06-24]
+      },
+      %__MODULE__{
+        id: "medico_general",
+        label: "General — Hablar con médico",
+        emoji: "🥼",
+        campaign_set: "General",
+        ad_set: "GEN-02",
+        pain: "Hablar con un médico",
+        phrase: "me gustaria hablar con un medico",
         started_on: ~D[2026-06-24]
       },
       # ── Landing pages (evergreen — span every Meta generation) ───
