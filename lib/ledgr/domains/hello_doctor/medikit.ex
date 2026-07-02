@@ -32,6 +32,11 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
   @validate_path "/doctors/validate-professional-license"
   @register_path "/doctors"
 
+  # The UAT cédula validator (SEP upstream) can hang ~30s before answering, well
+  # past Finch's 15s default → a `Req.TransportError{reason: :timeout}`. Give
+  # both calls headroom so a slow-but-valid response isn't killed.
+  @receive_timeout 45_000
+
   @doc """
   Master "dark switch" for the whole Medikit migration. True only when the
   `:medikit` config is present with a base_url and not explicitly disabled —
@@ -41,6 +46,19 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
   def enabled? do
     cfg = Application.get_env(:ledgr, :medikit, [])
     cfg[:enabled] == true and not blank?(cfg[:base_url])
+  end
+
+  @doc """
+  When true, provisioning skips the `validate-professional-license` step and
+  registers directly. An escape hatch for when the SEP cédula validator (an
+  external upstream) is down/degraded — it hangs ~30s then 503s, blocking all
+  provisioning even though `POST /doctors` itself works. Set via
+  `MEDIKIT_SKIP_LICENSE_VALIDATION=true`. Off by default; turn it back off once
+  SEP is healthy so the cédula check resumes as a hard gate. Registering an
+  unvalidated cédula is on the operator who flips this.
+  """
+  def skip_license_validation? do
+    Application.get_env(:ledgr, :medikit, [])[:skip_license_validation] == true
   end
 
   @doc """
@@ -64,7 +82,12 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
       }
 
       req_opts =
-        [url: @validate_path, json: body, headers: headers(api_key)] ++ test_plug_opts()
+        [
+          url: @validate_path,
+          json: body,
+          headers: headers(api_key),
+          receive_timeout: @receive_timeout
+        ] ++ test_plug_opts()
 
       case Req.post(Req.new(base_url: base_url), req_opts) do
         {:ok, %{status: 200, body: resp}} ->
@@ -112,8 +135,12 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
   defp do_register(doctor) do
     with {:ok, base_url, api_key, cfg} <- config() do
       req_opts =
-        [url: @register_path, json: register_body(doctor, cfg), headers: headers(api_key)] ++
-          test_plug_opts()
+        [
+          url: @register_path,
+          json: register_body(doctor, cfg),
+          headers: headers(api_key),
+          receive_timeout: @receive_timeout
+        ] ++ test_plug_opts()
 
       case Req.post(Req.new(base_url: base_url), req_opts) do
         {:ok, %{status: 200, body: body}} = response ->

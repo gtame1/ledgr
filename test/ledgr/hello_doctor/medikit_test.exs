@@ -513,5 +513,25 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
       assert :birthdate in missing
       assert is_nil(Ledgr.Repo.get!(Doctor, doctor.id).medikit_healthcare_provider_id)
     end
+
+    test "skip_license_validation registers without calling validate" do
+      # Enable the skip flag; stub only /doctors — a validate call would crash
+      # (case has no clause for @validate_path), proving validate is skipped.
+      Application.put_env(
+        :ledgr,
+        :medikit,
+        Keyword.put(Application.get_env(:ledgr, :medikit), :skip_license_validation, true)
+      )
+
+      Req.Test.stub(Medikit, fn conn ->
+        @register_path = conn.request_path
+        json(conn, 200, %{"Status" => "OK", "Data" => "HP-SKIP"})
+      end)
+
+      doctor = insert_doctor(%{"terms_accepted" => true})
+
+      assert {:provisioned, "HP-SKIP"} = MedikitProvisioning.provision_doctor(doctor)
+      assert Ledgr.Repo.get!(Doctor, doctor.id).medikit_healthcare_provider_id == "HP-SKIP"
+    end
   end
 end
