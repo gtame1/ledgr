@@ -209,7 +209,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
     end_exclusive = end_date && Ledgr.Domains.HelloDoctor.mx_day_end_utc_naive(end_date)
 
     sql = """
-    payout_totals AS (
+    WITH payout_totals AS (
       -- Total cash allocated across each payout's consultations — used to
       -- apportion the payout-level retentions down to each consultation.
       SELECT doctor_payout_id, SUM(amount_cents) AS total_amount_cents
