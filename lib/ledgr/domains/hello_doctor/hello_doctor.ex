@@ -213,8 +213,7 @@ defmodule Ledgr.Domains.HelloDoctor do
           %{label: "Doctors", path: "#{prefix}/doctors", icon: :customers},
           %{label: "Patients", path: "#{prefix}/patients", icon: :customers},
           %{label: "Reviews", path: "#{prefix}/reviews", icon: :customers},
-          %{label: "NPS", path: "#{prefix}/nps", icon: :reports},
-          %{label: "Triage", path: "#{prefix}/triage", icon: :customers}
+          %{label: "NPS", path: "#{prefix}/nps", icon: :reports}
         ]
       },
       %{
@@ -265,7 +264,6 @@ defmodule Ledgr.Domains.HelloDoctor do
       "Patients" => "group",
       "Reviews" => "reviews",
       "NPS" => "sentiment_satisfied",
-      "Triage" => "rule",
       "Payments" => "payments",
       "Expenses" => "receipt_long",
       "Doctor Payouts" => "account_balance_wallet",

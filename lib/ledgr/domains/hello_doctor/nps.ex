@@ -16,8 +16,11 @@ defmodule Ledgr.Domains.HelloDoctor.Nps do
   # UTC → Mexico City for date display/bucketing (created_at is UTC-naive).
   @mx "AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'"
 
-  @doc "Everything the NPS page needs, in one bundle."
-  def overview do
+  @doc """
+  Headline NPS metrics (no per-response list) — cheap enough for the main
+  dashboard. All-time.
+  """
+  def summary do
     totals = totals()
 
     %{
@@ -32,11 +35,17 @@ defmodule Ledgr.Domains.HelloDoctor.Nps do
       response_rate: pct(totals.answered, totals.sent),
       promoter_pct: pct(totals.promoters, totals.answered),
       passive_pct: pct(totals.passives, totals.answered),
-      detractor_pct: pct(totals.detractors, totals.answered),
+      detractor_pct: pct(totals.detractors, totals.answered)
+    }
+  end
+
+  @doc "Everything the NPS page needs, in one bundle."
+  def overview do
+    Map.merge(summary(), %{
       score_dist: score_distribution(),
       by_status: by_status(),
       responses: responses()
-    }
+    })
   end
 
   defp totals do

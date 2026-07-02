@@ -234,6 +234,29 @@ end %>
       </div>
       <div class="hd-kpi-sub">{m.operations.rated_count} consults rated</div>
     </div>
+
+    <% nps_val = m.nps.nps %>
+    <% nps_color =
+      cond do
+        is_nil(nps_val) -> "var(--text-muted)"
+        nps_val >= 50 -> "#16a34a"
+        nps_val >= 0 -> "#d97706"
+        true -> "#dc2626"
+      end %>
+    <.link
+      navigate={dp(@domain_path_prefix, "/nps")}
+      class="hd-kpi"
+      style="text-decoration: none; display: block; cursor: pointer;"
+      title="View NPS responses"
+    >
+      <div class="hd-kpi-label">NPS</div>
+      <div class="hd-kpi-value mt-2" style={"color: #{nps_color};"}>
+        {if nps_val, do: nps_val, else: "—"}
+      </div>
+      <div class="hd-kpi-sub">
+        {m.nps.answered}/{m.nps.sent} answered · all-time →
+      </div>
+    </.link>
   </div>
 
   <%!-- ═══ PATIENT LIFECYCLE — CURRENT STATE ═══ --%>
