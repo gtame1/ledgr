@@ -16,8 +16,10 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
 
   # Sortable column headers on the doctor list. `:name` and `:specialty`
   # map to plain columns; `:eligibility` derives from the four bot gates
-  # (terms_accepted ∧ is_available ∧ prescrypto_specialty_verified ∧
-  # deactivated_at IS NULL) via a CASE so the sort happens in SQL.
+  # (terms_accepted ∧ is_available ∧ medikit_healthcare_provider_id IS NOT NULL ∧
+  # deactivated_at IS NULL) via a CASE so the sort happens in SQL. The
+  # prescribing gate is Medikit provisioning (bot ADR-070), which replaced the
+  # legacy Prescrypto cédula-verification gate.
   # Falls back to name-asc when sort is unrecognised. Name is the
   # tiebreaker for all non-name sorts.
   defp apply_sort(query, sort, dir) do
@@ -34,10 +36,10 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
           [
             {^direction,
              fragment(
-               "CASE WHEN ? AND ? AND ? AND ? IS NULL THEN 1 ELSE 0 END",
+               "CASE WHEN ? AND ? AND ? IS NOT NULL AND ? IS NULL THEN 1 ELSE 0 END",
                d.terms_accepted,
                d.is_available,
-               d.prescrypto_specialty_verified,
+               d.medikit_healthcare_provider_id,
                d.deactivated_at
              )},
             asc: d.name
@@ -67,7 +69,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
         # is patient-shareable without waiting for the bot's next
         # startup-time backfill. Mirrors the bot's doctor_codes module.
         doctor = Ledgr.Domains.HelloDoctor.DoctorCodes.stamp_missing!(doctor)
-        doctor = maybe_sync_prescrypto(doctor)
+        doctor = maybe_provision_medikit(doctor)
         {:ok, doctor}
 
       error ->
@@ -75,44 +77,28 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors do
     end
   end
 
-  defp maybe_sync_prescrypto(%Doctor{email: nil} = doctor) do
-    Logger.info("[Prescrypto] Skipping sync for doctor #{doctor.id} — email missing")
-    doctor
-  end
+  # Prescrypto provisioning has been retired in favor of Medikit (bot ADR-070).
+  # On create we best-effort provision the doctor in Medikit — the doctor form
+  # captures all required Medikit fields, so a fully-filled doctor is registered
+  # immediately. Any failure (Medikit disabled, incomplete fields, cédula not
+  # yet validatable) is swallowed and leaves `medikit_healthcare_provider_id`
+  # NULL; the admin can retry via the "Provision with Medikit" button or the
+  # `mix hd.medikit_provision` backfill. Never blocks doctor creation.
+  defp maybe_provision_medikit(%Doctor{} = doctor) do
+    if Ledgr.Domains.HelloDoctor.Medikit.enabled?() do
+      case Ledgr.Domains.HelloDoctor.MedikitProvisioning.provision_doctor(doctor) do
+        {:provisioned, _hp_id} ->
+          Repo.get(Doctor, doctor.id) || doctor
 
-  defp maybe_sync_prescrypto(%Doctor{cedula_profesional: nil} = doctor) do
-    Logger.info("[Prescrypto] Skipping sync for doctor #{doctor.id} — cedula_profesional missing")
-    doctor
-  end
+        outcome ->
+          Logger.info(
+            "[Medikit] Doctor #{doctor.id} not provisioned on create — #{inspect(outcome)}"
+          )
 
-  defp maybe_sync_prescrypto(doctor) do
-    alias Ledgr.Domains.HelloDoctor.Prescrypto
-
-    case Prescrypto.create_medic(doctor) do
-      {:ok, result} ->
-        updates =
-          %{
-            prescrypto_medic_id: result.prescrypto_medic_id,
-            prescrypto_specialty_verified: result.prescrypto_specialty_verified,
-            prescrypto_synced_at: DateTime.utc_now()
-          }
-          |> then(fn m ->
-            if result.prescrypto_token,
-              do: Map.put(m, :prescrypto_token, result.prescrypto_token),
-              else: m
-          end)
-
-        case update_doctor(doctor, updates) do
-          {:ok, updated} -> updated
-          {:error, _} -> doctor
-        end
-
-      {:error, reason} when reason != :disabled ->
-        Logger.warning("[Prescrypto] Sync failed for doctor #{doctor.id}: #{inspect(reason)}")
-        doctor
-
-      {:error, :disabled} ->
-        doctor
+          doctor
+      end
+    else
+      doctor
     end
   end
 

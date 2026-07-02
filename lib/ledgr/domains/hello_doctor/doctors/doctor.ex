@@ -127,9 +127,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     |> validate_inclusion(:gender, @genders)
     |> validate_inclusion(:address_country, @countries)
     |> validate_state_for_country()
-    |> validate_format(:address_zipcode, ~r/^\d{5,10}$/,
-      message: "must be 5–10 digits"
-    )
+    |> validate_format(:address_zipcode, ~r/^\d{5,10}$/, message: "must be 5–10 digits")
   end
 
   # `@mx_states` only describes Mexico. Enforce it solely for MX doctors so a
@@ -165,7 +163,8 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
 
     * `terms_accepted == true`            — set by the doctor in the T&Cs flow
     * `is_available == true`              — set by the doctor via `/disponible`
-    * `prescrypto_specialty_verified == true` — set by Prescrypto sync
+    * `medikit_healthcare_provider_id` present — Medikit prescribing-eligibility
+      gate (bot ADR-070), which replaced the legacy Prescrypto cédula check
     * `deactivated_at IS NULL`            — admin-controlled block
 
   All four must hold. Mirror of the bot's gating logic — if the bot adds
@@ -174,7 +173,7 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
   def eligible_for_consultations?(%__MODULE__{} = d) do
     d.terms_accepted == true and
       d.is_available == true and
-      d.prescrypto_specialty_verified == true and
+      is_binary(d.medikit_healthcare_provider_id) and d.medikit_healthcare_provider_id != "" and
       is_nil(d.deactivated_at)
   end
 
@@ -187,7 +186,10 @@ defmodule Ledgr.Domains.HelloDoctor.Doctors.Doctor do
     |> push_if(d.deactivated_at, "deactivated by admin")
     |> push_if(!d.is_available, "marked themselves unavailable")
     |> push_if(!d.terms_accepted, "hasn't accepted terms")
-    |> push_if(!d.prescrypto_specialty_verified, "cédula not verified in Prescrypto")
+    |> push_if(
+      d.medikit_healthcare_provider_id in [nil, ""],
+      "not provisioned in Medikit"
+    )
     |> Enum.reverse()
   end
 

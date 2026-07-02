@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.Doctors
+  alias Ledgr.Domains.HelloDoctor.MedikitProvisioning
 
   def index(conn, params) do
     sort = params["sort"] || "name"
@@ -51,11 +52,13 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
     case Doctors.create_doctor(doctor_params) do
       {:ok, doctor} ->
         conn =
-          if is_nil(doctor.prescrypto_medic_id) do
+          if Ledgr.Domains.HelloDoctor.Medikit.enabled?() and
+               is_nil(doctor.medikit_healthcare_provider_id) do
             put_flash(
               conn,
               :warning,
-              "Doctor created, but Prescrypto sync failed — retry from the doctor page."
+              "Doctor created, but not yet provisioned in Medikit — complete any missing " <>
+                "fields and use \"Provision with Medikit\" on the doctor page."
             )
           else
             conn
@@ -73,75 +76,42 @@ defmodule LedgrWeb.Domains.HelloDoctor.DoctorController do
     end
   end
 
-  def retry_prescrypto_sync(conn, %{"id" => id}) do
+  @doc """
+  Provisions a single doctor as a Medikit HealthcareProvider on demand (the
+  "Provision with Medikit" button). Fail-closed: on anything other than success
+  the doctor's `medikit_healthcare_provider_id` stays NULL.
+  """
+  def provision_medikit(conn, %{"id" => id}) do
     doctor = Doctors.get_doctor!(id)
 
-    case Ledgr.Domains.HelloDoctor.Prescrypto.create_medic(doctor) do
-      {:ok, result} ->
-        # result has :prescrypto_medic_id, :prescrypto_token, :prescrypto_specialty_verified
-        # Build the update map. Don't overwrite an existing token with nil (the GET
-        # fallback path can't recover the token, only the medic ID + verified flag).
-        updates =
-          %{
-            prescrypto_medic_id: result.prescrypto_medic_id,
-            prescrypto_specialty_verified: result.prescrypto_specialty_verified,
-            prescrypto_synced_at: DateTime.utc_now()
-          }
-          |> then(fn m ->
-            if result.prescrypto_token,
-              do: Map.put(m, :prescrypto_token, result.prescrypto_token),
-              else: m
-          end)
+    conn =
+      case MedikitProvisioning.provision_doctor(doctor) do
+        {:provisioned, hp_id} ->
+          put_flash(conn, :info, "Provisioned in Medikit — HealthcareProvider #{hp_id}.")
 
-        {:ok, _} = Doctors.update_doctor(doctor, updates)
+        {:already_provisioned, hp_id} ->
+          put_flash(conn, :info, "Already provisioned in Medikit (#{hp_id}).")
 
-        verified_msg =
-          if result.prescrypto_specialty_verified,
-            do: " — cédula verified ✅",
-            else: " — cédula pending verification by Prescrypto"
+        {:incomplete, missing} ->
+          put_flash(
+            conn,
+            :error,
+            "Not provisioned — missing required fields: #{Enum.join(missing, ", ")}. Add them via Edit Doctor."
+          )
 
-        conn
-        |> put_flash(
-          :info,
-          "Prescrypto sync successful (medic ##{result.prescrypto_medic_id})#{verified_msg}."
-        )
-        |> redirect(to: dp(conn, "/doctors/#{id}"))
+        :invalid_license ->
+          put_flash(
+            conn,
+            :error,
+            "Not provisioned — Medikit could not validate this cédula profesional."
+          )
 
-      {:error, {:api_error, _status, errors}} ->
-        conn
-        |> put_flash(:error, "Prescrypto sync failed: #{format_prescrypto_errors(errors)}")
-        |> redirect(to: dp(conn, "/doctors/#{id}"))
+        {:error, reason} ->
+          put_flash(conn, :error, "Medikit provisioning failed: #{inspect(reason)}")
+      end
 
-      {:error, :missing_cedula} ->
-        conn
-        |> put_flash(
-          :error,
-          "Prescrypto sync failed: this doctor has no Cédula Profesional. Add it via Edit Doctor."
-        )
-        |> redirect(to: dp(conn, "/doctors/#{id}"))
-
-      {:error, :missing_email} ->
-        conn
-        |> put_flash(
-          :error,
-          "Prescrypto sync failed: this doctor has no email address. Add it via Edit Doctor."
-        )
-        |> redirect(to: dp(conn, "/doctors/#{id}"))
-
-      {:error, reason} ->
-        conn
-        |> put_flash(:error, "Prescrypto sync failed: #{inspect(reason)}")
-        |> redirect(to: dp(conn, "/doctors/#{id}"))
-    end
+    redirect(conn, to: dp(conn, "/doctors/#{id}"))
   end
-
-  defp format_prescrypto_errors(errors) when is_map(errors) do
-    errors
-    |> Enum.map(fn {field, msgs} -> "#{field}: #{Enum.join(List.wrap(msgs), ", ")}" end)
-    |> Enum.join("; ")
-  end
-
-  defp format_prescrypto_errors(other), do: inspect(other)
 
   def edit(conn, %{"id" => id}) do
     doctor = Doctors.get_doctor!(id)

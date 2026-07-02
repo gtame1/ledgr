@@ -2,7 +2,6 @@ defmodule Ledgr.Domains.HelloDoctor.PrescryptoTest do
   use Ledgr.DataCase, async: false
 
   alias Ledgr.Domains.HelloDoctor.Prescrypto
-  alias Ledgr.Domains.HelloDoctor.Doctors
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
 
   setup do
@@ -149,64 +148,10 @@ defmodule Ledgr.Domains.HelloDoctor.PrescryptoTest do
     end
   end
 
-  # ── Doctors.create_doctor/1 integration ──────────────────────────────────
-
-  describe "create_doctor/1 Prescrypto integration" do
-    setup do
-      original = Application.get_env(:ledgr, :prescrypto)
-
-      Application.put_env(:ledgr, :prescrypto,
-        enabled: true,
-        base_url: "https://integration.prescrypto.com/",
-        token: "test-token"
-      )
-
-      on_exit(fn -> Application.put_env(:ledgr, :prescrypto, original) end)
-      :ok
-    end
-
-    test "success: Prescrypto 201 → doctor has prescrypto_medic_id and prescrypto_synced_at set" do
-      Req.Test.stub(Ledgr.Domains.HelloDoctor.Prescrypto, fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.send_resp(201, Jason.encode!(%{"id" => 99, "token" => "tok_xyz"}))
-      end)
-
-      attrs = %{
-        "name" => "Dr. Synced #{System.unique_integer([:positive])}",
-        "specialty" => "Cardiology",
-        "phone" => "+521555#{System.unique_integer([:positive])}",
-        "is_available" => true,
-        "email" => "synced#{System.unique_integer([:positive])}@test.com",
-        "cedula_profesional" => "CED-#{System.unique_integer([:positive])}"
-      }
-
-      {:ok, doctor} = Doctors.create_doctor(attrs)
-      assert doctor.prescrypto_medic_id == 99
-      assert doctor.prescrypto_token == "tok_xyz"
-      assert %DateTime{} = doctor.prescrypto_synced_at
-    end
-
-    test "failure: Prescrypto 400 → doctor still created, prescrypto_medic_id is nil, returns {:ok, doctor}" do
-      Req.Test.stub(Ledgr.Domains.HelloDoctor.Prescrypto, fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.send_resp(400, Jason.encode!(%{"email" => ["Invalid."]}))
-      end)
-
-      attrs = %{
-        "name" => "Dr. Fail #{System.unique_integer([:positive])}",
-        "specialty" => "Cardiology",
-        "phone" => "+521555#{System.unique_integer([:positive])}",
-        "is_available" => true,
-        "email" => "fail#{System.unique_integer([:positive])}@test.com",
-        "cedula_profesional" => "CED-#{System.unique_integer([:positive])}"
-      }
-
-      assert {:ok, doctor} = Doctors.create_doctor(attrs)
-      assert is_binary(doctor.id)
-      assert is_nil(doctor.prescrypto_medic_id)
-      assert is_nil(doctor.prescrypto_synced_at)
-    end
-  end
+  # NOTE: Prescrypto provisioning on doctor create has been RETIRED in favor of
+  # Medikit (bot ADR-070). `Doctors.create_doctor/1` no longer calls Prescrypto —
+  # it best-effort provisions in Medikit instead (covered in medikit_test.exs).
+  # The `Prescrypto` module + its columns are kept as history; the unit tests
+  # above still exercise the legacy client (still used for the specialty catalog
+  # sync). There is intentionally no create_doctor→Prescrypto integration test.
 end
