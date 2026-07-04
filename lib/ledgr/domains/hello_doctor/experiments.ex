@@ -8,8 +8,8 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
 
   The readout SQL is a direct port of the bot's
   `scripts/metrics/experiment.sql` (four blocks: SRM, primary funnel reach,
-  guardrail, lagging retention), parameterized by `experiment_id`. Reporting
-  only — no writes.
+  guardrail, and the lagging repeat-consultation curve), parameterized by
+  `experiment_id`. Reporting only — no writes.
 
   Adding an experiment: append an entry to `@registry` (keep the `id` in sync
   with the bot's `app/services/experiments.py` registry + the pre-registration
@@ -24,7 +24,9 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
     * `conversations.funnel_stage` — furthest funnel stage reached (mapped to an
       ordinal below).
     * `policing_events` — safety guardrail signal (`conv_id`, `severity`).
-    * `messages` — activity for the lagging retention block.
+    * `consultations` — one row per consultation (`patient_id`, `completed_at`);
+      source for the repeat-consultation curve. A consult "happened" when
+      `completed_at IS NOT NULL`.
   """
 
   require Logger
@@ -82,7 +84,7 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
       ],
       primary_metric:
         "Kaplan-Meier cumulative incidence of a 2nd consultation, per arm, among " <>
-          "first-consult havers. Cuts at 15/30/60/90 days; the 30-day cut is the " <>
+          "first-consult havers. Cuts at 15/30/45/60/90 days; the 30-day cut is the " <>
           "pre-committed decision point. Pilot: directional by design (throughput-bound, " <>
           "~85/arm needed for significance).",
       guardrails: [
@@ -118,14 +120,42 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
     fallback = Enum.reject(@fallback_registry, &MapSet.member?(live_ids, &1.id))
     covered = MapSet.union(live_ids, MapSet.new(fallback, & &1.id))
 
+    enrolled = enrollment_starts()
+
     discovered =
-      discovered_ids()
+      enrolled
+      |> Map.keys()
       |> Enum.reject(&MapSet.member?(covered, &1))
-      |> Enum.map(&stub_experiment/1)
+      |> Enum.map(&stub_experiment(&1, enrolled[&1]))
 
     (live ++ fallback ++ discovered)
+    |> Enum.map(&mark_enrolling(&1, enrolled))
     |> Enum.sort_by(&(&1[:registered] || ~D[1970-01-01]), {:desc, Date})
   end
+
+  # An experiment with real enrollments is live, full stop — even if its
+  # published `experiment_definitions` row still says "dark" (the bot flips
+  # status / launched_at out of band, and that update can lag the first
+  # enrollment). Reflect reality so an actively-enrolling experiment is never
+  # mislabeled "not launched": bump the badge to running and backfill the launch
+  # date from the first enrollment when the definition hasn't set one. The
+  # readout already renders whenever assignments exist; this just fixes the meta.
+  defp mark_enrolling(%{status: :dark, id: id} = exp, enrolled) do
+    case Map.fetch(enrolled, id) do
+      {:ok, started} ->
+        %{
+          exp
+          | status: :running,
+            status_label: "Running · enrolling (definition not yet updated)",
+            launched: exp.launched || started
+        }
+
+      :error ->
+        exp
+    end
+  end
+
+  defp mark_enrolling(exp, _enrolled), do: exp
 
   @doc "Fetch one experiment (same precedence as `list_experiments/0`), or nil."
   def get_experiment(id), do: Enum.find(list_experiments(), &(&1.id == id))
@@ -168,22 +198,25 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
     }
   end
 
-  # ── Source 3: ids seen in the wild (enrolled) but undescribed ────
+  # ── Source 3: ids seen in the wild (enrolled), with first-enroll date ────
 
-  defp discovered_ids do
+  # Map of experiment_id => first-enrollment Date, one entry per experiment that
+  # has any assignments. Powers both the "discovered" stub source and the
+  # enrolling status/launch-date override for definitions that lag reality.
+  defp enrollment_starts do
     if table_exists?("experiment_assignments") do
-      "SELECT DISTINCT experiment_id FROM experiment_assignments"
+      "SELECT experiment_id, min(enrolled_at) AS first_enrolled FROM experiment_assignments GROUP BY experiment_id"
       |> query([])
-      |> Enum.map(& &1.experiment_id)
-      |> Enum.reject(&is_nil/1)
+      |> Enum.reject(&is_nil(&1.experiment_id))
+      |> Map.new(fn row -> {row.experiment_id, parse_date(row.first_enrolled)} end)
     else
-      []
+      %{}
     end
   rescue
-    _ -> []
+    _ -> %{}
   end
 
-  defp stub_experiment(id) do
+  defp stub_experiment(id, launched) do
     %{
       id: id,
       name: id,
@@ -191,7 +224,7 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
       status_label: "Enrolling (no published definition)",
       owner: nil,
       registered: nil,
-      launched: nil,
+      launched: launched,
       horizon: nil,
       tenants: [],
       split: nil,
@@ -281,7 +314,7 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
   @doc """
   Runs the four per-arm readout blocks for `experiment_id`. Returns
 
-      {:ok, %{srm: [...], funnel: [...], guardrail: [...], retention: [...]}}
+      {:ok, %{srm: [...], funnel: [...], guardrail: [...], repeat: [...]}}
 
   or `{:not_launched, reason}` when the `experiment_assignments` table doesn't
   exist yet or the experiment has zero enrollments (dark / pre-launch).
@@ -300,7 +333,7 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
            srm: srm(experiment_id),
            funnel: funnel_reach(experiment_id),
            guardrail: guardrail(experiment_id),
-           retention: retention(experiment_id)
+           repeat: repeat(experiment_id)
          }}
     end
   end
@@ -396,25 +429,66 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
     query(sql, [experiment_id])
   end
 
-  # ── Block 4: lagging north-star (repeat usage, active on >=2 MX days) ──
+  # ── Block 4: lagging north-star (repeat-consultation curve) ─────
+  # Cumulative incidence of a 2nd consultation among first-consult havers, per
+  # arm, at each horizon in @repeat_cuts. The clock runs from a patient's FIRST
+  # completed consult; a consult "happened" when completed_at IS NOT NULL (the
+  # same signal the dashboard uses — no payment_status gate, so a comped free
+  # first consult still counts as consult #1).
+  #
+  # Each cut N uses a *matured at-risk denominator*: only patients whose first
+  # consult is already ≥ N days old are eligible, so an immature cohort can't
+  # dilute the rate (right-censoring, done simply and honestly). This is the
+  # discrete-cut readout that underlies the pre-registered KM curve; the 30-day
+  # cut is the decision point.
+  #
+  # Returns one row per (variant, cut_days):
+  #   variant, cut_days, eligible (at-risk), returned, pct_returned.
+  @repeat_cuts [15, 30, 45, 60, 90]
 
-  defp retention(experiment_id) do
+  defp repeat(experiment_id) do
+    cuts_values = @repeat_cuts |> Enum.map(&"(#{&1})") |> Enum.join(", ")
+
     sql = """
-    WITH days AS (
-      SELECT ea.patient_id, ea.variant,
-             count(DISTINCT (m.created_at AT TIME ZONE 'UTC'
-                                          AT TIME ZONE 'America/Mexico_City')::date) AS active_days
+    WITH consults AS (
+      SELECT ea.variant, ea.patient_id, c.completed_at,
+             row_number() OVER (PARTITION BY ea.patient_id ORDER BY c.completed_at) AS rn
       FROM experiment_assignments ea
-      JOIN conversations c ON c.patient_id = ea.patient_id
-      JOIN messages m ON m.conversation_id = c.id AND m.role = 'user'
-      WHERE ea.experiment_id = $1
-      GROUP BY 1, 2
-    )
-    SELECT variant,
-           count(*)                                                             AS patients_with_msgs,
-           count(*) FILTER (WHERE active_days >= 2)                             AS returning,
-           round(100.0 * count(*) FILTER (WHERE active_days >= 2) / count(*), 1) AS pct_returning
-    FROM days GROUP BY variant ORDER BY variant
+      JOIN consultations c ON c.patient_id = ea.patient_id
+      WHERE ea.experiment_id = $1 AND c.completed_at IS NOT NULL
+    ),
+    base AS (
+      SELECT f.variant, f.patient_id,
+             f.completed_at AS first_at,
+             s.completed_at AS second_at
+      FROM consults f
+      LEFT JOIN consults s ON s.patient_id = f.patient_id AND s.rn = 2
+      WHERE f.rn = 1
+    ),
+    cuts(days) AS (VALUES #{cuts_values})
+    SELECT b.variant,
+           k.days AS cut_days,
+           count(*) FILTER (
+             WHERE b.first_at <= (now() AT TIME ZONE 'UTC') - make_interval(days => k.days)
+           ) AS eligible,
+           count(*) FILTER (
+             WHERE b.first_at <= (now() AT TIME ZONE 'UTC') - make_interval(days => k.days)
+               AND b.second_at IS NOT NULL
+               AND b.second_at <= b.first_at + make_interval(days => k.days)
+           ) AS returned,
+           round(
+             100.0 * count(*) FILTER (
+               WHERE b.first_at <= (now() AT TIME ZONE 'UTC') - make_interval(days => k.days)
+                 AND b.second_at IS NOT NULL
+                 AND b.second_at <= b.first_at + make_interval(days => k.days)
+             ) / NULLIF(count(*) FILTER (
+               WHERE b.first_at <= (now() AT TIME ZONE 'UTC') - make_interval(days => k.days)
+             ), 0), 1
+           ) AS pct_returned
+    FROM base b
+    CROSS JOIN cuts k
+    GROUP BY b.variant, k.days
+    ORDER BY b.variant, k.days
     """
 
     query(sql, [experiment_id])

@@ -204,25 +204,67 @@
         <% end %>
       </div>
 
-      <%!-- Block 4: lagging retention --%>
+      <%!-- Block 4: repeat-consultation curve (lagging north-star) --%>
       <div class="hd-card p-4 mb-4">
-        <h3 class="text-sm font-bold mb-1" style="color: var(--text-main);">4 · Repeat usage (lagging)</h3>
+        <h3 class="text-sm font-bold mb-1" style="color: var(--text-main);">4 · Repeat usage — 2nd consultation (lagging)</h3>
         <p class="text-xs mb-3" style="color: var(--text-muted);">
-          Enrolled patients active on ≥2 Mexico-City days. Right-censored — read only once cohorts have matured (~2 weeks).
+          Cumulative incidence of a <strong>2nd consultation</strong> among first-consult havers, per arm, at each
+          horizon. The clock runs from each patient's first completed consult. Each cut uses a
+          <strong>matured at-risk denominator</strong> — only patients whose first consult is already ≥N days old
+          count, so young cohorts don't dilute the rate. The <strong>30-day</strong> cut is the pre-committed
+          decision point. Right-censored: empty until enrolled cohorts mature.
         </p>
-        <div class="flex flex-col gap-2 mb-3">
-          <%= for row <- r.retention do %>
-            <div class="flex items-center gap-3">
-              <div style="width: 6rem; color: var(--text-main); font-size: 0.85rem; text-transform: capitalize;">{row.variant}</div>
-              <div style="flex: 1; background: var(--bg-secondary); border-radius: 0.25rem; height: 1.25rem; overflow: hidden;">
-                <div style={"width: #{to_num(row.pct_returning)}%; background: var(--accent); height: 100%;"}></div>
-              </div>
-              <div style="width: 8rem; text-align: right; color: var(--text-main); font-size: 0.8rem;">
-                {pct_str(row.pct_returning)} <span style="color: var(--text-muted);">({int_str(row.returning)}/{int_str(row.patients_with_msgs)})</span>
-              </div>
-            </div>
-          <% end %>
-        </div>
+        <% cuts = repeat_cuts(r.repeat) %>
+        <% vs = variants(r.repeat) %>
+        <%= if cuts == [] do %>
+          <div class="text-sm" style="color: var(--text-muted);">No first consultations recorded yet.</div>
+        <% else %>
+          <table class="hd-table w-full" style="font-size: 0.8rem;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+                <th class="text-left p-2">Horizon</th>
+                <%= for v <- vs do %>
+                  <th class="text-right p-2" style="text-transform: capitalize;">{v}</th>
+                <% end %>
+                <%= if length(vs) == 2 do %>
+                  <th class="text-right p-2">Δ (treatment − control)</th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for cut <- cuts do %>
+                <tr style={"border-bottom: 1px solid var(--border-subtle);#{if cut == 30, do: " background: var(--bg-secondary);", else: ""}"}>
+                  <td class="p-2" style="color: var(--text-main); font-weight: 600;">
+                    {cut}d<%= if cut == 30 do %> <span style="color: var(--text-muted); font-weight: 400;">· decision</span><% end %>
+                  </td>
+                  <%= for v <- vs do %>
+                    <% row = repeat_at(r.repeat, v, cut) %>
+                    <td class="p-2 text-right" style="color: var(--text-main);">
+                      <%= cond do %>
+                        <% row == nil or to_num(row.eligible) == 0 -> %>
+                          <span style="color: var(--text-muted);" title="No first-consult cohort has matured to this horizon yet.">—</span>
+                        <% true -> %>
+                          <span class="font-semibold">{pct_str(row.pct_returned)}</span>
+                          <span style="color: var(--text-muted);">({int_str(row.returned)}/{int_str(row.eligible)})</span>
+                      <% end %>
+                    </td>
+                  <% end %>
+                  <%= if length(vs) == 2 do %>
+                    <% c = repeat_at(r.repeat, "control", cut) %>
+                    <% t = repeat_at(r.repeat, "treatment", cut) %>
+                    <td class="p-2 text-right font-semibold" style={"color: #{delta_color(t, c)};"}>
+                      {repeat_delta(t, c)}
+                    </td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+          <p class="text-xs mt-2" style="color: var(--text-muted);">
+            Each cell is <code>returned / at-risk</code>: patients with a 2nd consult within the horizon, over
+            first-consult havers whose window has fully elapsed.
+          </p>
+        <% end %>
       </div>
   <% end %>
 </div>

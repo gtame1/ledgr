@@ -50,6 +50,49 @@ defmodule LedgrWeb.Domains.HelloDoctor.ExperimentHTML do
     |> Enum.sort_by(&(&1 != "control"))
   end
 
+  @doc "Distinct day-horizons in the repeat-consultation block, ascending."
+  def repeat_cuts(rows) do
+    rows
+    |> Enum.map(&(&1.cut_days |> to_num() |> round()))
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  @doc "The repeat-block row for a (variant, cut) pair, or nil if missing."
+  def repeat_at(rows, variant, cut) do
+    Enum.find(rows, &(&1.variant == variant and round(to_num(&1.cut_days)) == cut))
+  end
+
+  @doc """
+  Treatment − control gap in percentage points at a cut, as a signed string.
+  "—" when either arm has no matured at-risk cohort (nothing to compare yet).
+  """
+  def repeat_delta(t, c) do
+    case repeat_gap(t, c) do
+      nil -> "—"
+      d -> "#{if d > 0, do: "+", else: ""}#{:erlang.float_to_binary(d + 0.0, decimals: 1)} pp"
+    end
+  end
+
+  @doc "Green when treatment leads, red when it trails, muted when tied/unknown."
+  def delta_color(t, c) do
+    case repeat_gap(t, c) do
+      nil -> "var(--text-muted)"
+      d when d > 0 -> "#065f46"
+      d when d < 0 -> "#991b1b"
+      _ -> "var(--text-muted)"
+    end
+  end
+
+  # pp gap treatment−control, or nil if either arm's denominator is empty.
+  defp repeat_gap(t, c) do
+    if is_nil(t) or is_nil(c) or to_num(t.eligible) == 0 or to_num(c.eligible) == 0 do
+      nil
+    else
+      to_num(t.pct_returned) - to_num(c.pct_returned)
+    end
+  end
+
   @doc """
   A number to a percentage-of-max bar width (0–100). Used for the inline SVG /
   div bar charts so no external chart library is needed.
