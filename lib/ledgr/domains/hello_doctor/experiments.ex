@@ -84,7 +84,7 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
       ],
       primary_metric:
         "Kaplan-Meier cumulative incidence of a 2nd consultation, per arm, among " <>
-          "first-consult havers. Cuts at 15/30/45/60/90 days; the 30-day cut is the " <>
+          "first-consult havers. Cuts at 7/15/30/45/60/90 days; the 30-day cut is the " <>
           "pre-committed decision point. Pilot: directional by design (throughput-bound, " <>
           "~85/arm needed for significance).",
       guardrails: [
@@ -444,7 +444,7 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
   #
   # Returns one row per (variant, cut_days):
   #   variant, cut_days, eligible (at-risk), returned, pct_returned.
-  @repeat_cuts [15, 30, 45, 60, 90]
+  @repeat_cuts [7, 15, 30, 45, 60, 90]
 
   defp repeat(experiment_id) do
     cuts_values = @repeat_cuts |> Enum.map(&"(#{&1})") |> Enum.join(", ")
