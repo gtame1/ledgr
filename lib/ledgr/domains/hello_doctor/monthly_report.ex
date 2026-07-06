@@ -52,6 +52,12 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
   #   • corporate (employer-billed, no Stripe row but doctor IS owed);
   #   • a bot-sanctioned 100%-discount / free consult (`cs_no_payment_*`
   #     intent, confirmed — $0 charged, doctor still did the work);
+  #   • an experiment courtesy-comp (`payment_source = 'experiment'`, confirmed
+  #     — $0 charged and no HD commission collected, but the doctor still did
+  #     the work and IS paid; HD eats the cost). These carry an `exp_` intent
+  #     and payment_amount 0, so no other clause catches them. See EXP-001
+  #     (free first consult). Without this they collapse to $0 owed and, being
+  #     net-zero, get dropped from the default view — undercounting the month.
   #   • collected on the bot side (confirmed/paid with a real charge) but the
   #     `stripe_payments` row hasn't synced yet — still owed. This last clause
   #     mirrors the /doctor-payouts page's `payment_amount` fallback so the two
@@ -63,6 +69,8 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
   @collected_sql """
   COALESCE(so.status = 'paid', FALSE)
   OR COALESCE(c.payment_source, 'stripe') = 'corporate'
+  OR (COALESCE(c.payment_source, 'stripe') = 'experiment'
+      AND COALESCE(c.payment_status, '') IN ('paid', 'confirmed'))
   OR (c.stripe_payment_intent_id LIKE 'cs_no_payment_%'
       AND COALESCE(c.payment_status, '') IN ('paid', 'confirmed'))
   OR (so.cid IS NULL
@@ -184,9 +192,11 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
 
   A consultation pays the doctor by default whenever it was **collected**:
   a non-refunded Stripe payment (status `paid`), `payment_source =
-  'corporate'`, or a bot-sanctioned 100%-discount / free consult
+  'corporate'`, a bot-sanctioned 100%-discount / free consult
   (`cs_no_payment_*` intent, confirmed — $0 charged but the doctor still
-  did the work). Status is intentionally NOT checked — a paid consultation
+  did the work), or an experiment courtesy-comp (`payment_source =
+  'experiment'`, confirmed — free to the patient, no HD commission, doctor
+  still paid). Status is intentionally NOT checked — a paid consultation
   still owes the doctor even if it's not marked `completed`. Refunded or
   uncollected consultations don't pay by default. An explicit
   `consultation_payout_decisions.pay_doctor` row always wins either way
