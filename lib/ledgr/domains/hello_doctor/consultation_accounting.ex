@@ -42,6 +42,15 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   def doctor_share_cents, do: round(@doctor_share_mxn * 100)
 
   @doc """
+  Tenant-aware doctor share in centavos for a specific consultation (loads its
+  conversation tenant + doctor fee). Per-consultation counterpart of
+  `doctor_share_cents/0`; use it wherever you must back out the exact amount
+  `record_payment/2` posted to Doctor Payable — e.g. a refund reversal — so a
+  $200 direct consult reverses $200, not the flat $100.
+  """
+  def doctor_share_cents(consultation), do: tenant_aware_doctor_cents(consultation)
+
+  @doc """
   Tenant-aware doctor share, in MXN pesos. A doctor's own DIRECT patients
   (conversation tenant `"direct"`) pay that doctor's negotiated rate
   (`consultation_fee_mxn`); HD-sourced MVP — and anything not `"direct"`,

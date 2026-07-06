@@ -12,8 +12,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
   and receivable — i.e., we don't owe the doctor for a refunded session.
   Pass `pay_doctor: true` to override that on a case-by-case basis (bad
   patient experience that wasn't the doctor's fault, etc.); the JE
-  leaves Doctor Payable intact so the doctor stays owed their flat share
-  and HD absorbs the full refund as a loss.
+  leaves Doctor Payable intact so the doctor stays owed their (tenant-aware)
+  share and HD absorbs the full refund as a loss.
 
   The decision is locked in at refund time and not stored separately —
   if you change your mind later, you'll need to post a manual JE to
@@ -25,6 +25,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
   alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
+  alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Core.Accounting
   alias Ledgr.Core.Accounting.JournalEntry
@@ -145,8 +146,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
   - **Full refund**, `pay_doctor: false` (default): reverse revenue,
     receivable, *and* doctor payable. Net effect on doctor: $0 owed.
   - **Full refund**, `pay_doctor: true`: reverse revenue + receivable
-    only. Doctor stays owed their flat share; HD absorbs the entire
-    refund as a loss.
+    only. Doctor stays owed their (tenant-aware) share; HD absorbs the
+    entire refund as a loss.
   - **Partial refund**: reverse revenue + receivable proportionally;
     doctor payable always left intact (`pay_doctor` is a no-op here).
 
@@ -226,7 +227,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
       # explicit pay-doctor overrides both leave the doctor payable intact.
       lines =
         if full_refund? and not pay_doctor? do
-          doctor_payout_cents = ConsultationAccounting.doctor_share_cents()
+          # Reverse the SAME tenant-aware amount record_payment reclassified into
+          # Doctor Payable — a $200 direct consult posted $200, so back out $200,
+          # not the flat $100 (which would strand share − 100 in 2000 / 4000).
+          doctor_payout_cents = doctor_share_cents_for_payment(payment)
 
           base_lines ++
             [
@@ -261,4 +265,24 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
   defp refund_already_recorded?(reference) do
     Repo.exists?(from je in JournalEntry, where: je.reference == ^reference)
   end
+
+  # Tenant-aware doctor share (centavos) for the consultation behind a payment,
+  # resolved the way the reports join: by consultation_id, else by matching the
+  # payment intent (direct payments often land with a null consultation_id and
+  # match on the intent). Falls back to the flat share when no consultation is
+  # found, so a stray payment still balances the reversal.
+  defp doctor_share_cents_for_payment(payment) do
+    case consultation_for_payment(payment) do
+      %Consultation{} = c -> ConsultationAccounting.doctor_share_cents(c)
+      _ -> ConsultationAccounting.doctor_share_cents()
+    end
+  end
+
+  defp consultation_for_payment(%{consultation_id: cid}) when is_binary(cid),
+    do: Repo.get(Consultation, cid)
+
+  defp consultation_for_payment(%{stripe_payment_intent_id: pi}) when is_binary(pi),
+    do: Repo.one(from c in Consultation, where: c.stripe_payment_intent_id == ^pi, limit: 1)
+
+  defp consultation_for_payment(_), do: nil
 end

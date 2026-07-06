@@ -6,9 +6,10 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
 
   Per consultation:
 
-      doctor_share              = 100 MXN when pay_to_doc; 0 otherwise
+      doctor_share              = the doctor's tenant-aware share when pay_to_doc,
+                                  else 0 (direct → consultation_fee_mxn; else 100)
       iva_retention_to_apply    = 0 (no IVA retention on honorarios)
-      isr_retention_to_apply    = 2.5 if doctor.has_correct_rfc, else 20
+      isr_retention_to_apply    = doctor_share × (2.5% w/ correct RFC, else 20%)
 
       paid_out_amount           = doctor_payouts.amount_cents / 100
       iva_retentions_applied    = doctor_payouts.iva_retention_cents / 100
@@ -34,8 +35,10 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
 
   @doctor_share_mxn 100.0
 
-  # Mexican payroll retention rates expressed as percentage points so
-  # they line up with the report column ("2.5" / "20").
+  # Mexican payroll retention RATES, in percentage points. Applied to the
+  # doctor's tenant-aware share to get the pesos withheld — so a flat $100
+  # consult withholds 2.5 / 20 pesos, while a $200 direct consult withholds
+  # double. IVA is 0 (medical honorarios are IVA-exempt); ISR only.
   @iva_rate_pct 0.0
   @isr_rate_with_rfc_pct 2.5
   @isr_rate_without_rfc_pct 20.0
@@ -350,13 +353,17 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         -- HD commission = gross above the doctor's share. NULL with no
         -- Stripe row; can go negative when a promo drops price below fee.
         (stripe_amount - fee_mxn)                              AS hd_commission,
-        $4::float8                                             AS iva_retention_to_apply,
-        -- Retention only applies to a payment we're actually making. With
-        -- pay_to_doc = false there's no honorario, so no ISR to withhold —
-        -- otherwise a not-paid consultation would post a phantom negative.
+        -- Retention is a PERCENTAGE of the doctor's share (honorario), so it
+        -- scales with the tenant-aware fee: a $200 direct consult withholds
+        -- 2.5% = $5, not the flat $2.5 a $100 consult does. It only applies to
+        -- a payment we're actually making — with pay_to_doc = false there's no
+        -- honorario, so 0 (else a not-paid consult posts a phantom negative).
+        -- The share basis here mirrors doctor_share above (fee_mxn when paying).
+        ($4::float8 / 100.0 * (CASE WHEN pay_to_doc THEN fee_mxn ELSE 0::float8 END))
+                                                               AS iva_retention_to_apply,
         (CASE WHEN NOT pay_to_doc THEN 0::float8
-              WHEN has_correct_rfc THEN $5::float8
-              ELSE $6::float8 END)                             AS isr_retention_to_apply
+              WHEN has_correct_rfc THEN $5::float8 / 100.0 * fee_mxn
+              ELSE $6::float8 / 100.0 * fee_mxn END)           AS isr_retention_to_apply
       FROM base
     )
     SELECT
