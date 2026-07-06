@@ -180,7 +180,19 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       fee = to_float(row.stripe_fee)
       # Tenant-aware: direct patients pay the doctor's own fee, else flat.
       share = ConsultationAccounting.doctor_share_mxn(row.tenant, to_float(row.doctor_fee_mxn))
-      hd_net = billed - fee - share - refunded
+
+      # `pay_doctor?` is the source of truth for whether the doctor is owed.
+      # Default: pay when there's no explicit decision AND the consult is a real
+      # visit — cancelled / failed consults never happened, so they owe $0 by
+      # default. An explicit consultation_payout_decisions row still wins either
+      # way ("pay anyway" = true, "skip" = false).
+      default_pay? = row.consultation_status not in ["cancelled", "consultation_failed"]
+      pay_doctor? = Map.get(pay_doctor_index, row.consultation_id, default_pay?)
+
+      # Only the share we're actually paying hits HD's net; a not-paid consult
+      # (skip / cancelled / failed) costs HD nothing on the doctor side.
+      effective_share = if pay_doctor?, do: share, else: 0.0
+      hd_net = billed - fee - effective_share - refunded
 
       summary =
         Map.get(payout_index, row.consultation_id, %{
@@ -192,12 +204,6 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       refunded? =
         row.stripe_status == "refunded" or refunded > 0 or
           row.consultation_payment_status == "refunded"
-
-      # `pay_doctor?` is the source of truth for whether the doctor is
-      # owed for this consultation. Defaults to true when the
-      # consultation has no entry in consultation_payout_decisions
-      # (the "no override" case).
-      pay_doctor? = Map.get(pay_doctor_index, row.consultation_id, true)
 
       # ADR-046: payment_source is the authoritative signal.
       #   "stripe"    — normal flow (patient paid Stripe)
@@ -237,7 +243,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         corporate_account_id: row.corporate_account_id,
         corporate_consultation?: corporate_consultation?,
         discount_consultation?: discount_consultation?,
-        doctor_share: Float.round(if(pay_doctor?, do: share, else: 0.0), 2),
+        doctor_share: Float.round(effective_share, 2),
         hd_net: Float.round(hd_net, 2),
         payout_count: summary.count,
         last_payout_date: summary.last_date,
@@ -384,8 +390,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
         where: j.consultation_id in ^consultation_ids,
         group_by: j.consultation_id,
         select:
-          {j.consultation_id, count(j.id), max(p.payout_date),
-           coalesce(sum(j.amount_cents), 0)}
+          {j.consultation_id, count(j.id), max(p.payout_date), coalesce(sum(j.amount_cents), 0)}
       )
       |> Repo.all()
       |> Map.new(fn {cid, n, max_date, paid_cents} ->

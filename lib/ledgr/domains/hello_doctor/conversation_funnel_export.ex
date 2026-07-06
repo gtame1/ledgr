@@ -5,7 +5,14 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
   reference SQL that ops uses interactively in psql.
 
   Checkpoint legend in the data: `Y` = reached / yes, `X` = explicit no
-  (e.g. patient declined), `-` = not yet / not applicable.
+  (e.g. patient declined), `-` = not yet / not applicable. The `paid` column
+  also uses `F` = reached a consult for free (experiment courtesy-comp or a
+  100%-discount comp — no money collected), distinct from `Y` = actually paid.
+
+  Trailing columns carry the payment method and terminal state of the
+  conversation's most recent consultation: `pay_src` (ADR-046 payment_source —
+  stripe / experiment / corporate / test, `-` if no consult), and `canceled` /
+  `refunded` as `Y`/`N`.
 
   Filters mirror the Conversations page (status / funnel_stage / search) so
   whatever you're looking at on screen is what downloads.
@@ -49,6 +56,14 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
   defp build_query(opts) do
     share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
+    # Doctor share for the revenue block: cancelled / failed consults never
+    # happened → $0, regardless of any frozen payout row. Otherwise prefer the
+    # actual frozen payout amount, falling back to the tenant-aware computed
+    # share (direct → the doctor's fee, else flat).
+    doctor_share_expr =
+      "(CASE WHEN c.status IN ('cancelled', 'consultation_failed') THEN 0 " <>
+        "ELSE COALESCE(cp.doctor_share_cents / 100.0, #{share}) END)"
+
     base = """
     WITH funnel_stages(stage, idx) AS (VALUES
       ('greeting',1),('symptoms',2),('orientation',3),('doctor_recommended',4),
@@ -61,7 +76,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       -- report doesn't render it so we don't select it.
       SELECT DISTINCT ON (conversation_id)
              conversation_id, id, doctor_id, status, accepted_at, completed_at,
-             patient_rating
+             patient_rating, payment_status, payment_source
       FROM consultations
       ORDER BY conversation_id, assigned_at DESC
     ),
@@ -87,10 +102,10 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
         c.conversation_id AS conv_id,
         COALESCE(spx.amount, c.payment_amount)                            AS gross,
         COALESCE(spx.stripe_fee, 0)                                       AS stripe_fee,
-        COALESCE(cp.doctor_share_cents / 100.0, #{share})                 AS doctor_share,
+        #{doctor_share_expr}                                              AS doctor_share,
         COALESCE(spx.amount, c.payment_amount)
           - COALESCE(spx.stripe_fee, 0)
-          - COALESCE(cp.doctor_share_cents / 100.0, #{share})
+          - #{doctor_share_expr}
           - COALESCE(spx.amount_refunded, 0)                             AS hd_net
       FROM consultations c
       LEFT JOIN conversations conv ON conv.id = c.conversation_id
@@ -152,7 +167,16 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
            WHEN c.consultation_type IS NOT NULL             THEN 'Y'
            ELSE '-' END                                                      AS acc,
       CASE WHEN fs.idx >= 6 THEN 'Y' ELSE '-' END                            AS link,
-      CASE WHEN c.stripe_payment_intent_id IS NOT NULL THEN 'Y' ELSE '-' END AS paid,
+      -- Real charge vs. free consult. An intent is set for BOTH now, so a bare
+      -- NOT NULL check counts comps as paid: experiment courtesy-comps carry an
+      -- `exp_` intent and 100%-discount consults a `cs_no_payment_*` one, both
+      -- $0. 'F' = reached a consult for free (no money in); 'Y' = actually paid.
+      CASE
+        WHEN c.stripe_payment_intent_id IS NULL THEN '-'
+        WHEN left(c.stripe_payment_intent_id, 4) = 'exp_'
+          OR c.stripe_payment_intent_id LIKE 'cs_no_payment_%' THEN 'F'
+        ELSE 'Y'
+      END                                                                     AS paid,
       -- Promo/discount code on this conversation's payment (e.g. SALUD26),
       -- matched via the linked consultation or the shared payment intent.
       COALESCE((
@@ -179,7 +203,25 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
       rev_conv.gross                                                         AS gross,
       rev_conv.doctor_share                                                  AS doctor_share,
       rev_conv.stripe_fee                                                    AS stripe_fee,
-      rev_conv.hd_net                                                        AS hd_net
+      rev_conv.hd_net                                                        AS hd_net,
+      -- Payment method + terminal-state flags, from the conversation's most
+      -- recent consultation. pay_src = ADR-046 payment_source (stripe /
+      -- experiment / corporate / test); '-' when no consult exists yet.
+      CASE WHEN lc.id IS NULL THEN '-' ELSE COALESCE(lc.payment_source, 'stripe') END AS pay_src,
+      CASE WHEN lc.status = 'cancelled' THEN 'Y' ELSE 'N' END                AS canceled,
+      -- Refunded if the consult is marked refunded OR any linked Stripe row
+      -- carries a refund (catches partials the consult status misses).
+      CASE
+        WHEN lc.payment_status = 'refunded'
+          OR EXISTS (
+            SELECT 1 FROM stripe_payments sp
+            WHERE (sp.consultation_id = lc.id
+                   OR (c.stripe_payment_intent_id IS NOT NULL
+                       AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id))
+              AND (sp.status = 'refunded' OR COALESCE(sp.amount_refunded, 0) > 0)
+          )
+        THEN 'Y' ELSE 'N'
+      END                                                                    AS refunded
     FROM conversations c
     LEFT JOIN patients         p  ON p.id = c.patient_id
     LEFT JOIN patient_segments ps ON ps.patient_id = c.patient_id
@@ -291,8 +333,12 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
 
   defp limit_clause(opts) do
     case opts[:limit] do
-      v when v in [nil, ""] -> ""
-      v when is_integer(v) -> " LIMIT #{min(v, @max_limit)}"
+      v when v in [nil, ""] ->
+        ""
+
+      v when is_integer(v) ->
+        " LIMIT #{min(v, @max_limit)}"
+
       v when is_binary(v) ->
         case Integer.parse(v) do
           {n, _} -> " LIMIT #{min(n, @max_limit)}"

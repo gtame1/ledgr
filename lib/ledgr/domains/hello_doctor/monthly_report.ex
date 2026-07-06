@@ -83,6 +83,16 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       AND c.stripe_payment_intent_id NOT LIKE 'pi_test_bypass_%')
   """
 
+  # "Pays the doctor by default" = collected AND an actual visit happened.
+  # Cancelled / consultation_failed consults never took place, so they owe the
+  # doctor nothing even if money was collected (a refund usually follows). An
+  # explicit `consultation_payout_decisions.pay_doctor` still overrides either
+  # way. Shared by `auto_eligible` and `pay_to_doc` so the two can't drift.
+  @auto_pay_sql """
+  (#{@collected_sql})
+  AND COALESCE(c.status, '') NOT IN ('cancelled', 'consultation_failed')
+  """
+
   # ── Period helpers ─────────────────────────────────────────────
 
   @doc "Returns {first_day, last_day} of the previous calendar month."
@@ -312,18 +322,20 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         (CASE WHEN conv.tenant = 'direct' AND COALESCE(d.consultation_fee_mxn, 0) > 0
               THEN d.consultation_fee_mxn::float8
               ELSE $3::float8 END)                 AS fee_mxn,
-        -- Collected / payable, with NO status='completed' gate. See the
-        -- @collected_sql module attribute for the full rule (shared with
-        -- pay_to_doc below so the two can't drift).
+        -- Auto-payable: collected AND an actual visit (no status='completed'
+        -- gate, but cancelled/failed consults never happened → $0). See the
+        -- @auto_pay_sql module attribute (shared with pay_to_doc so the two
+        -- can't drift).
         (
-          #{@collected_sql}
+          #{@auto_pay_sql}
         )                                          AS auto_eligible,
         -- Explicit decision wins ("pay anyway" / "skip"); else pay when
-        -- collected. So: payment / corporate / free-consult OR pay_doctor=true.
+        -- collected AND it was a real visit. So: payment / corporate /
+        -- free-consult, not cancelled/failed — OR pay_doctor=true.
         COALESCE(
           cpd.pay_doctor,
           (
-            #{@collected_sql}
+            #{@auto_pay_sql}
           )
         )                                          AS pay_to_doc,
         cpd.pay_doctor                             AS pay_doctor_override,
