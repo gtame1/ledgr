@@ -84,46 +84,45 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
   defp dedup_key(%{platform: p, date: d, description: desc, amount: a}), do: {p, d, desc, a}
 
   @doc """
-  Commits parsed rows: inserts each marketing_cost and posts it to the GL, all
-  in one transaction. Returns `{:ok, count}` or `{:error, row, reason}`.
+  Commits parsed rows. Bulk-inserts the charges with `on_conflict: :nothing`
+  keyed on the generated `dedup_hash`, so a re-submit (even concurrent) inserts
+  ZERO duplicates — then posts ONLY the genuinely-new rows to the GL. Returns
+  `{:ok, count}` (count = new charges posted).
+
+  Each GL post runs in its own short transaction (via `post_to_gl/2`), so the
+  import never holds one connection for the whole file — that long hold is what
+  starved the pool and made the request look hung (→ users re-submitting).
   """
   def commit(rows) when is_list(rows) do
-    # Fetch the GL accounts once, not per row — a bulk import re-querying them
-    # inside the transaction held a connection long enough to blow the 15s
-    # checkout timeout on the small prod pool. Give the transaction real headroom.
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    entries =
+      Enum.map(rows, fn row ->
+        %{
+          platform: row.platform,
+          date: row.date,
+          amount: row.amount,
+          currency: row.currency,
+          description: row.description,
+          source: "csv",
+          inserted_at: now,
+          updated_at: now
+        }
+      end)
+
+    # ON CONFLICT DO NOTHING + RETURNING yields only the rows actually inserted,
+    # so `inserted` excludes anything already present (idempotent).
+    {_n, inserted} =
+      Repo.insert_all(MarketingCost, entries,
+        on_conflict: :nothing,
+        conflict_target: :dedup_hash,
+        returning: true
+      )
+
     accts = MarketingCostAccounting.gl_accounts()
+    Enum.each(inserted, &MarketingCostAccounting.post_to_gl(&1, accts))
 
-    Repo.transaction(
-      fn ->
-        Enum.reduce_while(rows, 0, fn row, acc ->
-          with {:ok, cost} <- insert_cost(row),
-               {:ok, _posted} <- MarketingCostAccounting.post_to_gl(cost, accts) do
-            {:cont, acc + 1}
-          else
-            {:error, reason} -> {:halt, {:error, row, reason}}
-          end
-        end)
-      end,
-      timeout: 120_000
-    )
-    |> case do
-      {:ok, {:error, row, reason}} -> {:error, row, reason}
-      {:ok, count} when is_integer(count) -> {:ok, count}
-      {:error, reason} -> {:error, nil, reason}
-    end
-  end
-
-  defp insert_cost(row) do
-    %MarketingCost{}
-    |> MarketingCost.changeset(%{
-      platform: row.platform,
-      date: row.date,
-      amount: row.amount,
-      currency: row.currency,
-      description: row.description,
-      source: "csv"
-    })
-    |> Repo.insert()
+    {:ok, length(inserted)}
   end
 
   # ── CSV parsing helpers (mirrors DoctorPayoutImport) ────────────

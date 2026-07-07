@@ -21,6 +21,9 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCosts.MarketingCost do
     # GL posting
     field :posted_at, :utc_datetime
     field :journal_entry_id, :integer
+    # DB-generated identity hash (platform+date+source+currency+description+
+    # amount); UNIQUE, so imports are idempotent. Never written from Elixir.
+    field :dedup_hash, :string, read_after_writes: true
 
     timestamps()
   end

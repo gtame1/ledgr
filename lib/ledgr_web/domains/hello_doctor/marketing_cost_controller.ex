@@ -20,29 +20,27 @@ defmodule LedgrWeb.Domains.HelloDoctor.MarketingCostController do
 
     case MarketingCostImport.parse(csv) do
       {:ok, %{rows: rows, skipped: skipped}} ->
-        case MarketingCostImport.commit(rows) do
-          {:ok, count} ->
-            skipped_note =
-              if skipped > 0, do: " (#{skipped} already-imported charge(s) skipped)", else: ""
+        # commit/1 is idempotent (insert_all on_conflict: :nothing) — a
+        # re-upload inserts 0 and returns {:ok, 0}, never duplicating.
+        {:ok, count} = MarketingCostImport.commit(rows)
 
-            msg =
-              if count > 0,
-                do:
-                  "Imported #{count} marketing charge(s) and posted them to the GL#{skipped_note}.",
-                else: "No new charges — all #{skipped} row(s) were already imported."
+        already = skipped + (length(rows) - count)
 
-            conn
-            |> put_flash(:info, msg)
-            |> redirect(to: dp(conn, "/marketing-costs"))
+        msg =
+          cond do
+            count > 0 and already > 0 ->
+              "Imported #{count} marketing charge(s) and posted them to the GL (#{already} already-imported skipped)."
 
-          {:error, row, reason} ->
-            ref = row && "#{row.platform} / #{row.date}"
-            msg = "Failed to import #{ref}: #{inspect(reason)}"
+            count > 0 ->
+              "Imported #{count} marketing charge(s) and posted them to the GL."
 
-            conn
-            |> put_flash(:error, msg)
-            |> render(:bulk_upload, errors: [{0, msg}], rows: rows)
-        end
+            true ->
+              "No new charges — everything in this file was already imported."
+          end
+
+        conn
+        |> put_flash(:info, msg)
+        |> redirect(to: dp(conn, "/marketing-costs"))
 
       {:error, %{rows: rows, errors: errors}} ->
         conn
