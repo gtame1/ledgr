@@ -105,7 +105,9 @@
     <div class="hd-kpi">
       <div class="hd-kpi-label">Completed</div>
       <div class="hd-kpi-value" style="color: var(--accent);">{@report.totals.completed}</div>
-      <div class="hd-kpi-sub">{fmt_pct(@report.totals.lead_to_completed)} of leads · status=completed</div>
+      <div class="hd-kpi-sub">
+        {fmt_pct(@report.totals.lead_to_completed)} of leads · status=completed
+      </div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Revenue</div>
@@ -187,18 +189,27 @@
   <%!-- ── Per-campaign funnel, split into tracking cuts ── --%>
   <% stages = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.canonical_stages() %>
   <% outcomes = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.outcome_stages() %>
+  <% tiers = Ledgr.Domains.HelloDoctor.AcquisitionMetrics.tier_stages() %>
   <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Per-campaign funnel</h2>
   <p class="text-xs mb-5" style="color: var(--text-muted); max-width: 80ch;">
     Split into tracking windows at each campaign cut — the most recent window is shown below;
     earlier ones are collapsed. Each table's numbers are windowed to its own period (clamped to the
-    range above). The numbered <em>stage</em> columns (greeting → payment link) are cumulative — a
+    range above). The numbered <em>stage</em>
+    columns (greeting → payment link) are cumulative — a
     conversation in <em>doctor_recommended</em>
     is also counted in <em>greeting</em>, <em>symptoms</em>, <em>orientation</em>. The
-    <em>outcome</em> columns to the right (Paid · Consult · Done · Cancel · Failed) are measured
-    from the <code>consultations</code> and <code>stripe_payments</code> tables — not from the bot's
-    chat state, which stalls once a consultation starts — and are independent, not cumulative. Hover
-    any cell to see its share of that table's column total. Landing-page campaigns run across every
-    window, so they appear in each table with their leads divided at the cuts.
+    <em>outcome</em>
+    columns to the right (Paid · Consult · Done · Cancel · Failed) are measured
+    from the <code>consultations</code>
+    and <code>stripe_payments</code>
+    tables — not from the bot's
+    chat state, which stalls once a consultation starts — and are independent, not cumulative. The
+    rightmost <em>L1/L2/L3</em>
+    columns count the distinct patients each campaign brought who are now
+    Engaged (L1), Converted (L2), or Core (L3) — patient quality, shown as a share of the campaign's
+    unique patients on hover. Hover any cell to see its share of that table's column total.
+    Landing-page campaigns run across every window, so they appear in each table with their leads
+    divided at the cuts.
   </p>
 
   <%= for cut <- @cut_tables do %>
@@ -208,7 +219,7 @@
         {cut_title(cut)}
         <span class="text-xs font-normal" style="color: var(--text-muted);">· current</span>
       </h3>
-      <.cut_table cut={cut} stages={stages} outcomes={outcomes} />
+      <.cut_table cut={cut} stages={stages} outcomes={outcomes} tiers={tiers} />
     <% else %>
       <%!-- Earlier cuts: collapsed into a details menu --%>
       <details class="hd-card" style="padding: 0.75rem 1rem; margin-bottom: 1rem;">
@@ -219,7 +230,7 @@
           </span>
         </summary>
         <div class="mt-3">
-          <.cut_table cut={cut} stages={stages} outcomes={outcomes} />
+          <.cut_table cut={cut} stages={stages} outcomes={outcomes} tiers={tiers} />
         </div>
       </details>
     <% end %>
@@ -232,8 +243,7 @@
     </summary>
     <p class="text-xs mt-3" style="color: var(--text-muted);">
       Each campaign's WhatsApp click-to-chat link prefills a welcome message
-      containing the campaign's emoji. Attribution keys on the
-      <strong>emoji alone</strong>
+      containing the campaign's emoji. Attribution keys on the <strong>emoji alone</strong>
       in the first inbound message — the welcome text is shown here for
       reference only and isn't required to match.
     </p>

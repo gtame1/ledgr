@@ -165,6 +165,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
   attr :totals, :map, required: true
   attr :stages, :list, required: true
   attr :outcomes, :list, required: true
+  attr :tiers, :list, required: true
 
   def funnel_table(assigns) do
     ~H"""
@@ -219,6 +220,14 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
               title={"#{o.label} — measured from consultations / stripe_payments, not funnel_stage (independent, not cumulative)"}
             >
               {o.short}
+            </th>
+            <th
+              :for={t <- @tiers}
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap; border-left: 1px solid var(--border-subtle);"
+              title={"#{t.label} — distinct attributed patients currently at this lifecycle tier (from patient_segments); % of the campaign's unique patients"}
+            >
+              {t.short}
             </th>
             <th
               class="text-right p-3 pr-4 text-xs font-semibold uppercase"
@@ -282,6 +291,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
                 {count}
               </td>
             <% end %>
+            <%= for t <- @tiers do %>
+              <% count = Map.get(entry, t.key) %>
+              <% share = Map.get(entry, :"pct_#{t.key}") %>
+              <td
+                class="hd-tooltip-cell p-3 text-right"
+                style={"color: #{t.color}; border-left: 1px solid var(--border-subtle);"}
+                data-tip={"#{t.label} — #{fmt_pct(share)} of this campaign's patients"}
+              >
+                {count}
+              </td>
+            <% end %>
             <td class="p-3 pr-4 text-right font-semibold">
               {fmt_money(entry.revenue_mxn)}
             </td>
@@ -329,6 +349,16 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
                 {Map.get(@totals, o.key)}
               </td>
             <% end %>
+            <%= for t <- @tiers do %>
+              <% pct_of_patients = Map.get(@totals, :"pct_#{t.key}") %>
+              <td
+                class="hd-tooltip-cell p-3 text-right font-bold"
+                style={"color: #{t.color}; border-left: 1px solid var(--border-subtle);"}
+                data-tip={"#{fmt_pct(pct_of_patients)} of all unique patients · #{t.label}"}
+              >
+                {Map.get(@totals, t.key)}
+              </td>
+            <% end %>
             <td class="p-3 pr-4 text-right font-bold">{fmt_money(@totals.revenue_mxn)}</td>
           </tr>
         </tfoot>
@@ -357,6 +387,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
   attr :cut, :map, required: true
   attr :stages, :list, required: true
   attr :outcomes, :list, required: true
+  attr :tiers, :list, required: true
 
   def cut_table(assigns) do
     ~H"""
@@ -369,7 +400,13 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
       <p class="text-xs mb-2" style="color: var(--text-muted);">
         Showing {Calendar.strftime(win_start, "%b %-d")} – {Calendar.strftime(win_end, "%b %-d, %Y")} · {@cut.totals.leads} leads
       </p>
-      <.funnel_table entries={@cut.entries} totals={@cut.totals} stages={@stages} outcomes={@outcomes} />
+      <.funnel_table
+        entries={@cut.entries}
+        totals={@cut.totals}
+        stages={@stages}
+        outcomes={@outcomes}
+        tiers={@tiers}
+      />
     <% end %>
     """
   end

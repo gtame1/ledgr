@@ -153,6 +153,24 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     ]
   end
 
+  @doc """
+  Patient lifecycle tiers (from `patient_segments`), rendered as a column
+  group after the outcomes. Each cell is the count of DISTINCT attributed
+  patients whose current tier is L1 (Engaged: ≥3 msgs, no consult), L2
+  (Converted: 1 completed consult), or L3 (Core: ≥2 completed consults).
+  L0 (leads / non-patients) is omitted — it's already covered by Leads /
+  Patients. First-touch attribution, so a campaign keeps credit for the
+  patients it brought even on their later (organic) conversations. Colors
+  mirror `PatientSegments.tiers/0`.
+  """
+  def tier_stages do
+    [
+      %{key: :patients_l1, tier: "L1", label: "L1 Engaged", short: "L1", color: "#0ea5e9"},
+      %{key: :patients_l2, tier: "L2", label: "L2 Converted", short: "L2", color: "#16a34a"},
+      %{key: :patients_l3, tier: "L3", label: "L3 Core", short: "L3", color: "#7c3aed"}
+    ]
+  end
+
   # Maps every prod `funnel_stage` value onto an EARLY canonical idx
   # (1..6). Stages NOT in this list get NULL idx and don't count toward
   # any reached_<N>. Anything at or past payment_link_sent — including
@@ -470,11 +488,17 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       COUNT(*) FILTER (
         WHERE cc.has_failed AND NOT COALESCE(cc.has_completed, false)
       ) AS failed,
+      -- Patient lifecycle tier (from patient_segments): distinct attributed
+      -- patients whose current tier is L1/L2/L3. Patient-quality per campaign.
+      COUNT(DISTINCT a.patient_id) FILTER (WHERE COALESCE(ps.tier, 'L0') = 'L1') AS patients_l1,
+      COUNT(DISTINCT a.patient_id) FILTER (WHERE COALESCE(ps.tier, 'L0') = 'L2') AS patients_l2,
+      COUNT(DISTINCT a.patient_id) FILTER (WHERE COALESCE(ps.tier, 'L0') = 'L3') AS patients_l3,
       COALESCE(SUM(cp.net_revenue), 0) AS revenue_mxn
     FROM attributed a
     LEFT JOIN conv_cons cc ON cc.conversation_id = a.conversation_id
     LEFT JOIN conv_pay cp ON cp.conversation_id = a.conversation_id
     LEFT JOIN patient_days pd ON pd.pid = a.patient_id
+    LEFT JOIN patient_segments ps ON ps.patient_id = a.patient_id
     WHERE a.campaign_id IS NOT NULL
     GROUP BY a.campaign_id
     """
@@ -497,7 +521,11 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       revenue_mxn: 0
     }
 
-    keys = Enum.map(canonical_stages(), & &1.key) ++ Enum.map(outcome_stages(), & &1.key)
+    keys =
+      Enum.map(canonical_stages(), & &1.key) ++
+        Enum.map(outcome_stages(), & &1.key) ++
+        Enum.map(tier_stages(), & &1.key)
+
     Enum.reduce(keys, base, fn k, acc -> Map.put(acc, k, 0) end)
   end
 
@@ -530,6 +558,20 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         Map.put(acc, :"pct_#{s.key}", pct(Map.get(outcomes, s.key), leads))
       end)
 
+    # Lifecycle-tier patient counts, plus each tier's share of the campaign's
+    # unique patients (for the hover tooltip).
+    unique_patients = row.unique_patients || 0
+
+    tiers =
+      Enum.reduce(tier_stages(), %{}, fn s, acc ->
+        Map.put(acc, s.key, Map.get(row, s.key) || 0)
+      end)
+
+    tier_pcts =
+      Enum.reduce(tier_stages(), %{}, fn s, acc ->
+        Map.put(acc, :"pct_#{s.key}", pct(Map.get(tiers, s.key), unique_patients))
+      end)
+
     base = %{
       leads: leads,
       unique_patients: row.unique_patients || 0,
@@ -555,6 +597,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     |> Map.merge(reached_pcts)
     |> Map.merge(outcomes)
     |> Map.merge(outcome_pcts)
+    |> Map.merge(tiers)
+    |> Map.merge(tier_pcts)
     |> Map.merge(aliases)
   end
 
@@ -571,7 +615,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     summed_keys =
       [:leads, :unique_patients, :returning_patients, :pending_routing, :revenue_mxn] ++
         Enum.map(canonical_stages(), & &1.key) ++
-        Enum.map(outcome_stages(), & &1.key)
+        Enum.map(outcome_stages(), & &1.key) ++
+        Enum.map(tier_stages(), & &1.key)
 
     summed =
       Enum.reduce(summed_keys, %{}, fn k, acc ->
@@ -606,10 +651,21 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         Map.put(acc, :"pct_#{s.key}", pct(Map.get(summed, s.key), leads))
       end)
 
+    # Tier columns roll up as a share of all unique patients (not leads).
+    tier_pct_rolls =
+      Enum.reduce(tier_stages(), %{}, fn s, acc ->
+        Map.put(
+          acc,
+          :"pct_#{s.key}",
+          pct(Map.get(summed, s.key), Map.get(summed, :unique_patients))
+        )
+      end)
+
     summed
     |> Map.merge(aliases)
     |> Map.merge(pct_rolls)
     |> Map.merge(outcome_pct_rolls)
+    |> Map.merge(tier_pct_rolls)
   end
 
   # ── Daily trend ──────────────────────────────────────────────────
