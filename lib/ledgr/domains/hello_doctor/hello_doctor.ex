@@ -194,7 +194,9 @@ defmodule Ledgr.Domains.HelloDoctor do
       {"Commission", "commission"},
       {"Operating Expense", "operating_expense"},
       {"External Cost", "external_cost"},
-      {"Stripe Payout", "payout"}
+      {"Stripe Payout", "payout"},
+      {"Marketing Cost", "marketing_cost"},
+      {"Marketing Cost Reversal", "marketing_cost_reversal"}
     ]
   end
 
