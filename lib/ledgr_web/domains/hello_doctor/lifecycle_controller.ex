@@ -134,6 +134,42 @@ defmodule LedgrWeb.Domains.HelloDoctor.LifecycleHTML do
   def week_label(%{week_start: %Date{} = d}), do: "#{elem(@months, d.month)} #{d.day}"
   def week_label(_), do: "—"
 
+  @doc "Weekly unit-economics table body (shared by the visible + collapsed views)."
+  attr :rows, :list, required: true
+
+  def weekly_econ_table(assigns) do
+    ~H"""
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+          <th class="text-left p-3 text-xs font-semibold uppercase">Week of</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Spend</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Free consult</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Leads</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">CPL</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">New converted</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">CAC (blended)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr :for={e <- @rows} style="border-bottom: 1px solid var(--border-subtle);">
+          <td class="p-3" style="color: var(--text-main); font-weight: 600;">{week_label(e)}</td>
+          <td class="p-3 text-right">{fmt_money(e.spend)}</td>
+          <td class="p-3 text-right" style="color: var(--text-muted);">
+            {fmt_money(e.free_consult)}
+          </td>
+          <td class="p-3 text-right">{e.leads}</td>
+          <td class="p-3 text-right">{if e.leads > 0, do: fmt_money(e.cpl), else: "—"}</td>
+          <td class="p-3 text-right">{e.new_converted}</td>
+          <td class="p-3 text-right font-semibold">
+            {if e.new_converted > 0, do: fmt_money(e.cac), else: "—"}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    """
+  end
+
   def fmt_money(n) when is_number(n) do
     sign = if n < 0, do: "-", else: ""
     "#{sign}$#{:erlang.float_to_binary(abs(n) / 1, decimals: 2)}"

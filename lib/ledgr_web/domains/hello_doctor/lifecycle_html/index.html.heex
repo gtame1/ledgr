@@ -210,37 +210,25 @@
   <%!-- ── Unit economics by week ── --%>
   <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Unit economics by week</h2>
   <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 90ch;">
-    Same as above at ISO-week grain (weeks start Monday; label is the week's Monday). Useful for
-    reading spend/CPL/CAC movements faster than the monthly roll-up.
+    Same as above at ISO-week grain (weeks start Monday; label is the week's Monday), newest first.
+    The 5 most recent weeks are shown; older weeks are collapsed below.
   </p>
-  <div class="hd-card mb-8" style="padding: 0; overflow-x: auto;">
-    <table class="w-full text-sm">
-      <thead>
-        <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
-          <th class="text-left p-3 text-xs font-semibold uppercase">Week of</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">Spend</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">Free consult</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">Leads</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">CPL</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">New converted</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">CAC (blended)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <%= for e <- @report.unit_econ_week do %>
-          <tr style="border-bottom: 1px solid var(--border-subtle);">
-            <td class="p-3" style="color: var(--text-main); font-weight: 600;">{week_label(e)}</td>
-            <td class="p-3 text-right">{fmt_money(e.spend)}</td>
-            <td class="p-3 text-right" style="color: var(--text-muted);">{fmt_money(e.free_consult)}</td>
-            <td class="p-3 text-right">{e.leads}</td>
-            <td class="p-3 text-right">{if e.leads > 0, do: fmt_money(e.cpl), else: "—"}</td>
-            <td class="p-3 text-right">{e.new_converted}</td>
-            <td class="p-3 text-right font-semibold">{if e.new_converted > 0, do: fmt_money(e.cac), else: "—"}</td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+  <% weeks_desc = Enum.reverse(@report.unit_econ_week) %>
+  <% recent = Enum.take(weeks_desc, 5) %>
+  <% earlier = Enum.drop(weeks_desc, 5) %>
+  <div class="hd-card mb-4" style="padding: 0; overflow-x: auto;">
+    <.weekly_econ_table rows={recent} />
   </div>
+  <%= if earlier != [] do %>
+    <details class="hd-card mb-8" style="padding: 0.75rem 1rem;">
+      <summary class="text-sm font-semibold cursor-pointer" style="color: var(--text-main);">
+        Show {length(earlier)} earlier week{if length(earlier) == 1, do: "", else: "s"}
+      </summary>
+      <div class="mt-3" style="overflow-x: auto;">
+        <.weekly_econ_table rows={earlier} />
+      </div>
+    </details>
+  <% end %>
 
   <%!-- ── LTV model ── --%>
   <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">LTV model</h2>
