@@ -30,18 +30,31 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostAccounting do
   Posts a single marketing_cost row to the GL. Returns `{:ok, updated}`,
   `{:ok, :already_posted, cost}`, or `{:error, reason}`.
   """
-  def post_to_gl(%MarketingCost{posted_at: posted} = cost) when not is_nil(posted),
+  def post_to_gl(%MarketingCost{} = cost), do: post_to_gl(cost, gl_accounts())
+
+  @doc """
+  The two GL accounts a marketing cost posts to. Fetch once and pass to
+  `post_to_gl/2` when posting many rows so a bulk import doesn't re-query the
+  same two accounts hundreds of times inside a single transaction (that
+  starved the small prod pool and blew the 15s connection-checkout timeout).
+  """
+  def gl_accounts do
+    %{
+      expense: Accounting.get_account_by_code!(@marketing_expense_code),
+      payable: Accounting.get_account_by_code!(@marketing_payable_code)
+    }
+  end
+
+  def post_to_gl(%MarketingCost{posted_at: posted} = cost, _accts) when not is_nil(posted),
     do: {:ok, :already_posted, cost}
 
-  def post_to_gl(%MarketingCost{} = cost) do
+  def post_to_gl(%MarketingCost{} = cost, %{expense: expense, payable: payable}) do
     fx_rate = fx_rate_for(cost.currency)
     amount_mxn_cents = round(cost.amount * fx_rate * 100)
 
     if amount_mxn_cents <= 0 do
       {:error, :zero_amount}
     else
-      expense = Accounting.get_account_by_code!(@marketing_expense_code)
-      payable = Accounting.get_account_by_code!(@marketing_payable_code)
       label = platform_label(cost.platform)
       fx_note = if cost.currency == "MXN", do: "", else: " @ #{fx_rate} MXN/#{cost.currency}"
 
@@ -100,12 +113,14 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostAccounting do
 
   @doc "Posts every unposted marketing_cost. Returns %{posted, skipped, errors}."
   def post_all_unposted do
+    accts = gl_accounts()
+
     MarketingCost
     |> where([c], is_nil(c.posted_at))
     |> order_by([c], asc: :date, asc: :platform)
     |> Repo.all()
     |> Enum.reduce(%{posted: 0, skipped: 0, errors: 0}, fn cost, acc ->
-      case post_to_gl(cost) do
+      case post_to_gl(cost, accts) do
         {:ok, :already_posted, _} -> %{acc | skipped: acc.skipped + 1}
         {:ok, _} -> %{acc | posted: acc.posted + 1}
         {:error, :zero_amount} -> %{acc | skipped: acc.skipped + 1}

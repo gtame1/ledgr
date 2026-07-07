@@ -88,16 +88,24 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
   in one transaction. Returns `{:ok, count}` or `{:error, row, reason}`.
   """
   def commit(rows) when is_list(rows) do
-    Repo.transaction(fn ->
-      Enum.reduce_while(rows, 0, fn row, acc ->
-        with {:ok, cost} <- insert_cost(row),
-             {:ok, _posted} <- MarketingCostAccounting.post_to_gl(cost) do
-          {:cont, acc + 1}
-        else
-          {:error, reason} -> {:halt, {:error, row, reason}}
-        end
-      end)
-    end)
+    # Fetch the GL accounts once, not per row — a bulk import re-querying them
+    # inside the transaction held a connection long enough to blow the 15s
+    # checkout timeout on the small prod pool. Give the transaction real headroom.
+    accts = MarketingCostAccounting.gl_accounts()
+
+    Repo.transaction(
+      fn ->
+        Enum.reduce_while(rows, 0, fn row, acc ->
+          with {:ok, cost} <- insert_cost(row),
+               {:ok, _posted} <- MarketingCostAccounting.post_to_gl(cost, accts) do
+            {:cont, acc + 1}
+          else
+            {:error, reason} -> {:halt, {:error, row, reason}}
+          end
+        end)
+      end,
+      timeout: 120_000
+    )
     |> case do
       {:ok, {:error, row, reason}} -> {:error, row, reason}
       {:ok, count} when is_integer(count) -> {:ok, count}
