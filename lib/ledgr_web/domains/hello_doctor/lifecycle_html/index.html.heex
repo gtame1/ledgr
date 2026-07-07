@@ -3,13 +3,22 @@
   <div class="mb-6">
     <div class="flex items-baseline justify-between gap-4 flex-wrap mb-2">
       <h1 class="text-2xl font-bold" style="color: var(--text-main);">Unit Economics</h1>
-      <a
-        href={dp(@domain_path_prefix, "/unit-economics/download?start_date=#{@start_date}&end_date=#{@end_date}")}
-        class="hd-btn-secondary text-sm"
-        style="padding: 0.5rem 0.95rem;"
-      >
-        ⬇ Download CSV
-      </a>
+      <div class="flex gap-2">
+        <a
+          href={dp(@domain_path_prefix, "/marketing-costs/bulk-upload")}
+          class="hd-btn-primary text-sm"
+          style="padding: 0.5rem 0.95rem;"
+        >
+          ⬆ Upload marketing costs
+        </a>
+        <a
+          href={dp(@domain_path_prefix, "/unit-economics/download?start_date=#{@start_date}&end_date=#{@end_date}")}
+          class="hd-btn-secondary text-sm"
+          style="padding: 0.5rem 0.95rem;"
+        >
+          ⬇ Download CSV
+        </a>
+      </div>
     </div>
     <p class="text-sm" style="color: var(--text-muted); max-width: 90ch;">
       Lifecycle conversion (<strong>L1 Engaged → L2+ Converted</strong>) and unit economics.
@@ -62,9 +71,9 @@
       <div class="hd-kpi-sub">{fmt_pct(@report.totals.conv_pct)} of base</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">CAC (window)</div>
+      <div class="hd-kpi-label">Blended CAC</div>
       <div class="hd-kpi-value">{fmt_money(@report.ltv.window_cac)}</div>
-      <div class="hd-kpi-sub">spend ÷ new converted</div>
+      <div class="hd-kpi-sub">(spend + free consults) ÷ converted</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Projected LTV</div>
@@ -164,8 +173,10 @@
   <%!-- ── Unit economics ── --%>
   <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Unit economics by month</h2>
   <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 90ch;">
-    Spend is account-level (platform totals). CPL = spend ÷ leads (new engaged patients that month);
-    CAC = spend ÷ patients who reached their first completed consult that month.
+    Spend is account-level (platform totals). <em>Free consult</em> is the cost of comped consults
+    given away that month (the doctor share we absorb). CPL = spend ÷ leads (new engaged patients);
+    <strong>CAC is blended</strong> = (spend + free consults) ÷ patients who reached their first
+    completed consult that month.
   </p>
   <div class="hd-card mb-8" style="padding: 0; overflow-x: auto;">
     <table class="w-full text-sm">
@@ -173,10 +184,11 @@
         <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
           <th class="text-left p-3 text-xs font-semibold uppercase">Month</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">Spend</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Free consult</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">Leads</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">CPL</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">New converted</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">CAC</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">CAC (blended)</th>
         </tr>
       </thead>
       <tbody>
@@ -184,10 +196,11 @@
           <tr style="border-bottom: 1px solid var(--border-subtle);">
             <td class="p-3" style="color: var(--text-main); font-weight: 600;">{month_label(e)}</td>
             <td class="p-3 text-right">{fmt_money(e.spend)}</td>
+            <td class="p-3 text-right" style="color: var(--text-muted);">{fmt_money(e.free_consult)}</td>
             <td class="p-3 text-right">{e.leads}</td>
             <td class="p-3 text-right">{if e.leads > 0, do: fmt_money(e.cpl), else: "—"}</td>
             <td class="p-3 text-right">{e.new_converted}</td>
-            <td class="p-3 text-right">{if e.new_converted > 0, do: fmt_money(e.cac), else: "—"}</td>
+            <td class="p-3 text-right font-semibold">{if e.new_converted > 0, do: fmt_money(e.cac), else: "—"}</td>
           </tr>
         <% end %>
       </tbody>
@@ -206,10 +219,11 @@
         <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
           <th class="text-left p-3 text-xs font-semibold uppercase">Week of</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">Spend</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Free consult</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">Leads</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">CPL</th>
           <th class="text-right p-3 text-xs font-semibold uppercase">New converted</th>
-          <th class="text-right p-3 text-xs font-semibold uppercase">CAC</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">CAC (blended)</th>
         </tr>
       </thead>
       <tbody>
@@ -217,10 +231,11 @@
           <tr style="border-bottom: 1px solid var(--border-subtle);">
             <td class="p-3" style="color: var(--text-main); font-weight: 600;">{week_label(e)}</td>
             <td class="p-3 text-right">{fmt_money(e.spend)}</td>
+            <td class="p-3 text-right" style="color: var(--text-muted);">{fmt_money(e.free_consult)}</td>
             <td class="p-3 text-right">{e.leads}</td>
             <td class="p-3 text-right">{if e.leads > 0, do: fmt_money(e.cpl), else: "—"}</td>
             <td class="p-3 text-right">{e.new_converted}</td>
-            <td class="p-3 text-right">{if e.new_converted > 0, do: fmt_money(e.cac), else: "—"}</td>
+            <td class="p-3 text-right font-semibold">{if e.new_converted > 0, do: fmt_money(e.cac), else: "—"}</td>
           </tr>
         <% end %>
       </tbody>
@@ -280,8 +295,12 @@
       ({fmt_money(@report.ltv.avg_paid_consult_net)}) — return visits are charged even when the first is
       comped, so LTV improves as returns compound. The return rate is the observed share of converted
       patients with a 2nd consult ({@report.ltv.core}/{@report.ltv.converted}); the sample is small, so
-      override it above to stress-test. Net contribution is currently negative — this page shows how much
-      pricing / return volume must rise for LTV/CAC to clear 3×.
+      override it above to stress-test. <strong>Blended CAC</strong> includes the free consults we give
+      away ({fmt_money(@report.ltv.window_subsidy)} over this window, on top of
+      {fmt_money(@report.ltv.window_spend)} ad spend) — that acquisition subsidy sits in CAC and is
+      <em>not</em> double-counted in projected LTV, which values only expected future <em>charged</em>
+      consults. Net contribution is currently negative — this page shows how much pricing / return
+      volume must rise for LTV/CAC to clear 3×.
     </p>
   </div>
 </div>

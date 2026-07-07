@@ -45,10 +45,14 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
   """
   def generate(start_date, end_date, opts \\ []) do
     patients = load_patients()
-    econ = consult_economics()
+    consults = load_completed_consults()
+    econ = economics_from(consults)
+    subsidy_m = subsidy_by_month(consults)
+    subsidy_w = subsidy_by_week(consults)
     spend = spend_by_month()
 
     months = month_range(start_date, end_date)
+    weeks = week_range(start_date, end_date)
     today = HelloDoctor.today()
 
     %{
@@ -56,10 +60,9 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
       cohorts: cohort_rows(patients, months),
       speed: conversion_speed(patients, today),
       buildup: buildup_series(patients, months),
-      unit_econ: unit_econ_rows(patients, spend, months),
-      unit_econ_week:
-        unit_econ_weekly_rows(patients, spend_by_week(), week_range(start_date, end_date)),
-      ltv: ltv_model(patients, econ, spend, months, opts),
+      unit_econ: unit_econ_rows(patients, spend, subsidy_m, months),
+      unit_econ_week: unit_econ_weekly_rows(patients, spend_by_week(), subsidy_w, weeks),
+      ltv: ltv_model(patients, econ, spend, subsidy_m, months, opts),
       totals: totals(patients)
     }
   end
@@ -138,8 +141,11 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
     end)
   end
 
-  # Monthly spend / leads / CPL / new-converted / CAC.
-  defp unit_econ_rows(patients, spend, months) do
+  # Monthly Spend / Free-consult subsidy / Leads / CPL / new-converted / CAC.
+  # CAC is *blended*: (ad spend + free-consult subsidy) ÷ new converted — the
+  # comped consults we give away to win customers are a real acquisition cost.
+  # CPL stays media-only (spend ÷ leads).
+  defp unit_econ_rows(patients, spend, subsidy, months) do
     engaged = Enum.filter(patients, & &1.engaged?)
     leads_by = Enum.frequencies_by(engaged, & &1.cohort_month)
 
@@ -150,6 +156,7 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
 
     Enum.map(months, fn {y, m} = key ->
       s = Map.get(spend, key, 0.0)
+      sub = Map.get(subsidy, key, 0.0)
       leads = Map.get(leads_by, key, 0)
       converted = Map.get(converted_by, key, 0)
 
@@ -157,17 +164,18 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
         year: y,
         month: m,
         spend: s,
+        free_consult: sub,
+        total_cost: s + sub,
         leads: leads,
         cpl: safe_div(s, leads),
         new_converted: converted,
-        cac: safe_div(s, converted)
+        cac: safe_div(s + sub, converted)
       }
     end)
   end
 
-  # Weekly Spend / Leads / CPL / new-converted / CAC (ISO weeks, Monday-start).
-  # Same logic as the monthly view, keyed on the week's Monday date.
-  defp unit_econ_weekly_rows(patients, spend_week, weeks) do
+  # Weekly version (ISO weeks, Monday-start), keyed on the week's Monday date.
+  defp unit_econ_weekly_rows(patients, spend_week, subsidy_week, weeks) do
     engaged = Enum.filter(patients, & &1.engaged?)
     leads_by = Enum.frequencies_by(engaged, &Date.beginning_of_week(&1.first_conv))
 
@@ -178,23 +186,26 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
 
     Enum.map(weeks, fn monday ->
       s = Map.get(spend_week, monday, 0.0)
+      sub = Map.get(subsidy_week, monday, 0.0)
       leads = Map.get(leads_by, monday, 0)
       converted = Map.get(converted_by, monday, 0)
 
       %{
         week_start: monday,
         spend: s,
+        free_consult: sub,
+        total_cost: s + sub,
         leads: leads,
         cpl: safe_div(s, leads),
         new_converted: converted,
-        cac: safe_div(s, converted)
+        cac: safe_div(s + sub, converted)
       }
     end)
   end
 
   # LTV: observed net/gross per converted, plus a forward projection that values
   # expected future (charged) return consults at the observed paid-consult net.
-  defp ltv_model(patients, econ, spend, months, opts) do
+  defp ltv_model(patients, econ, spend, subsidy, months, opts) do
     converted = Enum.filter(patients, & &1.converted?)
     n_converted = length(converted)
     n_core = Enum.count(converted, &(&1.consults >= 2))
@@ -216,14 +227,18 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
     # (returns are charged even when the first consult was comped).
     projected_net_ltv = projected_consults * avg_paid_net
 
-    # Blended CAC over the window: spend ÷ patients who converted in-window.
+    # Blended CAC over the window: (ad spend + free-consult subsidy) ÷ patients
+    # who converted in-window. The free consult is an acquisition cost, so it's
+    # in CAC — NOT double-counted in projected LTV, which values only expected
+    # future *charged* consults.
     window_spend = months |> Enum.map(&Map.get(spend, &1, 0.0)) |> Enum.sum()
+    window_subsidy = months |> Enum.map(&Map.get(subsidy, &1, 0.0)) |> Enum.sum()
 
     window_converted =
       converted
       |> Enum.count(fn p -> p.converted_month in months end)
 
-    cac = safe_div(window_spend, window_converted)
+    cac = safe_div(window_spend + window_subsidy, window_converted)
 
     %{
       converted: n_converted,
@@ -236,6 +251,8 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
       return_rate_overridden?: Keyword.has_key?(opts, :return_rate),
       projected_consults: projected_consults,
       projected_net_ltv: projected_net_ltv,
+      window_spend: window_spend,
+      window_subsidy: window_subsidy,
       window_cac: cac,
       projected_ltv_cac: safe_div(projected_net_ltv, cac)
     }
@@ -360,45 +377,61 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
     }
   end
 
-  # Global consult economics for the LTV projection.
-  defp consult_economics do
+  # One row per completed consult (non-test): MX date, net contribution, and
+  # whether it was actually charged. Powers the LTV projection AND the
+  # free-consult subsidy that feeds blended CAC. Only ~hundreds of rows.
+  defp load_completed_consults do
     share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     sql = """
-    WITH cx AS (
-      SELECT (COALESCE(spx.amount, c.payment_amount)
-                - COALESCE(spx.stripe_fee, 0)
-                - COALESCE(cp.doctor_share_cents / 100.0, #{share})
-                - COALESCE(spx.amount_refunded, 0)) AS net,
-             (COALESCE(spx.amount, c.payment_amount) > 0) AS charged
-      FROM consultations c
-      LEFT JOIN conversations conv ON conv.id = c.conversation_id
-      LEFT JOIN doctors d ON d.id = c.doctor_id
-      LEFT JOIN LATERAL (
-        SELECT sp.amount, sp.stripe_fee, sp.amount_refunded
-        FROM stripe_payments sp
-        WHERE sp.consultation_id = c.id
-           OR (sp.consultation_id IS NULL AND c.stripe_payment_intent_id IS NOT NULL
-               AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id)
-        ORDER BY sp.id LIMIT 1
-      ) spx ON TRUE
-      LEFT JOIN consultation_payouts cp ON cp.consultation_id = c.id
-      WHERE c.status = 'completed' AND COALESCE(c.payment_source, 'stripe') <> 'test'
-        AND c.patient_id IS NOT NULL
-    )
-    SELECT COUNT(*) FILTER (WHERE charged) AS charged_n,
-           COALESCE(SUM(net) FILTER (WHERE charged), 0) AS charged_net
-    FROM cx
+    SELECT (c.completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date AS consult_date,
+           (COALESCE(spx.amount, c.payment_amount)
+             - COALESCE(spx.stripe_fee, 0)
+             - COALESCE(cp.doctor_share_cents / 100.0, #{share})
+             - COALESCE(spx.amount_refunded, 0)) AS net,
+           (COALESCE(spx.amount, c.payment_amount) > 0) AS charged
+    FROM consultations c
+    LEFT JOIN conversations conv ON conv.id = c.conversation_id
+    LEFT JOIN doctors d ON d.id = c.doctor_id
+    LEFT JOIN LATERAL (
+      SELECT sp.amount, sp.stripe_fee, sp.amount_refunded
+      FROM stripe_payments sp
+      WHERE sp.consultation_id = c.id
+         OR (sp.consultation_id IS NULL AND c.stripe_payment_intent_id IS NOT NULL
+             AND sp.stripe_payment_intent_id = c.stripe_payment_intent_id)
+      ORDER BY sp.id LIMIT 1
+    ) spx ON TRUE
+    LEFT JOIN consultation_payouts cp ON cp.consultation_id = c.id
+    WHERE c.status = 'completed' AND COALESCE(c.payment_source, 'stripe') <> 'test'
+      AND c.patient_id IS NOT NULL AND c.completed_at IS NOT NULL
     """
 
-    case query(sql, []) do
-      [%{charged_n: n, charged_net: net}] ->
-        n = to_int(n)
-        %{charged_consults: n, avg_net_charged: safe_div(to_float(net), n)}
+    query(sql, [])
+    |> Enum.map(fn r ->
+      %{consult_date: r.consult_date, net: to_float(r.net), charged: r.charged}
+    end)
+  end
 
-      _ ->
-        %{charged_consults: 0, avg_net_charged: 0.0}
-    end
+  # Avg net of a *charged* consult — the value of a future paid return.
+  defp economics_from(consults) do
+    charged = Enum.filter(consults, & &1.charged)
+    n = length(charged)
+    %{charged_consults: n, avg_net_charged: safe_div(sum_by(charged, & &1.net), n)}
+  end
+
+  # Free-consult subsidy = HD's cost of comped (uncharged) completed consults =
+  # the negative net we absorb (≈ the doctor share). Bucketed by MX month/week.
+  defp subsidy_by_month(consults),
+    do: subsidy_by(consults, &{&1.consult_date.year, &1.consult_date.month})
+
+  defp subsidy_by_week(consults),
+    do: subsidy_by(consults, &Date.beginning_of_week(&1.consult_date))
+
+  defp subsidy_by(consults, key_fun) do
+    consults
+    |> Enum.reject(& &1.charged)
+    |> Enum.group_by(key_fun)
+    |> Map.new(fn {k, rows} -> {k, sum_by(rows, fn r -> max(0.0, -r.net) end)} end)
   end
 
   # Marketing spend per MX month, in MXN pesos. Posted rows carry
