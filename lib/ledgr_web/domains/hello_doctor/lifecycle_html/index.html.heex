@@ -1,0 +1,254 @@
+<div class="hd-page">
+  <%!-- ── Header ── --%>
+  <div class="mb-6">
+    <div class="flex items-baseline justify-between gap-4 flex-wrap mb-2">
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Unit Economics</h1>
+      <a
+        href={dp(@domain_path_prefix, "/unit-economics/download?start_date=#{@start_date}&end_date=#{@end_date}")}
+        class="hd-btn-secondary text-sm"
+        style="padding: 0.5rem 0.95rem;"
+      >
+        ⬇ Download CSV
+      </a>
+    </div>
+    <p class="text-sm" style="color: var(--text-muted); max-width: 90ch;">
+      Lifecycle conversion (<strong>L1 Engaged → L2+ Converted</strong>) and unit economics.
+      The active base is L1+L2+L3 (patients with ≥3 messages or a completed consult); conversion is
+      the share that reached a completed consult. Spend comes from
+      <a href={dp(@domain_path_prefix, "/marketing-costs")} style="color: var(--accent);">Marketing Costs</a>.
+      Net contribution = charged − Stripe fee − doctor share − refunds; it's negative today because
+      first consults are often comped and the doctor share exceeds current pricing — projected LTV
+      shows the path as charged return visits compound.
+    </p>
+  </div>
+
+  <%!-- ── Filters ── --%>
+  <div class="hd-card p-4 mb-6">
+    <form method="get" class="flex flex-wrap items-end gap-3">
+      <label class="text-sm" style="color: var(--text-main);">
+        From
+        <input type="date" name="start_date" value={@start_date} class="hd-input text-sm ml-1" style="padding: 0.4rem 0.65rem;" />
+      </label>
+      <label class="text-sm" style="color: var(--text-main);">
+        To
+        <input type="date" name="end_date" value={@end_date} class="hd-input text-sm ml-1" style="padding: 0.4rem 0.65rem;" />
+      </label>
+      <label class="text-sm" style="color: var(--text-main);">
+        Return rate override
+        <input
+          type="text"
+          name="return_rate"
+          value={@return_rate_param}
+          placeholder={"obs #{fmt_pct(@report.ltv.observed_return_rate * 100)}"}
+          class="hd-input text-sm ml-1"
+          style="padding: 0.4rem 0.65rem; width: 8rem;"
+        />
+      </label>
+      <button type="submit" class="hd-btn-primary text-sm" style="padding: 0.4rem 0.95rem;">Apply</button>
+      <div class="ml-auto text-xs" style="color: var(--text-muted);">Default: last 6 months</div>
+    </form>
+  </div>
+
+  <%!-- ── KPI cards ── --%>
+  <div class="hd-kpi-grid mb-8" style="gap: 1.5rem;">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Active base</div>
+      <div class="hd-kpi-value">{@report.totals.leads}</div>
+      <div class="hd-kpi-sub">L1 {@report.totals.l1} · L2 {@report.totals.l2} · L3 {@report.totals.l3}</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Converted (L2+)</div>
+      <div class="hd-kpi-value">{@report.totals.converted}</div>
+      <div class="hd-kpi-sub">{fmt_pct(@report.totals.conv_pct)} of base</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">CAC (window)</div>
+      <div class="hd-kpi-value">{fmt_money(@report.ltv.window_cac)}</div>
+      <div class="hd-kpi-sub">spend ÷ new converted</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Projected LTV</div>
+      <div class="hd-kpi-value" style={"color: #{sign_color(@report.ltv.projected_net_ltv)};"}>
+        {fmt_money(@report.ltv.projected_net_ltv)}
+      </div>
+      <div class="hd-kpi-sub">net, per converted patient</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">LTV / CAC</div>
+      <div class="hd-kpi-value">{fmt_ratio(@report.ltv.projected_ltv_cac)}</div>
+      <div class="hd-kpi-sub">projected</div>
+    </div>
+  </div>
+
+  <%!-- ── Cohort conversion ── --%>
+  <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">L1 → L2+ conversion by cohort</h2>
+  <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 90ch;">
+    Rows are the patient's first-contact month. Recent cohorts under-convert — they haven't had time yet.
+  </p>
+  <div class="hd-card mb-8" style="padding: 0; overflow-x: auto;">
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+          <th class="text-left p-3 text-xs font-semibold uppercase">Cohort</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Engaged base</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Converted (L2+)</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Conv %</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">L2</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">L3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for c <- @report.cohorts do %>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td class="p-3" style="color: var(--text-main); font-weight: 600;">{month_label(c)}</td>
+            <td class="p-3 text-right">{c.engaged}</td>
+            <td class="p-3 text-right">{c.converted}</td>
+            <td class="p-3 text-right font-semibold" style="color: var(--accent);">{fmt_pct(c.conv_pct)}</td>
+            <td class="p-3 text-right" style="color: var(--text-muted);">{c.l2}</td>
+            <td class="p-3 text-right" style="color: var(--text-muted);">{c.l3}</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%!-- ── Conversion speed ── --%>
+  <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Conversion speed</h2>
+  <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 90ch;">
+    Of the base whose first contact is old enough for the window to have fully elapsed (matured
+    denominator), the share that converted within N days.
+  </p>
+  <div class="hd-card p-4 mb-8">
+    <div class="flex flex-wrap gap-6">
+      <%= for cut <- @report.speed.cuts do %>
+        <div>
+          <div class="text-xs uppercase" style="color: var(--text-muted);">Within {cut.days}d</div>
+          <div class="text-xl font-bold" style="color: var(--text-main);">{fmt_pct(cut.pct)}</div>
+          <div class="text-xs" style="color: var(--text-muted);">{cut.converted}/{cut.eligible} matured</div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%!-- ── Client buildup ── --%>
+  <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Client buildup</h2>
+  <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 90ch;">
+    Month-end stock of the base, reconstructed from event dates (true point-in-time). L1 Engaged ·
+    L2 Converted · L3 Core.
+  </p>
+  <% max_total = @report.buildup |> Enum.map(&(&1.l1 + &1.l2 + &1.l3)) |> Enum.max(fn -> 1 end) |> max(1) %>
+  <div class="hd-card p-4 mb-8">
+    <div class="flex flex-col gap-2">
+      <%= for b <- @report.buildup do %>
+        <% total = b.l1 + b.l2 + b.l3 %>
+        <div class="flex items-center gap-3">
+          <div style="width: 6rem; color: var(--text-muted); font-size: 0.8rem;">{month_label(b)}</div>
+          <div style="flex: 1; display: flex; height: 1.1rem; border-radius: 0.25rem; overflow: hidden; background: var(--bg-secondary);">
+            <div style={"width: #{bar_pct(b.l1, max_total)}%; background: #0ea5e9;"} title={"L1 #{b.l1}"}></div>
+            <div style={"width: #{bar_pct(b.l2, max_total)}%; background: #16a34a;"} title={"L2 #{b.l2}"}></div>
+            <div style={"width: #{bar_pct(b.l3, max_total)}%; background: #7c3aed;"} title={"L3 #{b.l3}"}></div>
+          </div>
+          <div style="width: 9rem; text-align: right; font-size: 0.8rem; color: var(--text-main);">
+            {total} <span style="color: var(--text-muted);">(L2+ {b.l2 + b.l3})</span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    <div class="flex gap-4 mt-3 text-xs" style="color: var(--text-muted);">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#0ea5e9;border-radius:2px;"></span> L1 Engaged</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#16a34a;border-radius:2px;"></span> L2 Converted</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:2px;"></span> L3 Core</span>
+    </div>
+  </div>
+
+  <%!-- ── Unit economics ── --%>
+  <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">Unit economics by month</h2>
+  <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 90ch;">
+    Spend is account-level (platform totals). CPL = spend ÷ leads (new engaged patients that month);
+    CAC = spend ÷ patients who reached their first completed consult that month.
+  </p>
+  <div class="hd-card mb-8" style="padding: 0; overflow-x: auto;">
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+          <th class="text-left p-3 text-xs font-semibold uppercase">Month</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Spend</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">Leads</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">CPL</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">New converted</th>
+          <th class="text-right p-3 text-xs font-semibold uppercase">CAC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for e <- @report.unit_econ do %>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td class="p-3" style="color: var(--text-main); font-weight: 600;">{month_label(e)}</td>
+            <td class="p-3 text-right">{fmt_money(e.spend)}</td>
+            <td class="p-3 text-right">{e.leads}</td>
+            <td class="p-3 text-right">{if e.leads > 0, do: fmt_money(e.cpl), else: "—"}</td>
+            <td class="p-3 text-right">{e.new_converted}</td>
+            <td class="p-3 text-right">{if e.new_converted > 0, do: fmt_money(e.cac), else: "—"}</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%!-- ── LTV model ── --%>
+  <h2 class="text-lg font-semibold mb-1" style="color: var(--text-main);">LTV model</h2>
+  <div class="hd-card p-4 mb-8">
+    <div class="hd-kpi-grid" style="gap: 1.5rem;">
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Observed net / converted</div>
+        <div class="hd-kpi-value" style={"color: #{sign_color(@report.ltv.observed_net_per_converted)};"}>
+          {fmt_money(@report.ltv.observed_net_per_converted)}
+        </div>
+        <div class="hd-kpi-sub">to date · gross {fmt_money(@report.ltv.observed_gross_per_converted)}</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Avg paid consult (net)</div>
+        <div class="hd-kpi-value" style={"color: #{sign_color(@report.ltv.avg_paid_consult_net)};"}>
+          {fmt_money(@report.ltv.avg_paid_consult_net)}
+        </div>
+        <div class="hd-kpi-sub">value of a charged return</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Return rate</div>
+        <div class="hd-kpi-value">{fmt_pct(@report.ltv.return_rate * 100)}</div>
+        <div class="hd-kpi-sub">
+          <%= if @report.ltv.return_rate_overridden? do %>
+            overridden · obs {fmt_pct(@report.ltv.observed_return_rate * 100)}
+          <% else %>
+            observed (P 2nd | 1st)
+          <% end %>
+        </div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Projected consults</div>
+        <div class="hd-kpi-value">{fmt_num(@report.ltv.projected_consults)}</div>
+        <div class="hd-kpi-sub">expected lifetime / patient</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Projected LTV</div>
+        <div class="hd-kpi-value" style={"color: #{sign_color(@report.ltv.projected_net_ltv)};"}>
+          {fmt_money(@report.ltv.projected_net_ltv)}
+        </div>
+        <div class="hd-kpi-sub">= consults × avg paid net</div>
+      </div>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">Projected LTV / CAC</div>
+        <div class="hd-kpi-value">{fmt_ratio(@report.ltv.projected_ltv_cac)}</div>
+        <div class="hd-kpi-sub">target ≥ 3×</div>
+      </div>
+    </div>
+    <p class="text-xs mt-4" style="color: var(--text-muted); max-width: 90ch;">
+      <strong>Assumptions.</strong> Projected lifetime consults = 1 / (1 − return&nbsp;rate), capped at 8.
+      Each expected consult is valued at the observed average <em>charged</em> consult net
+      ({fmt_money(@report.ltv.avg_paid_consult_net)}) — return visits are charged even when the first is
+      comped, so LTV improves as returns compound. The return rate is the observed share of converted
+      patients with a 2nd consult ({@report.ltv.core}/{@report.ltv.converted}); the sample is small, so
+      override it above to stress-test. Net contribution is currently negative — this page shows how much
+      pricing / return volume must rise for LTV/CAC to clear 3×.
+    </p>
+  </div>
+</div>

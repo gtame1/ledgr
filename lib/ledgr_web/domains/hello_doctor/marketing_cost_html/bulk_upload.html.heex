@@ -1,0 +1,156 @@
+<div class="hd-page">
+  <div class="mb-8">
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+      <div>
+        <h1 class="text-2xl font-bold" style="color: var(--text-main);">Upload marketing spend</h1>
+        <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 64ch;">
+          Upload a CSV of ad spend (platform + date totals). Each row inserts a
+          marketing cost and posts a journal entry: DEBIT 6050 Marketing &amp; Advertising /
+          CREDIT 2310 Accounts Payable — Marketing. All rows commit in a single
+          transaction — if any row fails, nothing is saved.
+        </p>
+      </div>
+      <a
+        href={dp(@domain_path_prefix, "/marketing-costs")}
+        class="hd-btn-secondary text-sm"
+        style="padding: 0.5rem 0.95rem;"
+      >
+        ← Back to marketing costs
+      </a>
+    </div>
+  </div>
+
+  <%!-- ── Template download ── --%>
+  <div class="hd-card mb-6" style="padding: 1.25rem;">
+    <h2 class="text-base font-semibold mb-2" style="color: var(--text-main);">Need a starting point?</h2>
+    <p class="text-sm mb-3" style="color: var(--text-muted);">
+      Download a blank CSV with the expected header and example rows, fill in your
+      Meta / Google spend per day, then upload it below.
+    </p>
+    <a
+      href={dp(@domain_path_prefix, "/marketing-costs/template")}
+      class="hd-btn-sm"
+      style="padding: 0.45rem 0.85rem;"
+    >
+      ⬇ Download template
+    </a>
+  </div>
+
+  <%!-- ── Format reference ── --%>
+  <div class="hd-card mb-6" style="padding: 1.25rem;">
+    <h2 class="text-base font-semibold mb-3" style="color: var(--text-main);">CSV format</h2>
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <th class="text-left p-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">Column</th>
+          <th class="text-left p-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">Required</th>
+          <th class="text-left p-2 text-xs font-semibold uppercase" style="color: var(--text-muted);">Notes</th>
+        </tr>
+      </thead>
+      <tbody style="font-size: 0.85rem;">
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <td class="p-2 font-mono">date</td>
+          <td class="p-2"><strong>yes</strong></td>
+          <td class="p-2" style="color: var(--text-muted);">ISO <code>YYYY-MM-DD</code>.</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <td class="p-2 font-mono">platform</td>
+          <td class="p-2"><strong>yes</strong></td>
+          <td class="p-2" style="color: var(--text-muted);">e.g. <code>meta</code>, <code>google</code>.</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <td class="p-2 font-mono">amount</td>
+          <td class="p-2"><strong>yes</strong></td>
+          <td class="p-2" style="color: var(--text-muted);">Spend in <code>currency</code>, e.g. <code>1234.56</code>.</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <td class="p-2 font-mono">currency</td>
+          <td class="p-2" style="color: var(--text-muted);">no</td>
+          <td class="p-2" style="color: var(--text-muted);">
+            <code>MXN</code> (default) or <code>USD</code> (converted at the shared rate).
+          </td>
+        </tr>
+        <tr>
+          <td class="p-2 font-mono">description</td>
+          <td class="p-2" style="color: var(--text-muted);">no</td>
+          <td class="p-2" style="color: var(--text-muted);">Free text.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="text-xs mt-3" style="color: var(--text-muted);">
+      One row per platform per day. Re-uploading a platform/date that already exists is
+      rejected — delete the existing row first to correct it.
+    </p>
+  </div>
+
+  <%!-- ── Errors ── --%>
+  <%= if @errors && @errors != [] do %>
+    <div class="hd-card mb-6" style="padding: 1.25rem; border-color: #fecaca; background: #fef2f2;">
+      <h2 class="text-base font-semibold mb-2" style="color: #b91c1c;">
+        Found {length(@errors)} issue(s) — nothing was saved
+      </h2>
+      <ul style="font-size: 0.85rem; color: #991b1b; list-style: disc; padding-left: 1.25rem;">
+        <%= for {row_num, msg} <- @errors do %>
+          <li><strong>Row {row_num}:</strong> {msg}</li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%!-- ── Preview ── --%>
+  <%= if @rows && @rows != [] do %>
+    <div class="hd-card mb-6" style="padding: 0; overflow: hidden;">
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-subtle);">
+        <h2 class="text-base font-semibold" style="color: var(--text-main);">
+          Preview ({length(@rows)} valid row(s))
+        </h2>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle);">
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Date</th>
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Platform</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Amount</th>
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for row <- @rows do %>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="p-3" style="color: var(--text-muted);">{row.date}</td>
+              <td class="p-3 font-medium" style="color: var(--text-main);">{row.platform}</td>
+              <td class="p-3 text-right font-semibold">
+                ${:erlang.float_to_binary(row.amount + 0.0, decimals: 2)} {row.currency}
+              </td>
+              <td class="p-3" style="color: var(--text-muted);">{row.description}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <%!-- ── Upload form ── --%>
+  <div class="hd-card" style="padding: 1.25rem;">
+    <h2 class="text-base font-semibold mb-3" style="color: var(--text-main);">Upload CSV</h2>
+    <form
+      action={dp(@domain_path_prefix, "/marketing-costs/bulk-upload")}
+      method="post"
+      enctype="multipart/form-data"
+      class="flex flex-wrap items-center gap-3"
+    >
+      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+      <input
+        type="file"
+        name="upload[file]"
+        accept=".csv,text/csv"
+        required
+        class="hd-input text-sm"
+        style="padding: 0.4rem 0.5rem;"
+      />
+      <button type="submit" class="hd-btn-primary" style="padding: 0.5rem 1rem;">
+        Process &amp; post to GL
+      </button>
+    </form>
+  </div>
+</div>

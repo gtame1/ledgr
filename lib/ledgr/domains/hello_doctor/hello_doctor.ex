@@ -232,6 +232,8 @@ defmodule Ledgr.Domains.HelloDoctor do
         group: "Marketing",
         items: [
           %{label: "Acquisition", path: "#{prefix}/acquisition", icon: :reports},
+          %{label: "Unit Economics", path: "#{prefix}/unit-economics", icon: :reports},
+          %{label: "Marketing Costs", path: "#{prefix}/marketing-costs", icon: :expenses},
           %{label: "Experiments", path: "#{prefix}/experiments", icon: :reports},
           %{label: "News Blast", path: "#{prefix}/doctor-news", icon: :reports}
         ]
@@ -269,6 +271,8 @@ defmodule Ledgr.Domains.HelloDoctor do
       "Doctor Payouts" => "account_balance_wallet",
       "Corporate" => "business",
       "Acquisition" => "trending_up",
+      "Unit Economics" => "monitoring",
+      "Marketing Costs" => "paid",
       "Experiments" => "science",
       "News Blast" => "campaign",
       "Payout Report" => "calendar_month",

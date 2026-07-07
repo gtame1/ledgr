@@ -599,6 +599,24 @@ defmodule LedgrWeb.Router do
     # Acquisition / Meta ad attribution dashboard
     get "/acquisition", Domains.HelloDoctor.AcquisitionController, :index
 
+    # Lifecycle conversion + unit economics (CPL / CAC / LTV)
+    get "/unit-economics/download", Domains.HelloDoctor.LifecycleController, :download
+    get "/unit-economics", Domains.HelloDoctor.LifecycleController, :index
+
+    # Marketing costs (ad spend) — CSV upload + GL posting.
+    # Literal paths BEFORE the :id delete route.
+    get "/marketing-costs/bulk-upload",
+        Domains.HelloDoctor.MarketingCostController,
+        :bulk_upload_form
+
+    post "/marketing-costs/bulk-upload",
+         Domains.HelloDoctor.MarketingCostController,
+         :bulk_upload_submit
+
+    get "/marketing-costs/template", Domains.HelloDoctor.MarketingCostController, :bulk_template
+    get "/marketing-costs", Domains.HelloDoctor.MarketingCostController, :index
+    delete "/marketing-costs/:id", Domains.HelloDoctor.MarketingCostController, :delete
+
     # Doctor news blast — compose + server-side proxy to the bot's
     # /admin/doctors/broadcast-news (keeps the admin API key off the browser)
     get "/doctor-news", Domains.HelloDoctor.DoctorNewsController, :index

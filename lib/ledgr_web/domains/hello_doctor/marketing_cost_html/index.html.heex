@@ -1,0 +1,94 @@
+<div class="hd-page">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold" style="color: var(--text-main);">Marketing Costs</h1>
+      <p class="text-sm mt-1" style="color: var(--text-muted); max-width: 70ch;">
+        Ad spend by platform and date, uploaded via CSV. Each row posts to the ledger
+        (DEBIT 6050 Marketing / CREDIT 2310 Payable) and feeds CPL / CAC / LTV on the
+        <a href={dp(@domain_path_prefix, "/unit-economics")} style="color: var(--accent);">Unit Economics</a>
+        page.
+      </p>
+    </div>
+    <a
+      href={dp(@domain_path_prefix, "/marketing-costs/bulk-upload")}
+      class="hd-btn-primary text-sm"
+      style="padding: 0.5rem 0.95rem;"
+    >
+      ⬆ Upload spend CSV
+    </a>
+  </div>
+
+  <%!-- ── KPI cards ── --%>
+  <div class="hd-kpi-grid mb-8" style="gap: 1.5rem;">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Total spend</div>
+      <div class="hd-kpi-value">{fmt_money(@summary.total_mxn)}</div>
+      <div class="hd-kpi-sub">MXN · {@summary.count} row(s)</div>
+    </div>
+    <%= for {platform, cents} <- @summary.by_platform do %>
+      <div class="hd-kpi">
+        <div class="hd-kpi-label">{platform_label(platform)}</div>
+        <div class="hd-kpi-value">{fmt_money(cents / 100.0)}</div>
+        <div class="hd-kpi-sub">MXN spend</div>
+      </div>
+    <% end %>
+  </div>
+
+  <%!-- ── Costs table ── --%>
+  <%= if @costs == [] do %>
+    <div class="hd-card p-6" style="text-align: center;">
+      <div style="font-size: 2rem;">📣</div>
+      <div class="font-semibold mt-2 mb-1" style="color: var(--text-main);">No marketing costs yet</div>
+      <p class="text-sm mx-auto" style="color: var(--text-muted); max-width: 60ch;">
+        Upload a CSV of Meta / Google spend to start tracking CPL, CAC and LTV/CAC.
+      </p>
+    </div>
+  <% else %>
+    <div class="hd-card" style="padding: 0; overflow-x: auto;">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle);">
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Date</th>
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Platform</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Uploaded</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">MXN (posted)</th>
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Description</th>
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">GL</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for c <- @costs do %>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="p-3" style="color: var(--text-main);">{c.date}</td>
+              <td class="p-3" style="color: var(--text-main);">{platform_label(c.platform)}</td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                {fmt_money(c.amount)} {c.currency}
+              </td>
+              <td class="p-3 text-right font-semibold" style="color: var(--text-main);">{cost_mxn(c)}</td>
+              <td class="p-3" style="color: var(--text-muted);">{c.description}</td>
+              <td class="p-3">
+                <%= if c.posted_at do %>
+                  <span style="color: #065f46;">✓ posted</span>
+                <% else %>
+                  <span style="color: #92400e;">pending</span>
+                <% end %>
+              </td>
+              <td class="p-3 text-right">
+                <.link
+                  href={dp(@domain_path_prefix, "/marketing-costs/#{c.id}")}
+                  method="delete"
+                  data-confirm={"Delete #{platform_label(c.platform)} spend for #{c.date}? If it was posted, a reversing journal entry is created."}
+                  class="text-xs"
+                  style="color: #dc2626;"
+                >
+                  Delete
+                </.link>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
