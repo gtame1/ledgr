@@ -76,7 +76,11 @@ if hello_doctor_url = System.get_env("HELLO_DOCTOR_DATABASE_URL") do
       verify: :verify_none,
       server_name_indication: to_charlist(db_uri.host || "")
     ],
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
+    # HD is the heaviest domain (analytics pages + bulk CSV imports), so it gets
+    # its own, larger pool via HELLO_DOCTOR_POOL_SIZE (default 6) rather than the
+    # shared POOL_SIZE (2). A too-small pool let one long op (e.g. a bulk
+    # marketing-cost import) starve the others and blow the checkout timeout.
+    pool_size: String.to_integer(System.get_env("HELLO_DOCTOR_POOL_SIZE") || "6"),
     priv: "priv/repos/hello_doctor",
     # Neon free-tier compute autosuspends; the first connection after a
     # cold period can take 5-10s while the host wakes. The defaults
