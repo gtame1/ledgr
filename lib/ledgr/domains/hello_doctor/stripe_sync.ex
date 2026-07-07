@@ -20,6 +20,12 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   alias Ledgr.Domains.HelloDoctor.StripeRefunds
   alias Ledgr.Core.Accounting
 
+  # HelloDoctor had no operations before this date. Any Stripe session or
+  # payment dated earlier is pre-launch / test noise and must never be synced
+  # into the books — a legacy import of such sessions once inflated Doctor
+  # Payable with ~$26k of orphaned 2025 entries. Skipped at every sync path.
+  @operations_start ~D[2026-01-01]
+
   # Stripe product IDs that belong to HelloDoctor. The bot's payment links
   # are bound to prod_UM2NWeVCm0EJEG (created earlier, now archived in the
   # Stripe dashboard but still active for existing payment links). The "new"
@@ -119,7 +125,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
       )
 
       result =
-        Enum.reduce(payments, %{updated: 0, no_fee_yet: 0, no_pi: 0, errors: 0}, fn payment, acc ->
+        Enum.reduce(payments, %{updated: 0, no_fee_yet: 0, no_pi: 0, errors: 0}, fn payment,
+                                                                                    acc ->
           cond do
             is_nil(payment.stripe_payment_intent_id) ->
               %{acc | no_pi: acc.no_pi + 1}
@@ -183,9 +190,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
       end
     rescue
       e ->
-        Logger.warning(
-          "[HelloDoctor StripeSync] Exception fetching PI #{pi_id}: #{inspect(e)}"
-        )
+        Logger.warning("[HelloDoctor StripeSync] Exception fetching PI #{pi_id}: #{inspect(e)}")
 
         {:error, e}
     end
@@ -216,6 +221,10 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
         ref = "Stripe #{payment.stripe_session_id}"
 
         cond do
+          payment_before_operations?(payment) ->
+            # Pre-2026 = before HelloDoctor operated; never post it to the GL.
+            %{acc | skipped: acc.skipped + 1}
+
           MapSet.member?(posted_refs, ref) ->
             %{acc | skipped: acc.skipped + 1}
 
@@ -313,6 +322,18 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   end
 
   defp upsert_payment(session, api_key) do
+    if session_before_operations?(session) do
+      Logger.info(
+        "[HelloDoctor StripeSync] Skipping session #{session.id} dated before #{@operations_start} — no operations before 2026"
+      )
+
+      {:ok, :skipped}
+    else
+      do_upsert_payment(session, api_key)
+    end
+  end
+
+  defp do_upsert_payment(session, api_key) do
     case Repo.get_by(StripePayment, stripe_session_id: session.id) do
       nil ->
         # New payment — check product ID before inserting
@@ -649,6 +670,24 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     |> DateTime.to_naive()
     |> NaiveDateTime.truncate(:second)
   end
+
+  # ── Pre-operations cutoff (@operations_start) ───────────────────
+  # A Stripe session is "before operations" if its create date is earlier than
+  # @operations_start. Guards the sync + webhook so pre-2026 sessions never
+  # enter stripe_payments or the GL.
+  defp session_before_operations?(%{created: ts}) when is_integer(ts) do
+    date = ts |> DateTime.from_unix!() |> DateTime.to_date()
+    Date.compare(date, @operations_start) == :lt
+  end
+
+  defp session_before_operations?(_), do: false
+
+  # Same cutoff for an already-stored payment (backfill path), keyed on paid_at.
+  # Unknown date → not skipped (let the normal idempotency/refund logic handle it).
+  defp payment_before_operations?(%StripePayment{paid_at: %NaiveDateTime{} = paid_at}),
+    do: Date.compare(NaiveDateTime.to_date(paid_at), @operations_start) == :lt
+
+  defp payment_before_operations?(_), do: false
 
   # Returns {product_name_string_or_nil, [product_id, ...]} for a session.
   # Fetches line items once so both product filtering and name extraction share
