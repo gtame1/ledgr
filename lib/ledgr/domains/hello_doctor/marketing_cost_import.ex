@@ -11,8 +11,13 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
 
   Each row inserts a `marketing_costs` row (source "csv") and posts it to the
   GL (DEBIT 6050 / CREDIT 2310). All rows are validated before any are written;
-  the whole import runs in one transaction. Re-importing a platform/date that
-  already exists is rejected (delete the existing row first to correct it).
+  the whole import runs in one transaction.
+
+  Ad billing has many charges per platform per day (a Meta charge per ad set,
+  several Google charges/day), so a row is keyed by the full tuple
+  `{platform, date, description, amount}`. A row whose tuple already exists —
+  in the file or in the table — is silently **skipped** (not an error), so you
+  can re-upload an overlapping date range and only the new charges are added.
   """
 
   alias Ledgr.Repo
@@ -24,13 +29,15 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
   @valid_currencies ~w[MXN USD]
 
   @doc """
-  Parses a CSV string. Returns `{:ok, %{rows: [...], errors: []}}` when clean,
-  or `{:error, %{rows: [...], errors: [{row_n, msg}]}}`.
+  Parses a CSV string. Returns `{:ok, %{rows: [...], errors: [], skipped: n}}`
+  when there are no validation errors (rows already present are counted in
+  `skipped`, not returned), or `{:error, %{rows, errors, skipped}}` when any row
+  fails validation.
   """
   def parse(csv_string) when is_binary(csv_string) do
     case split_lines(csv_string) do
       [] ->
-        {:error, %{rows: [], errors: [{0, "CSV is empty"}]}}
+        {:error, %{rows: [], errors: [{0, "CSV is empty"}], skipped: 0}}
 
       [header_line | data_lines] ->
         header = parse_line(header_line) |> Enum.map(&normalize_header/1)
@@ -39,52 +46,42 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
           :ok ->
             existing = existing_keys()
 
-            {rows, errors, _seen} =
+            {rows, errors, skipped, _seen} =
               data_lines
               |> Enum.with_index(2)
               |> Enum.reject(fn {line, _i} -> String.trim(line) == "" end)
-              |> Enum.reduce({[], [], MapSet.new()}, fn {line, row_num}, {rows, errs, seen} ->
+              |> Enum.reduce({[], [], 0, MapSet.new()}, fn {line, row_num},
+                                                           {rows, errs, skipped, seen} ->
                 case parse_row(line, header) do
                   {:ok, row} ->
-                    key = {row.platform, row.date}
+                    key = dedup_key(row)
 
-                    cond do
-                      MapSet.member?(seen, key) ->
-                        {rows,
-                         [
-                           {row_num, "duplicate #{row.platform} / #{row.date} in this file"}
-                           | errs
-                         ], seen}
-
-                      MapSet.member?(existing, key) ->
-                        {rows,
-                         [
-                           {row_num,
-                            "#{row.platform} spend for #{row.date} already imported — delete it first to re-import"}
-                           | errs
-                         ], seen}
-
-                      true ->
-                        {[row | rows], errs, MapSet.put(seen, key)}
+                    # A charge already in this file or in the table is skipped,
+                    # not an error — many legit charges share a platform+date.
+                    if MapSet.member?(seen, key) or MapSet.member?(existing, key) do
+                      {rows, errs, skipped + 1, seen}
+                    else
+                      {[row | rows], errs, skipped, MapSet.put(seen, key)}
                     end
 
                   {:error, msg} ->
-                    {rows, [{row_num, msg} | errs], seen}
+                    {rows, [{row_num, msg} | errs], skipped, seen}
                 end
               end)
 
-            rows = Enum.reverse(rows)
-            errors = Enum.reverse(errors)
+            result = %{rows: Enum.reverse(rows), errors: Enum.reverse(errors), skipped: skipped}
 
-            if errors == [],
-              do: {:ok, %{rows: rows, errors: []}},
-              else: {:error, %{rows: rows, errors: errors}}
+            if result.errors == [], do: {:ok, result}, else: {:error, result}
 
           {:error, msg} ->
-            {:error, %{rows: [], errors: [{1, msg}]}}
+            {:error, %{rows: [], errors: [{1, msg}], skipped: 0}}
         end
     end
   end
+
+  # A charge is identified by platform + date + description + amount, so
+  # multiple distinct charges on the same platform/day are all kept.
+  defp dedup_key(%{platform: p, date: d, description: desc, amount: a}), do: {p, d, desc, a}
 
   @doc """
   Commits parsed rows: inserts each marketing_cost and posts it to the GL, all
@@ -216,12 +213,13 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(s), do: s
 
-  # Existing platform-level CSV rows, as a {platform, date} set, to reject dups.
+  # Charges already imported from CSV, as {platform, date, description, amount}
+  # tuples, so a re-upload skips them and adds only what's new.
   defp existing_keys do
     Repo.all(
       from c in MarketingCost,
-        where: c.source == "csv" and is_nil(c.campaign_id),
-        select: {c.platform, c.date}
+        where: c.source == "csv",
+        select: {c.platform, c.date, c.description, c.amount}
     )
     |> MapSet.new()
   end

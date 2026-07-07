@@ -78,8 +78,9 @@
       </tbody>
     </table>
     <p class="text-xs mt-3" style="color: var(--text-muted);">
-      One row per platform per day. Re-uploading a platform/date that already exists is
-      rejected — delete the existing row first to correct it.
+      Multiple charges per platform per day are fine (e.g. one Meta row per ad set). Rows are keyed
+      by platform + date + description + amount, so re-uploading an overlapping range is safe —
+      charges already imported are skipped and only new ones are added.
     </p>
   </div>
 

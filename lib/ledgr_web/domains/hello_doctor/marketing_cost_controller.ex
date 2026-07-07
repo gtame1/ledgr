@@ -19,14 +19,20 @@ defmodule LedgrWeb.Domains.HelloDoctor.MarketingCostController do
     csv = File.read!(path)
 
     case MarketingCostImport.parse(csv) do
-      {:ok, %{rows: rows}} ->
+      {:ok, %{rows: rows, skipped: skipped}} ->
         case MarketingCostImport.commit(rows) do
           {:ok, count} ->
+            skipped_note =
+              if skipped > 0, do: " (#{skipped} already-imported charge(s) skipped)", else: ""
+
+            msg =
+              if count > 0,
+                do:
+                  "Imported #{count} marketing charge(s) and posted them to the GL#{skipped_note}.",
+                else: "No new charges — all #{skipped} row(s) were already imported."
+
             conn
-            |> put_flash(
-              :info,
-              "Imported #{count} marketing cost row(s) and posted them to the GL."
-            )
+            |> put_flash(:info, msg)
             |> redirect(to: dp(conn, "/marketing-costs"))
 
           {:error, row, reason} ->
