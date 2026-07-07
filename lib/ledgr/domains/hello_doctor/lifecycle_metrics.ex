@@ -57,6 +57,8 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
       speed: conversion_speed(patients, today),
       buildup: buildup_series(patients, months),
       unit_econ: unit_econ_rows(patients, spend, months),
+      unit_econ_week:
+        unit_econ_weekly_rows(patients, spend_by_week(), week_range(start_date, end_date)),
       ltv: ltv_model(patients, econ, spend, months, opts),
       totals: totals(patients)
     }
@@ -154,6 +156,33 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
       %{
         year: y,
         month: m,
+        spend: s,
+        leads: leads,
+        cpl: safe_div(s, leads),
+        new_converted: converted,
+        cac: safe_div(s, converted)
+      }
+    end)
+  end
+
+  # Weekly Spend / Leads / CPL / new-converted / CAC (ISO weeks, Monday-start).
+  # Same logic as the monthly view, keyed on the week's Monday date.
+  defp unit_econ_weekly_rows(patients, spend_week, weeks) do
+    engaged = Enum.filter(patients, & &1.engaged?)
+    leads_by = Enum.frequencies_by(engaged, &Date.beginning_of_week(&1.first_conv))
+
+    converted_by =
+      engaged
+      |> Enum.filter(& &1.converted?)
+      |> Enum.frequencies_by(&Date.beginning_of_week(&1.first_completed))
+
+    Enum.map(weeks, fn monday ->
+      s = Map.get(spend_week, monday, 0.0)
+      leads = Map.get(leads_by, monday, 0)
+      converted = Map.get(converted_by, monday, 0)
+
+      %{
+        week_start: monday,
         spend: s,
         leads: leads,
         cpl: safe_div(s, leads),
@@ -391,6 +420,22 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
     _ -> %{}
   end
 
+  # Marketing spend per ISO week (Monday-start), keyed on the week's Monday Date.
+  # date_trunc('week') is Monday-based, matching Date.beginning_of_week/1.
+  defp spend_by_week do
+    sql = """
+    SELECT (date_trunc('week', date))::date AS week_start,
+           SUM(COALESCE(spend_mxn_cents, CASE WHEN currency = 'MXN' THEN round(amount * 100) ELSE 0 END)) AS mxn_cents
+    FROM marketing_costs
+    GROUP BY 1
+    """
+
+    query(sql, [])
+    |> Enum.into(%{}, fn r -> {r.week_start, to_float(r.mxn_cents) / 100.0} end)
+  rescue
+    _ -> %{}
+  end
+
   # ── Small helpers ────────────────────────────────────────────────
 
   defp tier(_inbound, consults) when consults >= 2, do: "L3"
@@ -412,6 +457,19 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
       Stream.iterate(s, &(&1 |> Date.end_of_month() |> Date.add(1)))
       |> Enum.take_while(&(Date.compare(&1, e) != :gt))
       |> Enum.map(&{&1.year, &1.month})
+    end
+  end
+
+  # Inclusive list of week-start (Monday) Dates spanning the two dates' weeks.
+  defp week_range(start_date, end_date) do
+    s = Date.beginning_of_week(start_date)
+    e = Date.beginning_of_week(end_date)
+
+    if Date.compare(s, e) == :gt do
+      []
+    else
+      Stream.iterate(s, &Date.add(&1, 7))
+      |> Enum.take_while(&(Date.compare(&1, e) != :gt))
     end
   end
 

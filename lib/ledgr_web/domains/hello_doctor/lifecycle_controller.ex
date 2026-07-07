@@ -128,6 +128,10 @@ defmodule LedgrWeb.Domains.HelloDoctor.LifecycleHTML do
 
   def month_label(%{year: y, month: m}), do: "#{elem(@months, m)} #{y}"
 
+  @doc ~s(Label for a week row, e.g. "Jul 6" — the week's Monday.)
+  def week_label(%{week_start: %Date{} = d}), do: "#{elem(@months, d.month)} #{d.day}"
+  def week_label(_), do: "—"
+
   def fmt_money(n) when is_number(n) do
     sign = if n < 0, do: "-", else: ""
     "#{sign}$#{:erlang.float_to_binary(abs(n) / 1, decimals: 2)}"
