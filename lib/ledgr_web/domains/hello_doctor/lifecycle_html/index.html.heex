@@ -107,7 +107,7 @@
         </tr>
       </thead>
       <tbody>
-        <%= for c <- @report.cohorts do %>
+        <%= for c <- Enum.reverse(@report.cohorts) do %>
           <tr style="border-bottom: 1px solid var(--border-subtle);">
             <td class="p-3" style="color: var(--text-main); font-weight: 600;">{month_label(c)}</td>
             <td class="p-3 text-right">{c.engaged}</td>
@@ -148,7 +148,7 @@
   <% max_total = @report.buildup |> Enum.map(&(&1.l1 + &1.l2 + &1.l3)) |> Enum.max(fn -> 1 end) |> max(1) %>
   <div class="hd-card p-4 mb-8">
     <div class="flex flex-col gap-2">
-      <%= for b <- @report.buildup do %>
+      <%= for b <- Enum.reverse(@report.buildup) do %>
         <% total = b.l1 + b.l2 + b.l3 %>
         <div class="flex items-center gap-3">
           <div style="width: 6rem; color: var(--text-muted); font-size: 0.8rem;">{month_label(b)}</div>
@@ -192,7 +192,7 @@
         </tr>
       </thead>
       <tbody>
-        <%= for e <- @report.unit_econ do %>
+        <%= for e <- Enum.reverse(@report.unit_econ) do %>
           <tr style="border-bottom: 1px solid var(--border-subtle);">
             <td class="p-3" style="color: var(--text-main); font-weight: 600;">{month_label(e)}</td>
             <td class="p-3 text-right">{fmt_money(e.spend)}</td>
