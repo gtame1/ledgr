@@ -180,9 +180,10 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   paid consultation, plus the % paid.
 
   Paid = the patient has any consultation with `payment_status` in
-  (paid, confirmed) — the same "paid" notion the dashboard funnel uses,
-  measured across all the patient's consultations (not just in-period).
-  Excludes the dashboard-owner test patient.
+  (paid, confirmed) AND `payment_amount > 0` — real money, so free experiment
+  comps / 100%-discount ($0) don't count. Same "paid" notion the dashboard
+  funnel uses, measured across all the patient's consultations (not just
+  in-period). Excludes the dashboard-owner test patient.
   """
   def return_payment_thesis(start_date, end_date) do
     start_naive = to_naive_start(start_date)
@@ -206,7 +207,9 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       SELECT DISTINCT co.patient_id AS pid
       FROM consultations cons
       JOIN conversations co ON co.id = cons.conversation_id
+      -- Real money only: exclude free experiment comps / 100%-discount ($0).
       WHERE cons.payment_status IN ('paid', 'confirmed')
+        AND COALESCE(cons.payment_amount, 0) > 0
         AND co.patient_id IS NOT NULL
     )
     SELECT
@@ -255,10 +258,15 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       |> where_date_range(:assigned_at, start_date, end_date)
       |> Repo.aggregate(:count)
 
+    # "Paid" = real money collected. The experiment's free first consults are
+    # stored as payment_status='confirmed' with payment_amount=0 (source
+    # 'experiment'), and 100%-discount comps are $0 too — requiring amount > 0
+    # keeps those OUT of the paid count. (No corporate $0-to-patient consults
+    # exist yet; add `or payment_source == "corporate"` here if that changes.)
     paid_count =
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
-      |> where([c], c.payment_status in ["paid", "confirmed"])
+      |> where([c], c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0)
       |> Repo.aggregate(:count)
 
     %{
@@ -449,7 +457,8 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
         {fragment(
            "date_trunc('week', ((? AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'))::date",
            c.assigned_at
-         ), count(c.id), filter(count(c.id), c.payment_status in ["paid", "confirmed"])}
+         ), count(c.id),
+         filter(count(c.id), c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0)}
       )
       |> Repo.all()
       |> Map.new(fn {wk, consults, paid} -> {wk, {consults, paid}} end)
@@ -1158,7 +1167,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     paid_by_day =
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
-      |> where([c], c.payment_status in ["paid", "confirmed"])
+      |> where([c], c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0)
       |> group_by(
         [c],
         fragment("date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))", c.assigned_at)
