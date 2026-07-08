@@ -202,11 +202,11 @@ end %>
 
     <div class="hd-kpi">
       <div class="flex items-center justify-between">
-        <div class="hd-kpi-label" style="margin-bottom: 0;">New patients</div>
+        <div class="hd-kpi-label" style="margin-bottom: 0;">New leads</div>
         <.hd_delta_chip current={m.user_metrics.new_users} prior={cmp && cmp.user_metrics.new_users} />
       </div>
       <div class="hd-kpi-value mt-2">{m.user_metrics.new_users}</div>
-      <div class="hd-kpi-sub">{m.user_metrics.total_active_users} active this period</div>
+      <div class="hd-kpi-sub">{m.user_metrics.total_active_users} active · incl. L0 one-msg leads</div>
     </div>
 
     <div class="hd-kpi">

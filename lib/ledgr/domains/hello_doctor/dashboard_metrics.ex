@@ -19,8 +19,10 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   alias Ledgr.Domains.HelloDoctor.Prescriptions.Prescription
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
+  alias Ledgr.Domains.HelloDoctor.Patients.Patient
   alias Ledgr.Domains.HelloDoctor.PatientSegments
   alias Ledgr.Domains.HelloDoctor.Nps
+  alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @commission_rate 0.15
 
@@ -239,23 +241,46 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     %{returning: seg.("returning"), one_day: seg.("one_day")}
   end
 
+  # Excludes internal test accounts (test phones + test patient ids) from a
+  # query on any schema with a `patient_id` (Consultation / Conversation). NULL
+  # patient_id passes (a lead with no profile isn't a test account). Uses the
+  # full TestAccounts list, so it catches the QA phones the legacy single-id
+  # checks miss — keeping the headline funnel consistent with the lifecycle KPIs.
+  defp exclude_test_patients(query) do
+    where(
+      query,
+      [c],
+      is_nil(c.patient_id) or c.patient_id not in subquery(test_patient_ids_query())
+    )
+  end
+
+  defp test_patient_ids_query do
+    from(p in Patient,
+      where: p.phone in ^TestAccounts.test_phones() or p.id in ^TestAccounts.test_patient_ids(),
+      select: p.id
+    )
+  end
+
   # ── Funnel ─────────────────────────────────────────────────────
 
   def funnel_metrics(start_date, end_date) do
     conversations_count =
       Conversation
       |> where_date_range(:created_at, start_date, end_date)
+      |> exclude_test_patients()
       |> Repo.aggregate(:count)
 
     doctor_recommended_count =
       Conversation
       |> where_date_range(:created_at, start_date, end_date)
       |> where([c], c.doctor_recommended == true)
+      |> exclude_test_patients()
       |> Repo.aggregate(:count)
 
     consultations_count =
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
+      |> exclude_test_patients()
       |> Repo.aggregate(:count)
 
     # "Paid" = real money collected. The experiment's free first consults are
@@ -267,6 +292,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
       |> where([c], c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0)
+      |> exclude_test_patients()
       |> Repo.aggregate(:count)
 
     %{
@@ -807,10 +833,12 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     period_consults =
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
+      |> exclude_test_patients()
 
     active_count =
       Consultation
       |> where([c], c.status in ~w[pending assigned active])
+      |> exclude_test_patients()
       |> Repo.aggregate(:count)
 
     # Response time (assigned -> accepted), in minutes
