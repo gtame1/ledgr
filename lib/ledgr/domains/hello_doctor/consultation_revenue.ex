@@ -11,7 +11,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
     * **doctor_share** — the frozen $100 from `consultation_payouts`
       (authoritative), falling back to the flat
       `ConsultationAccounting.doctor_share_mxn/0` for any billed
-      consultation without a snapshot row yet.
+      consultation without a snapshot row yet. Cancelled / failed consults
+      are $0 — the visit never happened, so nothing is earned.
     * **stripe_fee** / **refunded** — from `stripe_payments`.
     * **hd_net** — `gross − stripe_fee − doctor_share − refunded`.
 
@@ -52,7 +53,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
   defp rows(ids, filter_col) when is_list(ids) do
     # Fallback share (for any consult not yet frozen) is tenant-aware, same
     # rule as the frozen value: direct → the doctor's fee, else flat.
-    share_fallback = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+    share_fallback =
+      ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     sql = """
     SELECT
@@ -61,7 +63,13 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
       COALESCE(spx.amount, c.payment_amount)        AS gross,
       COALESCE(spx.stripe_fee, 0)                   AS stripe_fee,
       COALESCE(spx.amount_refunded, 0)              AS refunded,
-      COALESCE(cp.doctor_share_cents / 100.0, #{share_fallback}) AS doctor_share,
+      -- Cancelled / failed consults never happened → doctor is owed nothing,
+      -- regardless of any frozen payout row. (Matches the payout report and the
+      -- funnel export.) hd_net below derives from this, so it corrects too.
+      CASE
+        WHEN c.status IN ('cancelled', 'consultation_failed') THEN 0
+        ELSE COALESCE(cp.doctor_share_cents / 100.0, #{share_fallback})
+      END                                           AS doctor_share,
       COALESCE(c.payment_source, 'stripe')          AS payment_source,
       (spx.amount IS NOT NULL)                      AS stripe_synced
     FROM consultations c
