@@ -291,7 +291,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     paid_count =
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
-      |> where([c], c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0)
+      |> where([c], c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0.0)
       |> exclude_test_patients()
       |> Repo.aggregate(:count)
 
@@ -484,7 +484,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
            "date_trunc('week', ((? AT TIME ZONE 'UTC') AT TIME ZONE 'America/Mexico_City'))::date",
            c.assigned_at
          ), count(c.id),
-         filter(count(c.id), c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0)}
+         filter(count(c.id), c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0.0)}
       )
       |> Repo.all()
       |> Map.new(fn {wk, consults, paid} -> {wk, {consults, paid}} end)
@@ -1195,7 +1195,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     paid_by_day =
       Consultation
       |> where_date_range(:assigned_at, start_date, end_date)
-      |> where([c], c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0)
+      |> where([c], c.payment_status in ["paid", "confirmed"] and c.payment_amount > 0.0)
       |> group_by(
         [c],
         fragment("date((? AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'))", c.assigned_at)
