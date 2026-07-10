@@ -90,6 +90,11 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Campaigns
 
+  # Spend attribution for the estimated per-campaign CAC: this one campaign is
+  # our only Google ad; every other campaign is Meta. Google spend goes wholly
+  # to it; Meta spend is split equally across the table's Meta campaigns.
+  @google_campaign_id "lpc_01"
+
   @doc """
   Early funnel stages, in order, with display metadata. These are the
   stages we still trust `funnel_stage` for — everything up to and
@@ -296,6 +301,17 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       report = funnel(win_start, win_end)
       ids = MapSet.new(era.campaign_ids)
       entries = Enum.filter(report.per_campaign, &(&1.campaign.id in ids))
+      {entries, table_spend} = with_est_cac(entries, era.campaign_ids, win_start, win_end)
+
+      totals =
+        entries
+        |> subtotals()
+        |> then(fn t ->
+          Map.merge(t, %{
+            est_spend: Float.round(table_spend, 2),
+            est_cac: cac_div(table_spend, t.paid)
+          })
+        end)
 
       %{
         lower: era.lower,
@@ -304,7 +320,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         window: {win_start, win_end},
         empty?: Date.compare(win_start, win_end) == :gt,
         entries: entries,
-        totals: subtotals(entries)
+        totals: totals
       }
     end)
     |> Enum.reverse()
@@ -312,6 +328,56 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   defp min_date(a, b), do: if(Date.compare(a, b) == :gt, do: b, else: a)
   defp max_date(a, b), do: if(Date.compare(a, b) == :lt, do: b, else: a)
+
+  # ── Estimated per-campaign CAC ──────────────────────────────────
+  # Google spend → the one Google campaign; Meta spend split equally across the
+  # era's Meta campaigns. est_cac = allocated spend ÷ paid (nil when paid = 0).
+  # Returns {enriched_entries, total_spend_for_the_window}.
+  defp with_est_cac(entries, era_campaign_ids, win_start, win_end) do
+    spend = spend_by_platform(win_start, win_end)
+    google = Map.get(spend, "google", 0.0)
+    meta = Map.get(spend, "meta", 0.0)
+
+    meta_ids = Enum.reject(era_campaign_ids, &(&1 == @google_campaign_id))
+    meta_each = if meta_ids == [], do: 0.0, else: meta / length(meta_ids)
+
+    enriched =
+      Enum.map(entries, fn e ->
+        allocated = if e.campaign.id == @google_campaign_id, do: google, else: meta_each
+        Map.merge(e, %{est_spend: Float.round(allocated, 2), est_cac: cac_div(allocated, e.paid)})
+      end)
+
+    total = Enum.reduce(enriched, 0.0, fn e, acc -> acc + e.est_spend end)
+    {enriched, total}
+  end
+
+  # Marketing spend (MXN) per platform for a Mexico-City calendar window,
+  # keyed by lowercased platform. `marketing_costs.date` is a real date column.
+  defp spend_by_platform(win_start, win_end) do
+    sql = """
+    SELECT lower(platform) AS platform,
+           SUM(COALESCE(spend_mxn_cents,
+                        CASE WHEN currency = 'MXN' THEN round(amount * 100) ELSE 0 END)) / 100.0 AS mxn
+    FROM marketing_costs
+    WHERE date >= $1 AND date <= $2
+    GROUP BY 1
+    """
+
+    result = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [win_start, win_end])
+    cols = Enum.map(result.columns, &String.to_atom/1)
+
+    result.rows
+    |> Enum.map(fn row -> cols |> Enum.zip(row) |> Map.new() end)
+    |> Enum.into(%{}, fn r -> {r.platform, to_float(r.mxn)} end)
+  rescue
+    # marketing_costs may not exist in some envs — treat as no spend.
+    _ -> %{}
+  end
+
+  # CAC = spend ÷ paid; nil (rendered "—") when there are no paid consults.
+  defp cac_div(_spend, paid) when paid in [0, nil], do: nil
+  defp cac_div(spend, paid) when is_number(paid) and paid > 0, do: Float.round(spend / paid, 2)
+  defp cac_div(_, _), do: nil
 
   # ── Per-campaign funnel ─────────────────────────────────────────
 

@@ -230,10 +230,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
               {t.short}
             </th>
             <th
-              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted); white-space: nowrap;"
             >
               Revenue
+            </th>
+            <th
+              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap; border-left: 1px solid var(--border-subtle);"
+              title="Estimated CAC = allocated ad spend ÷ paid. Google spend → 🩺 LPC-01; Meta spend split equally across this table's Meta campaigns."
+            >
+              CAC est
             </th>
           </tr>
         </thead>
@@ -302,8 +309,15 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
                 {count}
               </td>
             <% end %>
-            <td class="p-3 pr-4 text-right font-semibold">
+            <td class="p-3 text-right font-semibold">
               {fmt_money(entry.revenue_mxn)}
+            </td>
+            <td
+              class="hd-tooltip-cell p-3 pr-4 text-right"
+              style="color: var(--text-main); border-left: 1px solid var(--border-subtle);"
+              data-tip={"#{fmt_money(Map.get(entry, :est_spend, 0.0))} spend ÷ #{entry.paid} paid"}
+            >
+              {if Map.get(entry, :est_cac), do: fmt_money(entry.est_cac), else: "—"}
             </td>
           </tr>
         </tbody>
@@ -359,7 +373,14 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
                 {Map.get(@totals, t.key)}
               </td>
             <% end %>
-            <td class="p-3 pr-4 text-right font-bold">{fmt_money(@totals.revenue_mxn)}</td>
+            <td class="p-3 text-right font-bold">{fmt_money(@totals.revenue_mxn)}</td>
+            <td
+              class="hd-tooltip-cell p-3 pr-4 text-right font-bold"
+              style="border-left: 1px solid var(--border-subtle);"
+              data-tip={"#{fmt_money(Map.get(@totals, :est_spend, 0.0))} total spend ÷ #{@totals.paid} paid"}
+            >
+              {if Map.get(@totals, :est_cac), do: fmt_money(@totals.est_cac), else: "—"}
+            </td>
           </tr>
         </tfoot>
       </table>
