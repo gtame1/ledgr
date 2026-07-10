@@ -90,10 +90,11 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Campaigns
 
-  # Spend attribution for the estimated per-campaign CAC: this one campaign is
-  # our only Google ad; every other campaign is Meta. Google spend goes wholly
-  # to it; Meta spend is split equally across the table's Meta campaigns.
-  @google_campaign_id "lpc_01"
+  # Spend attribution for the estimated per-campaign CAC: these campaigns are our
+  # Google ads (🩺 LPC-01, 🙏 LPH-01); every other campaign is Meta. Google spend
+  # is split equally across the table's Google campaigns, Meta spend equally
+  # across its Meta campaigns.
+  @google_campaign_ids ~w(lpc_01 lph_01)
 
   @doc """
   Early funnel stages, in order, with display metadata. These are the
@@ -338,12 +339,14 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     google = Map.get(spend, "google", 0.0)
     meta = Map.get(spend, "meta", 0.0)
 
-    meta_ids = Enum.reject(era_campaign_ids, &(&1 == @google_campaign_id))
+    google_ids = Enum.filter(era_campaign_ids, &(&1 in @google_campaign_ids))
+    meta_ids = Enum.reject(era_campaign_ids, &(&1 in @google_campaign_ids))
+    google_each = if google_ids == [], do: 0.0, else: google / length(google_ids)
     meta_each = if meta_ids == [], do: 0.0, else: meta / length(meta_ids)
 
     enriched =
       Enum.map(entries, fn e ->
-        allocated = if e.campaign.id == @google_campaign_id, do: google, else: meta_each
+        allocated = if e.campaign.id in @google_campaign_ids, do: google_each, else: meta_each
         Map.merge(e, %{est_spend: Float.round(allocated, 2), est_cac: cac_div(allocated, e.paid)})
       end)
 

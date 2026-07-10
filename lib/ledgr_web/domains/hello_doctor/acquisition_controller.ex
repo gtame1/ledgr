@@ -238,7 +238,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             <th
               class="text-right p-3 pr-4 text-xs font-semibold uppercase"
               style="color: var(--text-muted); white-space: nowrap; border-left: 1px solid var(--border-subtle);"
-              title="Estimated CAC = allocated ad spend ÷ paid. Google spend → 🩺 LPC-01; Meta spend split equally across this table's Meta campaigns."
+              title="Estimated CAC = allocated ad spend ÷ paid. Google spend split equally across the Google campaigns (🩺 LPC-01, 🙏 LPH-01); Meta spend split equally across this table's Meta campaigns."
             >
               CAC est
             </th>
