@@ -83,7 +83,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
   window; if that window also introduces new ad sets, give those
   campaigns a matching `started_on` and they become its generation.
   """
-  def cuts, do: [cutoff(), ~D[2026-06-24]]
+  def cuts, do: [cutoff(), ~D[2026-06-24], ~D[2026-07-08]]
 
   @doc """
   Campaigns live in the generation that was current on `date`: the
