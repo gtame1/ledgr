@@ -238,7 +238,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             <th
               class="text-right p-3 pr-4 text-xs font-semibold uppercase"
               style="color: var(--text-muted); white-space: nowrap; border-left: 1px solid var(--border-subtle);"
-              title="Estimated CAC = allocated ad spend ÷ paid. Google spend split equally across the Google campaigns (🩺 LPC-01, 🙏 LPH-01); Meta spend split equally across this table's Meta campaigns."
+              title="Estimated CAC = (allocated ad spend + free-consult cost) ÷ completed (done) consults. Google spend split equally across the Google campaigns (🩺 LPC-01, 🙏 LPH-01); Meta spend split equally across this table's Meta campaigns."
             >
               CAC est
             </th>
@@ -315,7 +315,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             <td
               class="hd-tooltip-cell p-3 pr-4 text-right"
               style="color: var(--text-main); border-left: 1px solid var(--border-subtle);"
-              data-tip={"#{fmt_money(Map.get(entry, :est_spend, 0.0))} spend ÷ #{entry.paid} paid"}
+              data-tip={"#{fmt_money(Map.get(entry, :est_ad_spend, 0.0))} ad + #{fmt_money(Map.get(entry, :free_consult_mxn, 0.0))} free consult ÷ #{entry.completed} done"}
             >
               {if Map.get(entry, :est_cac), do: fmt_money(entry.est_cac), else: "—"}
             </td>
@@ -377,7 +377,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             <td
               class="hd-tooltip-cell p-3 pr-4 text-right font-bold"
               style="border-left: 1px solid var(--border-subtle);"
-              data-tip={"#{fmt_money(Map.get(@totals, :est_spend, 0.0))} total spend ÷ #{@totals.paid} paid"}
+              data-tip={"#{fmt_money(Map.get(@totals, :est_cost, 0.0))} total cost (ad + free) ÷ #{@totals.completed} done"}
             >
               {if Map.get(@totals, :est_cac), do: fmt_money(@totals.est_cac), else: "—"}
             </td>

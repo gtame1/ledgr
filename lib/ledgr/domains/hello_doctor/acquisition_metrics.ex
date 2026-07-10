@@ -89,6 +89,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Campaigns
+  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
 
   # Spend attribution for the estimated per-campaign CAC: these campaigns are our
   # Google ads (🩺 LPC-01, 🙏 LPH-01); every other campaign is Meta. Google spend
@@ -302,15 +303,18 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       report = funnel(win_start, win_end)
       ids = MapSet.new(era.campaign_ids)
       entries = Enum.filter(report.per_campaign, &(&1.campaign.id in ids))
-      {entries, table_spend} = with_est_cac(entries, era.campaign_ids, win_start, win_end)
+      {entries, table_ad_spend} = with_est_cac(entries, era.campaign_ids, win_start, win_end)
 
       totals =
         entries
         |> subtotals()
         |> then(fn t ->
+          cost = table_ad_spend + (t.free_consult_mxn || 0.0)
+
           Map.merge(t, %{
-            est_spend: Float.round(table_spend, 2),
-            est_cac: cac_div(table_spend, t.paid)
+            est_ad_spend: Float.round(table_ad_spend, 2),
+            est_cost: Float.round(cost, 2),
+            est_cac: cac_div(cost, t.completed)
           })
         end)
 
@@ -331,9 +335,11 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
   defp max_date(a, b), do: if(Date.compare(a, b) == :lt, do: b, else: a)
 
   # ── Estimated per-campaign CAC ──────────────────────────────────
-  # Google spend → the one Google campaign; Meta spend split equally across the
-  # era's Meta campaigns. est_cac = allocated spend ÷ paid (nil when paid = 0).
-  # Returns {enriched_entries, total_spend_for_the_window}.
+  # Google spend split equally across the era's Google campaigns; Meta spend
+  # equally across its Meta campaigns. CAC = (allocated ad spend + the campaign's
+  # free-consult subsidy) ÷ DONE (completed) consults — matching the Unit
+  # Economics blended CAC. nil (rendered "—") when the campaign has 0 completed.
+  # Returns {enriched_entries, total_allocated_ad_spend}.
   defp with_est_cac(entries, era_campaign_ids, win_start, win_end) do
     spend = spend_by_platform(win_start, win_end)
     google = Map.get(spend, "google", 0.0)
@@ -346,12 +352,18 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
     enriched =
       Enum.map(entries, fn e ->
-        allocated = if e.campaign.id in @google_campaign_ids, do: google_each, else: meta_each
-        Map.merge(e, %{est_spend: Float.round(allocated, 2), est_cac: cac_div(allocated, e.paid)})
+        ad = if e.campaign.id in @google_campaign_ids, do: google_each, else: meta_each
+        free = e.free_consult_mxn || 0.0
+
+        Map.merge(e, %{
+          est_ad_spend: Float.round(ad, 2),
+          est_cost: Float.round(ad + free, 2),
+          est_cac: cac_div(ad + free, e.completed)
+        })
       end)
 
-    total = Enum.reduce(enriched, 0.0, fn e, acc -> acc + e.est_spend end)
-    {enriched, total}
+    total_ad = Enum.reduce(enriched, 0.0, fn e, acc -> acc + e.est_ad_spend end)
+    {enriched, total_ad}
   end
 
   # Marketing spend (MXN) per platform for a Mexico-City calendar window,
@@ -386,6 +398,12 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   defp run_funnel_query(start_naive, end_exclusive) do
     detection = Campaigns.detection_case_sql("fm.content")
+
+    # Tenant-aware doctor share, for the free-consult subsidy (the cost HD
+    # absorbs on a comped completed consult — patient charged $0 but the doctor
+    # is still paid). Bound to the conv_cons joins below.
+    free_share_sql =
+      ConsultationAccounting.doctor_share_sql("conv2.tenant", "d.consultation_fee_mxn")
 
     # Emit `('greeting', 1), ('symptoms', 2), ...` for the SQL VALUES list.
     stage_values_sql =
@@ -468,14 +486,22 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     -- created, so these can't be inferred from the chat state.
     conv_cons AS (
       SELECT
-        conversation_id,
+        cs.conversation_id,
         COUNT(*) AS n_consultations,
-        bool_or(status = 'completed') AS has_completed,
-        bool_or(status = 'cancelled') AS has_cancelled,
-        bool_or(status = 'consultation_failed') AS has_failed
-      FROM consultations
-      WHERE conversation_id IS NOT NULL
-      GROUP BY conversation_id
+        bool_or(cs.status = 'completed') AS has_completed,
+        bool_or(cs.status = 'cancelled') AS has_cancelled,
+        bool_or(cs.status = 'consultation_failed') AS has_failed,
+        -- Free-consult subsidy: doctor share HD absorbs on a COMPLETED but
+        -- uncharged (comped, $0) consult — the experiment first-consult cost.
+        COALESCE(SUM(
+          CASE WHEN cs.status = 'completed' AND COALESCE(cs.payment_amount, 0) = 0
+               THEN #{free_share_sql} ELSE 0 END
+        ), 0) AS free_consult_cost
+      FROM consultations cs
+      LEFT JOIN conversations conv2 ON conv2.id = cs.conversation_id
+      LEFT JOIN doctors d ON d.id = cs.doctor_id
+      WHERE cs.conversation_id IS NOT NULL
+      GROUP BY cs.conversation_id
     ),
     -- Resolve each Stripe payment to a single conversation. Only 7/20
     -- paid rows carry consultation_id directly; the rest link by
@@ -562,7 +588,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       COUNT(DISTINCT a.patient_id) FILTER (WHERE COALESCE(ps.tier, 'L0') = 'L1') AS patients_l1,
       COUNT(DISTINCT a.patient_id) FILTER (WHERE COALESCE(ps.tier, 'L0') = 'L2') AS patients_l2,
       COUNT(DISTINCT a.patient_id) FILTER (WHERE COALESCE(ps.tier, 'L0') = 'L3') AS patients_l3,
-      COALESCE(SUM(cp.net_revenue), 0) AS revenue_mxn
+      COALESCE(SUM(cp.net_revenue), 0) AS revenue_mxn,
+      COALESCE(SUM(cc.free_consult_cost), 0) AS free_consult_mxn
     FROM attributed a
     LEFT JOIN conv_cons cc ON cc.conversation_id = a.conversation_id
     LEFT JOIN conv_pay cp ON cp.conversation_id = a.conversation_id
@@ -587,7 +614,8 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       unique_patients: 0,
       returning_patients: 0,
       pending_routing: 0,
-      revenue_mxn: 0
+      revenue_mxn: 0,
+      free_consult_mxn: 0
     }
 
     keys =
@@ -649,6 +677,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       returning_rate: pct(row[:returning_patients] || 0, row.unique_patients || 0),
       pending_routing: row[:pending_routing] || 0,
       revenue_mxn: to_float(row.revenue_mxn),
+      free_consult_mxn: to_float(row[:free_consult_mxn]),
       pending_routing_pct: pct(row[:pending_routing] || 0, leads)
     }
 
@@ -682,7 +711,14 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   defp totals(per_campaign) do
     summed_keys =
-      [:leads, :unique_patients, :returning_patients, :pending_routing, :revenue_mxn] ++
+      [
+        :leads,
+        :unique_patients,
+        :returning_patients,
+        :pending_routing,
+        :revenue_mxn,
+        :free_consult_mxn
+      ] ++
         Enum.map(canonical_stages(), & &1.key) ++
         Enum.map(outcome_stages(), & &1.key) ++
         Enum.map(tier_stages(), & &1.key)
