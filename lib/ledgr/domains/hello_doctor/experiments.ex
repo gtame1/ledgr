@@ -390,11 +390,25 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
 
     sql = """
     WITH stage_order(stage, ord) AS (VALUES #{stage_values}),
+    -- Actually-paid patients: real money collected (excludes free experiment
+    -- comps / $0). Read from consultations, NOT funnel_stage — the bot stops
+    -- advancing funnel_stage after the payment step, so a 'payment_confirmed'
+    -- reach badly under-reports paid once patients start converting.
+    paid_patients AS (
+      SELECT DISTINCT patient_id
+      FROM consultations
+      WHERE patient_id IS NOT NULL
+        AND payment_status IN ('paid', 'confirmed')
+        AND COALESCE(payment_amount, 0) > 0
+    ),
     reach AS (
-      SELECT ea.patient_id, ea.variant, max(COALESCE(so.ord, 0)) AS max_ord
+      SELECT ea.patient_id, ea.variant,
+             max(COALESCE(so.ord, 0)) AS max_ord,
+             bool_or(pp.patient_id IS NOT NULL) AS paid
       FROM experiment_assignments ea
       LEFT JOIN conversations c ON c.patient_id = ea.patient_id AND c.tenant = ea.tenant
       LEFT JOIN stage_order so ON so.stage = c.funnel_stage
+      LEFT JOIN paid_patients pp ON pp.patient_id = ea.patient_id
       WHERE ea.experiment_id = $1
       GROUP BY 1, 2
     )
@@ -402,9 +416,9 @@ defmodule Ledgr.Domains.HelloDoctor.Experiments do
            count(*)                                                          AS n,
            count(*) FILTER (WHERE max_ord >= 2)                              AS reached_orientation,
            count(*) FILTER (WHERE max_ord >= 6)                              AS reached_payment_link,
-           count(*) FILTER (WHERE max_ord >= 7)                              AS reached_payment_confirmed,
+           count(*) FILTER (WHERE paid)                                      AS reached_payment_confirmed,
            round(100.0 * count(*) FILTER (WHERE max_ord >= 2) / count(*), 1) AS pct_orientation,
-           round(100.0 * count(*) FILTER (WHERE max_ord >= 7) / count(*), 1) AS pct_paid
+           round(100.0 * count(*) FILTER (WHERE paid) / count(*), 1)         AS pct_paid
     FROM reach GROUP BY variant ORDER BY variant
     """
 
