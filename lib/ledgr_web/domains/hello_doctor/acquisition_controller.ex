@@ -236,8 +236,15 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
               Revenue
             </th>
             <th
-              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted); white-space: nowrap; border-left: 1px solid var(--border-subtle);"
+              title="Cost per engaged patient (L1+): allocated ad spend ÷ (L1 + L2 + L3) patients. Media spend only — the free-consult cost is in CAC, not here."
+            >
+              CPL (L1+)
+            </th>
+            <th
+              class="text-right p-3 pr-4 text-xs font-semibold uppercase"
+              style="color: var(--text-muted); white-space: nowrap;"
               title="Estimated CAC = (allocated ad spend + free-consult cost) ÷ completed (done) consults. Google spend split equally across the Google campaigns (🩺 LPC-01, 🙏 LPH-01); Meta spend split equally across this table's Meta campaigns."
             >
               CAC est
@@ -312,9 +319,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
             <td class="p-3 text-right font-semibold">
               {fmt_money(entry.revenue_mxn)}
             </td>
+            <% l1plus = (entry.patients_l1 || 0) + (entry.patients_l2 || 0) + (entry.patients_l3 || 0) %>
+            <td
+              class="hd-tooltip-cell p-3 text-right"
+              style="color: var(--text-main); border-left: 1px solid var(--border-subtle);"
+              data-tip={"#{fmt_money(Map.get(entry, :est_ad_spend, 0.0))} ad ÷ #{l1plus} L1+ patients"}
+            >
+              {if Map.get(entry, :est_cpl), do: fmt_money(entry.est_cpl), else: "—"}
+            </td>
             <td
               class="hd-tooltip-cell p-3 pr-4 text-right"
-              style="color: var(--text-main); border-left: 1px solid var(--border-subtle);"
+              style="color: var(--text-main);"
               data-tip={"#{fmt_money(Map.get(entry, :est_ad_spend, 0.0))} ad + #{fmt_money(Map.get(entry, :free_consult_mxn, 0.0))} free consult ÷ #{entry.completed} done"}
             >
               {if Map.get(entry, :est_cac), do: fmt_money(entry.est_cac), else: "—"}
@@ -374,9 +389,18 @@ defmodule LedgrWeb.Domains.HelloDoctor.AcquisitionHTML do
               </td>
             <% end %>
             <td class="p-3 text-right font-bold">{fmt_money(@totals.revenue_mxn)}</td>
+            <% tot_l1plus =
+              (Map.get(@totals, :patients_l1) || 0) + (Map.get(@totals, :patients_l2) || 0) +
+                (Map.get(@totals, :patients_l3) || 0) %>
+            <td
+              class="hd-tooltip-cell p-3 text-right font-bold"
+              style="border-left: 1px solid var(--border-subtle);"
+              data-tip={"#{fmt_money(Map.get(@totals, :est_ad_spend, 0.0))} ad ÷ #{tot_l1plus} L1+ patients"}
+            >
+              {if Map.get(@totals, :est_cpl), do: fmt_money(@totals.est_cpl), else: "—"}
+            </td>
             <td
               class="hd-tooltip-cell p-3 pr-4 text-right font-bold"
-              style="border-left: 1px solid var(--border-subtle);"
               data-tip={"#{fmt_money(Map.get(@totals, :est_cost, 0.0))} total cost (ad + free) ÷ #{@totals.completed} done"}
             >
               {if Map.get(@totals, :est_cac), do: fmt_money(@totals.est_cac), else: "—"}

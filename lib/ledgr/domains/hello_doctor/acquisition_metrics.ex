@@ -310,10 +310,12 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
         |> subtotals()
         |> then(fn t ->
           cost = table_ad_spend + (t.free_consult_mxn || 0.0)
+          l1plus = (t.patients_l1 || 0) + (t.patients_l2 || 0) + (t.patients_l3 || 0)
 
           Map.merge(t, %{
             est_ad_spend: Float.round(table_ad_spend, 2),
             est_cost: Float.round(cost, 2),
+            est_cpl: cac_div(table_ad_spend, l1plus),
             est_cac: cac_div(cost, t.completed)
           })
         end)
@@ -354,10 +356,13 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
       Enum.map(entries, fn e ->
         ad = if e.campaign.id in @google_campaign_ids, do: google_each, else: meta_each
         free = e.free_consult_mxn || 0.0
+        l1plus = (e.patients_l1 || 0) + (e.patients_l2 || 0) + (e.patients_l3 || 0)
 
         Map.merge(e, %{
           est_ad_spend: Float.round(ad, 2),
           est_cost: Float.round(ad + free, 2),
+          # Cost per engaged patient (L1+) — media spend only, no free-consult.
+          est_cpl: cac_div(ad, l1plus),
           est_cac: cac_div(ad + free, e.completed)
         })
       end)
