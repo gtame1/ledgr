@@ -76,19 +76,50 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
     end_exclusive = to_naive_end_exclusive(end_date)
     doctor_id = opts[:doctor_id]
 
-    base_query =
+    # One Stripe row per consultation, de-duplicated exactly like the monthly
+    # report's `stripe_one` CTE (MonthlyReport.list_consultations/2): prefer a
+    # `paid` row, then the most recently paid. Most stripe_payments come in
+    # without consultation_id set (the bot's WhatsApp checkout uses static
+    # payment links with no metadata), so we fall back to matching on
+    # stripe_payment_intent_id, which the bot DOES write onto the consultation.
+    # PaymentLinking.backfill_by_payment_intent/0 promotes these soft matches to
+    # hard links on stripe_payments.consultation_id.
+    #
+    # The DISTINCT ON is load-bearing: without it a consultation matching two
+    # stripe_payments rows (two hard links, or the payment-intent fallback
+    # hitting multiple soft rows — nothing at the DB level forbids either, only
+    # stripe_session_id is unique) would produce two output rows and summarize/1
+    # would double-count the amount owed the doctor. It also keeps this list in
+    # agreement with the monthly report, which already de-dups the same join.
+    stripe_one =
       from(c in Consultation,
-        # Most stripe_payments come in without consultation_id set (the bot's
-        # WhatsApp checkout uses static payment links with no metadata). Fall
-        # back to matching on stripe_payment_intent_id, which the bot DOES
-        # write onto the consultation. PaymentLinking.backfill_by_payment_intent/0
-        # promotes these soft matches to hard links on stripe_payments.consultation_id.
-        left_join: sp in StripePayment,
+        join: sp in StripePayment,
         on:
           sp.consultation_id == c.id or
             (is_nil(sp.consultation_id) and
                not is_nil(c.stripe_payment_intent_id) and
                sp.stripe_payment_intent_id == c.stripe_payment_intent_id),
+        distinct: c.id,
+        order_by: [
+          asc: c.id,
+          desc: fragment("(? = 'paid')", sp.status),
+          desc_nulls_last: sp.paid_at
+        ],
+        select: %{
+          cid: c.id,
+          id: sp.id,
+          amount: sp.amount,
+          amount_refunded: sp.amount_refunded,
+          stripe_fee: sp.stripe_fee,
+          status: sp.status,
+          paid_at: sp.paid_at
+        }
+      )
+
+    base_query =
+      from(c in Consultation,
+        left_join: sp in subquery(stripe_one),
+        on: sp.cid == c.id,
         left_join: d in Doctor,
         on: c.doctor_id == d.id,
         left_join: p in Patient,
