@@ -21,6 +21,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
   alias Ledgr.Domains.HelloDoctor.Patients.Patient
   alias Ledgr.Domains.HelloDoctor.PatientSegments
+  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
   alias Ledgr.Domains.HelloDoctor.Nps
   alias Ledgr.Domains.HelloDoctor.TestAccounts
 
@@ -48,8 +49,12 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
 
   @doc "Returns a complete metrics bundle for the dashboard."
   def all(start_date, end_date) do
+    patient_tiers = PatientSegments.weekly_cohorts(start_date, end_date)
+    new_l1plus = Enum.reduce(patient_tiers, 0, fn r, acc -> acc + (r.patients || 0) end)
+
     %{
       funnel: funnel_metrics(start_date, end_date),
+      unit_econ: unit_economics(start_date, end_date, new_l1plus),
       cost_metrics: cost_metrics(start_date, end_date),
       user_metrics: user_metrics(start_date, end_date),
       rating_metrics: rating_metrics(start_date, end_date),
@@ -60,7 +65,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       conversations_per_patient: conversations_per_patient(start_date, end_date),
       return_cohorts: weekly_return_cohorts(start_date, end_date),
       return_thesis: return_payment_thesis(start_date, end_date),
-      patient_tiers: PatientSegments.weekly_cohorts(start_date, end_date),
+      patient_tiers: patient_tiers,
       patient_overall: PatientSegments.overall(),
       patient_by_channel: PatientSegments.by_channel(),
       nps: Nps.summary(),
@@ -306,6 +311,92 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
       overall_conversion: pct(paid_count, conversations_count)
     }
   end
+
+  # ── Overall unit economics (period) ────────────────────────────
+
+  @doc """
+  Account-wide CPL / CAC for the selected period — the "overall" blend of
+  the per-campaign numbers on the Acquisition page.
+
+    * **CPL** = period ad spend ÷ new engaged (L1+) patients this period.
+      Media cost only — mirrors the Acquisition table's `est_cpl`.
+    * **CAC** = (period ad spend + free-consult subsidy) ÷ completed
+      ("done") consults this period. The free-consult subsidy is the
+      doctor share HD absorbs on comped ($0) completed consults — matching
+      the Acquisition table's `est_cac` and the Unit Economics page.
+
+  Both denominators are exactly the ones used on those pages; `nil`
+  (rendered "—") when the denominator is zero.
+  """
+  def unit_economics(start_date, end_date, new_l1plus) do
+    ad_spend = marketing_spend(start_date, end_date)
+    {done, free} = completed_and_subsidy(start_date, end_date)
+
+    %{
+      ad_spend: Float.round(ad_spend, 2),
+      free_consult: Float.round(free, 2),
+      done: done,
+      new_l1plus: new_l1plus,
+      cpl: money_div(ad_spend, new_l1plus),
+      cac: money_div(ad_spend + free, done)
+    }
+  end
+
+  # Total marketing spend (MXN) over the period, from the uploaded
+  # marketing_costs rows. Mirrors AcquisitionMetrics.spend_by_platform.
+  defp marketing_spend(start_date, end_date) do
+    sql = """
+    SELECT COALESCE(SUM(COALESCE(spend_mxn_cents,
+             CASE WHEN currency = 'MXN' THEN round(amount * 100) ELSE 0 END)), 0) / 100.0 AS mxn
+    FROM marketing_costs
+    WHERE ($1::date IS NULL OR date >= $1) AND ($2::date IS NULL OR date <= $2)
+    """
+
+    %{rows: [[mxn]]} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_date, end_date])
+    to_float(mxn)
+  rescue
+    # marketing_costs may not exist in some envs — treat as no spend.
+    _ -> 0.0
+  end
+
+  # Completed ("done") consult count + free-consult subsidy for the period,
+  # test-excluded and tenant-aware. Mirrors the conv_cons CTE on Acquisition.
+  defp completed_and_subsidy(start_date, end_date) do
+    start_naive = to_naive_start(start_date)
+    end_exclusive = to_naive_end_exclusive(end_date)
+
+    free_share_sql =
+      ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+
+    sql = """
+    SELECT
+      COUNT(*) FILTER (WHERE c.status = 'completed') AS done,
+      COALESCE(SUM(
+        CASE WHEN c.status = 'completed' AND COALESCE(c.payment_amount, 0) = 0
+             THEN #{free_share_sql} ELSE 0 END
+      ), 0) AS free
+    FROM consultations c
+    LEFT JOIN conversations conv ON conv.id = c.conversation_id
+    LEFT JOIN doctors d ON d.id = c.doctor_id
+    WHERE ($1::timestamp IS NULL OR c.assigned_at >= $1)
+      AND ($2::timestamp IS NULL OR c.assigned_at < $2)
+      AND #{TestAccounts.not_test_patient_sql("c.patient_id")}
+    """
+
+    %{rows: [[done, free]]} =
+      Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [start_naive, end_exclusive])
+
+    {done, to_float(free)}
+  rescue
+    _ -> {0, 0.0}
+  end
+
+  defp money_div(_amount, denom) when denom in [0, nil], do: nil
+
+  defp money_div(amount, denom) when is_number(denom) and denom > 0,
+    do: Float.round(amount / denom, 2)
+
+  defp money_div(_, _), do: nil
 
   # ── Funnel by segment (new/existing user × tenant) ─────────────
 

@@ -4,6 +4,10 @@
   nil -> "0%"
   n when is_number(n) -> "#{:erlang.float_to_binary(n * 1.0, decimals: 1)}%"
 end %>
+<% fmt_money = fn
+  nil -> "—"
+  n when is_number(n) -> "$#{:erlang.float_to_binary(Float.round(n * 1.0), decimals: 0)}"
+end %>
 
 <%!-- Color palette --%>
 <% c_primary = "#004058" %>
@@ -122,8 +126,7 @@ end %>
       <p class="text-sm mt-1" style="color: var(--text-muted);">
         {fmt_date(@start_date, "%b %d, %Y")} &mdash; {fmt_date(@end_date, "%b %d, %Y")}
         <%= if cmp do %>
-          <span style="color: var(--border-strong);">·</span>
-          deltas vs. prior {period_days} days
+          <span style="color: var(--border-strong);">·</span> deltas vs. prior {period_days} days
         <% end %>
       </p>
     </div>
@@ -139,7 +142,9 @@ end %>
             navigate={dp(@domain_path_prefix, "/?period=#{value}")}
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
             style={
-              if active, do: "background: #02ba97; color: white;", else: "color: var(--text-muted);"
+              if active,
+                do: "background: #02ba97; color: white;",
+                else: "color: var(--text-muted);"
             }
           >
             {label}
@@ -203,10 +208,15 @@ end %>
     <div class="hd-kpi">
       <div class="flex items-center justify-between">
         <div class="hd-kpi-label" style="margin-bottom: 0;">New leads</div>
-        <.hd_delta_chip current={m.user_metrics.new_users} prior={cmp && cmp.user_metrics.new_users} />
+        <.hd_delta_chip
+          current={m.user_metrics.new_users}
+          prior={cmp && cmp.user_metrics.new_users}
+        />
       </div>
       <div class="hd-kpi-value mt-2">{m.user_metrics.new_users}</div>
-      <div class="hd-kpi-sub">{m.user_metrics.total_active_users} active · incl. L0 one-msg leads</div>
+      <div class="hd-kpi-sub">
+        {m.user_metrics.total_active_users} active · incl. L0 one-msg leads
+      </div>
     </div>
 
     <div class="hd-kpi">
@@ -259,6 +269,30 @@ end %>
     </.link>
   </div>
 
+  <%!-- ═══ UNIT ECONOMICS — overall CPL / CAC for the period ═══ --%>
+  <% ue = m.unit_econ %>
+  <div class="hd-kpi-grid mb-8">
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">Ad spend</div>
+      <div class="hd-kpi-value mt-2">{fmt_money.(ue.ad_spend)}</div>
+      <div class="hd-kpi-sub">Meta + Google · this period</div>
+    </div>
+
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">CPL (overall)</div>
+      <div class="hd-kpi-value mt-2" style="color: var(--accent);">{fmt_money.(ue.cpl)}</div>
+      <div class="hd-kpi-sub">ad spend ÷ {ue.new_l1plus} new engaged (L1+)</div>
+    </div>
+
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">CAC (overall)</div>
+      <div class="hd-kpi-value mt-2" style="color: var(--accent);">{fmt_money.(ue.cac)}</div>
+      <div class="hd-kpi-sub">
+        (ad + {fmt_money.(ue.free_consult)} free consult) ÷ {ue.done} done
+      </div>
+    </div>
+  </div>
+
   <%!-- ═══ PATIENT LIFECYCLE — CURRENT STATE ═══ --%>
   <% po = m.patient_overall %>
   <div class="mb-8">
@@ -272,10 +306,9 @@ end %>
       Whole patient base, all-time (not period-scoped).
       <span style="color:#94a3b8;font-weight:600;">L0 Lead</span>
       (&lt;3 inbound msgs — not a patient) ·
-      <span style="color:#0ea5e9;font-weight:600;">L1 Engaged</span> ·
-      <span style="color:#16a34a;font-weight:600;">L2 Converted</span>
-      (≥1 consult) ·
-      <span style="color:#7c3aed;font-weight:600;">L3 Core</span>
+      <span style="color:#0ea5e9;font-weight:600;">L1 Engaged</span>
+      · <span style="color:#16a34a;font-weight:600;">L2 Converted</span>
+      (≥1 consult) · <span style="color:#7c3aed;font-weight:600;">L3 Core</span>
       (≥2 consults). <strong>Conversion = reached ≥L2 ÷ all leads.</strong>
     </p>
 
@@ -323,7 +356,9 @@ end %>
       </.link>
       <div class="hd-kpi">
         <div class="hd-kpi-label">Conversion (→L2+)</div>
-        <div class="hd-kpi-value" style="color: var(--accent);">{fmt_pct.(po.conversion_rate)}</div>
+        <div class="hd-kpi-value" style="color: var(--accent);">
+          {fmt_pct.(po.conversion_rate)}
+        </div>
         <div class="hd-kpi-sub">{po.converted} of {po.total} leads</div>
       </div>
     </div>
@@ -337,13 +372,36 @@ end %>
       <table class="hd-table w-full text-sm">
         <thead>
           <tr>
-            <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Channel</th>
-            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">L0</th>
-            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">L1</th>
-            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">L2</th>
-            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">L3</th>
-            <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Total</th>
-            <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-main);">Conversion (→L2+)</th>
+            <th
+              class="text-left p-2 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Channel
+            </th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">
+              L0
+            </th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">
+              L1
+            </th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">
+              L2
+            </th>
+            <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">
+              L3
+            </th>
+            <th
+              class="text-right p-2 text-xs font-medium uppercase"
+              style="color: var(--text-muted);"
+            >
+              Total
+            </th>
+            <th
+              class="text-right p-2 text-xs font-medium uppercase"
+              style="color: var(--text-main);"
+            >
+              Conversion (→L2+)
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -366,7 +424,9 @@ end %>
 
     <%!-- New patients by tier & signup week --%>
     <div class="hd-card p-5">
-      <div class="hd-card-title" style="margin-bottom: 0.25rem;">New patients by tier &amp; signup week</div>
+      <div class="hd-card-title" style="margin-bottom: 0.25rem;">
+        New patients by tier &amp; signup week
+      </div>
       <p class="text-xs mb-3" style="color: var(--text-muted);">
         Bucketed by the week each patient was created (in the selected range), by current tier.
         Tiers are lifetime, so recent weeks still mature.
@@ -380,13 +440,36 @@ end %>
         <table class="hd-table w-full text-sm">
           <thead>
             <tr>
-              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Week of</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">L0</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">L1</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">L2</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">L3</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">Patients (L1+)</th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-main);">Conversion</th>
+              <th
+                class="text-left p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Week of
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #94a3b8;">
+                L0
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #0ea5e9;">
+                L1
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #16a34a;">
+                L2
+              </th>
+              <th class="text-right p-2 text-xs font-medium uppercase" style="color: #7c3aed;">
+                L3
+              </th>
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
+                Patients (L1+)
+              </th>
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-main);"
+              >
+                Conversion
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -427,8 +510,8 @@ end %>
         {"Conversations", m.funnel.conversations, 100.0, c_primary, "100% of leads"},
         {"Doctor recommended", m.funnel.doctor_recommended, width.(m.funnel.doctor_recommended),
          "#11697e", "#{fmt_pct.(m.funnel.doctor_recommended_rate)} of conversations"},
-        {"Consultations started", m.funnel.consultations, width.(m.funnel.consultations), "#1d92a8",
-         "#{fmt_pct.(m.funnel.consultation_rate)} of recommended"},
+        {"Consultations started", m.funnel.consultations, width.(m.funnel.consultations),
+         "#1d92a8", "#{fmt_pct.(m.funnel.consultation_rate)} of recommended"},
         {"Paid", m.funnel.paid, width.(m.funnel.paid), c_accent,
          "#{fmt_pct.(m.funnel.paid_rate)} of consultations"}
       ] %>
@@ -519,8 +602,7 @@ end %>
         </span>
       </div>
       <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 80ch;">
-        Share of each week's conversations that started a consultation (and that paid), bucketed by
-        <strong>Mexico-City ISO week</strong>. Counts come from conversations + consultations, not the
+        Share of each week's conversations that started a consultation (and that paid), bucketed by <strong>Mexico-City ISO week</strong>. Counts come from conversations + consultations, not the
         stale funnel-stage column. The slope is an ordinary least-squares fit (percentage points per
         week) over the consultation rate. The current week is still in progress, so its rates are partial.
       </p>
@@ -531,27 +613,46 @@ end %>
         </div>
       <% else %>
         <div id="conversion-trend-chart-wrapper" phx-hook="LineChart" style="height: 280px;">
-          <canvas id="conversion-trend-chart" data-chart-data={Jason.encode!(trend_chart)}></canvas>
+          <canvas id="conversion-trend-chart" data-chart-data={Jason.encode!(trend_chart)}>
+          </canvas>
         </div>
         <table class="hd-table w-full text-sm mt-4">
           <thead>
             <tr>
-              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-left p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Week of
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Convos
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Consults
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 → Consult
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Paid
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 → Paid
               </th>
             </tr>
@@ -562,7 +663,9 @@ end %>
                 <td class="p-2 font-medium" style="color: var(--text-main);">
                   {fmt_date(w.week_start, "%b %d")}
                 </td>
-                <td class="p-2 text-right" style="color: var(--text-muted);">{w.conversations}</td>
+                <td class="p-2 text-right" style="color: var(--text-muted);">
+                  {w.conversations}
+                </td>
                 <td class="p-2 text-right" style="color: var(--text-main);">{w.consultations}</td>
                 <td class="p-2 text-right font-medium">{fmt_pct.(w.consultation_rate)}</td>
                 <td class="p-2 text-right" style="color: var(--text-main);">{w.paid}</td>
@@ -661,16 +764,28 @@ end %>
             <table class="hd-table w-full text-sm">
               <thead>
                 <tr>
-                  <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                  <th
+                    class="text-left p-2 text-xs font-medium uppercase"
+                    style="color: var(--text-muted);"
+                  >
                     Doctor
                   </th>
-                  <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                  <th
+                    class="text-right p-2 text-xs font-medium uppercase"
+                    style="color: var(--text-muted);"
+                  >
                     Total
                   </th>
-                  <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                  <th
+                    class="text-right p-2 text-xs font-medium uppercase"
+                    style="color: var(--text-muted);"
+                  >
                     Direct
                   </th>
-                  <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+                  <th
+                    class="text-right p-2 text-xs font-medium uppercase"
+                    style="color: var(--text-muted);"
+                  >
                     % Direct
                   </th>
                 </tr>
@@ -680,7 +795,9 @@ end %>
                   <tr class="border-t" style="border-color: var(--border-subtle);">
                     <td class="p-2 font-medium" style="color: var(--text-main);">{row.name}</td>
                     <td class="p-2 text-right" style="color: var(--text-muted);">{row.total}</td>
-                    <td class="p-2 text-right" style="color: var(--text-main);">{row.targeted || 0}</td>
+                    <td class="p-2 text-right" style="color: var(--text-main);">
+                      {row.targeted || 0}
+                    </td>
                     <td class="p-2 text-right">
                       <span
                         class="font-semibold"
@@ -704,8 +821,7 @@ end %>
         <div class="hd-card-title" style="margin-bottom: 0;">Return rate by signup week</div>
         <%= if m.return_cohorts.total_cohort > 0 do %>
           <span class="text-xs font-semibold" style="color: var(--accent);">
-            {fmt_pct.(m.return_cohorts.overall_rate)} overall ·
-            {m.return_cohorts.total_returned}/{m.return_cohorts.total_cohort} returned
+            {fmt_pct.(m.return_cohorts.overall_rate)} overall · {m.return_cohorts.total_returned}/{m.return_cohorts.total_cohort} returned
           </span>
         <% end %>
       </div>
@@ -724,13 +840,22 @@ end %>
         <table class="hd-table w-full text-sm">
           <thead>
             <tr>
-              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-left p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Week of
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 New patients
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Returned
               </th>
               <th
@@ -782,24 +907,40 @@ end %>
         <table class="hd-table w-full text-sm">
           <thead>
             <tr>
-              <th class="text-left p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-left p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Segment
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Patients
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 Ever paid
               </th>
-              <th class="text-right p-2 text-xs font-medium uppercase" style="color: var(--text-muted);">
+              <th
+                class="text-right p-2 text-xs font-medium uppercase"
+                style="color: var(--text-muted);"
+              >
                 % paid
               </th>
             </tr>
           </thead>
           <tbody>
             <tr class="border-t" style="border-color: var(--border-subtle);">
-              <td class="p-2 font-medium" style="color: var(--text-main);">Returning (≥2 days)</td>
-              <td class="p-2 text-right" style="color: var(--text-muted);">{rt.returning.patients}</td>
+              <td class="p-2 font-medium" style="color: var(--text-main);">
+                Returning (≥2 days)
+              </td>
+              <td class="p-2 text-right" style="color: var(--text-muted);">
+                {rt.returning.patients}
+              </td>
               <td class="p-2 text-right" style="color: var(--text-main);">{rt.returning.paid}</td>
               <td class="p-2 text-right font-semibold" style="color: var(--accent);">
                 {fmt_pct.(rt.returning.pct_paid)}
@@ -807,7 +948,9 @@ end %>
             </tr>
             <tr class="border-t" style="border-color: var(--border-subtle);">
               <td class="p-2 font-medium" style="color: var(--text-main);">One-day only</td>
-              <td class="p-2 text-right" style="color: var(--text-muted);">{rt.one_day.patients}</td>
+              <td class="p-2 text-right" style="color: var(--text-muted);">
+                {rt.one_day.patients}
+              </td>
               <td class="p-2 text-right" style="color: var(--text-main);">{rt.one_day.paid}</td>
               <td class="p-2 text-right font-semibold" style="color: var(--text-main);">
                 {fmt_pct.(rt.one_day.pct_paid)}
