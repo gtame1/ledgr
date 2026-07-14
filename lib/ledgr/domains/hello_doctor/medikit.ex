@@ -32,6 +32,17 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
   @validate_path "/doctors/validate-professional-license"
   @register_path "/doctors"
 
+  # Medikit's backend is a Salesforce org, and it maps our address fields onto
+  # standard Salesforce Shipping* address fields, which have hard length caps.
+  # Long Mexican municipality names blow past the City cap (e.g. "Dolores
+  # Hidalgo Cuna de la Independencia Nacional", 49 chars) and fail the WHOLE
+  # register with STRING_TOO_LONG — so we clamp each address field to its
+  # Salesforce max before sending. City is the tight one at 40.
+  @sf_city_max 40
+  @sf_state_max 80
+  @sf_street_max 255
+  @sf_zipcode_max 20
+
   # The UAT cédula validator (SEP upstream) can hang ~30s before answering, well
   # past Finch's 15s default → a `Req.TransportError{reason: :timeout}`. Give
   # both calls headroom so a slow-but-valid response isn't killed.
@@ -232,13 +243,50 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
       "SpecialtyId" => doctor.medikit_specialty_id,
       "Institution" => doctor.university,
       "TaxId" => doctor.tax_id,
-      # address (Country per-doctor, falling back to the config default / MX)
+      # address (Country per-doctor, falling back to the config default / MX).
+      # Each field clamped to its Salesforce Shipping* max — see @sf_*_max.
       "Country" => doctor.address_country || cfg[:country] || "MX",
-      "State" => doctor.address_state,
-      "City" => doctor.address_city,
-      "Address" => doctor.address_line,
-      "Zipcode" => doctor.address_zipcode
+      "State" => clamp(doctor.address_state, @sf_state_max, "State"),
+      "City" => clamp(doctor.address_city, @sf_city_max, "City"),
+      "Address" => clamp(doctor.address_line, @sf_street_max, "Address"),
+      "Zipcode" => clamp(doctor.address_zipcode, @sf_zipcode_max, "Zipcode")
     })
+  end
+
+  # Clamp a string to Salesforce's field-length cap, preferring a clean cut at
+  # a word boundary so a truncated city stays readable ("Dolores Hidalgo Cuna
+  # de la Independencia Nacional" → "Dolores Hidalgo Cuna de la Independencia").
+  # Logs whenever it trims, so a silently-shortened address is still visible.
+  defp clamp(nil, _max, _label), do: nil
+
+  defp clamp(v, max, label) when is_binary(v) do
+    if String.length(v) <= max do
+      v
+    else
+      truncated = word_truncate(v, max)
+
+      Logger.info(
+        "[Medikit] clamped #{label} to Salesforce max #{max}: " <>
+          "#{inspect(v)} -> #{inspect(truncated)}"
+      )
+
+      truncated
+    end
+  end
+
+  defp word_truncate(v, max) do
+    sliced = String.slice(v, 0, max)
+
+    # If the cut fell mid-word, back off to the last whitespace; if there's no
+    # earlier space (a single over-long token), keep the hard character cut.
+    if String.at(v, max) == " " do
+      String.trim_trailing(sliced)
+    else
+      case Regex.run(~r/^(.*)\s\S+$/u, sliced) do
+        [_, head] when head != "" -> String.trim_trailing(head)
+        _ -> sliced
+      end
+    end
   end
 
   # Medikit register LastName = both apellidos.
