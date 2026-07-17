@@ -83,7 +83,7 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
   window; if that window also introduces new ad sets, give those
   campaigns a matching `started_on` and they become its generation.
   """
-  def cuts, do: [cutoff(), ~D[2026-06-24], ~D[2026-07-08]]
+  def cuts, do: [cutoff(), ~D[2026-06-24], ~D[2026-07-08], ~D[2026-07-16]]
 
   @doc """
   Campaigns live in the generation that was current on `date`: the
@@ -301,6 +301,50 @@ defmodule Ledgr.Domains.HelloDoctor.Campaigns do
         pain: "Hablar con un médico",
         phrase: "me gustaria hablar con un medico",
         started_on: ~D[2026-06-24]
+      },
+      # ── Cohort launched 2026-07-16 (OMB + Aby flows) ─────────────
+      # New ChatAir welcome flows; become the current generation from
+      # 2026-07-16. Each appends a distinct emoji to the shared prefill
+      # "Hola, me gustaría hablar con un médico <emoji>".
+      %__MODULE__{
+        id: "omb_sabias",
+        label: "OMB — Sabías que existe",
+        emoji: "👤",
+        campaign_set: "OMB",
+        ad_set: "OMB-01",
+        pain: "Sabías que existe",
+        phrase: "me gustaría hablar con un médico",
+        started_on: ~D[2026-07-16]
+      },
+      %__MODULE__{
+        id: "omb_paso_a_paso",
+        label: "OMB — Paso a paso",
+        emoji: "✋",
+        campaign_set: "OMB",
+        ad_set: "OMB-02",
+        pain: "Paso a paso",
+        phrase: "me gustaría hablar con un médico",
+        started_on: ~D[2026-07-16]
+      },
+      %__MODULE__{
+        id: "aby_ia_novedad",
+        label: "Aby — IA Novedad",
+        emoji: "🙌",
+        campaign_set: "Aby",
+        ad_set: "ABY-01",
+        pain: "IA Novedad",
+        phrase: "me gustaría hablar con un médico",
+        started_on: ~D[2026-07-16]
+      },
+      %__MODULE__{
+        id: "aby_compartir_contacto",
+        label: "Aby — Compartir Contacto",
+        emoji: "💬",
+        campaign_set: "Aby",
+        ad_set: "ABY-02",
+        pain: "Compartir Contacto",
+        phrase: "me gustaría hablar con un médico",
+        started_on: ~D[2026-07-16]
       },
       # ── Landing pages (evergreen — span every Meta generation) ───
       %__MODULE__{
