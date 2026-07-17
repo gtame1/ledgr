@@ -543,9 +543,6 @@ defmodule LedgrWeb.Router do
 
     patch "/specialties/:id/toggle", Domains.HelloDoctor.SpecialtyController, :toggle
 
-    # Expenses (shared controller, domain-scoped)
-    resources "/expenses", ExpenseController, except: [:show]
-
     # FX rate setting
     post "/settings/fx-rate", Domains.HelloDoctor.DashboardController, :update_fx_rate
 

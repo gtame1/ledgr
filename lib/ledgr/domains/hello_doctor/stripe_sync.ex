@@ -853,7 +853,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
     end
   end
 
-  defp hellodoctor_session?(product_ids, metadata \\ %{}) do
+  defp hellodoctor_session?(product_ids, metadata) do
     allowlist = hellodoctor_product_ids()
     Enum.any?(product_ids, &(&1 in allowlist)) or hd_metadata?(metadata)
   end
