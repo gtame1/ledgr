@@ -15,7 +15,9 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitProvisioning do
     1. POST /doctors/validate-professional-license with the cédula.
     2. If valid, POST /doctors (identity + account-scoped ids) → HealthcareProvider id.
     3. UPDATE doctors SET medikit_healthcare_provider_id, medikit_license_validated_at
-       (only those two columns) WHERE id = doctor.id.
+       (only those two columns) WHERE id = doctor.id. The validated_at stamp is
+       written only when step 1 actually ran (not under
+       MEDIKIT_SKIP_LICENSE_VALIDATION).
 
   Fail-closed per doctor: a missing cédula, invalid license, failed validate /
   register, or DB write error leaves `medikit_healthcare_provider_id` NULL —
@@ -104,7 +106,7 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitProvisioning do
           "(MEDIKIT_SKIP_LICENSE_VALIDATION) — registering without the cédula check"
       )
 
-      register_and_write(doctor)
+      register_and_write(doctor, _license_validated? = false)
     else
       do_validate_then_register(doctor)
     end
@@ -113,7 +115,7 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitProvisioning do
   defp do_validate_then_register(%Doctor{} = doctor) do
     case Medikit.validate_professional_license(doctor) do
       {:ok, :valid} ->
-        register_and_write(doctor)
+        register_and_write(doctor, _license_validated? = true)
 
       {:ok, :invalid} ->
         Logger.info("[Medikit] Doctor #{doctor.id}: license invalid — left unprovisioned")
@@ -125,10 +127,10 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitProvisioning do
     end
   end
 
-  defp register_and_write(%Doctor{} = doctor) do
+  defp register_and_write(%Doctor{} = doctor, license_validated?) do
     case Medikit.register_doctor(doctor) do
       {:ok, healthcare_provider_id} ->
-        case write_result(doctor, healthcare_provider_id) do
+        case write_result(doctor, healthcare_provider_id, license_validated?) do
           {:ok, _doctor} ->
             Logger.info("[Medikit] Doctor #{doctor.id}: provisioned (#{healthcare_provider_id})")
             {:provisioned, healthcare_provider_id}
@@ -150,15 +152,28 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitProvisioning do
     end
   end
 
-  # Writes ONLY the two medikit columns. `Ecto.Changeset.change/2` on the loaded
+  # Writes ONLY the medikit columns. `Ecto.Changeset.change/2` on the loaded
   # struct emits an UPDATE touching just these fields — the doctors table is
-  # never migrated/altered here.
-  defp write_result(%Doctor{} = doctor, healthcare_provider_id) do
+  # never migrated/altered here. `medikit_license_validated_at` is stamped only
+  # when the cédula check actually ran and passed — with
+  # MEDIKIT_SKIP_LICENSE_VALIDATION the column stays NULL, so the timestamp
+  # never claims a validation that was skipped.
+  defp write_result(%Doctor{} = doctor, healthcare_provider_id, license_validated?) do
+    changes = %{medikit_healthcare_provider_id: healthcare_provider_id}
+
+    changes =
+      if license_validated? do
+        Map.put(
+          changes,
+          :medikit_license_validated_at,
+          DateTime.utc_now() |> DateTime.truncate(:second)
+        )
+      else
+        changes
+      end
+
     doctor
-    |> Ecto.Changeset.change(%{
-      medikit_healthcare_provider_id: healthcare_provider_id,
-      medikit_license_validated_at: DateTime.utc_now() |> DateTime.truncate(:second)
-    })
+    |> Ecto.Changeset.change(changes)
     |> Repo.update()
   end
 

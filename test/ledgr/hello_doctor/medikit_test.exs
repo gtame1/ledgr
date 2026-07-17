@@ -531,7 +531,12 @@ defmodule Ledgr.Domains.HelloDoctor.MedikitTest do
       doctor = insert_doctor(%{"terms_accepted" => true})
 
       assert {:provisioned, "HP-SKIP"} = MedikitProvisioning.provision_doctor(doctor)
-      assert Ledgr.Repo.get!(Doctor, doctor.id).medikit_healthcare_provider_id == "HP-SKIP"
+
+      reloaded = Ledgr.Repo.get!(Doctor, doctor.id)
+      assert reloaded.medikit_healthcare_provider_id == "HP-SKIP"
+      # The cédula check never ran, so the validated stamp must NOT be written —
+      # a set medikit_license_validated_at has to mean an actual validation.
+      assert is_nil(reloaded.medikit_license_validated_at)
     end
   end
 end

@@ -221,9 +221,16 @@ if token = System.get_env("PRESCRYPTO_TOKEN") do
 end
 
 # Medikit digital prescriptions (migrating off Prescrypto). Single account-level
-# API-KEY. Build against dev/UAT by pointing MEDIKIT_DOCTORS_HOST at the UAT host
-# (https://api-doctors-1jqz1q.5sc6y6-2.usa-e2.cloudhub.io/api). Only configured
-# when the API key is present, so the integration stays inert without it.
+# API-KEY. In prod, MEDIKIT_DOCTORS_HOST + MEDIKIT_API_KEY MUST match what
+# hello-doctor prod uses — the key selects the Salesforce org, and hello-doctor
+# writes prescriptions against the HealthcareProvider ids we mint here:
+#   host: https://medikit-doctors-0z7bqo.5sc6y6-2.usa-e2.cloudhub.io/api
+#   key:  same value as SSM /hello-doctor/prod/MEDIKIT_API_KEY
+# (UAT, testing only: https://api-doctors-1jqz1q.5sc6y6-2.usa-e2.cloudhub.io/api.
+# UAT/other-org ids start "0cmE2" and break hello-doctor's /prescription with
+# 400 "No se registro encuentro clinico"; prod ids start "0cmVK".)
+# Only configured when the API key is present, so the integration stays inert
+# without it.
 #
 # Account-scoped ids (Payer/PurchaserPlan/OrganizationId/SourceSystem) and the
 # specialty catalog come from the Medikit Account Manager. Per-doctor data
