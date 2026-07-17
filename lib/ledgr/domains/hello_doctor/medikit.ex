@@ -4,11 +4,21 @@ defmodule Ledgr.Domains.HelloDoctor.Medikit do
   Hello Doctor off Prescrypto for digital prescriptions.
 
   Auth is a single account-level `API-KEY` header (not per-doctor). All calls go
-  to the configured `base_url` (dev/UAT). Config from
+  to the configured `base_url`. Config from
   `Application.get_env(:ledgr, :medikit)`:
 
-      base_url        — doctors host (UAT: https://api-doctors-1jqz1q.5sc6y6-2.usa-e2.cloudhub.io/api)
-      api_key         — account API-KEY header value
+      base_url        — doctors host. PROD (the org hello-doctor's key talks to):
+                        https://medikit-doctors-0z7bqo.5sc6y6-2.usa-e2.cloudhub.io/api
+                        UAT (testing only): https://api-doctors-1jqz1q.5sc6y6-2.usa-e2.cloudhub.io/api
+      api_key         — account API-KEY header value. MUST be the same account
+                        key hello-doctor prod uses (SSM
+                        /hello-doctor/prod/MEDIKIT_API_KEY) — key selects the
+                        Salesforce org, and hello-doctor consumes the ids we mint.
+                        Org tell: PROD HealthcareProvider ids start "0cmVK";
+                        "0cmE2" means UAT/another org, and hello-doctor's
+                        POST /prescription then 400s with
+                        "No se registro encuentro clinico" (2026-07-17 incident:
+                        12/14 doctors re-registered by hand).
       enabled         — false short-circuits every call with {:error, :disabled}
 
       # account-scoped ids (from Medikit Account Manager)
