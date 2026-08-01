@@ -59,6 +59,92 @@
     </div>
   </div>
 
+  <%!-- ── Settlement (collection leg: Dr 1010 Bank / Cr 1100 AR) ── --%>
+  <div class="hd-card p-4 mb-6" style={"border-left: 3px solid #{if @settlement, do: "#16a34a", else: "var(--accent)"};"}>
+    <%= if @settlement do %>
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div class="text-sm font-semibold" style="color: var(--text-main);">
+            ✓ Payment recorded — {fmt_cents(@settlement_amount_cents)}
+          </div>
+          <div class="text-xs mt-1" style="color: var(--text-muted);">
+            Booked {Calendar.strftime(@settlement.date, "%Y-%m-%d")} ·
+            <code>{@settlement.reference}</code> · posted <code>Dr Bank / Cr 1100 A/R</code>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-sm font-semibold mb-1" style="color: var(--text-main);">
+        Record employer payment
+      </div>
+      <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 78ch;">
+        Posts <code>Dr Bank / Cr 1100 Accounts Receivable</code>, clearing the receivable
+        booked when these consults were delivered. Pre-filled with the
+        <strong>booked receivable</strong> in the GL ({fmt_cents(@booked_ar_cents)}) — which
+        can differ from the bot subtotal above, since that counts cancelled / refunded rows.
+        Adjust the amount to match what was actually received.
+      </p>
+      <form
+        method="post"
+        action={dp(@domain_path_prefix, "/corporate/#{@slug}/invoice/settle")}
+        class="flex flex-wrap items-end gap-3"
+      >
+        <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+        <input type="hidden" name="month" value={@month} />
+        <div>
+          <label class="block text-xs font-semibold uppercase mb-1" style="color: var(--text-muted);">
+            Amount (MXN)
+          </label>
+          <input
+            type="number"
+            name="amount"
+            step="0.01"
+            min="0"
+            value={:erlang.float_to_binary(@booked_ar_cents / 100, decimals: 2)}
+            class="hd-input text-sm"
+            style="padding: 0.4rem 0.65rem; width: 9rem;"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase mb-1" style="color: var(--text-muted);">
+            Date received
+          </label>
+          <input
+            type="date"
+            name="date"
+            value={Calendar.strftime(@today, "%Y-%m-%d")}
+            class="hd-input text-sm"
+            style="padding: 0.4rem 0.65rem;"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase mb-1" style="color: var(--text-muted);">
+            Deposit to
+          </label>
+          <select name="deposit_account" class="hd-input text-sm" style="padding: 0.4rem 0.65rem;">
+            <%= for {code, label} <- @deposit_accounts do %>
+              <option value={code}>{code} — {label}</option>
+            <% end %>
+          </select>
+        </div>
+        <button
+          type="submit"
+          class="hd-btn-primary text-sm"
+          style="padding: 0.5rem 1.1rem;"
+          disabled={@booked_ar_cents == 0}
+          onclick={"return confirm('Record this employer payment for #{@month}? This posts a journal entry.')"}
+        >
+          Record payment
+        </button>
+      </form>
+      <%= if @booked_ar_cents == 0 do %>
+        <p class="text-xs mt-2" style="color: var(--text-muted);">
+          No booked receivable for {@month} yet — deliver (and post) a corporate consult first.
+        </p>
+      <% end %>
+    <% end %>
+  </div>
+
   <p class="text-xs mb-3" style="color: var(--text-muted);">
     The line items include every consultation attributed to this account in the period,
     including refunded / cancelled rows. Sort or filter in the CSV before sending it

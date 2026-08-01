@@ -190,6 +190,7 @@ defmodule Ledgr.Domains.HelloDoctor do
     [
       {"Consultation Payment", "consultation_payment"},
       {"Corporate Consultation", "corporate_consultation"},
+      {"Corporate Settlement", "corporate_settlement"},
       {"Doctor Payout", "doctor_payout"},
       {"Refund", "refund"},
       {"Commission", "commission"},

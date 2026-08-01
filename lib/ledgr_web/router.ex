@@ -652,6 +652,10 @@ defmodule LedgrWeb.Router do
     get "/corporate/:slug/invoice/download",
         Domains.HelloDoctor.CorporateController,
         :invoice_csv
+
+    post "/corporate/:slug/invoice/settle",
+         Domains.HelloDoctor.CorporateController,
+         :settle_invoice
   end
 
   # ── Aumenta Mi Pensión: public auth routes ─────────────────────────
