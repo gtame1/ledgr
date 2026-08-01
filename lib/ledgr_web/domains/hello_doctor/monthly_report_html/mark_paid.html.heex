@@ -33,10 +33,12 @@
       </div>
     <% end %>
     <%= if @plan.totals.corporate_count > 0 do %>
-      <div class="hd-card p-3 mb-4" style="border-left: 3px solid #dc2626;">
-        ⚠️ <strong>{@plan.totals.corporate_count} corporate (employer-paid) consultation(s)</strong>
-        will be marked paid to the doctor, but have no Stripe payment entry. Their GL
-        offset (employer revenue) isn't posted automatically — <strong>review those manually</strong>.
+      <div class="hd-card p-3 mb-4" style="border-left: 3px solid var(--accent);">
+        <strong>{@plan.totals.corporate_count} corporate (employer-paid) consultation(s)</strong>
+        (${:erlang.float_to_binary(@plan.totals.corporate_revenue + 0.0, decimals: 2)} MXN billed).
+        These have no Stripe payment, so a <code>Dr 1100 Accounts Receivable / Cr 4000 Revenue</code>
+        plus <code>Dr 4000 / Cr 2000 Doctor Payable</code> entry is posted automatically before each
+        payout so the books balance.
       </div>
     <% end %>
 

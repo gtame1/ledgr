@@ -77,6 +77,15 @@ defmodule LedgrWeb.Domains.HelloDoctor.PaymentController do
   def backfill_gl(conn, _params) do
     {:ok, %{posted: p, skipped: s, errors: e}} = StripeSync.backfill_journal_entries()
 
+    # Corporate (employer-paid) consults never touch Stripe, so they're not in
+    # StripeSync's sweep — post their revenue + doctor-payable JEs here too.
+    {:ok, %{posted: cp, skipped: cs, errors: ce}} =
+      Ledgr.Domains.HelloDoctor.ConsultationAccounting.backfill_corporate_journal_entries()
+
+    p = p + cp
+    s = s + cs
+    e = e + ce
+
     msg = "GL backfill complete: #{p} posted, #{s} already had entries"
     msg = if e > 0, do: "#{msg}, #{e} errors (check logs)", else: msg
     flash = if e > 0, do: :error, else: :info

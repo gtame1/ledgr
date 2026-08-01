@@ -189,6 +189,7 @@ defmodule Ledgr.Domains.HelloDoctor do
   def journal_entry_types do
     [
       {"Consultation Payment", "consultation_payment"},
+      {"Corporate Consultation", "corporate_consultation"},
       {"Doctor Payout", "doctor_payout"},
       {"Refund", "refund"},
       {"Commission", "commission"},

@@ -25,10 +25,12 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
   idempotent: already-paid consults are excluded by the join filter and
   already-accrued comps by their reference marker.
 
-  NOTE on corporate consults (`payment_source = "corporate"`): like comps they
-  have no Stripe payment JE, but their offset is employer revenue, not a
-  marketing cost — and corporate revenue isn't modeled here. They are still
-  paid to the doctor, but flagged for manual GL review rather than auto-accrued.
+  Corporate consults (`payment_source = "corporate"`) get the same treatment,
+  in a third phase. Like comps they have no Stripe payment JE, but their offset
+  is employer *revenue*, not a marketing cost — so before paying we post
+  `ConsultationAccounting.record_corporate_payment/1`
+  (`Dr 1100 AR / Cr 4000 Revenue` + `Dr 4000 / Cr 2000 Doctor Payable`). Also
+  idempotent — a consult that already has its corporate entry is skipped.
   """
 
   require Logger
@@ -36,7 +38,10 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
 
   alias Ledgr.Repo
   alias Ledgr.Core.Accounting
+  alias Ledgr.Core.Accounting.JournalEntry
   alias Ledgr.Domains.HelloDoctor
+  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
   alias Ledgr.Domains.HelloDoctor.DoctorPayouts
   alias Ledgr.Domains.HelloDoctor.MonthlyReport
 
@@ -90,6 +95,9 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
       comp_count: length(comp_rows),
       comp_accrual: sum(comp_rows, :doctor_share),
       corporate_count: length(corporate_rows),
+      # `stripe_amount` carries the billed rate for corporate rows (via the
+      # report's payment_amount fallback); nil coerces to 0 in `sum/2`.
+      corporate_revenue: sum(corporate_rows, :stripe_amount),
       consultation_ids: Enum.map(rows, & &1.consultation_id),
       rows: rows
     }
@@ -104,7 +112,8 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
       net_cash: sum_field(doctors, :net_cash),
       comp_count: sum_field(doctors, :comp_count),
       comp_accrual: sum_field(doctors, :comp_accrual),
-      corporate_count: sum_field(doctors, :corporate_count)
+      corporate_count: sum_field(doctors, :corporate_count),
+      corporate_revenue: sum_field(doctors, :corporate_revenue)
     }
   end
 
@@ -115,7 +124,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
   `Date`. Returns a summary map:
 
       %{doctors_paid, doctors_failed, consultations_paid, accruals_posted,
-        total_cash, total_isr, failures: [{doctor_name, reason}]}
+        corporate_posted, total_cash, total_isr, failures: [{doctor_name, reason}]}
 
   Each doctor is processed independently — a failure for one doctor doesn't
   abort the others. Safe to re-run: already-paid consults and already-accrued
@@ -132,12 +141,17 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
         doctors_failed: 0,
         consultations_paid: 0,
         accruals_posted: 0,
+        corporate_posted: 0,
         total_cash: 0.0,
         total_isr: 0.0,
         failures: []
       },
       fn d, acc ->
+        # Post the missing offset JEs BEFORE the payout debits Doctor Payable:
+        # comps accrue `Dr 6050 / Cr 2000`, corporate consults recognize
+        # `Dr 1100 / Cr 4000` + `Dr 4000 / Cr 2000`. Both idempotent.
         accruals = post_comp_accruals(d, payout_date)
+        corporate = post_corporate_revenue(d)
 
         case record_payout(d, payout_date, period_label) do
           {:ok, _payout} ->
@@ -146,6 +160,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
               | doctors_paid: acc.doctors_paid + 1,
                 consultations_paid: acc.consultations_paid + d.count,
                 accruals_posted: acc.accruals_posted + accruals,
+                corporate_posted: acc.corporate_posted + corporate,
                 total_cash: acc.total_cash + d.net_cash,
                 total_isr: acc.total_isr + d.isr
             }
@@ -159,6 +174,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
               acc
               | doctors_failed: acc.doctors_failed + 1,
                 accruals_posted: acc.accruals_posted + accruals,
+                corporate_posted: acc.corporate_posted + corporate,
                 failures: [{d.doctor_name, reason} | acc.failures]
             }
         end
@@ -208,6 +224,37 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyPayoutRun do
             {:error, reason} ->
               Logger.error(
                 "[HelloDoctor] Comp accrual failed for consultation #{row.consultation_id}: #{inspect(reason)}"
+              )
+
+              posted
+          end
+      end
+    end)
+  end
+
+  # Posts the corporate revenue + doctor-payable JE for each corporate consult
+  # (`payment_source == "corporate"`) that doesn't already have one, via
+  # `ConsultationAccounting.record_corporate_payment/1`. Returns the count of
+  # entries newly posted this run (already-posted consults don't count).
+  defp post_corporate_revenue(d) do
+    d.rows
+    |> Enum.filter(&(&1.payment_source == "corporate"))
+    |> Enum.reduce(0, fn row, posted ->
+      case Repo.get(Consultation, row.consultation_id) do
+        nil ->
+          posted
+
+        consultation ->
+          case ConsultationAccounting.record_corporate_payment(consultation) do
+            {:ok, %JournalEntry{}} ->
+              posted + 1
+
+            {:ok, _skipped} ->
+              posted
+
+            {:error, reason} ->
+              Logger.error(
+                "[HelloDoctor] Corporate revenue JE failed for consultation #{row.consultation_id}: #{inspect(reason)}"
               )
 
               posted
