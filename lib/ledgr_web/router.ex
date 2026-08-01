@@ -586,6 +586,10 @@ defmodule LedgrWeb.Router do
     get "/reports/monthly/download", Domains.HelloDoctor.MonthlyReportController, :download
     get "/reports/monthly/xlsx", Domains.HelloDoctor.MonthlyReportController, :download_xlsx
 
+    # Bulk "mark month as paid": GET preview + POST confirm
+    get "/reports/monthly/mark-paid", Domains.HelloDoctor.MonthlyReportController, :mark_paid_preview
+    post "/reports/monthly/mark-paid", Domains.HelloDoctor.MonthlyReportController, :mark_paid
+
     # A/B experiment tracker (Scientist framework) — registry + per-arm readout
     get "/experiments", Domains.HelloDoctor.ExperimentController, :index
     get "/experiments/:id", Domains.HelloDoctor.ExperimentController, :show
