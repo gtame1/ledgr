@@ -103,12 +103,36 @@ is only the fallback, not a flat override — checked, because the hardcoded
 Risk is drift, not present error. Collapse into one expression in
 `fct_consultation.doctor_share_mxn`.
 
-**Open audit item:** both implementations key on `conversations.tenant =
-'direct'`, while `dashboard_metrics.ex` is the *only* module using
-`targeted_doctor_id IS NOT NULL` — the rule recorded as the genuine test for a
-direct consult. Since the 2026-06-28 backfill corrected 529 mis-marked rows,
-`tenant` may now be reliable. **Verify before encoding either rule in the
-view.** Getting this wrong changes doctor payouts.
+### Audit item — RESOLVED 2026-08-01
+
+Both implementations key on `conversations.tenant = 'direct'`, while
+`dashboard_metrics.ex` alone uses `targeted_doctor_id IS NOT NULL` — the rule
+recorded as the genuine test for a direct consult. Measured across all
+completed consultations:
+
+| `tenant` | targeted? | Consults | Share by `tenant` | Share by `targeted` |
+|---|---|---|---|---|
+| mvp | no | 128 | 12,800 | 12,800 |
+| direct | yes | 4 | 650 | 650 |
+| mvp | **yes** | 1 | 100 | 100 |
+
+**The two rules agree on every peso today** — 13,550 either way. After the
+2026-06-28 backfill, `tenant` and `targeted_doctor_id` are aligned except for a
+single `mvp`-but-targeted consultation, and that doctor has no configured
+`consultation_fee_mxn`, so both rules fall through to the same 100 fallback.
+
+Decision: encode **`is_direct = targeted_doctor_id IS NOT NULL`** (the genuine
+semantic), and keep `tenant` as a separate descriptive column rather than
+folding it in. Add a layer-2 check for the only case where the two can move
+money apart:
+
+```
+analytics.check_direct_attribution_agrees
+  -- rows where tenant='direct' <> targeted_doctor_id IS NOT NULL
+  --   AND the doctor has a custom consultation_fee_mxn
+```
+
+Empty today. It fires the day the two drift in a way that changes a payout.
 
 ---
 
@@ -160,8 +184,12 @@ Recorded so they aren't re-investigated:
 
 ## Next
 
-1. Resolve the `tenant` vs `targeted_doctor_id` audit item — blocks
-   `fct_consultation.is_direct` and `doctor_share_mxn`.
-2. Build `analytics.fct_consultation` with the four-boolean split above.
+1. ~~Resolve the `tenant` vs `targeted_doctor_id` audit item~~ — done, above.
+2. Build `analytics.fct_consultation` with the four-boolean split.
 3. Migrate pages one at a time, deleting each old derivation in the same
    commit, logging every number that moves.
+
+Order matters for step 3: **Dashboard last.** Its 66 is the closest to correct
+of the three, so migrating it first would produce the smallest visible change
+and the least evidence that the migration works. Start with Unit Economics,
+where the number should move most.
