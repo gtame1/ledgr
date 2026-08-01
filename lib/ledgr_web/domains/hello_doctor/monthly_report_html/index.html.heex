@@ -106,8 +106,16 @@
         </form>
 
         <a
-          href={dp(@domain_path_prefix, xlsx_href("", assigns))}
+          href={dp(@domain_path_prefix, mark_paid_href("", assigns))}
           class="hd-btn-primary text-sm"
+          style="padding: 0.4rem 0.95rem;"
+          title="Record payouts for every owed doctor in this period (withholds ISR)"
+        >
+          ✓ Mark as paid
+        </a>
+        <a
+          href={dp(@domain_path_prefix, xlsx_href("", assigns))}
+          class="hd-btn-sm"
           style="padding: 0.4rem 0.95rem;"
           title="Two sheets: Resumen (per-doctor) + Detalle (per-consultation)"
         >

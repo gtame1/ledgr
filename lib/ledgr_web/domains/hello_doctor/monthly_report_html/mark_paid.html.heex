@@ -1,0 +1,128 @@
+<div class="hd-page">
+  <%!-- ── Header ── --%>
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold mb-1" style="color: var(--text-main);">
+      Mark {@period_label} as paid
+    </h1>
+    <p class="text-sm" style="color: var(--text-muted); max-width: 82ch;">
+      This records <strong>one payout per doctor</strong>
+      covering every still-owed consultation in this period, withholding ISR
+      exactly as the report shows. Nothing is written until you confirm below.
+      Re-running is safe — already-paid consultations are skipped.
+    </p>
+  </div>
+
+  <%= if Enum.empty?(@plan.doctors) do %>
+    <div class="hd-empty">
+      <div class="hd-empty-icon">✅</div>
+      <p>Nothing owed for {@period_label} — every consultation is already paid or not payable.</p>
+      <p class="mt-3">
+        <.link navigate={dp(@domain_path_prefix, "/reports/monthly?#{if @month_key, do: "month=#{@month_key}"}")} class="hd-btn-sm">
+          ← Back to report
+        </.link>
+      </p>
+    </div>
+  <% else %>
+    <%!-- ── Warnings / notes ── --%>
+    <%= if @plan.totals.comp_count > 0 do %>
+      <div class="hd-card p-3 mb-4" style="border-left: 3px solid var(--accent);">
+        <strong>{@plan.totals.comp_count} comped consultation(s)</strong>
+        (${:erlang.float_to_binary(@plan.totals.comp_accrual + 0.0, decimals: 2)} MXN).
+        These collected $0, so a <code>Dr 6050 Marketing / Cr 2000 Doctor Payable</code>
+        accrual will be posted automatically before each payout so the books balance.
+      </div>
+    <% end %>
+    <%= if @plan.totals.corporate_count > 0 do %>
+      <div class="hd-card p-3 mb-4" style="border-left: 3px solid #dc2626;">
+        ⚠️ <strong>{@plan.totals.corporate_count} corporate (employer-paid) consultation(s)</strong>
+        will be marked paid to the doctor, but have no Stripe payment entry. Their GL
+        offset (employer revenue) isn't posted automatically — <strong>review those manually</strong>.
+      </div>
+    <% end %>
+
+    <%!-- ── Per-doctor plan ── --%>
+    <div class="hd-card" style="padding: 0; overflow: auto; margin-bottom: 1.5rem;">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);">
+            <th class="text-left p-3 pl-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">Doctor</th>
+            <th class="text-center p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">RFC</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Consults</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Comps</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Gross share</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">ISR withheld</th>
+            <th class="text-right p-3 pr-4 text-xs font-semibold uppercase" style="color: var(--text-muted);">Net cash</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for d <- @plan.doctors do %>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="p-3 pl-4 font-medium" style="color: var(--text-main);">{d.doctor_name}</td>
+              <td class="p-3 text-center">
+                <%= if d.has_correct_rfc do %>
+                  <span style="color: #065f46;" title="RFC verified — ISR at 2.5%">✓</span>
+                <% else %>
+                  <span style="color: #92400e;" title="RFC not verified — ISR at 20%">✗</span>
+                <% end %>
+              </td>
+              <td class="p-3 text-right">{d.count}</td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">
+                <%= if d.comp_count > 0, do: d.comp_count, else: "—" %>
+              </td>
+              <td class="p-3 text-right">${:erlang.float_to_binary(d.gross_share + 0.0, decimals: 2)}</td>
+              <td class="p-3 text-right" style="color: #92400e;">${:erlang.float_to_binary(d.isr + 0.0, decimals: 2)}</td>
+              <td class="p-3 pr-4 text-right font-semibold" style="color: var(--accent);">
+                ${:erlang.float_to_binary(d.net_cash + 0.0, decimals: 2)}
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot>
+          <tr style="background: var(--bg-secondary); border-top: 2px solid var(--border-strong);">
+            <td class="p-3 pl-4 font-bold" colspan="2">Totals — {@plan.totals.doctors} doctor(s)</td>
+            <td class="p-3 text-right font-bold">{@plan.totals.consultations}</td>
+            <td class="p-3 text-right font-bold">
+              <%= if @plan.totals.comp_count > 0, do: @plan.totals.comp_count, else: "—" %>
+            </td>
+            <td class="p-3 text-right font-bold">${:erlang.float_to_binary(@plan.totals.gross_share + 0.0, decimals: 2)}</td>
+            <td class="p-3 text-right font-bold" style="color: #92400e;">${:erlang.float_to_binary(@plan.totals.isr + 0.0, decimals: 2)}</td>
+            <td class="p-3 pr-4 text-right font-bold" style="color: var(--accent);">
+              ${:erlang.float_to_binary(@plan.totals.net_cash + 0.0, decimals: 2)}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <%!-- ── Confirm form ── --%>
+    <.form for={%{}} action={dp(@domain_path_prefix, "/reports/monthly/mark-paid")} method="post">
+      <input type="hidden" name="start_date" value={@start_date} />
+      <input type="hidden" name="end_date" value={@end_date} />
+      <input type="hidden" name="month" value={@month_key} />
+
+      <div class="hd-card p-4">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase mb-1" style="color: var(--text-muted);">
+              Payout date
+            </label>
+            <input type="date" name="payout_date" value={@payout_date} class="hd-input" style="padding: 0.4rem 0.65rem;" />
+          </div>
+          <div class="flex items-center gap-3">
+            <.link navigate={dp(@domain_path_prefix, "/reports/monthly?#{if @month_key, do: "month=#{@month_key}"}")} class="hd-btn-sm">
+              Cancel
+            </.link>
+            <button
+              type="submit"
+              class="hd-btn-primary"
+              style="padding: 0.55rem 1.25rem;"
+              onclick={"return confirm('Record #{@plan.totals.doctors} payout(s) totaling $#{:erlang.float_to_binary(@plan.totals.net_cash + 0.0, decimals: 2)} MXN net cash for #{@period_label}? This writes payout + journal entries.')"}
+            >
+              Confirm &amp; record {@plan.totals.doctors} payout(s)
+            </button>
+          </div>
+        </div>
+      </div>
+    </.form>
+  <% end %>
+</div>

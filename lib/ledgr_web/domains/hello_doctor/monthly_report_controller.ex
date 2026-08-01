@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.MonthlyReport
+  alias Ledgr.Domains.HelloDoctor.MonthlyPayoutRun
 
   def index(conn, params) do
     {start_date, end_date} = resolve_period(params)
@@ -54,6 +55,80 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportController do
       ~s(attachment; filename="hello-doctor-payouts-#{period_slug(start_date, end_date)}.xlsx")
     )
     |> send_resp(200, xlsx)
+  end
+
+  # ── Bulk "mark month as paid" ───────────────────────────────────
+
+  @doc """
+  Preview page: shows exactly what recording payouts for the period would do
+  (per doctor: consultations, comp accruals, gross share, ISR withheld, net
+  cash) with a confirm button. Writes nothing.
+  """
+  def mark_paid_preview(conn, params) do
+    {start_date, end_date} = resolve_period(params)
+    plan = MonthlyPayoutRun.plan(start_date, end_date)
+
+    render(conn, :mark_paid,
+      plan: plan,
+      start_date: start_date,
+      end_date: end_date,
+      month_key: if(is_nil(start_date), do: nil, else: month_key(start_date)),
+      period_label: period_label(start_date, end_date),
+      payout_date: Ledgr.Domains.HelloDoctor.today()
+    )
+  end
+
+  @doc "Executes the bulk payout, then redirects back to the report."
+  def mark_paid(conn, params) do
+    {start_date, end_date} = resolve_period(params)
+    payout_date = parse_date(params["payout_date"]) || Ledgr.Domains.HelloDoctor.today()
+    label = period_label(start_date, end_date)
+
+    summary =
+      MonthlyPayoutRun.execute(start_date, end_date, payout_date, period_label: label)
+
+    conn
+    |> put_flash(flash_level(summary), mark_paid_flash(summary, label))
+    |> redirect(to: dp(conn, "/reports/monthly?#{report_query(start_date, end_date)}"))
+  end
+
+  defp flash_level(%{doctors_paid: 0, doctors_failed: 0}), do: :info
+  defp flash_level(%{doctors_failed: n}) when n > 0, do: :error
+  defp flash_level(_), do: :info
+
+  defp mark_paid_flash(%{doctors_paid: 0, doctors_failed: 0}, label),
+    do: "Nothing owed for #{label} — no payouts recorded."
+
+  defp mark_paid_flash(s, label) do
+    base =
+      "Recorded payouts for #{s.doctors_paid} doctor(s) across #{s.consultations_paid} " <>
+        "consultation(s) for #{label}: $#{fmt(s.total_cash)} MXN net cash, " <>
+        "$#{fmt(s.total_isr)} ISR withheld"
+
+    base = if s.accruals_posted > 0, do: "#{base}, #{s.accruals_posted} comp accrual(s) posted", else: base
+
+    if s.doctors_failed > 0 do
+      names = s.failures |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")
+      "#{base}. #{s.doctors_failed} doctor(s) FAILED — check logs: #{names}."
+    else
+      "#{base}."
+    end
+  end
+
+  defp fmt(n), do: :erlang.float_to_binary(n + 0.0, decimals: 2)
+
+  # Query string that re-scopes the report to the same period on redirect.
+  defp report_query(nil, nil), do: ""
+  defp report_query(s, e), do: URI.encode_query(%{"start_date" => to_string(s), "end_date" => to_string(e)})
+
+  defp period_label(nil, nil), do: "all outstanding"
+
+  defp period_label(s, e) do
+    if Date.beginning_of_month(s) == s and Date.end_of_month(s) == e do
+      Calendar.strftime(s, "%B %Y")
+    else
+      "#{s} to #{e}"
+    end
   end
 
   # ── Helpers ─────────────────────────────────────────────────────
@@ -116,6 +191,26 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportHTML do
 
   @doc "Same, for the two-sheet .xlsx download (Resumen + Detalle)."
   def xlsx_href(prefix, assigns), do: "#{prefix}/reports/monthly/xlsx?#{report_query(assigns)}"
+
+  @doc "Link to the bulk 'mark as paid' preview, preserving the current period."
+  def mark_paid_href(prefix, assigns) do
+    query =
+      cond do
+        assigns.month_key ->
+          URI.encode_query(%{"month" => assigns.month_key})
+
+        assigns.start_date && assigns.end_date ->
+          URI.encode_query(%{
+            "start_date" => to_string(assigns.start_date),
+            "end_date" => to_string(assigns.end_date)
+          })
+
+        true ->
+          ""
+      end
+
+    "#{prefix}/reports/monthly/mark-paid" <> if(query == "", do: "", else: "?#{query}")
+  end
 
   # Preserve the current scope (month, if any) + settled toggle. A nil
   # month_key (all-outstanding view) drops the param so the download
