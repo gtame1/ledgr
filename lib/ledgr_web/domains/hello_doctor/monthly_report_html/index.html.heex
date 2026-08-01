@@ -146,11 +146,18 @@
       <div class="hd-kpi-sub">MXN — gross obligation</div>
     </div>
     <div class="hd-kpi">
-      <div class="hd-kpi-label">HD commission</div>
+      <div class="hd-kpi-label">HD commission (earned)</div>
       <div class="hd-kpi-value" style="color: var(--accent);">
         ${:erlang.float_to_binary(@report.totals.total_hd_commission + 0.0, decimals: 2)}
       </div>
-      <div class="hd-kpi-sub">MXN — Stripe amount − doctor share</div>
+      <div class="hd-kpi-sub">MXN — margin on paid consults</div>
+    </div>
+    <div class="hd-kpi">
+      <div class="hd-kpi-label">HD subsidy (comped)</div>
+      <div class="hd-kpi-value" style="color: #dc2626;">
+        ${:erlang.float_to_binary(@report.totals.total_hd_subsidy + 0.0, decimals: 2)}
+      </div>
+      <div class="hd-kpi-sub">MXN — doctor share on free consults</div>
     </div>
     <div class="hd-kpi">
       <div class="hd-kpi-label">Paid out</div>
@@ -236,8 +243,16 @@
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
+              title="Margin HD earned above the doctor share, on consults where money was collected"
             >
               HD comm.
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+              title="Doctor share HD absorbed on free/comped consults (nothing collected)"
+            >
+              HD subsidy
             </th>
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
@@ -298,6 +313,12 @@
               <td class="p-3 text-right" style="color: var(--accent);">
                 ${:erlang.float_to_binary(row.hd_commission + 0.0, decimals: 2)}
               </td>
+              <td
+                class="p-3 text-right"
+                style={"color: #{if row.hd_subsidy > 0, do: "#dc2626", else: "var(--text-muted)"};"}
+              >
+                ${:erlang.float_to_binary(row.hd_subsidy + 0.0, decimals: 2)}
+              </td>
               <td class="p-3 text-right" style="color: var(--text-muted);">
                 ${:erlang.float_to_binary(row.paid_out_amount + 0.0, decimals: 2)}
               </td>
@@ -335,6 +356,9 @@
             </td>
             <td class="p-3 text-right font-bold" style="color: var(--accent);">
               ${:erlang.float_to_binary(@report.totals.total_hd_commission + 0.0, decimals: 2)}
+            </td>
+            <td class="p-3 text-right font-bold" style="color: #dc2626;">
+              ${:erlang.float_to_binary(@report.totals.total_hd_subsidy + 0.0, decimals: 2)}
             </td>
             <td class="p-3 text-right font-bold">
               ${:erlang.float_to_binary(@report.totals.total_paid_out + 0.0, decimals: 2)}
@@ -420,8 +444,16 @@
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
               style="color: var(--text-muted);"
+              title="Margin HD earned above the doctor share, on consults where money was collected"
             >
               HD comm.
+            </th>
+            <th
+              class="text-right p-3 text-xs font-semibold uppercase"
+              style="color: var(--text-muted);"
+              title="Doctor share HD absorbed on free/comped consults (nothing collected)"
+            >
+              HD subsidy
             </th>
             <th
               class="text-right p-3 text-xs font-semibold uppercase"
@@ -539,6 +571,16 @@
               <td class="p-3 text-right" style="color: var(--accent);">
                 <%= if row.hd_commission do %>
                   ${:erlang.float_to_binary(row.hd_commission + 0.0, decimals: 2)}
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td
+                class="p-3 text-right"
+                style={"color: #{if row.hd_subsidy > 0, do: "#dc2626", else: "var(--text-muted)"};"}
+              >
+                <%= if row.hd_subsidy > 0 do %>
+                  ${:erlang.float_to_binary(row.hd_subsidy + 0.0, decimals: 2)}
                 <% else %>
                   —
                 <% end %>

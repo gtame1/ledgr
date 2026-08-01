@@ -362,9 +362,24 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       SELECT
         base.*,
         (CASE WHEN pay_to_doc THEN fee_mxn ELSE 0::float8 END) AS doctor_share,
-        -- HD commission = gross above the doctor's share. NULL with no
-        -- Stripe row; can go negative when a promo drops price below fee.
-        (stripe_amount - fee_mxn)                              AS hd_commission,
+        -- HD commission EARNED — gross margin above the doctor's share, but only
+        -- on consults where money was actually collected. A free/comped consult
+        -- (experiment, cs_no_payment) collects nothing, so its commission is 0;
+        -- the doctor share HD still pays shows up as hd_subsidy below, NOT as a
+        -- negative commission (that used to make the column read as a big
+        -- negative — really a marketing cost, not lost commission). NULL when the
+        -- charged amount is unknown (no Stripe row synced yet). A discounted PAID
+        -- consult can still go negative here — that's a real margin loss on a
+        -- sale and correctly belongs in commission.
+        (CASE WHEN stripe_amount IS NULL THEN NULL
+              WHEN stripe_amount > 0 THEN stripe_amount - fee_mxn
+              ELSE 0::float8 END)                             AS hd_commission,
+        -- HD subsidy — the doctor share HD absorbs on a consult that collected
+        -- nothing (free-first-consult experiments, bot-sanctioned $0 comps). A
+        -- marketing/comp cost, not commission. Net HD contribution on a
+        -- consult = hd_commission − hd_subsidy.
+        (CASE WHEN pay_to_doc AND COALESCE(stripe_amount, 0) = 0
+              THEN fee_mxn ELSE 0::float8 END)                AS hd_subsidy,
         -- Retention is a PERCENTAGE of the doctor's share (honorario), so it
         -- scales with the tenant-aware fee: a $200 direct consult withholds
         -- 2.5% = $5, not the flat $2.5 a $100 consult does. It only applies to
@@ -430,6 +445,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
     |> Map.put(:stripe_amount, round_or_nil(row[:stripe_amount]))
     |> Map.put(:stripe_fee, round_or_nil(row[:stripe_fee]))
     |> Map.put(:hd_commission, round_or_nil(row[:hd_commission]))
+    |> Map.update!(:hd_subsidy, &to_round/1)
   end
 
   defp to_round(v), do: v |> to_float() |> Float.round(2)
@@ -463,6 +479,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         stripe_fee: sum_round_nilable(rows, :stripe_fee),
         doctor_share: sum_round(rows, :doctor_share),
         hd_commission: sum_round_nilable(rows, :hd_commission),
+        hd_subsidy: sum_round(rows, :hd_subsidy),
         paid_out_amount: sum_round(rows, :paid_out_amount),
         iva_retention_to_apply: sum_round(rows, :iva_retention_to_apply),
         isr_retention_to_apply: sum_round(rows, :isr_retention_to_apply),
@@ -496,6 +513,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       total_stripe_fee: sum_round_nilable(consultations, :stripe_fee),
       total_doctor_share: sum_round(consultations, :doctor_share),
       total_hd_commission: sum_round_nilable(consultations, :hd_commission),
+      total_hd_subsidy: sum_round(consultations, :hd_subsidy),
       total_paid_out: sum_round(consultations, :paid_out_amount),
       total_iva_to_apply: sum_round(consultations, :iva_retention_to_apply),
       total_isr_to_apply: sum_round(consultations, :isr_retention_to_apply),
@@ -553,7 +571,8 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       "Stripe payment status",
       "Stripe amount",
       "Stripe fee",
-      "HD commission",
+      "HD commission (earned)",
+      "HD subsidy (comped)",
       "Pay doctor?",
       "Doctor share (MXN)",
       "IVA retention to apply",
@@ -585,6 +604,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
           r.stripe_amount,
           r.stripe_fee,
           r.hd_commission,
+          r.hd_subsidy,
           yes_no(r.pay_to_doc),
           r.doctor_share,
           r.iva_retention_to_apply,
@@ -607,7 +627,8 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       "Consultations",
       "Paid to doctor",
       "Doctor share (MXN)",
-      "HD commission (MXN)",
+      "HD commission earned (MXN)",
+      "HD subsidy comped (MXN)",
       "Paid out (MXN)",
       "ISR to apply",
       "ISR applied",
@@ -627,6 +648,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
           r.paid_to_doctor_count,
           r.doctor_share,
           r.hd_commission,
+          r.hd_subsidy,
           r.paid_out_amount,
           r.isr_retention_to_apply,
           r.isr_retentions_applied,
@@ -665,7 +687,9 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
         ["Paid to doctor (count)", t.paid_to_doctor_count],
         ["Unique doctors", t.unique_doctors],
         ["Doctor share total (MXN)", t.total_doctor_share],
-        ["HD commission total (MXN)", t.total_hd_commission],
+        ["HD commission earned total (MXN)", t.total_hd_commission],
+        ["HD subsidy comped total (MXN)", t.total_hd_subsidy],
+        ["HD net contribution (MXN)", Float.round(t.total_hd_commission - t.total_hd_subsidy, 2)],
         ["Paid out total (MXN)", t.total_paid_out],
         ["IVA to apply total", t.total_iva_to_apply],
         ["ISR to apply total", t.total_isr_to_apply],
@@ -702,7 +726,8 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       "Consultas",
       "Directas",
       "$ consultas (cobrado)",
-      "Comisión HD",
+      "Comisión HD (ganada)",
+      "Subsidio HD (cortesía)",
       "Monto Doc",
       "Costo Stripe",
       "Retención IVA",
@@ -725,6 +750,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
           d.direct_count,
           cell(d.stripe_amount),
           cell(d.hd_commission),
+          d.hd_subsidy,
           d.doctor_share,
           cell(d.stripe_fee),
           d.iva_retention_to_apply,
@@ -752,7 +778,8 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
       "Código descuento",
       "$ Stripe",
       "Costo Stripe",
-      "Comisión HD",
+      "Comisión HD (ganada)",
+      "Subsidio HD (cortesía)",
       "¿Pagar al doctor?",
       "Monto Doc",
       "Retención IVA",
@@ -785,6 +812,7 @@ defmodule Ledgr.Domains.HelloDoctor.MonthlyReport do
           cell(r.stripe_amount),
           cell(r.stripe_fee),
           cell(r.hd_commission),
+          cell(r.hd_subsidy),
           yes_no(r.pay_to_doc),
           r.doctor_share,
           r.iva_retention_to_apply,
