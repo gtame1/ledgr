@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.HelloDoctor.BotAdmin
+  alias Ledgr.Domains.HelloDoctor.CorporateSettlements
   alias Ledgr.Domains.HelloDoctor.CorporateUsage
   alias Ledgr.Domains.HelloDoctor.PatientSegments
 
@@ -207,19 +208,82 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
 
     case BotAdmin.get_corporate_invoice(slug, month) do
       {:ok, body} ->
+        # The bot invoice's subtotal (count × rate) can include cancelled /
+        # refunded rows; the GL settlement clears the AR we actually booked
+        # (`booked_ar_cents`), so surface both. `account["id"]` (the bot UUID)
+        # is what corporate consults carry, needed to compute booked AR.
+        account_id =
+          case BotAdmin.get_corporate_account(slug) do
+            {:ok, account} -> Map.get(account, "id")
+            _ -> nil
+          end
+
+        booked_ar_cents = account_id && CorporateSettlements.booked_ar_cents(account_id, month)
+        settlement = CorporateSettlements.settlement_for(slug, month)
+
         render(conn, :invoice,
           account_name: Map.get(body, "name"),
           slug: slug,
           month: month,
           rate: Map.get(body, "consultation_rate_mxn"),
           items: Map.get(body, "items", []),
-          count: Map.get(body, "count", 0)
+          count: Map.get(body, "count", 0),
+          booked_ar_cents: booked_ar_cents || 0,
+          settlement: settlement,
+          settlement_amount_cents:
+            settlement && CorporateSettlements.settlement_amount_cents(settlement),
+          deposit_accounts: CorporateSettlements.deposit_accounts(),
+          today: Ledgr.Domains.HelloDoctor.today()
         )
 
       {:error, reason} ->
         conn
         |> put_flash(:error, "Couldn't load invoice: #{reason}")
         |> redirect(to: dp(conn, "/corporate/#{slug}"))
+    end
+  end
+
+  @doc """
+  Records an employer payment against the (slug, month) invoice, posting the
+  collection JE (`Dr <deposit> / Cr 1100`). One settlement per month.
+  """
+  def settle_invoice(conn, %{"slug" => slug} = params) do
+    month = params["month"] || default_month()
+    back = dp(conn, "/corporate/#{slug}/invoice?month=#{month}")
+
+    account_name =
+      case BotAdmin.get_corporate_account(slug) do
+        {:ok, account} -> Map.get(account, "name") || slug
+        _ -> slug
+      end
+
+    attrs = %{
+      amount_cents: parse_amount_cents(params["amount"]),
+      date: parse_date(params["date"]),
+      deposit_code: params["deposit_account"],
+      account_name: account_name
+    }
+
+    case CorporateSettlements.record_settlement(slug, month, attrs) do
+      {:ok, _entry} ->
+        conn
+        |> put_flash(:info, "Recorded payment from #{account_name} for #{month}.")
+        |> redirect(to: back)
+
+      {:error, :already_settled} ->
+        conn
+        |> put_flash(:error, "This invoice is already marked paid for #{month}.")
+        |> redirect(to: back)
+
+      {:error, :invalid_amount} ->
+        conn
+        |> put_flash(:error, "Enter a payment amount greater than zero.")
+        |> redirect(to: back)
+
+      {:error, _changeset} ->
+        conn
+        |> put_flash(:error, "Couldn't record the payment — check the logs.")
+        |> redirect(to: back)
     end
   end
 
@@ -261,6 +325,26 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
     today = Ledgr.Domains.HelloDoctor.today()
     Calendar.strftime(today, "%Y-%m")
   end
+
+  # Parses a pesos string ("135", "1350.50") to centavos; nil/invalid → 0 so
+  # the settlement rejects it with :invalid_amount.
+  defp parse_amount_cents(v) when is_binary(v) do
+    case v |> String.trim() |> Float.parse() do
+      {pesos, _} when pesos >= 0 -> round(pesos * 100)
+      _ -> 0
+    end
+  end
+
+  defp parse_amount_cents(_), do: 0
+
+  defp parse_date(v) when is_binary(v) do
+    case Date.from_iso8601(String.trim(v)) do
+      {:ok, date} -> date
+      _ -> nil
+    end
+  end
+
+  defp parse_date(_), do: nil
 
   defp build_invoice_csv(body, slug, month) do
     header = [
@@ -342,6 +426,10 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateHTML do
   end
 
   def fmt_mxn(_), do: "$0.00"
+
+  @doc "Format a centavos integer as a MXN amount, e.g. `13500 → $135.00`."
+  def fmt_cents(cents) when is_integer(cents), do: fmt_mxn(cents / 100)
+  def fmt_cents(_), do: "$0.00"
 
   @doc "Format ISO datetime as 'YYYY-MM-DD HH:MM' or pass through."
   def fmt_iso(nil), do: ""
