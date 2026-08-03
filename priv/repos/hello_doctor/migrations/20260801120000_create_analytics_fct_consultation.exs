@@ -82,10 +82,20 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.CreateAnalyticsFctConsultation do
       )                                                            AS is_test,
 
       -- Revenue recognised for this consultation, MXN.
+      --
+      -- The corporate branch mirrors ConsultationAccounting's
+      -- corporate_revenue_cents/1 exactly: fall back to the employer's
+      -- contracted rate when no amount was recorded. Note the fallback fires
+      -- on zero as well as NULL — a corporate consult booked at 0 still
+      -- credits 4000 the full rate, so a COALESCE-on-NULL-only test would
+      -- report 0 here while the GL says otherwise, breaking reconciliation.
       (CASE
          WHEN c.payment_status = 'refunded' THEN 0::float8
          WHEN COALESCE(c.payment_source, 'stripe') = 'corporate'
-           THEN COALESCE(c.payment_amount, ca.consultation_rate_mxn::float8, 0)
+           THEN (CASE
+                   WHEN COALESCE(c.payment_amount, 0) > 0 THEN c.payment_amount
+                   ELSE COALESCE(ca.consultation_rate_mxn::float8, 0)
+                 END)
          ELSE COALESCE(c.payment_amount, 0)
        END)                                                        AS gross_mxn,
 
@@ -115,7 +125,10 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.CreateAnalyticsFctConsultation do
       ((CASE
           WHEN c.payment_status = 'refunded' THEN 0::float8
           WHEN COALESCE(c.payment_source, 'stripe') = 'corporate'
-            THEN COALESCE(c.payment_amount, ca.consultation_rate_mxn::float8, 0)
+            THEN (CASE
+                    WHEN COALESCE(c.payment_amount, 0) > 0 THEN c.payment_amount
+                    ELSE COALESCE(ca.consultation_rate_mxn::float8, 0)
+                  END)
           ELSE COALESCE(c.payment_amount, 0)
         END)
        -
@@ -177,7 +190,7 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.CreateAnalyticsFctConsultation do
 
     comment!(
       "gross_mxn",
-      "Revenue recognised, MXN. 0 when refunded. Corporate consults with no recorded amount fall back to the corporate account's consultation_rate_mxn."
+      "Revenue recognised, MXN. 0 when refunded. Corporate consults fall back to the employer's contracted consultation_rate_mxn when payment_amount is zero or NULL, mirroring ConsultationAccounting.corporate_revenue_cents/1 so the column ties to account 4000. This does NOT apply revenue-posting eligibility (cancelled/failed consults are excluded upstream by MonthlyPayoutRun) — a reconciliation check must account for that."
     )
 
     comment!(
