@@ -104,7 +104,8 @@ defmodule Ledgr.Application do
             Ledgr.Domains.HelloDoctor.BillingSyncWorker,
             Ledgr.Domains.HelloDoctor.ExchangeRateWorker,
             Ledgr.Domains.HelloDoctor.PatientSegmentsWorker,
-            Ledgr.Domains.HelloDoctor.ConsultationPayoutsWorker
+            Ledgr.Domains.HelloDoctor.ConsultationPayoutsWorker,
+            Ledgr.Domains.HelloDoctor.DailySnapshotWorker
           ],
           else: []
         ) ++
