@@ -58,6 +58,21 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
     %{id: id}
   end
 
+  # A bot-owned corporate account with a contracted per-consult rate (whole
+  # pesos), inserted raw — there's no Ecto schema for it.
+  defp corporate_account_fixture(id, rate_mxn) do
+    Ecto.Adapters.SQL.query!(
+      Ledgr.Repo.active_repo(),
+      """
+      INSERT INTO corporate_accounts (id, slug, name, status, consultation_rate_mxn, created_at)
+      VALUES ($1, $1, $1, 'active', $2, now() AT TIME ZONE 'UTC')
+      """,
+      [id, rate_mxn]
+    )
+
+    id
+  end
+
   # A corporate consult completed on 2026-07-16 (Mexico City) with a booked
   # rate of $135, plus its AR journal entry already posted.
   defp corporate_consult_with_ar(account_id, attrs \\ %{}) do
@@ -118,6 +133,29 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
 
     # Only the completed one counts (the cancelled consult books no AR either).
     assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == 13_500
+  end
+
+  test "booked_ar_cents falls back to the contracted rate on a zero-amount consult" do
+    account_id = corporate_account_fixture(uid("corp"), 200)
+    corporate_consult_with_ar(account_id, %{payment_amount: 0.0})
+    corporate_consult_with_ar(account_id, %{payment_amount: nil})
+
+    # Neither consult carries an amount, so both book the employer's contracted
+    # $200 — summing payment_amount would have defaulted the settlement to $0.
+    assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == 40_000
+
+    # The whole point: the default ties to what the GL actually debited to 1100.
+    assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == net_cents("1100")
+  end
+
+  test "booked_ar_cents mixes stamped amounts and the contracted fallback" do
+    account_id = corporate_account_fixture(uid("corp"), 200)
+    corporate_consult_with_ar(account_id)
+    corporate_consult_with_ar(account_id, %{payment_amount: 0.0})
+
+    # $135 stamped + $200 contracted.
+    assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == 33_500
+    assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == net_cents("1100")
   end
 
   test "recording a full settlement clears the receivable to zero" do

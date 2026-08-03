@@ -14,11 +14,11 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
 
   Scope: one settlement per (account, month), reference-keyed and idempotent —
   no denormalized table (same style as the comp-accrual entries). The amount
-  defaults to the **booked** AR for the month (Σ `payment_amount` of that
-  account's eligible corporate consults, which is exactly what
-  `record_corporate_payment/1` debited to 1100), but the operator can override
-  it to match what was actually received — a short-pay simply leaves the
-  residual sitting in 1100, which is correct.
+  defaults to the **booked** AR for the month — the same per-consult revenue
+  rule `record_corporate_payment/1` applies, so it is exactly what that
+  function debited to 1100 — but the operator can override it to match what
+  was actually received: a short-pay simply leaves the residual sitting in
+  1100, which is correct.
 
   Attribution is by the consult's Mexico-City completion month, matching the
   date `record_corporate_payment/1` stamps on the AR entry, so the two line up.
@@ -50,15 +50,33 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
 
   @doc """
   Booked Accounts-Receivable for a corporate account's consults completed in
-  `month` (a `"YYYY-MM"` string, Mexico City time), in centavos. This is the
-  sum of `payment_amount` over the same eligible corporate consults
-  `ConsultationAccounting.record_corporate_payment/1` posts AR for, so it's the
-  natural default for what the employer owes that month.
+  `month` (a `"YYYY-MM"` string, Mexico City time), in centavos. This sums the
+  same eligible corporate consults `record_corporate_payment/1` posts AR for,
+  under the same per-consult revenue rule, so it's the natural default for what
+  the employer owes that month.
+
+  The revenue rule mirrors `ConsultationAccounting.corporate_revenue_cents/1`:
+  the amount stamped on the consultation, falling back to the employer's
+  contracted `consultation_rate_mxn` when there isn't one. Note the fallback
+  fires on **zero as well as NULL** — a corporate consult booked at 0 still
+  debits 1100 the full contracted rate, so summing `payment_amount` alone would
+  understate the receivable and settling at that default would strand a
+  residual in 1100 that looks like a short-pay but isn't. Same alignment the
+  `analytics.fct_consultation.gross_mxn` column carries (`01146b9`).
+
+  Rounding is per consult, matching how the GL posted each entry, rather than
+  applied once to the sum.
   """
   def booked_ar_cents(account_id, month) when is_binary(account_id) and is_binary(month) do
     sql = """
-    SELECT COALESCE(SUM(c.payment_amount), 0)
+    SELECT COALESCE(SUM(ROUND((
+             CASE
+               WHEN COALESCE(c.payment_amount, 0) > 0 THEN c.payment_amount
+               ELSE COALESCE(ca.consultation_rate_mxn, 0)
+             END
+           )::numeric * 100)), 0)
     FROM consultations c
+    LEFT JOIN corporate_accounts ca ON ca.id = c.corporate_account_id
     WHERE c.corporate_account_id = $1
       AND COALESCE(c.payment_source, 'stripe') = 'corporate'
       AND COALESCE(c.payment_status, '') IN ('paid', 'confirmed')
@@ -72,8 +90,8 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
           ) = $2
     """
 
-    %{rows: [[pesos]]} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [account_id, month])
-    round(to_f(pesos) * 100)
+    %{rows: [[cents]]} = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [account_id, month])
+    round(to_f(cents))
   end
 
   def booked_ar_cents(_, _), do: 0
