@@ -19,6 +19,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayoutImport do
 
   alias Ledgr.Repo
   alias Ledgr.Core.Accounting
+  alias Ledgr.Domains.HelloDoctor.CsvEncoding
   alias Ledgr.Domains.HelloDoctor.Doctors.Doctor
 
   @doctor_payable_code "2000"
@@ -28,8 +29,18 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayoutImport do
   Parses a CSV string and returns either:
     {:ok, %{rows: [...], errors: []}}                  — ready to commit
     {:error, %{rows: [...], errors: [{row_n, msg}]}}   — has issues
+
+  The file must be UTF-8; see `CsvEncoding.validate/1` for why we reject rather
+  than transcode.
   """
   def parse(csv_string) when is_binary(csv_string) do
+    case CsvEncoding.validate(csv_string) do
+      :ok -> csv_string |> CsvEncoding.strip_bom() |> parse_utf8()
+      {:error, {line, msg}} -> {:error, %{rows: [], errors: [{line, msg}]}}
+    end
+  end
+
+  defp parse_utf8(csv_string) do
     default_date = Ledgr.Domains.HelloDoctor.today()
 
     case split_lines(csv_string) do
