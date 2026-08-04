@@ -21,6 +21,7 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
   """
 
   alias Ledgr.Repo
+  alias Ledgr.Domains.HelloDoctor.CsvEncoding
   alias Ledgr.Domains.HelloDoctor.MarketingCosts.MarketingCost
   alias Ledgr.Domains.HelloDoctor.MarketingCostAccounting
 
@@ -34,56 +35,14 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
   `skipped`, not returned), or `{:error, %{rows, errors, skipped}}` when any row
   fails validation.
 
-  The file must be UTF-8; see `validate_encoding/1` for why we reject rather
+  The file must be UTF-8; see `CsvEncoding.validate/1` for why we reject rather
   than transcode.
   """
   def parse(csv_string) when is_binary(csv_string) do
-    case validate_encoding(csv_string) do
-      :ok -> csv_string |> strip_bom() |> parse_utf8()
-      {:error, result} -> {:error, result}
+    case CsvEncoding.validate(csv_string) do
+      :ok -> csv_string |> CsvEncoding.strip_bom() |> parse_utf8()
+      {:error, {line, msg}} -> {:error, %{rows: [], errors: [{line, msg}], skipped: 0}}
     end
-  end
-
-  # Excel's "CSV UTF-8" export — the remedy for the Mac Roman problem below —
-  # prepends a UTF-8 BOM. Left in place it binds to the first header cell,
-  # making it "<BOM>date", so validate_header/1 reports `date` as missing on
-  # a file that is in fact correct. Spelled as raw bytes because a literal
-  # U+FEFF in source would be invisible in every editor and diff.
-  @bom <<0xEF, 0xBB, 0xBF>>
-  defp strip_bom(@bom <> rest), do: rest
-  defp strip_bom(csv), do: csv
-
-  # Excel-for-Mac's plain "CSV" export writes Mac Roman, not UTF-8, so accented
-  # text ("Ginecología") arrives as bytes that aren't valid UTF-8 at all. Every
-  # String function below passes such bytes through untouched rather than
-  # raising, so a bad file used to parse clean and only blow up at INSERT, where
-  # Postgres rejected it (22021 invalid byte sequence for encoding "UTF8") — an
-  # unrescued Postgrex.Error, i.e. a 500 instead of the normal error report.
-  #
-  # We reject rather than transcode because the source encoding is unknowable:
-  # byte 0x92 is "í" in Mac Roman but "'" in CP-1252, and `description` feeds
-  # the DB-generated `dedup_hash`. Guessing wrong would corrupt the text AND
-  # shift the dedup key, so a later correct upload would re-insert every row.
-  defp validate_encoding(csv) do
-    if String.valid?(csv) do
-      :ok
-    else
-      msg =
-        ~s(file is not valid UTF-8 text. Re-export it as "CSV UTF-8" — on macOS a ) <>
-          ~s(plain "CSV"/"Comma Separated Values" export writes Mac Roman, which ) <>
-          ~s(corrupts accented text. Nothing was read.)
-
-      {:error, %{rows: [], errors: [{first_invalid_line(csv), msg}], skipped: 0}}
-    end
-  end
-
-  # Line of the first non-UTF-8 byte, numbered as parse_utf8/1 numbers rows
-  # (blank lines dropped, header = 1, first data row = 2).
-  defp first_invalid_line(csv) do
-    csv
-    |> split_lines()
-    |> Enum.with_index(1)
-    |> Enum.find_value(0, fn {line, n} -> if !String.valid?(line), do: n end)
   end
 
   defp parse_utf8(csv_string) do
