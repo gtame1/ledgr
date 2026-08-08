@@ -1,5 +1,6 @@
-/* Google Fonts — Inter + Manrope (Stitch) + DM Serif Display + Plus Jakarta Sans (AMP) */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
+/* Google Fonts — Inter + Manrope (Stitch) + DM Serif Display + Plus Jakarta Sans (AMP)
+   + Bodoni Moda / Libre Franklin / JetBrains Mono (Escuela de Dinero) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Bodoni+Moda:wght@700;900&family=Libre+Franklin:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap");
 
 /* Tailwind CSS v4 */
 @import "tailwindcss";
@@ -21,6 +22,9 @@
 
 /* Volume Studio Stitch design overrides */
 @import "./volume-studio-stitch.css";
+
+/* Escuela de Dinero Stitch design overrides */
+@import "./escuela-de-dinero-stitch.css";
 
 /* ==============================
    Standard sidebar + flat nav (default for all domains)

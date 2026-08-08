@@ -1,0 +1,122 @@
+<% prefix = @domain_path_prefix %>
+
+<div class="ed-page">
+  <div class="ed-topbar">
+    <div>
+      <h1>Movimientos</h1>
+      <div class="ed-topbar-sub">
+        La cola del acompañamiento. Los pendientes salen primero, y de esos el que lleva
+        más tiempo esperando.
+      </div>
+    </div>
+  </div>
+
+  <form method="get" action={dp(prefix, "/movimientos")} class="ed-filters">
+    <div class="ed-field">
+      <label class="ed-label" for="estado">Estado</label>
+      <select id="estado" name="estado">
+        <option value="">Todos</option>
+        <%= for estado <- ~w(pendiente en_proceso hecho descartado) do %>
+          <option value={estado} selected={@filters.estado == estado}>
+            {movimiento_estado_label(estado)}
+          </option>
+        <% end %>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="area">Área</label>
+      <select id="area" name="area">
+        <option value="">Todas</option>
+        <%= for area <- @areas do %>
+          <option value={area} selected={@filters.area == area}>{area_label(area)}</option>
+        <% end %>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="vencidos">Vencidos</label>
+      <select id="vencidos" name="vencidos">
+        <option value="">No filtrar</option>
+        <option value="1" selected={@filters.vencidos == "1"}>Solo vencidos</option>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="agotados">Sin más avisos</label>
+      <select id="agotados" name="agotados">
+        <option value="">No filtrar</option>
+        <option value="1" selected={@filters.agotados == "1"}>Solo los agotados</option>
+      </select>
+    </div>
+
+    <button type="submit" class="ed-btn-secondary">Filtrar</button>
+    <.link navigate={dp(prefix, "/movimientos")} class="ed-btn-secondary">Limpiar</.link>
+  </form>
+
+  <%= if @filters.agotados == "1" do %>
+    <div class="ed-card" style="margin-bottom: 1.25rem;">
+      <div class="ed-kpi-sub">
+        Estos ya recibieron los tres recordatorios que el bot manda como máximo y siguen
+        pendientes. No los va a volver a tocar: si se mueven, es porque alguien los mueve.
+      </div>
+    </div>
+  <% end %>
+
+  <%= if @movimientos == [] do %>
+    <div class="ed-card">
+      <div class="ed-empty">Nada con esos filtros.</div>
+    </div>
+  <% else %>
+    <div class="ed-table-wrap">
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Área</th>
+            <th>Movimiento</th>
+            <th>Estado</th>
+            <th>Vence</th>
+            <th class="ed-num">Avisos</th>
+            <th>Último aviso</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for m <- @movimientos do %>
+            <tr>
+              <td>
+                <.link navigate={dp(prefix, "/personas/#{m.person_id}")} class="ed-link">
+                  {m.display_name || "Sin nombre"}
+                </.link>
+                <div class="ed-kpi-sub ed-cifra">{phone_masked(m.phone)}</div>
+              </td>
+              <td>{area_label(m.area)}</td>
+              <td style="max-width: 30rem;">
+                <div>{m.titulo}</div>
+                <div class="ed-kpi-sub">{m.accion_hoy}</div>
+              </td>
+              <td>
+                <span class={"ed-sello ed-sello--#{movimiento_estado_tone(m.estado)}"}>
+                  {movimiento_estado_label(m.estado)}
+                </span>
+              </td>
+              <td>
+                {mx_date(m.due_at)}
+                <%= if vencido?(m) do %>
+                  <div><span class="ed-sello ed-sello--riesgo">Vencido</span></div>
+                <% end %>
+              </td>
+              <td class="ed-num">
+                {m.checkin_count}/3
+                <%= if m.estado == "pendiente" && m.checkin_count >= 3 do %>
+                  <div><span class="ed-sello ed-sello--neutral">Agotado</span></div>
+                <% end %>
+              </td>
+              <td>{hace(m.last_checkin_at)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

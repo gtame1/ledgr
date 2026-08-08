@@ -1,0 +1,398 @@
+<% m = @metrics %>
+<% prefix = @domain_path_prefix %>
+
+<div class="ed-page">
+  <div class="ed-topbar">
+    <div>
+      <h1>Panel</h1>
+      <div class="ed-topbar-sub">
+        {mx_date(@start_date)} — {mx_date(@end_date)} · hora de la Ciudad de México
+      </div>
+    </div>
+
+    <form method="get" action={dp(prefix, "/")} class="ed-field">
+      <label class="ed-label" for="period">Ventana</label>
+      <select id="period" name="period" onchange="this.form.submit()">
+        <%= for {value, label} <- @periods do %>
+          <option value={value} selected={@period == value}>{label}</option>
+        <% end %>
+      </select>
+    </form>
+  </div>
+  
+<!-- ── KPIs ─────────────────────────────────────────────────────── -->
+  <div class="ed-kpi-grid">
+    <div class="ed-kpi">
+      <div class="ed-kpi-label">Personas nuevas</div>
+      <div class="ed-kpi-value">{thousands(m.kpis.personas_nuevas)}</div>
+      <div class="ed-kpi-sub">Escribieron por primera vez</div>
+    </div>
+
+    <div class="ed-kpi">
+      <div class="ed-kpi-label">Diagnósticos iniciados</div>
+      <div class="ed-kpi-value">{thousands(m.kpis.iniciados)}</div>
+      <div class="ed-kpi-sub">{thousands(m.diagnostico_funnel.en_curso)} siguen en curso</div>
+    </div>
+
+    <div class="ed-kpi">
+      <div class="ed-kpi-label">Entregados</div>
+      <div class="ed-kpi-value">{thousands(m.kpis.entregados)}</div>
+      <div class="ed-kpi-sub">Con sus tres movimientos</div>
+    </div>
+    
+<!-- The north star. The bot's own success metric is completion, not volume. -->
+    <div class="ed-kpi ed-kpi--norte">
+      <div class="ed-kpi-label">Tasa de completado</div>
+      <div class="ed-kpi-value">{pct(m.kpis.tasa_completado)}</div>
+      <div class="ed-kpi-sub">De los que empiezan, cuántos terminan</div>
+    </div>
+  </div>
+  
+<!-- ── Embudos ──────────────────────────────────────────────────── -->
+  <div class="ed-two-col">
+    <div class="ed-card">
+      <div class="ed-card-title">Embudo del diagnóstico</div>
+
+      <%= if m.diagnostico_funnel.iniciados == 0 do %>
+        <div class="ed-empty">Nadie empezó un diagnóstico en esta ventana.</div>
+      <% else %>
+        <div class="ed-funnel">
+          <%= for row <- @funnel_rows do %>
+            <div class="ed-funnel-row">
+              <div class="ed-funnel-label">
+                {row.label}
+                <%= if row.step_rate do %>
+                  <span class="ed-label">· {pct(row.step_rate)} del paso anterior</span>
+                <% end %>
+              </div>
+              <div class="ed-funnel-track">
+                <div class="ed-funnel-fill" style={"width: #{row.share}%;"}></div>
+              </div>
+              <div class="ed-funnel-num">{thousands(row.count)}</div>
+            </div>
+          <% end %>
+          
+<!-- Not a funnel step — a live count, so it's muted. -->
+          <div class="ed-funnel-row">
+            <div class="ed-funnel-label" style="color: var(--text-muted);">En curso ahora</div>
+            <div class="ed-funnel-track">
+              <div
+                class="ed-funnel-fill ed-funnel-fill--muted"
+                style={"width: #{bar_pct(m.diagnostico_funnel.en_curso, m.diagnostico_funnel.iniciados)}%;"}
+              >
+              </div>
+            </div>
+            <div class="ed-funnel-num">{thousands(m.diagnostico_funnel.en_curso)}</div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="ed-card">
+      <div class="ed-card-title">Embudo por etapa · todas las personas</div>
+
+      <%= if m.etapa_funnel.total == 0 do %>
+        <div class="ed-empty">Todavía no hay personas.</div>
+      <% else %>
+        <div class="ed-funnel">
+          <%= for row <- m.etapa_funnel.rows do %>
+            <div class="ed-funnel-row">
+              <div class="ed-funnel-label">{etapa_label(row.etapa)}</div>
+              <div class="ed-funnel-track">
+                <div class="ed-funnel-fill" style={"width: #{row.share}%;"}></div>
+              </div>
+              <div class="ed-funnel-num">{thousands(row.reached)}</div>
+            </div>
+          <% end %>
+        </div>
+        <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+          Cada barra es «llegó hasta aquí o más lejos». La etapa nunca retrocede.
+        </div>
+
+        <%!-- An etapa the bot writes that we don't know about. Shown rather than
+              folded into the total, where it would inflate every bar above. --%>
+        <%= if m.etapa_funnel.desconocidas != [] do %>
+          <div style="margin-top: 0.9rem; padding-top: 0.9rem; border-top: 2px solid var(--ct-error);">
+            <div class="ed-label" style="color: var(--ct-error);">Etapas desconocidas</div>
+            <div class="ed-kpi-sub">
+              El bot está escribiendo etapas que este panel no conoce, así que no entran en
+              el embudo:
+              <%= for {etapa, n} <- m.etapa_funnel.desconocidas do %>
+                <span class="ed-sello ed-sello--riesgo">{etapa} · {thousands(n)}</span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+  
+<!-- ── Días sin facturar + áreas ────────────────────────────────── -->
+  <div class="ed-two-col">
+    <div class="ed-card">
+      <div class="ed-card-title">Cuántos días aguantan sin facturar</div>
+
+      <%= if m.dias_distribution.total == 0 do %>
+        <div class="ed-empty">Sin diagnósticos entregados todavía.</div>
+      <% else %>
+        <div style="margin-bottom: 1.1rem;">
+          <div class="ed-kpi-value">{dias(m.dias_distribution.mediana)}</div>
+          <div class="ed-kpi-sub">
+            Mediana de {thousands(m.dias_distribution.total)} personas. La mediana, no el
+            promedio — un solo caso extremo mueve el promedio decenas de días.
+          </div>
+        </div>
+
+        <div class="ed-funnel">
+          <%= for b <- m.dias_distribution.bands do %>
+            <div class="ed-funnel-row">
+              <div class="ed-funnel-label">{dias_band_label(b.band)}</div>
+              <div class="ed-funnel-track">
+                <div class="ed-funnel-fill" style={"width: #{b.share}%;"}></div>
+              </div>
+              <div class="ed-funnel-num">{thousands(b.count)}</div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="ed-card">
+      <div class="ed-card-title">Sellos por área</div>
+
+      <%= if Enum.all?(m.areas, &(&1.total == 0)) do %>
+        <div class="ed-empty">Sin diagnósticos entregados todavía.</div>
+      <% else %>
+        <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+          <%= for a <- m.areas do %>
+            <div>
+              <div
+                class="ed-label"
+                style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;"
+              >
+                <span>{area_label(a.area)}</span>
+                <span>{thousands(a.total)}</span>
+              </div>
+              <div class="ed-stack">
+                <%= for seg <- a.segments do %>
+                  <div
+                    class={"ed-stack-seg--#{seg.estado}"}
+                    style={"width: #{seg.share}%;"}
+                    title={"#{area_estado_label(seg.estado)}: #{seg.count}"}
+                  >
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+          <%= for estado <- ~w(al_descubierto en_proceso instalado) do %>
+            <span class="ed-label" style="display: flex; align-items: center; gap: 0.35rem;">
+              <span
+                class={"ed-stack-seg--#{estado}"}
+                style="width: 12px; height: 12px; display: inline-block; border: 1px solid var(--text-main);"
+              >
+              </span>
+              {area_estado_label(estado)}
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+<!-- ── Movimientos ──────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.5rem;">
+    <div class="ed-card-title">Acompañamiento · movimientos</div>
+
+    <%= if m.movimientos.total == 0 do %>
+      <div class="ed-empty">Todavía no se ha entregado ningún movimiento.</div>
+    <% else %>
+      <div class="ed-chips" style="margin-bottom: 1.1rem;">
+        <div class="ed-chip">
+          <span class="ed-label">Tasa de instalación</span>
+          <span class="ed-chip-value">{pct(m.movimientos.tasa_instalacion)}</span>
+        </div>
+        <%= for estado <- ~w(pendiente en_proceso hecho descartado) do %>
+          <div class="ed-chip">
+            <span class="ed-label">{movimiento_estado_label(estado)}</span>
+            <span class="ed-chip-value">
+              {thousands(Map.get(m.movimientos.by_estado, estado, 0))}
+            </span>
+          </div>
+        <% end %>
+        <.link
+          navigate={dp(prefix, "/movimientos?vencidos=1")}
+          class={"ed-chip #{if m.movimientos.vencidos > 0, do: "ed-chip--alerta"}"}
+          style="text-decoration: none;"
+        >
+          <span class="ed-label">Vencidos</span>
+          <span class="ed-chip-value">{thousands(m.movimientos.vencidos)}</span>
+        </.link>
+        <.link
+          navigate={dp(prefix, "/movimientos?agotados=1")}
+          class="ed-chip"
+          style="text-decoration: none;"
+        >
+          <span class="ed-label">Sin más avisos</span>
+          <span class="ed-chip-value">{thousands(m.movimientos.agotados)}</span>
+        </.link>
+      </div>
+
+      <div class="ed-kpi-sub">
+        «Sin más avisos» son los que ya recibieron los tres recordatorios y siguen pendientes:
+        el bot no los va a volver a tocar.
+      </div>
+    <% end %>
+  </div>
+  
+<!-- ── Atorados ─────────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.5rem;">
+    <div class="ed-card-title">Se quedaron a medias · sin contestar hace más de 7 días</div>
+
+    <%= if @metrics.atorados == [] do %>
+      <div class="ed-empty">Nadie atorado. El embudo está limpio.</div>
+    <% else %>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Teléfono</th>
+            <th>Empezó</th>
+            <th>Último mensaje suyo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for p <- @metrics.atorados do %>
+            <tr>
+              <td>
+                <.link navigate={dp(prefix, "/personas/#{p.id}")} class="ed-link">
+                  {p.display_name || "Sin nombre"}
+                </.link>
+              </td>
+              <td class="ed-cifra">{phone_masked(p.phone)}</td>
+              <td>{mx_date(p.created_at)}</td>
+              <td>
+                <%= if p.last_inbound_at do %>
+                  {hace(p.last_inbound_at)}
+                <% else %>
+                  <span class="ed-sello ed-sello--riesgo">Nunca contestó</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+  
+<!-- ── Serie diaria ─────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.5rem;">
+    <div class="ed-card-title">Día a día</div>
+
+    <% max_day =
+      @metrics.daily_series
+      |> Enum.map(&max(&1.personas, max(&1.iniciados, &1.entregados)))
+      |> Enum.max(fn -> 0 end) %>
+
+    <%= if max_day == 0 do %>
+      <div class="ed-empty">Sin actividad en esta ventana.</div>
+    <% else %>
+      <div style="display: flex; align-items: flex-end; gap: 2px; height: 140px;">
+        <%= for d <- @metrics.daily_series do %>
+          <div
+            style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: 1px;"
+            title={"#{mx_date(d.date)} — #{d.personas} personas, #{d.iniciados} iniciados, #{d.entregados} entregados"}
+          >
+            <div style={"height: #{bar_pct(d.entregados, max_day)}%; background: var(--primary); min-height: #{if d.entregados > 0, do: "2px", else: "0"};"}>
+            </div>
+            <div style={"height: #{bar_pct(d.iniciados, max_day)}%; background: var(--accent); min-height: #{if d.iniciados > 0, do: "2px", else: "0"};"}>
+            </div>
+            <div style={"height: #{bar_pct(d.personas, max_day)}%; background: var(--border-strong); min-height: #{if d.personas > 0, do: "2px", else: "0"};"}>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div style="display: flex; gap: 1rem; margin-top: 0.75rem; flex-wrap: wrap;">
+        <%= for {color, label} <- [
+              {"var(--border-strong)", "Personas nuevas"},
+              {"var(--accent)", "Diagnósticos iniciados"},
+              {"var(--primary)", "Entregados"}
+            ] do %>
+          <span class="ed-label" style="display: flex; align-items: center; gap: 0.35rem;">
+            <span style={"width: 12px; height: 12px; display: inline-block; background: #{color}; border: 1px solid var(--text-main);"}>
+            </span>
+            {label}
+          </span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+  
+<!-- ── Salud ────────────────────────────────────────────────────── -->
+  <div class="ed-card">
+    <div class="ed-card-title">Salud · últimos 7 días, independiente de la ventana</div>
+
+    <div class="ed-chips">
+      <.link
+        navigate={dp(prefix, "/calidad?severity=CRITICAL")}
+        class={"ed-chip #{if m.salud.criticos > 0, do: "ed-chip--alerta"}"}
+        style="text-decoration: none;"
+      >
+        <span class="ed-label">Críticos</span>
+        <span class="ed-chip-value">{thousands(m.salud.criticos)}</span>
+      </.link>
+
+      <.link
+        navigate={dp(prefix, "/calidad?severity=WARNING")}
+        class="ed-chip"
+        style="text-decoration: none;"
+      >
+        <span class="ed-label">Advertencias</span>
+        <span class="ed-chip-value">{thousands(m.salud.advertencias)}</span>
+      </.link>
+
+      <div class="ed-chip">
+        <span class="ed-label">Fallos de envío</span>
+        <span class="ed-chip-value">{thousands(m.salud.fallos_envio)}</span>
+      </div>
+
+      <div class="ed-chip">
+        <span class="ed-label">Sesiones abiertas</span>
+        <span class="ed-chip-value">{thousands(m.salud.sesiones_activas)}</span>
+      </div>
+
+      <div class="ed-chip">
+        <span class="ed-label">Ventana de 24 h</span>
+        <span class="ed-chip-value">{thousands(m.salud.ventana_abierta)}</span>
+      </div>
+
+      <div class="ed-chip">
+        <span class="ed-label">Bajas</span>
+        <span class="ed-chip-value">{thousands(m.salud.bajas)}</span>
+      </div>
+
+      <.link
+        navigate={dp(prefix, "/kubo")}
+        class={"ed-chip #{if m.salud.kubo_sin_declaracion > 0, do: "ed-chip--alerta", else: "ed-chip--ok"}"}
+        style="text-decoration: none;"
+      >
+        <span class="ed-label">Kubo sin declarar</span>
+        <span class="ed-chip-value">{thousands(m.salud.kubo_sin_declaracion)}</span>
+      </.link>
+
+      <div class="ed-chip">
+        <span class="ed-label">Base de datos</span>
+        <span class="ed-chip-value">{m.db_size.mb} MB</span>
+      </div>
+    </div>
+
+    <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+      Los fallos de envío salen de las reglas de calidad, no del estado de los mensajes
+      salientes: el bot nunca actualiza esa columna.
+    </div>
+  </div>
+</div>

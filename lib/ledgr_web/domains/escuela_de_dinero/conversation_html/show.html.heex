@@ -1,0 +1,112 @@
+<% prefix = @domain_path_prefix %>
+<% c = @conversation %>
+
+<div class="ed-page">
+  <.link navigate={dp(prefix, "/conversaciones")} class="ed-back">← Conversaciones</.link>
+
+  <div class="ed-topbar">
+    <div>
+      <h1>Sesión</h1>
+      <div class="ed-topbar-sub">
+        <.link navigate={dp(prefix, "/personas/#{c.person_id}")} class="ed-link">
+          {c.display_name || "Sin nombre"}
+        </.link>
+        · <span class="ed-cifra">{phone_masked(c.phone)}</span>
+        · {conversation_status_label(c.status)} · empezó {initiated_by_label(c.initiated_by)}
+      </div>
+    </div>
+  </div>
+
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">La sesión</div>
+    <div class="ed-dl">
+      <div>
+        <div class="ed-label">Abierta</div>
+        <div class="ed-dl-value">{mx_datetime(c.opened_at)}</div>
+      </div>
+      <div>
+        <div class="ed-label">Último mensaje suyo</div>
+        <div class="ed-dl-value">{mx_datetime(c.last_inbound_at)}</div>
+      </div>
+      <div>
+        <div class="ed-label">Ventana libre hasta</div>
+        <div class="ed-dl-value">{mx_datetime(c.freeform_until)}</div>
+      </div>
+      <div>
+        <div class="ed-label">Cerrada</div>
+        <div class="ed-dl-value">{mx_datetime(c.closed_at)}</div>
+      </div>
+      <div>
+        <div class="ed-label">Etapa al abrir</div>
+        <div class="ed-dl-value">{etapa_label(c.etapa_at_open)}</div>
+      </div>
+      <div>
+        <div class="ed-label">Etapa hoy</div>
+        <div class="ed-dl-value">{etapa_label(c.etapa)}</div>
+      </div>
+    </div>
+
+    <%= if c.session_summary do %>
+      <div style="margin-top: 1.25rem;">
+        <div class="ed-label">Resumen</div>
+        <div class="ed-dl-value">{c.session_summary}</div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="ed-card">
+    <div class="ed-card-title">
+      Transcripción · {thousands(length(@messages))} mensajes
+      <%= if @policing_by_turn != %{} do %>
+        <span style="color: var(--ct-error);">
+          · {thousands(map_size(@policing_by_turn))} turnos marcados
+        </span>
+      <% end %>
+    </div>
+
+    <%= if @messages == [] do %>
+      <div class="ed-empty">Sesión sin mensajes.</div>
+    <% else %>
+      <div class="ed-thread">
+        <%= for {msg, i} <- Enum.with_index(@messages) do %>
+          <% flags = Map.get(@policing_by_turn, i, []) %>
+          <div class={"ed-msg ed-msg--#{msg.role} #{if flags != [], do: "ed-msg--flagged"}"}>
+            <div class="ed-msg-meta">
+              {role_label(msg.role)} · {mx_datetime(msg.created_at)}
+              <%= if msg.message_type && msg.message_type != "text" do %>
+                · {msg.message_type}
+              <% end %>
+            </div>
+            <div class="ed-msg-body">{msg.content}</div>
+          </div>
+
+          <%= for f <- flags do %>
+            <div class="ed-flag">
+              {severity_label(f.severity)}: {rule_label(f.event_type)}
+              <%= if f.detail do %>
+                — {f.detail}
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+    
+<!-- Events the bot recorded without a turn number can't be anchored to a
+     message, so they're listed separately rather than dropped. -->
+    <% sin_turno = Map.get(@policing_by_turn, nil, []) %>
+    <%= if sin_turno != [] do %>
+      <div style="margin-top: 1.5rem;">
+        <div class="ed-card-title">Marcas sin turno</div>
+        <%= for f <- sin_turno do %>
+          <div class="ed-flag" style="align-self: flex-start;">
+            {mx_datetime(f.ts)} · {severity_label(f.severity)}: {rule_label(f.event_type)}
+            <%= if f.detail do %>
+              — {f.detail}
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

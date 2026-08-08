@@ -1,0 +1,97 @@
+<% prefix = @domain_path_prefix %>
+
+<div class="ed-page">
+  <div class="ed-topbar">
+    <div>
+      <h1>Conversaciones</h1>
+      <div class="ed-topbar-sub">
+        Cada renglón es una sesión de 24 h, no una persona. Para ver la historia completa
+        de alguien, abre su ficha en Personas.
+      </div>
+    </div>
+  </div>
+
+  <form method="get" action={dp(prefix, "/conversaciones")} class="ed-filters">
+    <div class="ed-field">
+      <label class="ed-label" for="status">Estado</label>
+      <select id="status" name="status">
+        <option value="">Todas</option>
+        <option value="active" selected={@filters.status == "active"}>Abiertas</option>
+        <option value="closed" selected={@filters.status == "closed"}>Cerradas</option>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="initiated_by">Quién empezó</label>
+      <select id="initiated_by" name="initiated_by">
+        <option value="">Cualquiera</option>
+        <option value="person" selected={@filters.initiated_by == "person"}>La persona</option>
+        <option value="business" selected={@filters.initiated_by == "business"}>Socio</option>
+      </select>
+    </div>
+
+    <button type="submit" class="ed-btn-secondary">Filtrar</button>
+    <.link navigate={dp(prefix, "/conversaciones")} class="ed-btn-secondary">Limpiar</.link>
+  </form>
+
+  <%= if @conversations == [] do %>
+    <div class="ed-card">
+      <div class="ed-empty">Nada con esos filtros.</div>
+    </div>
+  <% else %>
+    <div class="ed-table-wrap">
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Abierta</th>
+            <th>Quién empezó</th>
+            <th>Estado</th>
+            <th>Ventana</th>
+            <th class="ed-num">Mensajes</th>
+            <th>Resumen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for c <- @conversations do %>
+            <tr
+              class="ed-row-link"
+              onclick={"window.location='#{dp(prefix, "/conversaciones/#{c.id}")}';"}
+            >
+              <td>
+                <.link navigate={dp(prefix, "/conversaciones/#{c.id}")} class="ed-link">
+                  {c.display_name || "Sin nombre"}
+                </.link>
+                <div class="ed-kpi-sub ed-cifra">{phone_masked(c.phone)}</div>
+              </td>
+              <td>{mx_datetime(c.opened_at)}</td>
+              <td>{initiated_by_label(c.initiated_by)}</td>
+              <td>
+                <span class={"ed-sello ed-sello--#{if c.status == "active", do: "resuelto", else: "neutral"}"}>
+                  {conversation_status_label(c.status)}
+                </span>
+              </td>
+              <td>
+                <%= cond do %>
+                  <% is_nil(c.freeform_until) -> %>
+                    <span class="ed-sello ed-sello--neutral">Sin ventana</span>
+                  <% DateTime.compare(c.freeform_until, DateTime.utc_now()) == :gt -> %>
+                    <span class="ed-sello ed-sello--resuelto">Abierta</span>
+                  <% true -> %>
+                    <span class="ed-sello ed-sello--riesgo">Cerrada</span>
+                <% end %>
+              </td>
+              <td class="ed-num">{c.message_count}</td>
+              <td style="max-width: 28rem;">{c.session_summary}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+      La ventana es el plazo de 24 h en el que se le puede escribir libre; se renueva solo
+      cuando la persona escribe. Fuera de ella, el bot solo puede mandar plantillas.
+    </div>
+  <% end %>
+</div>

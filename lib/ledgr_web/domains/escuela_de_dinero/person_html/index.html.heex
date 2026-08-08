@@ -1,0 +1,115 @@
+<% prefix = @domain_path_prefix %>
+
+<div class="ed-page">
+  <div class="ed-topbar">
+    <div>
+      <h1>Personas</h1>
+      <div class="ed-topbar-sub">
+        {thousands(length(@people))} en la lista. Cada quien es una relación, no una sesión.
+      </div>
+    </div>
+  </div>
+
+  <form method="get" action={dp(prefix, "/personas")} class="ed-filters">
+    <div class="ed-field">
+      <label class="ed-label" for="search">Buscar</label>
+      <input
+        type="search"
+        id="search"
+        name="search"
+        value={@filters.search}
+        placeholder="Nombre o teléfono"
+      />
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="etapa">Etapa</label>
+      <select id="etapa" name="etapa">
+        <option value="">Todas</option>
+        <%= for etapa <- @etapas do %>
+          <option value={etapa} selected={@filters.etapa == etapa}>{etapa_label(etapa)}</option>
+        <% end %>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="mode">Modo</label>
+      <select id="mode" name="mode">
+        <option value="">Los dos</option>
+        <option value="diagnostico" selected={@filters.mode == "diagnostico"}>Diagnóstico</option>
+        <option value="acompanamiento" selected={@filters.mode == "acompanamiento"}>
+          Acompañamiento
+        </option>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="baja">Bajas</label>
+      <select id="baja" name="baja">
+        <option value="">Todas</option>
+        <option value="0" selected={@filters.baja == "0"}>Activas</option>
+        <option value="1" selected={@filters.baja == "1"}>Dadas de baja</option>
+      </select>
+    </div>
+
+    <button type="submit" class="ed-btn-secondary">Filtrar</button>
+    <.link navigate={dp(prefix, "/personas")} class="ed-btn-secondary">Limpiar</.link>
+  </form>
+
+  <%= if @people == [] do %>
+    <div class="ed-card">
+      <div class="ed-empty">Nadie con esos filtros.</div>
+    </div>
+  <% else %>
+    <div class="ed-table-wrap">
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Teléfono</th>
+            <th>Etapa</th>
+            <th>Modo</th>
+            <th class="ed-num">Aguanta</th>
+            <th class="ed-num">Sesiones</th>
+            <th>Último mensaje suyo</th>
+            <th>Alta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for p <- @people do %>
+            <tr
+              class="ed-row-link"
+              onclick={"window.location='#{dp(prefix, "/personas/#{p.id}")}';"}
+            >
+              <td>
+                <.link navigate={dp(prefix, "/personas/#{p.id}")} class="ed-link">
+                  {p.display_name || "Sin nombre"}
+                </.link>
+                <%= if p.opted_out_at do %>
+                  <span class="ed-sello ed-sello--neutral" style="margin-left: 0.4rem;">
+                    Baja
+                  </span>
+                <% end %>
+              </td>
+              <td class="ed-cifra">{phone_masked(p.phone)}</td>
+              <td>{etapa_label(p.etapa)}</td>
+              <td>{mode_label(p.mode)}</td>
+              <td class="ed-num">
+                <%= if p.dias_sin_facturar do %>
+                  <span class={"ed-sello ed-sello--#{dias_tone(p.dias_sin_facturar)}"}>
+                    {dias(p.dias_sin_facturar)}
+                  </span>
+                <% else %>
+                  <span style="color: var(--text-muted);">—</span>
+                <% end %>
+              </td>
+              <td class="ed-num">{p.sesiones}</td>
+              <td>{hace(p.last_inbound_at)}</td>
+              <td>{mx_date(p.created_at)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

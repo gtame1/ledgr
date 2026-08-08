@@ -587,7 +587,10 @@ defmodule LedgrWeb.Router do
     get "/reports/monthly/xlsx", Domains.HelloDoctor.MonthlyReportController, :download_xlsx
 
     # Bulk "mark month as paid": GET preview + POST confirm
-    get "/reports/monthly/mark-paid", Domains.HelloDoctor.MonthlyReportController, :mark_paid_preview
+    get "/reports/monthly/mark-paid",
+        Domains.HelloDoctor.MonthlyReportController,
+        :mark_paid_preview
+
     post "/reports/monthly/mark-paid", Domains.HelloDoctor.MonthlyReportController, :mark_paid
 
     # A/B experiment tracker (Scientist framework) — registry + per-arm readout
@@ -724,6 +727,43 @@ defmodule LedgrWeb.Router do
     get "/payments/:id/link", Domains.AumentaMiPension.PaymentController, :link_form
     post "/payments/:id/link", Domains.AumentaMiPension.PaymentController, :save_link
     post "/payments/:id/unlink", Domains.AumentaMiPension.PaymentController, :unlink
+  end
+
+  # ── Escuela de Dinero: public auth routes ──────────────────────────
+  scope "/app/escuela-de-dinero", LedgrWeb do
+    pipe_through :browser
+
+    get "/login", SessionController, :new
+    post "/login", SessionController, :create
+    delete "/logout", SessionController, :delete
+  end
+
+  # ── Escuela de Dinero: protected routes ────────────────────────────
+  #
+  # Operational-only domain: deliberately NO `core_routes*` macro, no
+  # ReportController, no accounting. `/` is our own DashboardController.
+  # That's safe because implementing `nav_icons/0` suppresses the shared
+  # Reports/Reconciliation/Other nav groups in root.html.heex — which also
+  # means `menu_items/0` is the sole source of navigation here.
+  #
+  # Every route is a GET. The bot owns this database; Ledgr only reads it.
+  scope "/app/escuela-de-dinero", LedgrWeb do
+    pipe_through [:browser, :require_auth]
+
+    get "/", Domains.EscuelaDeDinero.DashboardController, :index
+
+    resources "/personas", Domains.EscuelaDeDinero.PersonController, only: [:index, :show]
+
+    resources "/diagnosticos", Domains.EscuelaDeDinero.DiagnosticoController,
+      only: [:index, :show]
+
+    get "/movimientos", Domains.EscuelaDeDinero.MovimientoController, :index
+
+    resources "/conversaciones", Domains.EscuelaDeDinero.ConversationController,
+      only: [:index, :show]
+
+    get "/calidad", Domains.EscuelaDeDinero.CalidadController, :index
+    get "/kubo", Domains.EscuelaDeDinero.KuboController, :index
   end
 
   # ── API endpoints (core) ─────────────────────────────────────────────

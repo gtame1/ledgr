@@ -1,0 +1,112 @@
+<% prefix = @domain_path_prefix %>
+
+<div class="ed-page">
+  <div class="ed-topbar">
+    <div>
+      <h1>Kubo</h1>
+      <div class="ed-topbar-sub">
+        El rastro de cada liga de afiliado que salió, y de cuántas veces el filtro se negó
+        a mandarla.
+      </div>
+    </div>
+  </div>
+  
+<!-- ── La aserción ──────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">Declaración de la relación comercial</div>
+
+    <div class="ed-chips">
+      <div class={"ed-chip #{if @sin_declaracion == [], do: "ed-chip--ok", else: "ed-chip--alerta"}"}>
+        <span class="ed-label">Ligas sin declarar</span>
+        <span class="ed-chip-value">{thousands(length(@sin_declaracion))}</span>
+      </div>
+      <div class="ed-chip">
+        <span class="ed-label">Total emitidas</span>
+        <span class="ed-chip-value">{thousands(length(@referrals))}</span>
+      </div>
+    </div>
+
+    <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+      Cuando se cobra comisión por un producto, se declara. Una liga guardada sin su
+      mensaje de declaración significa que salió sin avisar, y eso siempre debe ser cero.
+    </div>
+  </div>
+  
+<!-- ── El filtro ────────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">Qué decidió el filtro</div>
+
+    <%= if @gate_summary == [] do %>
+      <div class="ed-empty">
+        Todavía no se ha emitido ninguna liga. Kubo está apagado hasta que se firme el
+        acuerdo comercial.
+      </div>
+    <% else %>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Motivo</th>
+            <th class="ed-num">Veces</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for {reason, count} <- @gate_summary do %>
+            <tr>
+              <td>{gate_reason_label(reason)}</td>
+              <td class="ed-num">{thousands(count)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+        Lo que hay que vigilar es qué tan seguido se niega. Un filtro que nunca se niega no
+        es un filtro, es un embudo.
+      </div>
+    <% end %>
+  </div>
+  
+<!-- ── Las emisiones ────────────────────────────────────────────── -->
+  <%= if @referrals != [] do %>
+    <div class="ed-table-wrap">
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Enviada</th>
+            <th>Motivo</th>
+            <th>Declaración</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for k <- @referrals do %>
+            <tr>
+              <td>
+                <.link navigate={dp(prefix, "/personas/#{k.person_id}")} class="ed-link">
+                  {k.display_name || "Sin nombre"}
+                </.link>
+                <div class="ed-kpi-sub ed-cifra">{phone_masked(k.phone)}</div>
+              </td>
+              <td>{mx_datetime(k.sent_at)}</td>
+              <td>{gate_reason_label(k.gate_reason)}</td>
+              <td>
+                <%= if k.disclosure_message_id do %>
+                  <span class="ed-sello ed-sello--resuelto">Declarada</span>
+                <% else %>
+                  <span class="ed-sello ed-sello--riesgo">Sin declarar</span>
+                <% end %>
+              </td>
+              <td>{outcome_label(k.outcome)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+      El resultado lo reporta la propia persona y hoy nada lo escribe: la ruta de redirección
+      que registraría el clic todavía no existe en el bot.
+    </div>
+  <% end %>
+</div>

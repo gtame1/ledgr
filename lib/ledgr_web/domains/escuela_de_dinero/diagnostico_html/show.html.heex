@@ -1,0 +1,231 @@
+<% prefix = @domain_path_prefix %>
+<% d = @diagnostico %>
+<% r = d.respuestas || %{} %>
+<% areas = d.areas || %{} %>
+
+<div class="ed-page">
+  <.link navigate={dp(prefix, "/diagnosticos")} class="ed-back">← Diagnósticos</.link>
+
+  <div class="ed-topbar">
+    <div>
+      <h1>Diagnóstico v{d.version}</h1>
+      <div class="ed-topbar-sub">
+        <.link navigate={dp(prefix, "/personas/#{d.person_id}")} class="ed-link">
+          {d.display_name || "Sin nombre"}
+        </.link>
+        · <span class="ed-cifra">{phone_masked(d.phone)}</span>
+        · {diagnostico_status_label(d.status)}
+      </div>
+    </div>
+
+    <%= if d.dias_sin_facturar do %>
+      <div style="text-align: right;">
+        <div class="ed-label">Aguanta sin facturar</div>
+        <div class="ed-kpi-value">{dias(d.dias_sin_facturar)}</div>
+      </div>
+    <% end %>
+  </div>
+  
+<!-- ── Línea de tiempo ──────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">Cómo fue avanzando</div>
+    <div class="ed-dl">
+      <%= for {label, ts} <- [
+            {"Empezó", d.started_at},
+            {"Playback enviado", d.playback_sent_at},
+            {"Confirmado", d.confirmed_at},
+            {"Entregado", d.completed_at}
+          ] do %>
+        <div>
+          <div class="ed-label">{label}</div>
+          <div class="ed-dl-value">
+            <%= if ts do %>
+              {mx_datetime(ts)}
+            <% else %>
+              <span style="color: var(--text-muted);">Todavía no</span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <%= if d.playback_sent_at && is_nil(d.confirmed_at) do %>
+      <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+        Se le mandó el playback y no lo ha confirmado — o lo corrigió, lo cual borra la
+        confirmación hasta que vuelva a cerrar.
+      </div>
+    <% end %>
+  </div>
+  
+<!-- ── Headline ─────────────────────────────────────────────────── -->
+  <%= if is_map(d.headline) && d.headline["texto"] do %>
+    <div class="ed-card" style="margin-bottom: 1.25rem;">
+      <div class="ed-card-title">Lo que se le dijo</div>
+      <div class="ed-dl-value" style="white-space: pre-wrap;">{d.headline["texto"]}</div>
+    </div>
+  <% end %>
+  
+<!-- ── Respuestas ───────────────────────────────────────────────── -->
+  <div class="ed-two-col">
+    <div class="ed-card">
+      <div class="ed-card-title">Lo que contestó</div>
+
+      <%= if r == %{} do %>
+        <div class="ed-empty">Todavía no ha contestado nada.</div>
+      <% else %>
+        <div class="ed-dl">
+          <div>
+            <div class="ed-label">{slot_label("de_que_vives")}</div>
+            <div class="ed-dl-value">
+              <%= if r["de_que_vives"] do %>
+                {de_que_vives_label(r["de_que_vives"])}
+              <% else %>
+                <span style="color: var(--text-muted);">Falta</span>
+              <% end %>
+            </div>
+          </div>
+
+          <%= for slot <- ~w(ingreso_promedio_mensual gasto_fijo_mensual guardado_disponible deuda_total) do %>
+            <%= if Map.has_key?(r, slot) do %>
+              <div>
+                <div class="ed-label">{slot_label(slot)}</div>
+                <div class="ed-dl-value ed-cifra">{mxn(r[slot])}</div>
+              </div>
+            <% end %>
+          <% end %>
+
+          <%= if is_map(r["variabilidad"]) do %>
+            <div>
+              <div class="ed-label">{slot_label("variabilidad")}</div>
+              <div class="ed-dl-value">
+                <span class="ed-cifra">{mxn(r["variabilidad"]["peor"])}</span>
+                a <span class="ed-cifra">{mxn(r["variabilidad"]["mejor"])}</span>
+                <div class="ed-kpi-sub">
+                  Confianza {confianza_label(r["variabilidad"]["confianza"])}
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <%= if Map.has_key?(r, "dependientes") do %>
+            <div>
+              <div class="ed-label">{slot_label("dependientes")}</div>
+              <div class="ed-dl-value ed-cifra">{r["dependientes"]}</div>
+            </div>
+          <% end %>
+        </div>
+
+        <%= if is_map(r["que_tienes_montado"]) do %>
+          <div style="margin-top: 1.25rem;">
+            <div class="ed-label" style="margin-bottom: 0.5rem;">
+              {slot_label("que_tienes_montado")}
+            </div>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <%= for {key, value} <- r["que_tienes_montado"] do %>
+                <span class={"ed-sello ed-sello--#{if value == true, do: "resuelto", else: if(value == false, do: "riesgo", else: "neutral")}"}>
+                  {montado_label(key)}:
+                  <%= cond do %>
+                    <% value == true -> %>
+                      sí
+                    <% value == false -> %>
+                      no
+                    <% true -> %>
+                      sin dato
+                  <% end %>
+                </span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <%= if r["meta"] do %>
+          <div style="margin-top: 1.25rem;">
+            <div class="ed-label">{slot_label("meta")}</div>
+            <div class="ed-dl-value">{r["meta"]}</div>
+          </div>
+        <% end %>
+
+        <% faltantes = Enum.reject(required_slots(), &Map.has_key?(r, &1)) %>
+        <%= if faltantes != [] do %>
+          <div class="ed-kpi-sub" style="margin-top: 1.25rem;">
+            Faltan {length(faltantes)} de 6: {Enum.map_join(faltantes, ", ", &slot_label/1)}.
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    
+<!-- ── Áreas ────────────────────────────────────────────────────── -->
+    <div class="ed-card">
+      <div class="ed-card-title">Sellos</div>
+
+      <%= if areas == %{} do %>
+        <div class="ed-empty">Sin sellos — el diagnóstico no se ha entregado.</div>
+      <% else %>
+        <div class="ed-dl">
+          <%= for area <- area_order() do %>
+            <% estado = area_estado(areas, area) %>
+            <div>
+              <div class="ed-label">{area_label(area)}</div>
+              <div class="ed-dl-value">
+                <span class={"ed-sello ed-sello--#{area_estado_tone(estado)}"}>
+                  {area_estado_label(estado)}
+                </span>
+                <%= if area == "colchon" && is_map(areas["colchon"]) && areas["colchon"]["dias"] do %>
+                  <div class="ed-kpi-sub ed-cifra">{dias(areas["colchon"]["dias"])}</div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+<!-- ── Movimientos ──────────────────────────────────────────────── -->
+  <div class="ed-card">
+    <div class="ed-card-title">Los tres movimientos</div>
+
+    <%= if @movimientos == [] do %>
+      <div class="ed-empty">Todavía no se han entregado.</div>
+    <% else %>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th class="ed-num">#</th>
+            <th>Área</th>
+            <th>Movimiento</th>
+            <th>Estado</th>
+            <th>Vence</th>
+            <th class="ed-num">Avisos</th>
+            <th>Hecho</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for m <- @movimientos do %>
+            <tr>
+              <td class="ed-num">{m.orden}</td>
+              <td>{area_label(m.area)}</td>
+              <td>
+                <div>{m.titulo}</div>
+                <div class="ed-kpi-sub">{m.accion_hoy}</div>
+              </td>
+              <td>
+                <span class={"ed-sello ed-sello--#{movimiento_estado_tone(m.estado)}"}>
+                  {movimiento_estado_label(m.estado)}
+                </span>
+              </td>
+              <td>
+                {mx_date(m.due_at)}
+                <%= if vencido?(m) do %>
+                  <span class="ed-sello ed-sello--riesgo">Vencido</span>
+                <% end %>
+              </td>
+              <td class="ed-num">{m.checkin_count}/3</td>
+              <td>{mx_date(m.completed_at)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+</div>

@@ -15,7 +15,8 @@ config :ledgr,
     Ledgr.Repos.LedgrHQ,
     Ledgr.Repos.CasaTame,
     Ledgr.Repos.HelloDoctor,
-    Ledgr.Repos.AumentaMiPension
+    Ledgr.Repos.AumentaMiPension,
+    Ledgr.Repos.EscuelaDeDinero
   ],
   generators: [timestamp_type: :utc_datetime],
   domain: Ledgr.Domains.MrMunchMe,
@@ -26,7 +27,8 @@ config :ledgr,
     Ledgr.Domains.LedgrHQ,
     Ledgr.Domains.CasaTame,
     Ledgr.Domains.HelloDoctor,
-    Ledgr.Domains.AumentaMiPension
+    Ledgr.Domains.AumentaMiPension,
+    Ledgr.Domains.EscuelaDeDinero
   ],
   default_domain: Ledgr.Domains.MrMunchMe,
   # Default shipping fee in cents (MXN). Override per-order via the admin form.

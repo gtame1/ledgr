@@ -24,7 +24,8 @@ defmodule Ledgr.Release do
     Ledgr.Repos.Viaxe => "priv/repos/viaxe/seeds_prod.exs",
     Ledgr.Repos.CasaTame => "priv/repos/casa_tame/seeds_prod.exs",
     Ledgr.Repos.HelloDoctor => "priv/repos/hello_doctor/seeds_prod.exs",
-    Ledgr.Repos.AumentaMiPension => "priv/repos/aumenta_mi_pension/seeds_prod.exs"
+    Ledgr.Repos.AumentaMiPension => "priv/repos/aumenta_mi_pension/seeds_prod.exs",
+    Ledgr.Repos.EscuelaDeDinero => "priv/repos/escuela_de_dinero/seeds_prod.exs"
   }
 
   @doc """
