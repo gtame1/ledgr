@@ -78,6 +78,17 @@ services:
           name: ledgr-volume-studio-db
           property: connectionString
 
+      # Externally-hosted databases (Neon) — the actual URLs live in the Render
+      # dashboard, but they are declared here so a new domain's variable can't
+      # be silently forgotten. A repo whose URL is unset never starts, and
+      # every request for that domain returns 503 (see Ledgr.Application).
+      - key: HELLO_DOCTOR_DATABASE_URL
+        sync: false                 # set manually in Render dashboard
+      - key: AUMENTA_MI_PENSION_DATABASE_URL
+        sync: false                 # set manually in Render dashboard
+      - key: ESCUELA_DE_DINERO_DATABASE_URL
+        sync: false                 # set manually in Render dashboard
+
 databases:
   - name: ledgr-mr-munch-me-db
     databaseName: ledgr_mr_munch_me_prod

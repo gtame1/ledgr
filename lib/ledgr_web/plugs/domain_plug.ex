@@ -16,6 +16,8 @@ defmodule LedgrWeb.Plugs.DomainPlug do
 
   import Plug.Conn
 
+  require Logger
+
   @domain_slugs %{
     "mr-munch-me" => Ledgr.Domains.MrMunchMe,
     "viaxe" => Ledgr.Domains.Viaxe,
@@ -26,6 +28,9 @@ defmodule LedgrWeb.Plugs.DomainPlug do
     "aumenta-mi-pension" => Ledgr.Domains.AumentaMiPension,
     "escuela-de-dinero" => Ledgr.Domains.EscuelaDeDinero
   }
+
+  @doc "Every routable slug → domain module. Exposed so tests can pin the wiring."
+  def domain_slugs, do: @domain_slugs
 
   def init(opts), do: opts
 
@@ -68,14 +73,42 @@ defmodule LedgrWeb.Plugs.DomainPlug do
       domain_module ->
         repo = Ledgr.Repo.repo_for_domain(domain_module)
 
-        # Set process dictionary for dynamic dispatch
-        Ledgr.Domain.put_current(domain_module)
-        Ledgr.Repo.put_active_repo(repo)
+        if Ledgr.Repo.started?(repo) do
+          # Set process dictionary for dynamic dispatch
+          Ledgr.Domain.put_current(domain_module)
+          Ledgr.Repo.put_active_repo(repo)
 
-        # Set conn assigns for templates
-        conn
-        |> assign(:current_domain, domain_module)
-        |> assign(:domain_path_prefix, domain_module.path_prefix())
+          # Set conn assigns for templates
+          conn
+          |> assign(:current_domain, domain_module)
+          |> assign(:domain_path_prefix, domain_module.path_prefix())
+        else
+          repo_not_started(conn, domain_module, repo)
+        end
     end
+  end
+
+  # A domain whose repo never started (URL env var unset, or its host did not
+  # resolve at boot — see Ledgr.Application) would otherwise raise "could not
+  # lookup Ecto repo" on the first query, i.e. a 500 with a stacktrace on every
+  # page including login. Fail with a 503 that names the missing env var instead.
+  defp repo_not_started(conn, domain_module, repo) do
+    Logger.error(
+      "[DomainPlug] #{inspect(repo)} is not started — #{conn.method} #{conn.request_path} " <>
+        "cannot be served. Set #{Ledgr.Repo.env_var_for(repo) || "its database URL"} and redeploy " <>
+        "(on Render a restart reuses the deploy's environment and will not pick it up)."
+    )
+
+    conn
+    |> put_resp_content_type("text/html")
+    |> send_resp(503, """
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8"><title>Service unavailable</title></head>
+    <body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 20vh auto; padding: 0 1rem;">
+      <h1 style="font-size: 1.25rem;">#{domain_module.name()} is temporarily unavailable</h1>
+      <p style="color: #555;">Its database is not configured on this server. An administrator needs to set the database URL and restart the app.</p>
+    </body></html>
+    """)
+    |> halt()
   end
 end
