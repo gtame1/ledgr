@@ -28,6 +28,38 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.CreateAnalyticsFctConsultation do
   def up do
     execute("CREATE SCHEMA IF NOT EXISTS analytics")
 
+    # The view reads five bot-owned base tables that only exist on the Neon HD
+    # database. On a local ledgr-only Postgres the CREATE VIEW raises
+    # `undefined_table`, which fails `mix ecto.migrate` for HelloDoctor — and
+    # because Phoenix.Ecto.CheckRepoStatus checks every configured repo, that
+    # 503s the entire app for every domain, not just HD. Skip instead, the same
+    # way the AMP lead_crm backfill does.
+    if bot_tables_present?() do
+      create_view()
+    else
+      IO.puts(
+        :stderr,
+        "[migration] consultations/conversations/doctors/patients/corporate_accounts " <>
+          "(bot-owned) not present — skipping analytics.fct_consultation " <>
+          "(fresh ledgr-only DB). Set HELLO_DOCTOR_DATABASE_URL to build it."
+      )
+    end
+  end
+
+  defp bot_tables_present? do
+    %{rows: [[present]]} =
+      repo().query!("""
+      SELECT to_regclass('public.consultations')      IS NOT NULL
+         AND to_regclass('public.conversations')      IS NOT NULL
+         AND to_regclass('public.doctors')            IS NOT NULL
+         AND to_regclass('public.patients')           IS NOT NULL
+         AND to_regclass('public.corporate_accounts') IS NOT NULL
+      """)
+
+    present
+  end
+
+  defp create_view do
     execute("""
     CREATE OR REPLACE VIEW analytics.fct_consultation AS
     SELECT
