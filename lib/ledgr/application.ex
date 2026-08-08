@@ -43,28 +43,18 @@ defmodule Ledgr.Application do
     # config/test.exs); in dev/prod only start when their DATABASE_URL is set.
     optional_repos =
       if @mix_env != :prod do
-        [
-          Ledgr.Repos.Viaxe,
-          Ledgr.Repos.VolumeStudio,
-          Ledgr.Repos.LedgrHQ,
-          Ledgr.Repos.CasaTame,
-          Ledgr.Repos.HelloDoctor,
-          Ledgr.Repos.AumentaMiPension,
-          Ledgr.Repos.EscuelaDeDinero
-        ]
+        Enum.map(Ledgr.Repo.optional_repos(), fn {_env_var, repo} -> repo end)
       else
-        [
-          {"VIAXE_DATABASE_URL", Ledgr.Repos.Viaxe},
-          {"VOLUME_STUDIO_DATABASE_URL", Ledgr.Repos.VolumeStudio},
-          {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ},
-          {"CASA_TAME_DATABASE_URL", Ledgr.Repos.CasaTame},
-          {"HELLO_DOCTOR_DATABASE_URL", Ledgr.Repos.HelloDoctor},
-          {"AUMENTA_MI_PENSION_DATABASE_URL", Ledgr.Repos.AumentaMiPension},
-          {"ESCUELA_DE_DINERO_DATABASE_URL", Ledgr.Repos.EscuelaDeDinero}
-        ]
+        Ledgr.Repo.optional_repos()
         |> Enum.filter(fn {env_var, repo} ->
           case System.get_env(env_var) do
             nil ->
+              # Silence here is how a whole domain ends up 503ing in production:
+              # its routes ship, its repo never starts. Say so at boot.
+              Logger.warning(
+                "[Ledgr] Skipping #{inspect(repo)}: #{env_var} is not set — every request for this domain will return 503"
+              )
+
               false
 
             url ->

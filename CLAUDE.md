@@ -50,9 +50,9 @@ When adding a new business domain (e.g. "Acme Co"), follow this checklist:
    end
    ```
 
-5. **Add to the optional repos list in `lib/ledgr/application.ex`** — repos only start when their env var is set. This prevents Postgrex connection spam in environments where the DB doesn't exist:
+5. **Add to `@optional_repos` in `lib/ledgr/repo.ex`** — the single list of `{env_var, repo}` pairs that `Ledgr.Application` starts. Repos only start when their env var is set, which prevents Postgrex connection spam in environments where the DB doesn't exist:
    ```elixir
-   optional_repos = [
+   @optional_repos [
      ...
      {"ACME_CO_DATABASE_URL", Ledgr.Repos.AcmeCo},
      ...
@@ -64,6 +64,18 @@ When adding a new business domain (e.g. "Acme Co"), follow this checklist:
 6. **Register the repo ↔ domain mapping** in `lib/ledgr/repo.ex` (`repo_for_domain/1`). Domains without an explicit clause fall through to `Ledgr.Repos.MrMunchMe` — easy to miss and hard to debug (queries silently hit the wrong DB).
 
 7. **Wire the slug** in `lib/ledgr_web/plugs/domain_plug.ex`'s `@domain_slugs` map.
+
+8. **Set the env var in the Render dashboard, then _deploy_** — and declare it
+   in `render.yaml` (`sync: false`). This is the step that gets skipped: the
+   domain's routes deploy, the repo never starts, and *every* page for that
+   domain — login included — returns 503. The boot log names any repo it
+   skipped, and `DomainPlug` logs the missing variable on each request.
+
+   Setting the variable is not enough on its own. Render bakes the environment
+   into the deploy, so **restarting the service reuses the old environment** —
+   the repo still won't start. Trigger a real deploy. (Learned the hard way on
+   2026-08-08, when Escuela de Dinero shipped without
+   `ESCUELA_DE_DINERO_DATABASE_URL` and a restart didn't fix it.)
 
 ## Standard sidebar + nav for new domains
 

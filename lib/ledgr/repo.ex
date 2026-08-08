@@ -33,17 +33,43 @@ defmodule Ledgr.Repo do
   def repo_for_domain(Ledgr.Domains.EscuelaDeDinero), do: Ledgr.Repos.EscuelaDeDinero
   def repo_for_domain(_), do: Ledgr.Repos.MrMunchMe
 
-  @doc "Returns all configured repo modules."
-  def all_repos do
-    [
-      Ledgr.Repos.MrMunchMe,
-      Ledgr.Repos.Viaxe,
-      Ledgr.Repos.VolumeStudio,
-      Ledgr.Repos.LedgrHQ,
-      Ledgr.Repos.CasaTame,
-      Ledgr.Repos.HelloDoctor
-    ]
+  # Every repo but MrMunchMe is optional: in prod it only starts when its URL
+  # env var is present (see Ledgr.Application). Keep this list in sync with
+  # repo_for_domain/1 above — a repo missing here never starts in prod, and
+  # every request for its domain 503s.
+  @optional_repos [
+    {"VIAXE_DATABASE_URL", Ledgr.Repos.Viaxe},
+    {"VOLUME_STUDIO_DATABASE_URL", Ledgr.Repos.VolumeStudio},
+    {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ},
+    {"CASA_TAME_DATABASE_URL", Ledgr.Repos.CasaTame},
+    {"HELLO_DOCTOR_DATABASE_URL", Ledgr.Repos.HelloDoctor},
+    {"AUMENTA_MI_PENSION_DATABASE_URL", Ledgr.Repos.AumentaMiPension},
+    {"ESCUELA_DE_DINERO_DATABASE_URL", Ledgr.Repos.EscuelaDeDinero}
+  ]
+
+  @doc """
+  Returns `{env_var, repo}` pairs for every repo that is only started when its
+  URL env var is set. `Ledgr.Repos.MrMunchMe` is deliberately absent — it is the
+  always-on repo and falls back to `DATABASE_URL`.
+  """
+  def optional_repos, do: @optional_repos
+
+  @doc "Returns the URL env var that gates a repo in production, or nil."
+  def env_var_for(repo) do
+    Enum.find_value(@optional_repos, fn {env_var, mod} -> mod == repo && env_var end) || nil
   end
+
+  @doc "Returns all configured repo modules."
+  def all_repos, do: [Ledgr.Repos.MrMunchMe | Enum.map(@optional_repos, &elem(&1, 1))]
+
+  @doc """
+  Whether a repo's supervision tree is running in this node.
+
+  False means the repo was never started (its env var is unset, or its host did
+  not resolve at boot), so every query against it would raise
+  `could not lookup Ecto repo ... because it was not started`.
+  """
+  def started?(repo) when is_atom(repo), do: is_pid(Process.whereis(repo))
 
   # ── Ecto.Repo delegations ──────────────────────────────────────────
 
