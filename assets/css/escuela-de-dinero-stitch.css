@@ -1,36 +1,37 @@
 /* ============================================================
-   Escuela de Dinero — Stitch Design Overrides
+   Escuela de Dinero — design overrides
    All rules scoped to [data-domain="escuela-de-dinero"]
 
-   Brand v3 "Rótulo Callejero" — Mexican hand-painted sign writing.
-   Verde #123b2b · Cal #efe2c7 · Oro #d8a62e · Ladrillo #a83c2b · Tinta #171611
+   Palette from brand v3 "Rótulo Callejero", but applied as an admin
+   surface rather than a poster. The landing page is where the painted-sign
+   language belongs; this is a tool someone reads for an hour at a time, so
+   the brand shows up in the palette, the wordmark and the monospaced
+   figures — not in borders, shadows and rotation.
 
-   Non-negotiables from the brand manual:
-     · border-radius: 0 everywhere. No exceptions.
-     · Solid offset shadows (`box-shadow: Npx Npx 0`). Never blur, never
-       gradient, never glassmorphism.
-     · Left-aligned. Always.
-     · Every figure is monospaced (.ed-cifra). This rule survived two full
-       identity revisions — do not "fix" it.
-
-   NOTE: page classes like `hd-card` are NOT global — each domain defines its
-   own set. This file is what makes the pages render at all, not a nicety.
-
-   Two things that will silently break this file, both learned the hard way:
-     · An apostrophe anywhere in a comment. The Tailwind v4 parser reads it as
-       an unterminated string and fails the whole build, loudly.
-     · The two characters that end a comment, appearing inside one — e.g.
-       writing a glob like hd-<star><slash>ct-<star>. That closes the comment
-       early and spills the rest as stray tokens, which silently kills every
-       rule in the file with no build error at all.
+   Rules:
+     · No shadows. Depth comes from a hairline and a background shift.
+     · Hairlines are warm and low-contrast, never ink-black.
+     · Colour is a signal, never a surface. Ladrillo/oro/verde appear on
+       small marks; the page itself is cal and papel.
+     · Every figure stays monospaced (.ed-cifra) — a brand rule that also
+       happens to make columns scannable.
+     · Left-aligned, sentence case. Uppercase is reserved for the small
+       eyebrow labels that need to recede.
    ============================================================ */
 
 @layer components {
 
-/* ── Base ──────────────────────────────────────────────────── */
+/* ── Tokens ────────────────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] {
   overflow-x: hidden;
+
+  /* Warm hairline: papel-marco at low opacity reads as a fold in paper
+     rather than a drawn rule. */
+  --ed-line: rgba(23, 22, 17, 0.11);
+  --ed-line-strong: rgba(23, 22, 17, 0.2);
+  --ed-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ed-radius: 3px;
 }
 
 [data-domain="escuela-de-dinero"] .content {
@@ -42,7 +43,7 @@
 [data-domain="escuela-de-dinero"] .content-body {
   gap: 0 !important;
   overflow-x: hidden;
-  padding: 0 2rem 2rem !important;
+  padding: 0 2.5rem 3rem !important;
 }
 
 /* ── Typography ───────────────────────────────────────────── */
@@ -51,35 +52,40 @@
 [data-domain="escuela-de-dinero"] h2,
 [data-domain="escuela-de-dinero"] h3 {
   font-family: var(--ct-font-headline, 'Bodoni Moda'), Georgia, serif;
-  font-weight: 900;
-  letter-spacing: -0.035em;
-  line-height: 0.95;
-  text-transform: uppercase;
-}
-
-/* Every money figure, count, day-count and percentage. Tabular so columns
-   line up for scanning — the "estado de cuenta" feel is the whole point. */
-[data-domain="escuela-de-dinero"] .ed-cifra {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  /* Sentence case. The uppercase display treatment is a poster device and
+     it shouts at this size and frequency. */
+  text-transform: none;
 }
 
-/* Monospaced uppercase micro-label. Used for column heads and metadata. */
-[data-domain="escuela-de-dinero"] .ed-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.6875rem;
+/* Money, counts, days, percentages. */
+[data-domain="escuela-de-dinero"] .ed-cifra {
+  font-family: var(--ed-mono);
+  font-variant-numeric: tabular-nums;
   font-weight: 500;
+  letter-spacing: -0.01em;
+  /* A figure is one token. A masked phone breaking after its ellipsis, or a
+     peso amount splitting off its sign, reads as two values. */
+  white-space: nowrap;
+}
+
+/* The small eyebrow above a value. Deliberately recessive. */
+[data-domain="escuela-de-dinero"] .ed-label {
+  font-family: var(--ed-mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   color: var(--text-muted, #7d735e);
 }
 
 /* ── Page + top bar ───────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-page {
-  padding: 2rem 0 1.5rem;
+  padding: 2.25rem 0 1.5rem;
+  max-width: 1400px;
 }
 
 [data-domain="escuela-de-dinero"] .ed-topbar {
@@ -88,13 +94,13 @@
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 3px solid var(--primary, #123b2b);
+  border-bottom: 1px solid var(--ed-line);
 }
 
 [data-domain="escuela-de-dinero"] .ed-topbar h1 {
-  font-size: 2.25rem;
+  font-size: 1.75rem;
   color: var(--text-main, #171611);
   margin: 0;
 }
@@ -103,37 +109,33 @@
   font-size: 0.875rem;
   color: var(--text-muted, #7d735e);
   margin-top: 0.35rem;
-  text-transform: none;
 }
 
-/* ── Filter bar ───────────────────────────────────────────── */
+/* ── Filters ──────────────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-filters {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
-  padding: 1rem;
-  background: var(--bg-surface, #fffaf0);
-  border: 2px solid var(--text-main, #171611);
-  border-radius: 0;
-  box-shadow: 5px 5px 0 var(--border-strong, #d5c099);
+  margin-bottom: 1.5rem;
+  padding: 0 0 1.25rem;
+  border-bottom: 1px solid var(--ed-line);
 }
 
 [data-domain="escuela-de-dinero"] .ed-field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
 
 [data-domain="escuela-de-dinero"] .ed-filters select,
 [data-domain="escuela-de-dinero"] .ed-filters input[type="text"],
 [data-domain="escuela-de-dinero"] .ed-filters input[type="search"],
 [data-domain="escuela-de-dinero"] .ed-filters input[type="date"] {
-  padding: 0.45rem 0.7rem;
-  border: 2px solid var(--text-main, #171611);
-  border-radius: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--ed-line-strong);
+  border-radius: var(--ed-radius);
   font-size: 0.875rem;
   background: var(--bg-surface, #fffaf0);
   color: var(--text-main, #171611);
@@ -142,41 +144,39 @@
 [data-domain="escuela-de-dinero"] .ed-filters select:focus,
 [data-domain="escuela-de-dinero"] .ed-filters input:focus {
   outline: none;
-  border-color: var(--accent, #d8a62e);
-  box-shadow: 3px 3px 0 var(--accent, #d8a62e);
+  border-color: var(--primary, #123b2b);
 }
 
 /* ── Cards ─────────────────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-card {
   background: var(--bg-surface, #fffaf0);
-  border: 2px solid var(--text-main, #171611);
-  border-radius: 0;
-  padding: 1.25rem;
-  box-shadow: 6px 6px 0 rgba(var(--shadow-color, 18, 59, 43), 0.16);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--ed-radius);
+  padding: 1.5rem;
 }
 
 [data-domain="escuela-de-dinero"] .ed-card-title {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   font-size: 0.6875rem;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-muted, #7d735e);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  margin-bottom: 0.9rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.25rem;
 }
 
 [data-domain="escuela-de-dinero"] .ed-grid {
   display: grid;
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 [data-domain="escuela-de-dinero"] .ed-two-col {
   display: grid;
   grid-template-columns: 3fr 2fr;
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 @media (max-width: 1024px) {
@@ -185,62 +185,53 @@
   }
 }
 
-/* ── KPI cards ─────────────────────────────────────────────── */
+/* ── KPIs ──────────────────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 [data-domain="escuela-de-dinero"] .ed-kpi {
   background: var(--bg-surface, #fffaf0);
-  border: 2px solid var(--text-main, #171611);
-  border-radius: 0;
-  padding: 1.25rem;
-  box-shadow: 6px 6px 0 rgba(var(--shadow-color, 18, 59, 43), 0.16);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--ed-radius);
+  padding: 1.25rem 1.5rem;
 }
 
-/* The north-star card. Verde ground, oro figure — one per page, no more. */
+/* The one metric the page is about. A left rule in oro is enough to say
+   "this is the number" — a filled card competes with the data. */
 [data-domain="escuela-de-dinero"] .ed-kpi--norte {
-  background: var(--primary, #123b2b);
-  box-shadow: 6px 6px 0 var(--accent, #d8a62e);
-}
-
-[data-domain="escuela-de-dinero"] .ed-kpi--norte .ed-kpi-label,
-[data-domain="escuela-de-dinero"] .ed-kpi--norte .ed-kpi-sub {
-  color: rgba(239, 226, 199, 0.72);
-}
-
-[data-domain="escuela-de-dinero"] .ed-kpi--norte .ed-kpi-value {
-  color: var(--accent, #d8a62e);
+  border-left: 3px solid var(--accent, #d8a62e);
 }
 
 [data-domain="escuela-de-dinero"] .ed-kpi-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   font-size: 0.6875rem;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-muted, #7d735e);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  margin-bottom: 0.6rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.7rem;
 }
 
 [data-domain="escuela-de-dinero"] .ed-kpi-value {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 2.25rem;
-  font-weight: 700;
+  font-size: 1.875rem;
+  font-weight: 500;
   line-height: 1;
   color: var(--text-main, #171611);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
 }
 
 [data-domain="escuela-de-dinero"] .ed-kpi-sub {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
   color: var(--text-muted, #7d735e);
-  margin-top: 0.45rem;
+  margin-top: 0.5rem;
 }
 
 /* ── Funnel bars ───────────────────────────────────────────── */
@@ -248,75 +239,92 @@
 [data-domain="escuela-de-dinero"] .ed-funnel {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.75rem;
 }
 
+/* The label column has to yield: this same row renders inside both a wide
+   card and a narrow one, and a fixed label width starves the track in the
+   narrow case. minmax lets the bar keep its share of whatever is left. */
 [data-domain="escuela-de-dinero"] .ed-funnel-row {
   display: grid;
-  grid-template-columns: 12rem 1fr 5rem;
+  grid-template-columns: minmax(5rem, 11rem) 1fr 3rem;
   align-items: center;
   gap: 0.9rem;
 }
 
 @media (max-width: 720px) {
   [data-domain="escuela-de-dinero"] .ed-funnel-row {
-    grid-template-columns: 8rem 1fr 4rem;
-    gap: 0.5rem;
+    grid-template-columns: minmax(4rem, 8rem) 1fr 2.5rem;
+    gap: 0.6rem;
   }
 }
 
 [data-domain="escuela-de-dinero"] .ed-funnel-label {
   font-size: 0.8125rem;
   color: var(--text-main, #171611);
+  line-height: 1.35;
 }
 
+/* Step-over-step conversion. It's a footnote to the label, not a heading —
+   uppercase mono made it wrap and out-shout the thing it annotates. */
+[data-domain="escuela-de-dinero"] .ed-funnel-step {
+  font-family: var(--ed-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.6875rem;
+  color: var(--text-muted, #7d735e);
+  margin-left: 0.4rem;
+}
+
+/* Track is a tint, not a bordered box. */
 [data-domain="escuela-de-dinero"] .ed-funnel-track {
-  height: 1.75rem;
-  background: var(--primary-soft, #f2e4c6);
-  border: 2px solid var(--text-main, #171611);
-  position: relative;
+  height: 0.5rem;
+  background: rgba(23, 22, 17, 0.07);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 [data-domain="escuela-de-dinero"] .ed-funnel-fill {
   height: 100%;
   background: var(--primary, #123b2b);
+  border-radius: 2px;
 }
 
 [data-domain="escuela-de-dinero"] .ed-funnel-fill--muted {
-  background: var(--text-muted, #7d735e);
+  background: rgba(23, 22, 17, 0.25);
 }
 
 [data-domain="escuela-de-dinero"] .ed-funnel-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 0.875rem;
   text-align: right;
   color: var(--text-main, #171611);
 }
 
-/* ── Stacked "sellos" bars (área estado) ───────────────────── */
+/* ── Stacked área bars ─────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-stack {
   display: flex;
-  height: 1.5rem;
-  border: 2px solid var(--text-main, #171611);
+  height: 0.5rem;
+  border-radius: 2px;
   overflow: hidden;
+  background: rgba(23, 22, 17, 0.07);
 }
 
-[data-domain="escuela-de-dinero"] .ed-stack-seg--al_descubierto { background: var(--ct-error, #a83c2b); }
-[data-domain="escuela-de-dinero"] .ed-stack-seg--en_proceso     { background: var(--accent, #d8a62e); }
-[data-domain="escuela-de-dinero"] .ed-stack-seg--instalado      { background: var(--primary, #123b2b); }
-[data-domain="escuela-de-dinero"] .ed-stack-seg--sin_dato       { background: var(--border-strong, #d5c099); }
+/* Desaturated so four stacked bars don't read as a heat map. */
+[data-domain="escuela-de-dinero"] .ed-stack-seg--al_descubierto { background: #b8654f; }
+[data-domain="escuela-de-dinero"] .ed-stack-seg--en_proceso     { background: #d8a62e; }
+[data-domain="escuela-de-dinero"] .ed-stack-seg--instalado      { background: #2f5d47; }
+[data-domain="escuela-de-dinero"] .ed-stack-seg--sin_dato       { background: rgba(23, 22, 17, 0.13); }
 
 /* ── Tables ─────────────────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-table-wrap {
   overflow-x: auto;
   background: var(--bg-surface, #fffaf0);
-  border: 2px solid var(--text-main, #171611);
-  box-shadow: 6px 6px 0 rgba(var(--shadow-color, 18, 59, 43), 0.16);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--ed-radius);
 }
 
 [data-domain="escuela-de-dinero"] .ed-table {
@@ -326,32 +334,32 @@
 }
 
 [data-domain="escuela-de-dinero"] .ed-table thead th {
-  background: var(--table-header-bg, #f2e4c6);
-  padding: 0.7rem 0.85rem;
+  background: transparent;
+  padding: 0.85rem 1rem;
   text-align: left;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-weight: 500;
+  font-family: var(--ed-mono);
+  font-weight: 400;
   font-size: 0.6875rem;
   color: var(--text-muted, #7d735e);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  border-bottom: 2px solid var(--text-main, #171611);
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--ed-line);
   white-space: nowrap;
 }
 
-/* Figures right-align for ledger-style scanning. */
 [data-domain="escuela-de-dinero"] .ed-table th.ed-num,
 [data-domain="escuela-de-dinero"] .ed-table td.ed-num {
   text-align: right;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   font-variant-numeric: tabular-nums;
 }
 
 [data-domain="escuela-de-dinero"] .ed-table tbody td {
-  padding: 0.65rem 0.85rem;
-  border-bottom: 1px solid var(--border-strong, #d5c099);
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--ed-line);
   color: var(--text-main, #171611);
   vertical-align: middle;
+  line-height: 1.4;
 }
 
 [data-domain="escuela-de-dinero"] .ed-table tbody tr:last-child td {
@@ -361,78 +369,90 @@
 [data-domain="escuela-de-dinero"] .ed-table tbody tr.ed-row-link { cursor: pointer; }
 
 [data-domain="escuela-de-dinero"] .ed-table tbody tr:hover {
-  background: var(--primary-soft, #f2e4c6);
+  background: rgba(23, 22, 17, 0.025);
 }
 
-/* ── Sellos (rubber-stamp status badges) ───────────────────── */
-/* The signature element of the brand. Rotated, hard-bordered, uppercase mono.
-   One family of colours: ladrillo = al descubierto / riesgo,
-   oro = en proceso, olivo-verde = resuelto, humo = neutral. */
+/* ── Status marks ──────────────────────────────────────────── */
+/* Was a rotated rubber stamp. At one per row it wrecked the baseline grid
+   and pulled the eye away from the data, so it's now a quiet tinted label
+   that still carries the same four tones. */
 
 [data-domain="escuela-de-dinero"] .ed-sello {
   display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border: 2.5px solid currentColor;
-  border-radius: 3px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.625rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  transform: rotate(-3deg);
+  padding: 0.1rem 0.45rem;
+  border: none;
+  border-radius: var(--ed-radius);
+  font-family: var(--ed-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
+  transform: none;
 }
 
-[data-domain="escuela-de-dinero"] .ed-sello--riesgo    { color: #a83c2b; }
-[data-domain="escuela-de-dinero"] .ed-sello--proceso   { color: #8a6614; }
-[data-domain="escuela-de-dinero"] .ed-sello--resuelto  { color: #123b2b; }
-[data-domain="escuela-de-dinero"] .ed-sello--neutral   { color: #7d735e; }
-[data-domain="escuela-de-dinero"] .ed-sello--info      { color: #1d4d73; }
+[data-domain="escuela-de-dinero"] .ed-sello--riesgo {
+  color: #8f3325;
+  background: rgba(168, 60, 43, 0.1);
+}
 
-/* Inside a table cell, keep the rotation from breaking row rhythm. */
-[data-domain="escuela-de-dinero"] .ed-table .ed-sello { transform: rotate(-2deg); }
+[data-domain="escuela-de-dinero"] .ed-sello--proceso {
+  color: #7a5a12;
+  background: rgba(216, 166, 46, 0.16);
+}
 
-/* ── Health chips ──────────────────────────────────────────── */
+[data-domain="escuela-de-dinero"] .ed-sello--resuelto {
+  color: #1c4a35;
+  background: rgba(18, 59, 43, 0.09);
+}
+
+[data-domain="escuela-de-dinero"] .ed-sello--neutral {
+  color: var(--text-muted, #7d735e);
+  background: rgba(23, 22, 17, 0.06);
+}
+
+[data-domain="escuela-de-dinero"] .ed-sello--info {
+  color: #1d4d73;
+  background: rgba(29, 77, 115, 0.1);
+}
+
+/* ── Chips ─────────────────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 2rem;
 }
 
+/* No box. A chip is a label above a number; the gap separates them. */
 [data-domain="escuela-de-dinero"] .ed-chip {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.6rem 0.9rem;
-  border: 2px solid var(--text-main, #171611);
-  background: var(--bg-surface, #fffaf0);
-  min-width: 8rem;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  min-width: 6rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+[data-domain="escuela-de-dinero"] a.ed-chip:hover .ed-chip-value {
+  color: var(--primary, #123b2b);
 }
 
 [data-domain="escuela-de-dinero"] .ed-chip-value {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.375rem;
+  font-weight: 500;
   line-height: 1;
+  color: var(--text-main, #171611);
 }
 
-[data-domain="escuela-de-dinero"] .ed-chip--alerta {
-  background: #a83c2b;
-  color: #fffaf0;
-  border-color: #7e291d;
-}
-
-[data-domain="escuela-de-dinero"] .ed-chip--alerta .ed-label { color: rgba(255, 250, 240, 0.75); }
-
-[data-domain="escuela-de-dinero"] .ed-chip--ok {
-  background: var(--primary, #123b2b);
-  color: #fffaf0;
-  border-color: #0a291e;
-}
-
-[data-domain="escuela-de-dinero"] .ed-chip--ok .ed-label { color: rgba(255, 250, 240, 0.75); }
+/* Only a non-zero alert earns colour, and only on the number itself. */
+[data-domain="escuela-de-dinero"] .ed-chip--alerta .ed-chip-value { color: #a83c2b; }
+[data-domain="escuela-de-dinero"] .ed-chip--ok .ed-chip-value { color: var(--text-main, #171611); }
 
 /* ── Buttons ───────────────────────────────────────────────── */
 
@@ -441,179 +461,180 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.5rem 1.1rem;
-  border-radius: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-weight: 700;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--ed-radius);
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
   text-decoration: none;
-  transition: transform 0.12s, box-shadow 0.12s;
+  transition: background 0.12s, border-color 0.12s;
 }
 
 [data-domain="escuela-de-dinero"] .ed-btn-primary {
-  background: var(--accent, #d8a62e);
-  color: var(--text-main, #171611);
-  border: 2px solid var(--text-main, #171611);
-  box-shadow: 4px 4px 0 var(--ct-error, #a83c2b);
+  background: var(--primary, #123b2b);
+  color: #fffaf0;
+  border: 1px solid var(--primary, #123b2b);
 }
 
 [data-domain="escuela-de-dinero"] .ed-btn-primary:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 var(--ct-error, #a83c2b);
+  background: var(--btn-primary-hover, #0a291e);
 }
 
 [data-domain="escuela-de-dinero"] .ed-btn-secondary {
-  background: var(--btn-secondary-bg, #f2e4c6);
-  color: var(--btn-secondary-text, #171611);
-  border: 2px solid var(--text-main, #171611);
-  box-shadow: 4px 4px 0 var(--border-strong, #d5c099);
+  background: transparent;
+  color: var(--text-main, #171611);
+  border: 1px solid var(--ed-line-strong);
 }
 
 [data-domain="escuela-de-dinero"] .ed-btn-secondary:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 var(--border-strong, #d5c099);
+  background: rgba(23, 22, 17, 0.04);
 }
 
 /* ── Links, back nav, empty state ──────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-link {
-  color: var(--primary, #123b2b);
+  color: var(--text-main, #171611);
   text-decoration: none;
-  border-bottom: 2px solid var(--accent, #d8a62e);
-  font-weight: 600;
+  border-bottom: 1px solid rgba(23, 22, 17, 0.25);
+  font-weight: 500;
 }
 
-[data-domain="escuela-de-dinero"] .ed-link:hover { color: var(--ct-error, #a83c2b); }
+[data-domain="escuela-de-dinero"] .ed-link:hover {
+  color: var(--primary, #123b2b);
+  border-bottom-color: var(--primary, #123b2b);
+}
 
 [data-domain="escuela-de-dinero"] .ed-back {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: 0.8125rem;
   color: var(--text-muted, #7d735e);
   text-decoration: none;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-[data-domain="escuela-de-dinero"] .ed-back:hover { color: var(--ct-error, #a83c2b); }
+[data-domain="escuela-de-dinero"] .ed-back:hover { color: var(--text-main, #171611); }
 
 [data-domain="escuela-de-dinero"] .ed-empty {
-  text-align: center;
-  padding: 3rem 1rem;
+  padding: 2.5rem 0;
   color: var(--text-muted, #7d735e);
+  font-size: 0.875rem;
 }
 
-/* ── Definition rows (detail pages) ────────────────────────── */
+/* ── Definition rows ───────────────────────────────────────── */
 
 [data-domain="escuela-de-dinero"] .ed-dl {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1rem 1.5rem;
+  gap: 1.25rem 2rem;
 }
 
 [data-domain="escuela-de-dinero"] .ed-dl-value {
   font-size: 0.9375rem;
   color: var(--text-main, #171611);
-  margin-top: 0.2rem;
-  word-break: break-word;
-}
-
-/* ── Transcript ────────────────────────────────────────────── */
-
-[data-domain="escuela-de-dinero"] .ed-thread {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-[data-domain="escuela-de-dinero"] .ed-msg {
-  max-width: 46rem;
-  padding: 0.7rem 0.9rem;
-  border: 2px solid var(--text-main, #171611);
-  font-size: 0.9375rem;
+  margin-top: 0.3rem;
   line-height: 1.5;
   word-break: break-word;
 }
 
-/* pre-wrap lives here, not on .ed-msg — on the wrapper it would also preserve
-   the HEEx template indentation around the interpolation and indent the first
-   line of every message. The body element wraps its expression tightly. */
+/* ── Transcript ────────────────────────────────────────────── */
+/* Was two bordered, offset-shadowed bubbles. Now the speaker is carried by
+   alignment and one tint, which is all a transcript needs. */
+
+[data-domain="escuela-de-dinero"] .ed-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+[data-domain="escuela-de-dinero"] .ed-msg {
+  max-width: 42rem;
+  padding: 0;
+  border: none;
+  font-size: 0.9375rem;
+}
+
 [data-domain="escuela-de-dinero"] .ed-msg-body {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--ed-radius);
+  line-height: 1.55;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
-/* The person. Papel — the one being listened to. */
-[data-domain="escuela-de-dinero"] .ed-msg--user {
-  background: var(--bg-surface, #fffaf0);
-  align-self: flex-start;
-  box-shadow: 4px 4px 0 var(--border-strong, #d5c099);
+[data-domain="escuela-de-dinero"] .ed-msg--user { align-self: flex-start; }
+
+[data-domain="escuela-de-dinero"] .ed-msg--user .ed-msg-body {
+  background: rgba(23, 22, 17, 0.05);
+  color: var(--text-main, #171611);
 }
 
-/* Socio. Verde on cal, offset the other way so the thread reads as a dialogue. */
-[data-domain="escuela-de-dinero"] .ed-msg--assistant {
-  background: var(--primary, #123b2b);
-  color: #efe2c7;
-  align-self: flex-end;
-  box-shadow: -4px 4px 0 var(--accent, #d8a62e);
+/* Socio. Verde tint, right-aligned — enough to read as a dialogue. */
+[data-domain="escuela-de-dinero"] .ed-msg--assistant { align-self: flex-end; }
+
+/* Enough verde to tell the two speakers apart at a glance — at 7% the two
+   tints were indistinguishable and only the alignment carried the dialogue. */
+[data-domain="escuela-de-dinero"] .ed-msg--assistant .ed-msg-body {
+  background: rgba(18, 59, 43, 0.12);
+  color: var(--text-main, #171611);
 }
 
-[data-domain="escuela-de-dinero"] .ed-msg--system {
-  background: var(--primary-soft, #f2e4c6);
-  align-self: center;
-  border-style: dashed;
+[data-domain="escuela-de-dinero"] .ed-msg--system { align-self: center; max-width: 34rem; }
+
+[data-domain="escuela-de-dinero"] .ed-msg--system .ed-msg-body {
+  background: none;
+  border: 1px dashed var(--ed-line-strong);
   font-size: 0.8125rem;
   color: var(--text-muted, #7d735e);
-  box-shadow: none;
 }
 
 [data-domain="escuela-de-dinero"] .ed-msg-meta {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   font-size: 0.625rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  opacity: 0.6;
-  margin-bottom: 0.3rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #7d735e);
+  margin-bottom: 0.35rem;
 }
 
-/* A guardrail violation on this turn. Ladrillo rule down the side. */
-[data-domain="escuela-de-dinero"] .ed-msg--flagged {
-  border-left: 6px solid var(--ct-error, #a83c2b);
+[data-domain="escuela-de-dinero"] .ed-msg--assistant .ed-msg-meta { text-align: right; }
+
+/* A guardrail violation on this turn. */
+[data-domain="escuela-de-dinero"] .ed-msg--flagged .ed-msg-body {
+  box-shadow: inset 3px 0 0 var(--ct-error, #a83c2b);
 }
 
 [data-domain="escuela-de-dinero"] .ed-flag {
   align-self: flex-end;
-  max-width: 46rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  max-width: 42rem;
+  font-family: var(--ed-mono);
   font-size: 0.6875rem;
-  color: var(--ct-error, #a83c2b);
-  padding: 0.3rem 0.5rem;
-  border-left: 3px solid var(--ct-error, #a83c2b);
+  line-height: 1.5;
+  color: #8f3325;
 }
 
-/* ── Sidebar wordmark ──────────────────────────────────────── */
-/* The lockup is a stacked rótulo (roughly square), not a horizontal wordmark —
-   the shared 44px cap would render it illegibly small. */
+/* ── Sidebar ───────────────────────────────────────────────── */
+/* The lockup is a stacked rótulo, not a horizontal wordmark, so the shared
+   44px cap renders it illegibly small. */
 
 [data-domain="escuela-de-dinero"] .app-sidebar-wordmark {
-  border-radius: 0;
-  padding: 0.6rem;
-  border: 2px solid #0a291e;
+  border-radius: var(--ed-radius);
+  padding: 0.75rem;
+  border: none;
 }
 
 [data-domain="escuela-de-dinero"] .app-sidebar-wordmark img {
-  max-height: 92px;
+  max-height: 76px;
 }
 
 [data-domain="escuela-de-dinero"] .app-sidebar-subtitle {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ed-mono);
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.1em;
   font-size: 0.625rem;
 }
 

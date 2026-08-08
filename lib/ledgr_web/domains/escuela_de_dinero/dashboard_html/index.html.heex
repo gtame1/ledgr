@@ -62,7 +62,7 @@
               <div class="ed-funnel-label">
                 {row.label}
                 <%= if row.step_rate do %>
-                  <span class="ed-label">· {pct(row.step_rate)} del paso anterior</span>
+                  <span class="ed-funnel-step">{pct(row.step_rate)}</span>
                 <% end %>
               </div>
               <div class="ed-funnel-track">
@@ -112,8 +112,8 @@
         <%!-- An etapa the bot writes that we don't know about. Shown rather than
               folded into the total, where it would inflate every bar above. --%>
         <%= if m.etapa_funnel.desconocidas != [] do %>
-          <div style="margin-top: 0.9rem; padding-top: 0.9rem; border-top: 2px solid var(--ct-error);">
-            <div class="ed-label" style="color: var(--ct-error);">Etapas desconocidas</div>
+          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--ed-line);">
+            <div class="ed-label" style="color: #8f3325;">Etapas desconocidas</div>
             <div class="ed-kpi-sub">
               El bot está escribiendo etapas que este panel no conoce, así que no entran en
               el embudo:
@@ -187,12 +187,12 @@
           <% end %>
         </div>
 
-        <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; gap: 1.25rem; margin-top: 1.25rem; flex-wrap: wrap;">
           <%= for estado <- ~w(al_descubierto en_proceso instalado) do %>
-            <span class="ed-label" style="display: flex; align-items: center; gap: 0.35rem;">
+            <span class="ed-label" style="display: flex; align-items: center; gap: 0.4rem;">
               <span
                 class={"ed-stack-seg--#{estado}"}
-                style="width: 12px; height: 12px; display: inline-block; border: 1px solid var(--text-main);"
+                style="width: 8px; height: 8px; display: inline-block; border-radius: 50%;"
               >
               </span>
               {area_estado_label(estado)}
@@ -300,30 +300,32 @@
     <%= if max_day == 0 do %>
       <div class="ed-empty">Sin actividad en esta ventana.</div>
     <% else %>
-      <div style="display: flex; align-items: flex-end; gap: 2px; height: 140px;">
+      <% series_colors = [
+        {"rgba(23, 22, 17, 0.16)", "Personas nuevas"},
+        {"#d8a62e", "Diagnósticos iniciados"},
+        {"#2f5d47", "Entregados"}
+      ] %>
+
+      <div style="display: flex; align-items: flex-end; gap: 3px; height: 120px;">
         <%= for d <- @metrics.daily_series do %>
           <div
             style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: 1px;"
             title={"#{mx_date(d.date)} — #{d.personas} personas, #{d.iniciados} iniciados, #{d.entregados} entregados"}
           >
-            <div style={"height: #{bar_pct(d.entregados, max_day)}%; background: var(--primary); min-height: #{if d.entregados > 0, do: "2px", else: "0"};"}>
+            <div style={"height: #{bar_pct(d.entregados, max_day)}%; background: #2f5d47; min-height: #{if d.entregados > 0, do: "2px", else: "0"};"}>
             </div>
-            <div style={"height: #{bar_pct(d.iniciados, max_day)}%; background: var(--accent); min-height: #{if d.iniciados > 0, do: "2px", else: "0"};"}>
+            <div style={"height: #{bar_pct(d.iniciados, max_day)}%; background: #d8a62e; min-height: #{if d.iniciados > 0, do: "2px", else: "0"};"}>
             </div>
-            <div style={"height: #{bar_pct(d.personas, max_day)}%; background: var(--border-strong); min-height: #{if d.personas > 0, do: "2px", else: "0"};"}>
+            <div style={"height: #{bar_pct(d.personas, max_day)}%; background: rgba(23, 22, 17, 0.16); min-height: #{if d.personas > 0, do: "2px", else: "0"};"}>
             </div>
           </div>
         <% end %>
       </div>
 
-      <div style="display: flex; gap: 1rem; margin-top: 0.75rem; flex-wrap: wrap;">
-        <%= for {color, label} <- [
-              {"var(--border-strong)", "Personas nuevas"},
-              {"var(--accent)", "Diagnósticos iniciados"},
-              {"var(--primary)", "Entregados"}
-            ] do %>
-          <span class="ed-label" style="display: flex; align-items: center; gap: 0.35rem;">
-            <span style={"width: 12px; height: 12px; display: inline-block; background: #{color}; border: 1px solid var(--text-main);"}>
+      <div style="display: flex; gap: 1.25rem; margin-top: 1rem; flex-wrap: wrap;">
+        <%= for {color, label} <- series_colors do %>
+          <span class="ed-label" style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style={"width: 8px; height: 8px; display: inline-block; border-radius: 50%; background: #{color};"}>
             </span>
             {label}
           </span>
