@@ -49,7 +49,8 @@ defmodule Ledgr.Application do
           Ledgr.Repos.LedgrHQ,
           Ledgr.Repos.CasaTame,
           Ledgr.Repos.HelloDoctor,
-          Ledgr.Repos.AumentaMiPension
+          Ledgr.Repos.AumentaMiPension,
+          Ledgr.Repos.EscuelaDeDinero
         ]
       else
         [
@@ -58,7 +59,8 @@ defmodule Ledgr.Application do
           {"LEDGR_HQ_DATABASE_URL", Ledgr.Repos.LedgrHQ},
           {"CASA_TAME_DATABASE_URL", Ledgr.Repos.CasaTame},
           {"HELLO_DOCTOR_DATABASE_URL", Ledgr.Repos.HelloDoctor},
-          {"AUMENTA_MI_PENSION_DATABASE_URL", Ledgr.Repos.AumentaMiPension}
+          {"AUMENTA_MI_PENSION_DATABASE_URL", Ledgr.Repos.AumentaMiPension},
+          {"ESCUELA_DE_DINERO_DATABASE_URL", Ledgr.Repos.EscuelaDeDinero}
         ]
         |> Enum.filter(fn {env_var, repo} ->
           case System.get_env(env_var) do

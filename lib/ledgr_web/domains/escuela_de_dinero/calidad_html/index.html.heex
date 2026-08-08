@@ -1,0 +1,213 @@
+<% prefix = @domain_path_prefix %>
+
+<div class="ed-page">
+  <div class="ed-topbar">
+    <div>
+      <h1>Calidad</h1>
+      <div class="ed-topbar-sub">
+        Cada vez que Socio rompió una regla. Dos de las cuatro reglas críticas —
+        prometer un rendimiento y sonar a asesoría en inversiones — describen actividad
+        regulada en México, así que esto no es un log: es el expediente.
+      </div>
+    </div>
+  </div>
+  
+<!-- ── Kubo sin declarar ────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">Ligas de Kubo enviadas sin declarar la comisión</div>
+
+    <%= if @sin_declaracion == [] do %>
+      <div class="ed-chips">
+        <div class="ed-chip ed-chip--ok">
+          <span class="ed-label">Sin incidencias</span>
+          <span class="ed-chip-value">0</span>
+        </div>
+      </div>
+      <div class="ed-kpi-sub" style="margin-top: 0.75rem;">
+        Toda liga de afiliado que salió llevaba su declaración al lado. Este número debe
+        ser siempre cero.
+      </div>
+    <% else %>
+      <div class="ed-chips" style="margin-bottom: 1rem;">
+        <div class="ed-chip ed-chip--alerta">
+          <span class="ed-label">Sin declarar</span>
+          <span class="ed-chip-value">{thousands(length(@sin_declaracion))}</span>
+        </div>
+      </div>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Enviada</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for k <- @sin_declaracion do %>
+            <tr>
+              <td>
+                <.link navigate={dp(prefix, "/personas/#{k.person_id}")} class="ed-link">
+                  <span class="ed-cifra">{phone_masked(k.phone)}</span>
+                </.link>
+              </td>
+              <td>{mx_datetime(k.sent_at)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+  
+<!-- ── Resumen por regla ────────────────────────────────────────── -->
+  <div class="ed-two-col">
+    <div class="ed-card">
+      <div class="ed-card-title">Por regla · desde siempre</div>
+
+      <%= if @rule_summary == [] do %>
+        <div class="ed-empty">Socio no ha roto ninguna regla.</div>
+      <% else %>
+        <table class="ed-table">
+          <thead>
+            <tr>
+              <th>Regla</th>
+              <th>Gravedad</th>
+              <th class="ed-num">Veces</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for r <- @rule_summary do %>
+              <tr>
+                <td>
+                  <.link
+                    navigate={dp(prefix, "/calidad?event_type=#{r.event_type}")}
+                    class="ed-link"
+                  >
+                    {rule_label(r.event_type)}
+                  </.link>
+                </td>
+                <td>
+                  <span class={"ed-sello ed-sello--#{severity_tone(r.severity)}"}>
+                    {severity_label(r.severity)}
+                  </span>
+                </td>
+                <td class="ed-num">{thousands(r.count)}</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+
+    <div class="ed-card">
+      <div class="ed-card-title">Totales</div>
+      <div class="ed-chips">
+        <%= for severity <- ~w(CRITICAL WARNING INFO) do %>
+          <% n = Map.get(@severity_totals, severity, 0) %>
+          <.link
+            navigate={dp(prefix, "/calidad?severity=#{severity}")}
+            class={"ed-chip #{if severity == "CRITICAL" and n > 0, do: "ed-chip--alerta"}"}
+            style="text-decoration: none;"
+          >
+            <span class="ed-label">{severity_label(severity)}</span>
+            <span class="ed-chip-value">{thousands(n)}</span>
+          </.link>
+        <% end %>
+      </div>
+
+      <div class="ed-kpi-sub" style="margin-top: 1rem;">
+        No hay ventana de tiempo aquí a propósito: una sola vez que Socio sonó a asesoría
+        en inversiones sigue siendo algo que alguien tiene que revisar, aunque haya sido
+        hace meses.
+      </div>
+    </div>
+  </div>
+  
+<!-- ── Eventos ──────────────────────────────────────────────────── -->
+  <form method="get" action={dp(prefix, "/calidad")} class="ed-filters">
+    <div class="ed-field">
+      <label class="ed-label" for="severity">Gravedad</label>
+      <select id="severity" name="severity">
+        <option value="">Todas</option>
+        <%= for severity <- ~w(CRITICAL WARNING INFO) do %>
+          <option value={severity} selected={@filters.severity == severity}>
+            {severity_label(severity)}
+          </option>
+        <% end %>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="event_type">Regla</label>
+      <select id="event_type" name="event_type">
+        <option value="">Todas</option>
+        <%= for r <- @rule_summary do %>
+          <option value={r.event_type} selected={@filters.event_type == r.event_type}>
+            {rule_label(r.event_type)}
+          </option>
+        <% end %>
+      </select>
+    </div>
+
+    <button type="submit" class="ed-btn-secondary">Filtrar</button>
+    <.link navigate={dp(prefix, "/calidad")} class="ed-btn-secondary">Limpiar</.link>
+  </form>
+
+  <%= if @events == [] do %>
+    <div class="ed-card">
+      <div class="ed-empty">Nada con esos filtros.</div>
+    </div>
+  <% else %>
+    <div class="ed-table-wrap">
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Cuándo</th>
+            <th>Gravedad</th>
+            <th>Regla</th>
+            <th>Persona</th>
+            <th>Qué dijo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for e <- @events do %>
+            <tr>
+              <td>{mx_datetime(e.ts)}</td>
+              <td>
+                <span class={"ed-sello ed-sello--#{severity_tone(e.severity)}"}>
+                  {severity_label(e.severity)}
+                </span>
+              </td>
+              <td>
+                {rule_label(e.event_type)}
+                <%= if e.detail do %>
+                  <div class="ed-kpi-sub">{e.detail}</div>
+                <% end %>
+              </td>
+              <td>
+                <%= if e.person_id do %>
+                  <.link navigate={dp(prefix, "/personas/#{e.person_id}")} class="ed-link">
+                    {e.display_name || "Sin nombre"}
+                  </.link>
+                <% else %>
+                  <span style="color: var(--text-muted);">—</span>
+                <% end %>
+              </td>
+              <td style="max-width: 30rem;">{e.reply_snippet}</td>
+              <td>
+                <%= if e.conv_id do %>
+                  <.link navigate={dp(prefix, "/conversaciones/#{e.conv_id}")} class="ed-link">
+                    Sesión
+                  </.link>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
+      Se muestran los 300 eventos más recientes que cumplen el filtro.
+    </div>
+  <% end %>
+</div>

@@ -23,7 +23,8 @@ defmodule LedgrWeb.Plugs.DomainPlug do
     "ledgr" => Ledgr.Domains.LedgrHQ,
     "casa-tame" => Ledgr.Domains.CasaTame,
     "hello-doctor" => Ledgr.Domains.HelloDoctor,
-    "aumenta-mi-pension" => Ledgr.Domains.AumentaMiPension
+    "aumenta-mi-pension" => Ledgr.Domains.AumentaMiPension,
+    "escuela-de-dinero" => Ledgr.Domains.EscuelaDeDinero
   }
 
   def init(opts), do: opts

@@ -1,0 +1,254 @@
+<% prefix = @domain_path_prefix %>
+<% p = @person %>
+<% latest = Enum.find(@diagnosticos, &(&1.id == p.latest_diagnostico_id)) %>
+
+<div class="ed-page">
+  <.link navigate={dp(prefix, "/personas")} class="ed-back">← Personas</.link>
+
+  <div class="ed-topbar">
+    <div>
+      <h1>{p.display_name || "Sin nombre"}</h1>
+      <div class="ed-topbar-sub">
+        <span class="ed-cifra">{phone_full(p.phone)}</span>
+        · {etapa_label(p.etapa)} · modo {mode_label(p.mode)}
+      </div>
+    </div>
+
+    <%= if latest && latest.dias_sin_facturar do %>
+      <div style="text-align: right;">
+        <div class="ed-label">Aguanta sin facturar</div>
+        <div class="ed-kpi-value">{dias(latest.dias_sin_facturar)}</div>
+      </div>
+    <% end %>
+  </div>
+  
+<!-- ── Ficha ────────────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">Ficha</div>
+    <div class="ed-dl">
+      <div>
+        <div class="ed-label">Alta</div>
+        <div class="ed-dl-value">{mx_datetime(p.created_at)}</div>
+      </div>
+      <div>
+        <div class="ed-label">Aceptó términos</div>
+        <div class="ed-dl-value">
+          <%= if p.terms_accepted_at do %>
+            {mx_datetime(p.terms_accepted_at)}
+          <% else %>
+            <span class="ed-sello ed-sello--riesgo">Sin consentimiento</span>
+          <% end %>
+        </div>
+      </div>
+      <div>
+        <div class="ed-label">Socio se declaró IA</div>
+        <div class="ed-dl-value">{mx_datetime(p.ai_disclosed_at)}</div>
+      </div>
+      <div>
+        <div class="ed-label">Baja</div>
+        <div class="ed-dl-value">
+          <%= if p.opted_out_at do %>
+            <span class="ed-sello ed-sello--neutral">{mx_date(p.opted_out_at)}</span>
+          <% else %>
+            Activa
+          <% end %>
+        </div>
+      </div>
+      <%= if p.etapa_regression_reason do %>
+        <div>
+          <div class="ed-label">Retrocedió de etapa</div>
+          <div class="ed-dl-value">{p.etapa_regression_reason}</div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+<!-- ── Memoria ──────────────────────────────────────────────────── -->
+  <%= if p.memoria do %>
+    <div class="ed-card" style="margin-bottom: 1.25rem;">
+      <div class="ed-card-title">
+        Memoria · lo que Socio recuerda entre sesiones
+        <%= if p.memoria_updated_at do %>
+          <span style="text-transform: none; letter-spacing: 0;">
+            — {hace(p.memoria_updated_at)}
+          </span>
+        <% end %>
+      </div>
+      <div class="ed-dl-value" style="white-space: pre-wrap;">{p.memoria}</div>
+      <div class="ed-kpi-sub" style="margin-top: 0.75rem;">
+        El resumen se descarta entero si contiene una cifra en pesos, así que aquí nunca
+        vas a ver números.
+      </div>
+    </div>
+  <% end %>
+  
+<!-- ── Diagnósticos ─────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">Diagnósticos</div>
+
+    <%= if @diagnosticos == [] do %>
+      <div class="ed-empty">Nunca empezó un diagnóstico.</div>
+    <% else %>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th class="ed-num">Versión</th>
+            <th>Estado</th>
+            <th class="ed-num">Aguanta</th>
+            <th>Empezó</th>
+            <th>Entregado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for d <- @diagnosticos do %>
+            <tr>
+              <td class="ed-num">
+                v{d.version}
+                <%= if d.id == p.latest_diagnostico_id do %>
+                  <span class="ed-sello ed-sello--info">Vigente</span>
+                <% end %>
+              </td>
+              <td>
+                <span class={"ed-sello ed-sello--#{diagnostico_status_tone(d.status)}"}>
+                  {diagnostico_status_label(d.status)}
+                </span>
+              </td>
+              <td class="ed-num">{dias(d.dias_sin_facturar)}</td>
+              <td>{mx_date(d.started_at)}</td>
+              <td>{mx_date(d.completed_at)}</td>
+              <td>
+                <.link navigate={dp(prefix, "/diagnosticos/#{d.id}")} class="ed-link">Ver</.link>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+  
+<!-- ── Movimientos ──────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">Movimientos</div>
+
+    <%= if @movimientos == [] do %>
+      <div class="ed-empty">Sin movimientos todavía.</div>
+    <% else %>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th class="ed-num">#</th>
+            <th>Área</th>
+            <th>Movimiento</th>
+            <th>Estado</th>
+            <th>Vence</th>
+            <th class="ed-num">Avisos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for m <- @movimientos do %>
+            <tr>
+              <td class="ed-num">{m.orden}</td>
+              <td>{area_label(m.area)}</td>
+              <td>
+                <div>{m.titulo}</div>
+                <div class="ed-kpi-sub">{m.accion_hoy}</div>
+              </td>
+              <td>
+                <span class={"ed-sello ed-sello--#{movimiento_estado_tone(m.estado)}"}>
+                  {movimiento_estado_label(m.estado)}
+                </span>
+              </td>
+              <td>
+                {mx_date(m.due_at)}
+                <%= if vencido?(m) do %>
+                  <span class="ed-sello ed-sello--riesgo">Vencido</span>
+                <% end %>
+              </td>
+              <td class="ed-num">{m.checkin_count}/3</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+  
+<!-- ── Sesiones ─────────────────────────────────────────────────── -->
+  <div class="ed-card" style="margin-bottom: 1.25rem;">
+    <div class="ed-card-title">
+      Sesiones · cada una es una ventana de 24 h de WhatsApp
+    </div>
+
+    <%= if @conversations == [] do %>
+      <div class="ed-empty">Sin sesiones.</div>
+    <% else %>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Abierta</th>
+            <th>Quién empezó</th>
+            <th>Estado</th>
+            <th>Etapa al abrir</th>
+            <th class="ed-num">Mensajes</th>
+            <th>Resumen</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for c <- @conversations do %>
+            <tr>
+              <td>{mx_datetime(c.opened_at)}</td>
+              <td>{initiated_by_label(c.initiated_by)}</td>
+              <td>
+                <span class={"ed-sello ed-sello--#{if c.status == "active", do: "resuelto", else: "neutral"}"}>
+                  {conversation_status_label(c.status)}
+                </span>
+              </td>
+              <td>{etapa_label(c.etapa_at_open)}</td>
+              <td class="ed-num">{c.message_count}</td>
+              <td style="max-width: 26rem;">{c.session_summary}</td>
+              <td>
+                <.link navigate={dp(prefix, "/conversaciones/#{c.id}")} class="ed-link">
+                  Leer
+                </.link>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+  
+<!-- ── Kubo ─────────────────────────────────────────────────────── -->
+  <%= if @referrals != [] do %>
+    <div class="ed-card">
+      <div class="ed-card-title">Kubo</div>
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Enviada</th>
+            <th>Motivo</th>
+            <th>Declaración</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for k <- @referrals do %>
+            <tr>
+              <td>{mx_datetime(k.sent_at)}</td>
+              <td>{gate_reason_label(k.gate_reason)}</td>
+              <td>
+                <%= if k.disclosure_message_id do %>
+                  <span class="ed-sello ed-sello--resuelto">Declarada</span>
+                <% else %>
+                  <span class="ed-sello ed-sello--riesgo">Sin declarar</span>
+                <% end %>
+              </td>
+              <td>{outcome_label(k.outcome)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

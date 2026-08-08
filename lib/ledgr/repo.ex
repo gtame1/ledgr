@@ -30,6 +30,7 @@ defmodule Ledgr.Repo do
   def repo_for_domain(Ledgr.Domains.CasaTame), do: Ledgr.Repos.CasaTame
   def repo_for_domain(Ledgr.Domains.HelloDoctor), do: Ledgr.Repos.HelloDoctor
   def repo_for_domain(Ledgr.Domains.AumentaMiPension), do: Ledgr.Repos.AumentaMiPension
+  def repo_for_domain(Ledgr.Domains.EscuelaDeDinero), do: Ledgr.Repos.EscuelaDeDinero
   def repo_for_domain(_), do: Ledgr.Repos.MrMunchMe
 
   @doc "Returns all configured repo modules."

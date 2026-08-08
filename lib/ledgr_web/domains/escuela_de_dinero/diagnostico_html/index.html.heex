@@ -1,0 +1,102 @@
+<% prefix = @domain_path_prefix %>
+
+<div class="ed-page">
+  <div class="ed-topbar">
+    <div>
+      <h1>Diagnósticos</h1>
+      <div class="ed-topbar-sub">{thousands(length(@diagnosticos))} en la lista</div>
+    </div>
+  </div>
+
+  <form method="get" action={dp(prefix, "/diagnosticos")} class="ed-filters">
+    <div class="ed-field">
+      <label class="ed-label" for="status">Estado</label>
+      <select id="status" name="status">
+        <option value="">Todos</option>
+        <option value="in_progress" selected={@filters.status == "in_progress"}>En curso</option>
+        <option value="complete" selected={@filters.status == "complete"}>Entregado</option>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="banda">Aguanta</label>
+      <select id="banda" name="banda">
+        <option value="">Cualquiera</option>
+        <%= for band <- [:critico, :corto, :medio, :largo] do %>
+          <option value={band} selected={@filters.banda == to_string(band)}>
+            {dias_band_label(band)}
+          </option>
+        <% end %>
+      </select>
+    </div>
+
+    <div class="ed-field">
+      <label class="ed-label" for="colchon">Colchón</label>
+      <select id="colchon" name="colchon">
+        <option value="">Cualquiera</option>
+        <%= for estado <- ~w(al_descubierto en_proceso instalado) do %>
+          <option value={estado} selected={@filters.colchon == estado}>
+            {area_estado_label(estado)}
+          </option>
+        <% end %>
+      </select>
+    </div>
+
+    <button type="submit" class="ed-btn-secondary">Filtrar</button>
+    <.link navigate={dp(prefix, "/diagnosticos")} class="ed-btn-secondary">Limpiar</.link>
+  </form>
+
+  <%= if @diagnosticos == [] do %>
+    <div class="ed-card">
+      <div class="ed-empty">Nada con esos filtros.</div>
+    </div>
+  <% else %>
+    <div class="ed-table-wrap">
+      <table class="ed-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th class="ed-num">v</th>
+            <th>Estado</th>
+            <th class="ed-num">Aguanta</th>
+            <th>Colchón</th>
+            <th>Empezó</th>
+            <th>Confirmado</th>
+            <th>Entregado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for d <- @diagnosticos do %>
+            <tr
+              class="ed-row-link"
+              onclick={"window.location='#{dp(prefix, "/diagnosticos/#{d.id}")}';"}
+            >
+              <td>
+                <.link navigate={dp(prefix, "/diagnosticos/#{d.id}")} class="ed-link">
+                  {d.display_name || "Sin nombre"}
+                </.link>
+                <div class="ed-kpi-sub ed-cifra">{phone_masked(d.phone)}</div>
+              </td>
+              <td class="ed-num">{d.version}</td>
+              <td>
+                <span class={"ed-sello ed-sello--#{diagnostico_status_tone(d.status)}"}>
+                  {diagnostico_status_label(d.status)}
+                </span>
+              </td>
+              <td class="ed-num">{dias(d.dias_sin_facturar)}</td>
+              <td>
+                <% estado = area_estado(d.areas, "colchon") %>
+                <span class={"ed-sello ed-sello--#{area_estado_tone(estado)}"}>
+                  {area_estado_label(estado)}
+                </span>
+              </td>
+              <td>{mx_date(d.started_at)}</td>
+              <td>{mx_date(d.confirmed_at)}</td>
+              <td>{mx_date(d.completed_at)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

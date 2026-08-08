@@ -169,6 +169,45 @@ else
     priv: "priv/repos/aumenta_mi_pension"
 end
 
+# Escuela de Dinero dev DB.
+#
+# Every table this domain reads is owned by the bot (`escuela-de-dinero-bot`,
+# Alembic) and exists only on Neon. Ledgr owns exactly one table here: `users`,
+# for login. So the local-Postgres fallback gets you a working login and empty
+# pages — set `ESCUELA_DE_DINERO_DATABASE_URL` (typically from
+# `config/dev.secret.exs`) to see real data. See CLAUDE.md
+# "Escuela de Dinero — schema ownership".
+if edd_url = System.get_env("ESCUELA_DE_DINERO_DATABASE_URL") do
+  IO.puts(:stderr, "[dev.exs] Escuela de Dinero repo → Neon (#{URI.parse(edd_url).host})")
+
+  config :ledgr, Ledgr.Repos.EscuelaDeDinero,
+    url: edd_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(URI.parse(edd_url).host || "")
+    ],
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10,
+    priv: "priv/repos/escuela_de_dinero"
+else
+  IO.puts(
+    :stderr,
+    "[dev.exs] Escuela de Dinero repo → local Postgres (ALL bot-owned tables " <>
+      "WILL be missing; set ESCUELA_DE_DINERO_DATABASE_URL to use Neon)"
+  )
+
+  config :ledgr, Ledgr.Repos.EscuelaDeDinero,
+    username: "postgres",
+    password: "postgres",
+    hostname: "localhost",
+    database: "ledgr_escuela_de_dinero_dev",
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10,
+    priv: "priv/repos/escuela_de_dinero"
+end
+
 # HelloDoctor dev DB.
 #
 # Default: local Postgres (`ledgr_hello_doctor_dev`) — fine for the

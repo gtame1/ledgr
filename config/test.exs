@@ -59,6 +59,15 @@ config :ledgr, Ledgr.Repos.HelloDoctor,
   pool_size: 5,
   priv: "priv/repos/hello_doctor"
 
+config :ledgr, Ledgr.Repos.EscuelaDeDinero,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "ledgr_escuela_de_dinero_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 5,
+  priv: "priv/repos/escuela_de_dinero"
+
 config :ledgr, Ledgr.Repos.AumentaMiPension,
   username: "postgres",
   password: "postgres",

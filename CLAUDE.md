@@ -1,5 +1,34 @@
 # Ledgr — Claude Guidelines
 
+## Local dev setup
+
+```bash
+mix deps.get
+mix ecto.create
+mix ecto.migrate
+mix phx.server
+```
+
+Every domain works against a local Postgres out of the box. Domains whose data is
+owned by an external service (HelloDoctor, Aumenta Mi Pensión, Escuela de Dinero)
+fall back to an empty local database and print which one they bound to on boot —
+read that line before debugging a page that renders all zeros.
+
+To see real data for one of those, put its URL in `config/dev.secret.exs`
+(gitignored, imported before the repo config blocks so `System.put_env/2` works):
+
+```elixir
+import Config
+System.put_env("ESCUELA_DE_DINERO_DATABASE_URL", "postgresql://…")
+```
+
+Migrations that build on externally-owned tables must guard on those tables
+existing — see `bot_tables_present?/0` in
+`priv/repos/hello_doctor/migrations/20260801120000_create_analytics_fct_consultation.exs`
+and the AMP `create_lead_crm` backfill. Without the guard, `mix ecto.migrate`
+fails for that repo, and because `Phoenix.Ecto.CheckRepoStatus` checks *every*
+configured repo, the whole app 503s for every domain rather than just that one.
+
 ## Adding a new app/repo
 
 When adding a new business domain (e.g. "Acme Co"), follow this checklist:
@@ -74,3 +103,35 @@ The AMP database is shared with the external bot service. Two writers, one Postg
   `app_settings`, `customer_deletions`.
 
 When you spot drift between the bot DB and our Ecto schemas, update the schema files in `lib/ledgr/domains/aumenta_mi_pension/<table>/` — don't write a migration. `Ledgr.Repos.AumentaMiPension` is configured with `priv: "priv/repos/aumenta_mi_pension"` so `mix ecto.migrate` only sees ledgr-owned migrations.
+
+## Escuela de Dinero — schema ownership
+
+The bot (`escuela-de-dinero-bot`, FastAPI + SQLModel, Alembic) owns **everything
+except `users`**. Ledgr reads and never writes: the domain has zero POST routes.
+
+- **Bot owns** — `people`, `conversations`, `messages`, `diagnosticos`, `movimientos`,
+  `kubo_referrals`, `policing_events`, `outbound_messages`, plus `checkins`,
+  `alert_events`, `webhook_dedup` and the three `experiment_*` tables (all six of
+  those have no production writer yet, so we don't mirror them).
+
+- **Ledgr owns** — `users`, and only `users`. There are deliberately no
+  `accounts` / `journal_entries` / `app_settings` migrations: this domain is
+  operational-only and routes no financial pages, so nothing reads them.
+
+Run `mix edd.schema_drift` (CI, and before trusting any page) to diff the mirrors
+in `lib/ledgr/domains/escuela_de_dinero/<table>/` against the live database. When
+it reports drift, fix the **schema file** — never write a migration for a
+bot-owned table.
+
+Two things about this domain that surprise people:
+
+- **It is the first domain whose `/` is not `ReportController`.** It skips the
+  `core_routes*` macros entirely. That's safe only because implementing
+  `nav_icons/0` suppresses the shared Reports/Reconciliation/Other nav groups in
+  `root.html.heex` — which also makes `menu_items/0` the *sole* source of
+  navigation, so a page missing from it is unreachable. A test pins both.
+
+- **Bot timestamps are `TIMESTAMPTZ`, unlike AMP's mirrors.** Schemas use
+  `:utc_datetime`, date-range bounds are built in `America/Mexico_City`, and
+  daily buckets go through `AT TIME ZONE` before the `::date` cast. Copy AMP's
+  naive-datetime idiom here and every chart silently shifts by six hours.

@@ -105,6 +105,19 @@ if aumenta_mi_pension_url = System.get_env("AUMENTA_MI_PENSION_DATABASE_URL") do
     priv: "priv/repos/aumenta_mi_pension"
 end
 
+if escuela_de_dinero_url = System.get_env("ESCUELA_DE_DINERO_DATABASE_URL") do
+  db_uri = URI.parse(escuela_de_dinero_url)
+
+  config :ledgr, Ledgr.Repos.EscuelaDeDinero,
+    url: escuela_de_dinero_url,
+    ssl: [
+      verify: :verify_none,
+      server_name_indication: to_charlist(db_uri.host || "")
+    ],
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
+    priv: "priv/repos/escuela_de_dinero"
+end
+
 # Domain hostname → slug mapping for production routing.
 # DomainPlug uses this to detect the active domain from the request Host header,
 # allowing each business to run on its own domain (e.g. volumestudio.com).
