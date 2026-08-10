@@ -198,7 +198,8 @@ defmodule Ledgr.Domains.HelloDoctor do
       {"External Cost", "external_cost"},
       {"Stripe Payout", "payout"},
       {"Marketing Cost", "marketing_cost"},
-      {"Marketing Cost Reversal", "marketing_cost_reversal"}
+      {"Marketing Cost Reversal", "marketing_cost_reversal"},
+      {"Marketing Cost Adjustment", "marketing_cost_adjustment"}
     ]
   end
 

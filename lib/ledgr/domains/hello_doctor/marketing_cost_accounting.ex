@@ -150,6 +150,112 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostAccounting do
     ]
   end
 
+  @doc """
+  Revises a charge's amount after the platform restated it, and posts a GL
+  adjustment for the difference.
+
+  The original entry is left alone and a separate `marketing_cost_adjustment`
+  entry carries the delta, so the ledger shows what was booked and when it was
+  corrected rather than quietly rewriting history. A delta that increases spend
+  posts like spend (DEBIT 6050); one that decreases it posts like a credit.
+
+  The UPDATE is guarded on the amount we read, so two concurrent imports of the
+  same restatement can't both apply the delta — the loser matches zero rows and
+  gets `{:ok, :already_applied}`. Returns `{:ok, cost}`, `{:ok, :no_change}`,
+  `{:ok, :already_applied}`, or `{:error, reason}`.
+  """
+  def restate(%MarketingCost{} = cost, new_amount) when is_number(new_amount) do
+    cond do
+      new_amount == cost.amount ->
+        {:ok, :no_change}
+
+      # Never posted, so nothing to adjust — just correct the figure.
+      is_nil(cost.posted_at) ->
+        guarded_update(cost, new_amount, %{})
+
+      true ->
+        fx_rate = cost.fx_rate || fx_rate_for(cost.currency)
+        new_cents = round(new_amount * fx_rate * 100)
+        delta_cents = new_cents - (cost.spend_mxn_cents || 0)
+
+        # Claim the row FIRST. The guarded UPDATE is what makes this safe under
+        # concurrency, so it has to win or lose before anything reaches the GL —
+        # posting the adjustment first would double-book the delta for a racing
+        # caller holding the same stale struct.
+        Repo.transaction(fn ->
+          case guarded_update(cost, new_amount, %{
+                 spend_mxn_cents: new_cents,
+                 fx_rate: fx_rate
+               }) do
+            {:ok, :already_applied} ->
+              :already_applied
+
+            {:ok, updated} ->
+              case post_adjustment(cost, delta_cents) do
+                :ok -> updated
+                {:error, reason} -> Repo.rollback(reason)
+              end
+          end
+        end)
+    end
+  end
+
+  # A zero delta can happen when two different uploaded amounts round to the
+  # same centavo (USD at a coarse rate); correct the row, post nothing.
+  defp post_adjustment(_cost, 0), do: :ok
+
+  defp post_adjustment(%MarketingCost{} = cost, delta_cents) do
+    accts = gl_accounts()
+    label = platform_label(cost.platform)
+    credit? = delta_cents < 0
+
+    entry_attrs = %{
+      date: cost.date,
+      entry_type: "marketing_cost_adjustment",
+      reference: "MktCost #{cost.id} adjustment",
+      description:
+        "#{label} ad spend restated — #{cost.date} " <>
+          "(#{format_signed(delta_cents)} MXN)",
+      payee: label
+    }
+
+    lines =
+      gl_lines(credit?, accts.expense, accts.payable, abs(delta_cents), label, cost.date)
+
+    case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
+      {:ok, _entry} ->
+        Logger.info(
+          "[MarketingCostAccounting] Restated cost #{cost.id} (#{label}): #{format_signed(delta_cents)} centavos MXN"
+        )
+
+        :ok
+
+      {:error, changeset} ->
+        Logger.error(
+          "[MarketingCostAccounting] Failed to adjust cost #{cost.id}: #{inspect(changeset)}"
+        )
+
+        {:error, changeset}
+    end
+  end
+
+  # Optimistic: only revise the row if `amount` still holds the value the delta
+  # was computed from.
+  defp guarded_update(%MarketingCost{} = cost, new_amount, extra) do
+    fields = Map.merge(extra, %{amount: new_amount})
+
+    query =
+      from(c in MarketingCost, where: c.id == ^cost.id and c.amount == ^cost.amount)
+
+    case Repo.update_all(query, set: Map.to_list(fields)) do
+      {1, _} -> {:ok, Repo.get(MarketingCost, cost.id)}
+      {0, _} -> {:ok, :already_applied}
+    end
+  end
+
+  defp format_signed(cents) when cents >= 0, do: "+#{cents}"
+  defp format_signed(cents), do: to_string(cents)
+
   @doc "Posts every unposted marketing_cost. Returns %{posted, skipped, errors}."
   def post_all_unposted do
     accts = gl_accounts()

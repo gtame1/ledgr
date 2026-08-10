@@ -84,9 +84,16 @@
       </tbody>
     </table>
     <p class="text-xs mt-3" style="color: var(--text-muted);">
-      Multiple charges per platform per day are fine (e.g. one Meta row per ad set). Rows are keyed
-      by platform + date + description + amount, so re-uploading an overlapping range is safe —
-      charges already imported are skipped and only new ones are added.
+      Multiple charges per platform per day are fine (e.g. one Meta row per ad set). A charge is
+      identified by <strong>platform + date + description</strong>, so re-uploading an overlapping
+      range is safe: charges already stored are skipped, and one whose <em>amount</em> changed is
+      treated as a <strong>restatement</strong> — the existing row is updated and the GL adjusted by
+      the difference, rather than a second row being added.
+    </p>
+    <p class="text-xs mt-2" style="color: var(--text-muted);">
+      Keep the <code>description</code> column populated. A row with a blank description has no
+      distinguishing identity, so it can only ever be inserted or skipped — never restated — and
+      re-uploads of a restated range will double-count it.
     </p>
   </div>
 
@@ -101,6 +108,46 @@
           <li><strong>Row {row_num}:</strong> {msg}</li>
         <% end %>
       </ul>
+    </div>
+  <% end %>
+
+  <%!-- ── Restatements ── --%>
+  <%= if @restatements && @restatements != [] do %>
+    <div class="hd-card mb-6" style="padding: 0; overflow: hidden;">
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-subtle);">
+        <h2 class="text-base font-semibold" style="color: var(--text-main);">
+          Restated ({length(@restatements)} charge(s) already stored with a different amount)
+        </h2>
+        <p class="text-xs mt-1" style="color: var(--text-muted);">
+          These update the existing row; the GL is adjusted by the difference.
+        </p>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle);">
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Date</th>
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Platform</th>
+            <th class="text-left p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Description</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Stored</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">New</th>
+            <th class="text-right p-3 text-xs font-semibold uppercase" style="color: var(--text-muted);">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for r <- @restatements do %>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="p-3" style="color: var(--text-muted);">{r.row.date}</td>
+              <td class="p-3 font-medium" style="color: var(--text-main);">{platform_label(r.row.platform)}</td>
+              <td class="p-3" style="color: var(--text-muted);">{r.row.description}</td>
+              <td class="p-3 text-right" style="color: var(--text-muted);">{fmt_money(r.cost.amount)}</td>
+              <td class="p-3 text-right font-semibold" style="color: var(--text-main);">{fmt_money(r.row.amount)}</td>
+              <td class="p-3 text-right font-semibold" style={"color: #{if r.delta < 0, do: "#065f46", else: "#b45309"};"}>
+                {if r.delta > 0, do: "+", else: ""}{fmt_money(r.delta)}
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
     </div>
   <% end %>
 

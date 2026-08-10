@@ -12,40 +12,28 @@ defmodule LedgrWeb.Domains.HelloDoctor.MarketingCostController do
   end
 
   def bulk_upload_form(conn, _params) do
-    render(conn, :bulk_upload, errors: nil, rows: nil)
+    render(conn, :bulk_upload, errors: nil, rows: nil, restatements: nil)
   end
 
   def bulk_upload_submit(conn, %{"upload" => %{"file" => %Plug.Upload{path: path}}}) do
     csv = File.read!(path)
 
     case MarketingCostImport.parse(csv) do
-      {:ok, %{rows: rows, skipped: skipped}} ->
-        # commit/1 is idempotent (insert_all on_conflict: :nothing) — a
-        # re-upload inserts 0 and returns {:ok, 0}, never duplicating.
-        {:ok, count} = MarketingCostImport.commit(rows)
+      {:ok, %{rows: rows, restatements: restatements, skipped: skipped} = parsed} ->
+        # Idempotent: inserts use on_conflict: :nothing, and each restatement's
+        # UPDATE is guarded on the amount it was computed from.
+        {:ok, %{inserted: inserted, restated: restated}} = MarketingCostImport.commit(parsed)
 
-        already = skipped + (length(rows) - count)
-
-        msg =
-          cond do
-            count > 0 and already > 0 ->
-              "Imported #{count} marketing charge(s) and posted them to the GL (#{already} already-imported skipped)."
-
-            count > 0 ->
-              "Imported #{count} marketing charge(s) and posted them to the GL."
-
-            true ->
-              "No new charges — everything in this file was already imported."
-          end
+        already = skipped + (length(rows) - inserted) + (length(restatements) - restated)
 
         conn
-        |> put_flash(:info, msg)
+        |> put_flash(:info, upload_summary(inserted, restated, already))
         |> redirect(to: dp(conn, "/marketing-costs"))
 
-      {:error, %{rows: rows, errors: errors}} ->
+      {:error, %{rows: rows, restatements: restatements, errors: errors}} ->
         conn
         |> put_flash(:error, "CSV has #{length(errors)} issue(s). Nothing was saved.")
-        |> render(:bulk_upload, errors: errors, rows: rows)
+        |> render(:bulk_upload, errors: errors, rows: rows, restatements: restatements)
     end
   end
 
@@ -53,6 +41,24 @@ defmodule LedgrWeb.Domains.HelloDoctor.MarketingCostController do
     conn
     |> put_flash(:error, "Please choose a CSV file to upload.")
     |> redirect(to: dp(conn, "/marketing-costs/bulk-upload"))
+  end
+
+  # Restated charges are called out separately: an upload that silently revises
+  # figures already in the ledger is exactly what you want to notice.
+  defp upload_summary(0, 0, _already),
+    do: "No changes — everything in this file was already imported."
+
+  defp upload_summary(inserted, restated, already) do
+    [
+      if(inserted > 0, do: "Imported #{inserted} new charge(s)"),
+      if(restated > 0,
+        do: "restated #{restated} charge(s) whose amount changed (GL adjusted)"
+      ),
+      if(already > 0, do: "#{already} already up to date")
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(", ")
+    |> Kernel.<>(".")
   end
 
   @doc "A blank CSV template with the expected header + an example row."
