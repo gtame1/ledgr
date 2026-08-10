@@ -78,13 +78,12 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImportTest do
       assert credit.amount == -2577.56
     end
 
-    # Same magnitude, opposite sign — the dedup key includes `amount`, so a
-    # credit must never be mistaken for the charge it offsets.
+    # Same magnitude, opposite sign — distinct charges, so both import.
     test "a credit does not dedup against the equal-magnitude charge" do
       csv =
         @header <>
-          "2026-08-10,google,412.41,MXN,Estimación\r\n" <>
-          "2026-08-10,google,-412.41,MXN,Estimación\r\n"
+          "2026-08-10,google,412.41,MXN,Estimación de I.V.A.\r\n" <>
+          "2026-08-10,google,-412.41,MXN,Código promocional\r\n"
 
       assert {:ok, %{rows: rows, skipped: 0, errors: []}} = MarketingCostImport.parse(csv)
       assert length(rows) == 2
