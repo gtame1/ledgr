@@ -43,9 +43,23 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
     %{num_rows: inserted} = Ecto.Adapters.SQL.query!(Repo.active_repo(), freeze_sql(""), [])
 
     # Drop rows that are now classified as test accounts (snapshot hygiene).
+    #
+    # The patient hangs off the *consultation*, not off this table — a payout
+    # row is keyed by consultation_id and doctor_id only. The prune has to
+    # route through `consultations` to reach patient_id; addressing
+    # `cp.patient_id` directly raised 42703 on every sweep, so no test row was
+    # ever pruned (the sibling prune in PatientSegments works because
+    # `patient_segments` really does carry patient_id).
     Ecto.Adapters.SQL.query!(
       Repo.active_repo(),
-      "DELETE FROM consultation_payouts cp WHERE #{TestAccounts.is_test_patient_sql("cp.patient_id")}",
+      """
+      DELETE FROM consultation_payouts cp
+      WHERE EXISTS (
+        SELECT 1 FROM consultations c
+        WHERE c.id = cp.consultation_id
+          AND #{TestAccounts.is_test_patient_sql("c.patient_id")}
+      )
+      """,
       []
     )
 
