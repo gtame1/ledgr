@@ -691,8 +691,12 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   # Returns the SUM of debit_cents on journal lines in the period,
   # optionally restricted to a single account code (for CAC).
   defp expense_total_cents(start_date, end_date, account_code) do
+    # Net of credits, not just debits: an expense account is credited by a
+    # marketing credit (negative upload) and by a *_reversal entry, and summing
+    # debits alone silently ignored both — a $2,577 promo credit left CAC
+    # unchanged. Expense accounts carry no other credits today.
     base_sql = """
-    SELECT COALESCE(SUM(jl.debit_cents), 0)
+    SELECT COALESCE(SUM(jl.debit_cents - jl.credit_cents), 0)
     FROM journal_entries je
     JOIN journal_lines jl ON jl.journal_entry_id = je.id
     JOIN accounts a       ON a.id = jl.account_id

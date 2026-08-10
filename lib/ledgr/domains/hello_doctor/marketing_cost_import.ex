@@ -5,13 +5,14 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
   Expected CSV columns (header row required):
     date        — required, ISO 8601 (YYYY-MM-DD)
     platform    — required, e.g. "meta", "google"
-    amount      — required, spend in `currency` (e.g. "1234.56")
+    amount      — required, spend in `currency` (e.g. "1234.56"); negative for
+                  a credit (e.g. "-2577.56")
     currency    — optional, "MXN" (default) or "USD"
     description — optional
 
   Each row inserts a `marketing_costs` row (source "csv") and posts it to the
-  GL (DEBIT 6050 / CREDIT 2310). All rows are validated before any are written;
-  the whole import runs in one transaction.
+  GL (DEBIT 6050 / CREDIT 2310 — flipped for a credit). All rows are validated
+  before any are written; the whole import runs in one transaction.
 
   Ad billing has many charges per platform per day (a Meta charge per ad set,
   several Google charges/day), so a row is keyed by the full tuple
@@ -199,12 +200,16 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImport do
     end
   end
 
+  # A negative amount is a credit — a promo credit, refund or billing
+  # adjustment on the platform's invoice. It posts to the GL with the debit and
+  # credit sides flipped (see `MarketingCostAccounting.post_to_gl/2`), so it
+  # reduces marketing expense instead of adding to it. Zero is accepted (the
+  # downloadable template ships 0.00 example rows) but never posts.
   defp parse_amount(str) do
     cleaned = str |> String.replace(",", "") |> String.replace("$", "") |> String.trim()
 
     case Float.parse(cleaned) do
-      {amount, ""} when amount >= 0 -> {:ok, amount}
-      {amount, ""} -> {:error, "amount must be >= 0 (got #{amount})"}
+      {amount, ""} -> {:ok, amount}
       _ -> {:error, "invalid amount: #{inspect(str)}"}
     end
   end

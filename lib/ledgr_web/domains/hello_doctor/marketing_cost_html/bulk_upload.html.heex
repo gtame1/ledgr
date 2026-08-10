@@ -6,7 +6,8 @@
         <p class="text-sm mt-2" style="color: var(--text-muted); max-width: 64ch;">
           Upload a CSV of ad spend (platform + date totals). Each row inserts a
           marketing cost and posts a journal entry: DEBIT 6050 Marketing &amp; Advertising /
-          CREDIT 2310 Accounts Payable — Marketing. All rows commit in a single
+          CREDIT 2310 Accounts Payable — Marketing, with the two sides swapped for a
+          credit. All rows commit in a single
           transaction — if any row fails, nothing is saved.
         </p>
       </div>
@@ -61,7 +62,12 @@
         <tr style="border-bottom: 1px solid var(--border-subtle);">
           <td class="p-2 font-mono">amount</td>
           <td class="p-2"><strong>yes</strong></td>
-          <td class="p-2" style="color: var(--text-muted);">Spend in <code>currency</code>, e.g. <code>1234.56</code>.</td>
+          <td class="p-2" style="color: var(--text-muted);">
+            Spend in <code>currency</code>, e.g. <code>1234.56</code>. Use a
+            <strong>negative</strong> value for a credit — a promo credit, refund or
+            billing adjustment, e.g. <code>-2577.56</code>. Credits post with the
+            debit and credit sides swapped, so they reduce marketing expense and CAC.
+          </td>
         </tr>
         <tr style="border-bottom: 1px solid var(--border-subtle);">
           <td class="p-2 font-mono">currency</td>

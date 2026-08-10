@@ -51,4 +51,57 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostImportTest do
       assert row.amount == 44.75
     end
   end
+
+  describe "parse/1 amounts" do
+    test "accepts a negative amount — a promo credit on the platform invoice" do
+      csv = @header <> "2026-08-10,google,-2577.56,MXN,Código promocional: 96TQH9T4PV3FH4\r\n"
+
+      assert {:ok, %{rows: [row], errors: []}} = MarketingCostImport.parse(csv)
+      assert row.amount == -2577.56
+    end
+
+    test "accepts a negative amount written with currency and thousands separators" do
+      csv = @header <> "2026-08-10,google,\"-$2,577.56\",MXN,Promo credit\r\n"
+
+      assert {:ok, %{rows: [row], errors: []}} = MarketingCostImport.parse(csv)
+      assert row.amount == -2577.56
+    end
+
+    test "keeps positive spend and negative credits in the same file distinct" do
+      csv =
+        @header <>
+          "2026-08-10,google,28.43,MXN,Servicio - Search - MX\r\n" <>
+          "2026-08-10,google,-2577.56,MXN,Código promocional\r\n"
+
+      assert {:ok, %{rows: [spend, credit], errors: []}} = MarketingCostImport.parse(csv)
+      assert spend.amount == 28.43
+      assert credit.amount == -2577.56
+    end
+
+    # Same magnitude, opposite sign — the dedup key includes `amount`, so a
+    # credit must never be mistaken for the charge it offsets.
+    test "a credit does not dedup against the equal-magnitude charge" do
+      csv =
+        @header <>
+          "2026-08-10,google,412.41,MXN,Estimación\r\n" <>
+          "2026-08-10,google,-412.41,MXN,Estimación\r\n"
+
+      assert {:ok, %{rows: rows, skipped: 0, errors: []}} = MarketingCostImport.parse(csv)
+      assert length(rows) == 2
+    end
+
+    test "still rejects an unparseable amount" do
+      csv = @header <> "2026-08-10,google,not-a-number,MXN,Bad row\r\n"
+
+      assert {:error, %{errors: [{2, msg}]}} = MarketingCostImport.parse(csv)
+      assert msg =~ "invalid amount"
+    end
+
+    test "zero is accepted — the downloadable template ships 0.00 example rows" do
+      csv = @header <> "2026-08-10,meta,0.00,MXN,Meta ad spend\r\n"
+
+      assert {:ok, %{rows: [row], errors: []}} = MarketingCostImport.parse(csv)
+      assert row.amount == 0.0
+    end
+  end
 end
