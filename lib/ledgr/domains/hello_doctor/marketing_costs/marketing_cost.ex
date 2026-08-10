@@ -31,11 +31,14 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCosts.MarketingCost do
   @required ~w[platform date amount currency]a
   @optional ~w[fx_rate spend_mxn_cents description source campaign_id posted_at journal_entry_id]a
 
+  # `amount` is deliberately unconstrained in sign: a negative row is a credit
+  # (promo credit, refund, billing adjustment) and posts to the GL with the
+  # debit/credit sides flipped. `spend_mxn_cents` carries the same sign, so the
+  # analytics SUMs net credits against spend without special-casing.
   def changeset(cost, attrs) do
     cost
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
-    |> validate_number(:amount, greater_than_or_equal_to: 0)
     |> update_change(:platform, &normalize/1)
     |> update_change(:currency, &normalize_currency/1)
   end

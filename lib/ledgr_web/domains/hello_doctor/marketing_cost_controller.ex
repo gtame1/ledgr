@@ -124,6 +124,10 @@ defmodule LedgrWeb.Domains.HelloDoctor.MarketingCostHTML do
   def cost_mxn(%{amount: a, currency: "MXN"}) when is_number(a), do: fmt_money(a)
   def cost_mxn(_), do: "—"
 
+  # Credits are negative; render them as "-$12.34" rather than "$-12.34".
+  def fmt_money(n) when is_number(n) and n < 0,
+    do: "-$#{:erlang.float_to_binary(abs(n) / 1, decimals: 2)}"
+
   def fmt_money(n) when is_number(n), do: "$#{:erlang.float_to_binary(n / 1, decimals: 2)}"
   def fmt_money(_), do: "$0.00"
 

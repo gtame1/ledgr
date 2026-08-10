@@ -7,6 +7,18 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostAccounting do
       DEBIT  6050  Marketing & Advertising          $X.XX MXN
       CREDIT 2310  Accounts Payable - Marketing      $X.XX MXN
 
+  A row with a **negative** amount is a credit (promo credit, refund or billing
+  adjustment on the platform's invoice) and posts the same entry with the two
+  sides swapped, so it reduces marketing expense:
+
+      DEBIT  2310  Accounts Payable - Marketing     $X.XX MXN
+      CREDIT 6050  Marketing & Advertising           $X.XX MXN
+
+  The magnitude is always positive — `JournalLine` rejects negative debit or
+  credit cents — so the sign is carried by which side each account lands on.
+  `spend_mxn_cents` on the row itself stays signed, which is what lets the
+  analytics SUMs net credits against spend.
+
   Amounts uploaded in USD are converted to MXN using the shared USD/MXN rate
   (`Ledgr.Core.Settings.get_usd_mxn_rate/0`); MXN uploads post 1:1.
 
@@ -52,34 +64,23 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostAccounting do
     fx_rate = fx_rate_for(cost.currency)
     amount_mxn_cents = round(cost.amount * fx_rate * 100)
 
-    if amount_mxn_cents <= 0 do
+    if amount_mxn_cents == 0 do
       {:error, :zero_amount}
     else
       label = platform_label(cost.platform)
       fx_note = if cost.currency == "MXN", do: "", else: " @ #{fx_rate} MXN/#{cost.currency}"
+      credit? = amount_mxn_cents < 0
+      noun = if credit?, do: "credit", else: "spend"
 
       entry_attrs = %{
         date: cost.date,
         entry_type: "marketing_cost",
         reference: "MktCost #{cost.id}",
-        description: "#{label} ad spend — #{cost.date}#{fx_note}",
+        description: "#{label} ad #{noun} — #{cost.date}#{fx_note}",
         payee: label
       }
 
-      lines = [
-        %{
-          account_id: expense.id,
-          debit_cents: amount_mxn_cents,
-          credit_cents: 0,
-          description: "#{label} ad spend — #{cost.date}"
-        },
-        %{
-          account_id: payable.id,
-          debit_cents: 0,
-          credit_cents: amount_mxn_cents,
-          description: "Payable to #{label} — #{cost.date}"
-        }
-      ]
+      lines = gl_lines(credit?, expense, payable, abs(amount_mxn_cents), label, cost.date)
 
       case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
         {:ok, entry} ->
@@ -111,6 +112,44 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostAccounting do
     end
   end
 
+  # Spend debits the expense and credits the payable. A credit (negative
+  # amount — promo credit, refund, billing adjustment) flips both sides, so the
+  # magnitudes stay positive: `JournalLine` rejects negative debit/credit cents,
+  # which is why the sign lives in the choice of side rather than in the number.
+  defp gl_lines(false = _credit?, expense, payable, cents, label, date) do
+    [
+      %{
+        account_id: expense.id,
+        debit_cents: cents,
+        credit_cents: 0,
+        description: "#{label} ad spend — #{date}"
+      },
+      %{
+        account_id: payable.id,
+        debit_cents: 0,
+        credit_cents: cents,
+        description: "Payable to #{label} — #{date}"
+      }
+    ]
+  end
+
+  defp gl_lines(true = _credit?, expense, payable, cents, label, date) do
+    [
+      %{
+        account_id: payable.id,
+        debit_cents: cents,
+        credit_cents: 0,
+        description: "Credit from #{label} — #{date}"
+      },
+      %{
+        account_id: expense.id,
+        debit_cents: 0,
+        credit_cents: cents,
+        description: "#{label} ad credit — #{date}"
+      }
+    ]
+  end
+
   @doc "Posts every unposted marketing_cost. Returns %{posted, skipped, errors}."
   def post_all_unposted do
     accts = gl_accounts()
@@ -136,33 +175,27 @@ defmodule Ledgr.Domains.HelloDoctor.MarketingCostAccounting do
   """
   def delete_cost(%MarketingCost{} = cost) do
     Repo.transaction(fn ->
-      if cost.posted_at && cost.spend_mxn_cents && cost.spend_mxn_cents > 0 do
+      cents = cost.spend_mxn_cents || 0
+
+      if cost.posted_at && cents != 0 do
         expense = Accounting.get_account_by_code!(@marketing_expense_code)
         payable = Accounting.get_account_by_code!(@marketing_payable_code)
         label = platform_label(cost.platform)
+        noun = if cents < 0, do: "credit", else: "spend"
 
         entry_attrs = %{
           date: cost.date,
           entry_type: "marketing_cost_reversal",
           reference: "MktCost #{cost.id} reversal",
-          description: "Reverse #{label} ad spend — #{cost.date} (row deleted)",
+          description: "Reverse #{label} ad #{noun} — #{cost.date} (row deleted)",
           payee: label
         }
 
-        lines = [
-          %{
-            account_id: payable.id,
-            debit_cents: cost.spend_mxn_cents,
-            credit_cents: 0,
-            description: "Reverse marketing payable"
-          },
-          %{
-            account_id: expense.id,
-            debit_cents: 0,
-            credit_cents: cost.spend_mxn_cents,
-            description: "Reverse marketing expense"
-          }
-        ]
+        # Undo whichever way the original posted: spend (cents > 0) is unwound
+        # by the credit-shaped lines, and a credit by the spend-shaped ones.
+        lines =
+          gl_lines(cents > 0, expense, payable, abs(cents), label, cost.date)
+          |> Enum.map(&%{&1 | description: "Reverse: #{&1.description}"})
 
         case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
           {:ok, _} -> :ok
