@@ -14,7 +14,7 @@ defmodule Ledgr.Domains.HelloDoctor.TestAccounts do
   these are compile-time constants, not user input, so interpolation is safe.
   """
 
-  @test_phones ~w(5215512950400 5215543408539 5215536713304)
+  @test_phones ~w(5215512950400 5215543408539 5215536713304 525500099001)
   @test_patient_ids ~w(2ed77952-cead-4bc4-bc44-51f5b5052d76)
 
   @doc "Known internal test phone numbers (normalized, no +)."
