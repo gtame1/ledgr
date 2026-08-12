@@ -32,6 +32,7 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @return_cuts [30, 60, 90]
   # Cap on projected lifetime consults so a high assumed return rate can't blow
@@ -343,7 +344,7 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
     LEFT JOIN msg  ON msg.pid = p.id
     LEFT JOIN cons ON cons.pid = p.id
     LEFT JOIN rev  ON rev.pid = p.id
-    WHERE NOT (p.phone IN (#{phones_sql()}) OR p.id = '#{test_patient_id()}')
+    WHERE #{TestAccounts.not_test_patient_sql("p.id")}
       AND (msg.pid IS NOT NULL OR cons.pid IS NOT NULL)
     """
 
@@ -535,9 +536,6 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
   defp to_float(%Decimal{} = d), do: Decimal.to_float(d)
   defp to_float(n) when is_integer(n), do: n * 1.0
   defp to_float(n) when is_float(n), do: n
-
-  defp phones_sql, do: Ledgr.Domains.HelloDoctor.TestAccounts.phones_sql()
-  defp test_patient_id, do: "2ed77952-cead-4bc4-bc44-51f5b5052d76"
 
   defp query(sql, params) do
     result = Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, params)
