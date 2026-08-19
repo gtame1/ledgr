@@ -15,19 +15,6 @@ if mr_munch_me_url = System.get_env("MR_MUNCH_ME_DATABASE_URL") || System.get_en
     priv: "priv/repos/mr_munch_me"
 end
 
-if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") do
-  db_uri = URI.parse(volume_studio_url)
-
-  config :ledgr, Ledgr.Repos.VolumeStudio,
-    url: volume_studio_url,
-    ssl: [
-      verify: :verify_none,
-      server_name_indication: to_charlist(db_uri.host || "")
-    ],
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
-    priv: "priv/repos/volume_studio"
-end
-
 if casa_tame_url = System.get_env("CASA_TAME_DATABASE_URL") do
   db_uri = URI.parse(casa_tame_url)
 

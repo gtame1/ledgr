@@ -24,7 +24,6 @@ defmodule Ledgr.Repo do
 
   @doc "Returns the repo module for a given domain module."
   def repo_for_domain(Ledgr.Domains.MrMunchMe), do: Ledgr.Repos.MrMunchMe
-  def repo_for_domain(Ledgr.Domains.VolumeStudio), do: Ledgr.Repos.VolumeStudio
   def repo_for_domain(Ledgr.Domains.CasaTame), do: Ledgr.Repos.CasaTame
   def repo_for_domain(Ledgr.Domains.HelloDoctor), do: Ledgr.Repos.HelloDoctor
   def repo_for_domain(Ledgr.Domains.AumentaMiPension), do: Ledgr.Repos.AumentaMiPension
@@ -36,7 +35,6 @@ defmodule Ledgr.Repo do
   # repo_for_domain/1 above — a repo missing here never starts in prod, and
   # every request for its domain 503s.
   @optional_repos [
-    {"VOLUME_STUDIO_DATABASE_URL", Ledgr.Repos.VolumeStudio},
     {"CASA_TAME_DATABASE_URL", Ledgr.Repos.CasaTame},
     {"HELLO_DOCTOR_DATABASE_URL", Ledgr.Repos.HelloDoctor},
     {"AUMENTA_MI_PENSION_DATABASE_URL", Ledgr.Repos.AumentaMiPension},

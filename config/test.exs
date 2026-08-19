@@ -14,15 +14,6 @@ config :ledgr, Ledgr.Repos.MrMunchMe,
   pool_size: 5,
   priv: "priv/repos/mr_munch_me"
 
-config :ledgr, Ledgr.Repos.VolumeStudio,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "ledgr_volume_studio_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 5,
-  priv: "priv/repos/volume_studio"
-
 config :ledgr, Ledgr.Repos.CasaTame,
   username: "postgres",
   password: "postgres",

@@ -10,7 +10,6 @@ import Config
 config :ledgr,
   ecto_repos: [
     Ledgr.Repos.MrMunchMe,
-    Ledgr.Repos.VolumeStudio,
     Ledgr.Repos.CasaTame,
     Ledgr.Repos.HelloDoctor,
     Ledgr.Repos.AumentaMiPension,
@@ -20,7 +19,6 @@ config :ledgr,
   domain: Ledgr.Domains.MrMunchMe,
   domains: [
     Ledgr.Domains.MrMunchMe,
-    Ledgr.Domains.VolumeStudio,
     Ledgr.Domains.CasaTame,
     Ledgr.Domains.HelloDoctor,
     Ledgr.Domains.AumentaMiPension,
