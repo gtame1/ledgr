@@ -74,11 +74,6 @@ services:
           name: ledgr-mr-munch-me-db
           property: connectionString
 
-      - key: VIAXE_DATABASE_URL
-        fromDatabase:
-          name: ledgr-viaxe-db
-          property: connectionString
-
       - key: VOLUME_STUDIO_DATABASE_URL
         fromDatabase:
           name: ledgr-volume-studio-db
@@ -100,11 +95,6 @@ databases:
     databaseName: ledgr_mr_munch_me_prod
     user: ledgr_mr_munch_me
     plan: starter        # 'free' gives 1 free DB per account; second one requires paid plan
-
-  - name: ledgr-viaxe-db
-    databaseName: ledgr_viaxe_prod
-    user: ledgr_viaxe
-    plan: starter
 
   - name: ledgr-volume-studio-db
     databaseName: ledgr_volume_studio_prod

@@ -14,15 +14,6 @@ config :ledgr, Ledgr.Repos.MrMunchMe,
   pool_size: 5,
   priv: "priv/repos/mr_munch_me"
 
-config :ledgr, Ledgr.Repos.Viaxe,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "ledgr_viaxe_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 5,
-  priv: "priv/repos/viaxe"
-
 config :ledgr, Ledgr.Repos.VolumeStudio,
   username: "postgres",
   password: "postgres",

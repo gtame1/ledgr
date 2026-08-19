@@ -179,58 +179,6 @@ defmodule LedgrWeb.Router do
          :inventory_quick_transfer
   end
 
-  # ── Viaxe: public auth routes ──────────────────────────────────────
-  scope "/app/viaxe", LedgrWeb do
-    pipe_through :browser
-
-    get "/login", SessionController, :new
-    post "/login", SessionController, :create
-    delete "/logout", SessionController, :delete
-  end
-
-  # ── Viaxe: protected routes ────────────────────────────────────────
-  scope "/app/viaxe", LedgrWeb do
-    pipe_through [:browser, :require_auth]
-
-    core_routes_no_customers()
-
-    # Viaxe customer routes (richer travel-specific schema)
-    resources "/customers", Domains.Viaxe.CustomerController do
-      post "/passports", Domains.Viaxe.PassportController, :create
-      delete "/passports/:passport_id", Domains.Viaxe.PassportController, :delete
-      post "/visas", Domains.Viaxe.VisaController, :create
-      delete "/visas/:visa_id", Domains.Viaxe.VisaController, :delete
-      post "/loyalty_programs", Domains.Viaxe.LoyaltyProgramController, :create
-
-      delete "/loyalty_programs/:loyalty_program_id",
-             Domains.Viaxe.LoyaltyProgramController,
-             :delete
-    end
-
-    # Trips (umbrella container for related bookings)
-    resources "/trips", Domains.Viaxe.TripController
-    get "/trips/:id/calendar", Domains.Viaxe.TripController, :calendar
-
-    # Bookings (with type-specific details)
-    resources "/bookings", Domains.Viaxe.BookingController,
-      only: [:index, :show, :new, :create, :edit, :update, :delete]
-
-    post "/bookings/:id/status", Domains.Viaxe.BookingController, :update_status
-
-    # Services catalog
-    resources "/services", Domains.Viaxe.ServiceController,
-      only: [:index, :new, :create, :edit, :update, :delete]
-
-    # Suppliers (with location info)
-    resources "/suppliers", Domains.Viaxe.SupplierController
-
-    # Recommendations (curated reference by city)
-    resources "/recommendations", Domains.Viaxe.RecommendationController
-
-    # Travel documents overview (all passports, visas, loyalty programs)
-    get "/documents", Domains.Viaxe.DocumentController, :index
-  end
-
   # ── Volume Studio: public auth routes ─────────────────────────────
   scope "/app/volume-studio", LedgrWeb do
     pipe_through :browser

@@ -3,7 +3,7 @@
 **Status:** proposed
 **Date:** 2026-08-01
 **Scope:** Hello Doctor **only**. Every other Ledgr domain (Aumenta Mi Pensión,
-Casa Tame, Mr Munch Me, Volume Studio, Viaxe, Ledgr HQ) is out of scope for
+Casa Tame, Mr Munch Me, Volume Studio, Ledgr HQ) is out of scope for
 this project, including their dashboards. The pattern should generalise later,
 but proving it on one domain comes first.
 
@@ -189,7 +189,7 @@ read-only-role obligations for a problem layers 1–3 may already have solved.
 ### Layer 4 — Dashboard consolidation
 
 **Scope fence: Hello Doctor only.** Aumenta Mi Pensión, Casa Tame, Mr Munch Me,
-Volume Studio, Viaxe and Ledgr HQ are explicitly untouched. Their dashboards
+Volume Studio and Ledgr HQ are explicitly untouched. Their dashboards
 almost certainly have the same disease (the MX-timezone bug is known to affect
 AMP), but curing one domain properly and proving the pattern beats half-curing
 six. The shared `ReportController` GL reports — balance sheet, P&L, cash flow —

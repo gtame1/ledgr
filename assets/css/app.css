@@ -3227,7 +3227,7 @@
     margin: 0;
   }
 
-  /* Full image logo card (Viaxe style) */
+  /* Full image logo card */
   .landing-card--has-logo {
     flex-direction: column;
     align-items: stretch;

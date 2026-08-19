@@ -5,7 +5,7 @@ defmodule LedgrWeb.Plugs.AuthPlug do
   Must run AFTER DomainPlug since it needs the domain context
   to determine which session key to check.
 
-  Session keys are domain-scoped: "user_id:mr-munch-me", "user_id:viaxe"
+  Session keys are domain-scoped: "user_id:mr-munch-me", "user_id:hello-doctor"
   to prevent cross-domain session bleed.
   """
 

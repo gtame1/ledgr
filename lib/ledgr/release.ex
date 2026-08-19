@@ -21,7 +21,6 @@ defmodule Ledgr.Release do
   # Production seed files — real business data only, no dummy/sample records.
   @prod_seed_paths %{
     Ledgr.Repos.MrMunchMe => "priv/repos/mr_munch_me/seeds_prod.exs",
-    Ledgr.Repos.Viaxe => "priv/repos/viaxe/seeds_prod.exs",
     Ledgr.Repos.CasaTame => "priv/repos/casa_tame/seeds_prod.exs",
     Ledgr.Repos.HelloDoctor => "priv/repos/hello_doctor/seeds_prod.exs",
     Ledgr.Repos.AumentaMiPension => "priv/repos/aumenta_mi_pension/seeds_prod.exs",
@@ -144,7 +143,6 @@ defmodule Ledgr.Release do
     {:ok, _} = Application.ensure_all_started(@app)
 
     rollback_mr_munch_me()
-    rollback_viaxe()
 
     IO.puts("==> Rollback complete. Run `bin/ledgr seed` to re-seed.")
   end
@@ -197,22 +195,6 @@ defmodule Ledgr.Release do
     end
   end
 
-  defp rollback_viaxe do
-    IO.puts("    Clearing Viaxe seed data...")
-    Ledgr.Repo.put_active_repo(Ledgr.Repos.Viaxe)
-    repo = Ledgr.Repos.Viaxe
-
-    deletes = [
-      {Ledgr.Domains.Viaxe.Services.Service, "services"},
-      {Ledgr.Domains.Viaxe.Suppliers.Supplier, "suppliers"},
-      {Ledgr.Core.Accounts.User, "users"}
-    ]
-
-    for {schema, label} <- deletes do
-      {n, _} = repo.delete_all(schema)
-      IO.puts("      #{n} #{label} deleted")
-    end
-  end
 
   defp repos do
     Application.fetch_env!(@app, :ecto_repos)

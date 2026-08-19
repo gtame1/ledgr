@@ -2,7 +2,7 @@ defmodule Ledgr.Domain.DomainConfig do
   @moduledoc """
   Behaviour for domain-specific configuration.
 
-  Each business type (MrMunchMe, Viaxe, etc.) implements this behaviour
+  Each business type (MrMunchMe, HelloDoctor, etc.) implements this behaviour
   to provide its name, account codes, journal entry types, and navigation.
   """
 
