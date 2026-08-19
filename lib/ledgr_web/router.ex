@@ -192,6 +192,12 @@ defmodule LedgrWeb.Router do
   scope "/app/hello-doctor", LedgrWeb do
     pipe_through [:browser, :require_auth]
 
+    # `/` is served by the domain's own controller. Declared BEFORE
+    # core_routes_no_customers() so it wins the match — the macro's
+    # ReportController dashboard route is shadowed and goes away with the
+    # macro itself once the accounting surface is removed.
+    get "/", Domains.HelloDoctor.DashboardController, :index
+
     core_routes_no_customers()
 
     # Conversations (all WhatsApp conversations, including those without consultations)
@@ -419,6 +425,10 @@ defmodule LedgrWeb.Router do
   # ── Aumenta Mi Pensión: protected routes ───────────────────────────
   scope "/app/aumenta-mi-pension", LedgrWeb do
     pipe_through [:browser, :require_auth]
+
+    # `/` is served by the domain's own controller — declared BEFORE the
+    # macro so it wins the match. See the Hello Doctor scope.
+    get "/", Domains.AumentaMiPension.DashboardController, :index
 
     core_routes_no_customers()
 

@@ -42,13 +42,11 @@ defmodule LedgrWeb.ReportController do
         |> Map.merge(%{start_date: prior_start, end_date: prior_end})
       end
 
+    # Hello Doctor and Aumenta Mi Pensión serve `/` from their own
+    # DashboardControllers now, so those templates are gone from report_html/
+    # and their arms would render a template that no longer exists.
     template =
-      cond do
-        domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_dashboard
-        domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_dashboard
-        domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_dashboard
-        true -> :dashboard
-      end
+      if domain == Ledgr.Domains.MrMunchMe, do: :mr_munch_me_dashboard, else: :dashboard
 
     render(conn, template,
       metrics: metrics,
@@ -452,71 +450,4 @@ defmodule LedgrWeb.ReportHTML do
   def status_dot_color("churned"), do: "#ef4444"
   def status_dot_color(_), do: "#9ca3af"
 
-  @doc """
-  Small period-over-period delta pill for the HelloDoctor dashboard KPIs.
-
-  `current` / `prior` are the same scalar measured in this period and the
-  prior equal-length window. `:mode` is `:pct` (relative % change, for
-  counts) or `:point` (absolute point change, for rates already in %).
-  Renders nothing when `prior` is nil (comparison disabled, e.g. all-time).
-  """
-  attr :current, :any, default: nil
-  attr :prior, :any, default: nil
-  attr :mode, :atom, default: :pct
-
-  def hd_delta_chip(assigns) do
-    assigns = assign(assigns, :delta, hd_delta(assigns.current, assigns.prior, assigns.mode))
-
-    ~H"""
-    <span
-      :if={@delta}
-      class="inline-flex items-center gap-0.5"
-      style={"font-size:0.7rem;font-weight:700;padding:1px 7px;border-radius:20px;#{hd_chip_style(elem(@delta, 0))}"}
-      title="vs. previous period of equal length"
-    >
-      <span style="font-size:0.6rem;line-height:1;">{hd_chip_arrow(elem(@delta, 0))}</span>
-      {elem(@delta, 1)}
-    </span>
-    """
-  end
-
-  defp hd_delta(cur, prior, _mode) when is_nil(cur) or is_nil(prior), do: nil
-
-  defp hd_delta(cur, prior, :point) when is_number(cur) and is_number(prior) do
-    d = Float.round((cur - prior) * 1.0, 1)
-
-    cond do
-      d > 0.05 -> {:up, "+" <> :erlang.float_to_binary(d, decimals: 1) <> "pt"}
-      d < -0.05 -> {:down, :erlang.float_to_binary(d, decimals: 1) <> "pt"}
-      true -> {:flat, "0pt"}
-    end
-  end
-
-  defp hd_delta(cur, prior, :pct) when is_number(cur) and is_number(prior) do
-    cond do
-      prior == 0 and cur == 0 -> {:flat, "0%"}
-      prior == 0 -> {:up, "new"}
-      true -> hd_pct_chip((cur - prior) / prior * 100)
-    end
-  end
-
-  defp hd_delta(_, _, _), do: nil
-
-  defp hd_pct_chip(change) do
-    rounded = round(change)
-
-    cond do
-      rounded > 0 -> {:up, "+#{rounded}%"}
-      rounded < 0 -> {:down, "#{rounded}%"}
-      true -> {:flat, "0%"}
-    end
-  end
-
-  defp hd_chip_style(:up), do: "background:#d1fae5;color:#047857;"
-  defp hd_chip_style(:down), do: "background:#fee2e2;color:#b91c1c;"
-  defp hd_chip_style(:flat), do: "background:#f1f5f9;color:#64748b;"
-
-  defp hd_chip_arrow(:up), do: "▲"
-  defp hd_chip_arrow(:down), do: "▼"
-  defp hd_chip_arrow(:flat), do: "—"
 end
