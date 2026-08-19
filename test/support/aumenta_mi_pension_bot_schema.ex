@@ -96,6 +96,16 @@ defmodule Ledgr.Test.AumentaMiPensionBotSchema do
       agent_comment VARCHAR,
       review_started_at TIMESTAMP
     )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS messages (
+      id VARCHAR PRIMARY KEY,
+      conversation_id VARCHAR,
+      role VARCHAR,
+      content VARCHAR,
+      message_type VARCHAR,
+      created_at TIMESTAMP
+    )
     """
   ]
 

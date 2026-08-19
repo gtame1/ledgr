@@ -35,6 +35,24 @@ defmodule Ledgr.Test.HelloDoctorBotSchema do
       ADD COLUMN IF NOT EXISTS operator_notes VARCHAR,
       ADD COLUMN IF NOT EXISTS operator_notes_updated_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS operator_notes_updated_by VARCHAR
+    """,
+    # ConversationFunnelExport joins these two directly in raw SQL. They are
+    # bot-owned and have no Ecto mirror at all (see that module's moduledoc),
+    # so only the columns the query reads are declared.
+    """
+    CREATE TABLE IF NOT EXISTS policing_events (
+      id VARCHAR PRIMARY KEY,
+      conv_id VARCHAR,
+      severity VARCHAR
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS alert_events (
+      id VARCHAR PRIMARY KEY,
+      conv_id VARCHAR,
+      level VARCHAR,
+      resolved_at TIMESTAMP
+    )
     """
   ]
 

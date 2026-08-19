@@ -109,4 +109,53 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListPaginationTest do
       assert Conversations.paginate_conversations([]).total == 40
     end
   end
+
+  describe "GET /conversations/download" do
+    test "streams the CSV in chunks rather than building the whole body", %{conn: conn} do
+      seed_conversations(120)
+
+      conn = get(conn, @prefix <> "/conversations/download")
+
+      assert conn.state == :chunked
+      assert response_content_type(conn, :csv)
+    end
+
+    test "the streamed file is byte-identical to the buffered one", %{conn: conn} do
+      # The whole point of the refactor is that only the memory profile
+      # changed. If a single byte moves, Excel-facing behaviour (the BOM, CRLF
+      # line endings, quoting) may have moved with it.
+      seed_conversations(37)
+
+      streamed = conn |> get(@prefix <> "/conversations/download") |> response(200)
+      buffered = Ledgr.Domains.AumentaMiPension.ConversationBucketExport.to_csv([])
+
+      assert streamed == buffered
+    end
+
+    test "keeps the BOM and CRLF line endings Excel needs", %{conn: conn} do
+      seed_conversations(3)
+
+      body = conn |> get(@prefix <> "/conversations/download") |> response(200)
+
+      assert String.starts_with?(body, "\uFEFF")
+      assert body =~ "\r\n"
+      # header + 3 rows
+      assert length(String.split(String.trim_trailing(body, "\r\n"), "\r\n")) == 4
+    end
+
+    test "honours the filters the operator has on screen", %{conn: conn} do
+      seed_conversations(10, %{status: "active"}, "act")
+      seed_conversations(4, %{status: "closed"}, "clo")
+
+      body =
+        conn
+        |> get(@prefix <> "/conversations/download", %{"status" => "closed"})
+        |> response(200)
+
+      rows = body |> String.trim_trailing("\r\n") |> String.split("\r\n") |> tl()
+
+      assert length(rows) == 4
+      assert Enum.all?(rows, &String.starts_with?(&1, "clo_"))
+    end
+  end
 end

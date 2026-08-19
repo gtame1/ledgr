@@ -126,4 +126,54 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListPaginationTest do
       assert Conversations.paginate_conversations([]).total == 40
     end
   end
+
+  describe "GET /conversations/download" do
+    test "streams the funnel CSV in chunks", %{conn: conn} do
+      seed_conversations(120)
+
+      conn = get(conn, @prefix <> "/conversations/download")
+
+      assert conn.state == :chunked
+      assert response_content_type(conn, :csv)
+    end
+
+    test "the streamed file is byte-identical to the buffered one", %{conn: conn} do
+      # Only the memory profile was meant to change. A moved byte means the
+      # column layout or quoting moved with it.
+      seed_conversations(37)
+
+      streamed = conn |> get(@prefix <> "/conversations/download") |> response(200)
+
+      buffered =
+        Ledgr.Domains.HelloDoctor.ConversationFunnelExport.to_csv(
+          status: nil,
+          funnel_stage: nil,
+          search: nil,
+          start_date: nil,
+          end_date: nil,
+          limit: nil
+        )
+
+      assert streamed == buffered
+    end
+
+    test "still emits a header when nothing matches", %{conn: conn} do
+      body = conn |> get(@prefix <> "/conversations/download") |> response(200)
+
+      refute body == ""
+      assert body =~ "conv_id"
+    end
+
+    test "spans more than one chunk without dropping or duplicating rows", %{conn: conn} do
+      # max_rows is 500, so 1200 rows exercises the multi-chunk path.
+      seed_conversations(1200)
+
+      body = conn |> get(@prefix <> "/conversations/download") |> response(200)
+
+      lines = body |> String.trim_trailing("\r\n") |> String.split("\r\n")
+
+      assert length(lines) == 1201
+      assert length(Enum.uniq(lines)) == 1201
+    end
+  end
 end
