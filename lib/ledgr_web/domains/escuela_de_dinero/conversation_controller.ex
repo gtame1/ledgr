@@ -6,8 +6,11 @@ defmodule LedgrWeb.Domains.EscuelaDeDinero.ConversationController do
   def index(conn, params) do
     filters = filters(params)
 
+    page = Conversations.paginate(Map.put(filters, :page, params["page"]))
+
     render(conn, :index,
-      conversations: Conversations.list(filters),
+      page: page,
+      conversations: page.entries,
       filters: filters
     )
   end

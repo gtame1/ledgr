@@ -1,16 +1,27 @@
 defmodule Ledgr.Domains.AumentaMiPension.Conversations do
   import Ecto.Query, warn: false
+  alias Ledgr.Pagination
   alias Ledgr.Repo
   alias Ledgr.Domains.AumentaMiPension.Conversations.Conversation
 
-  def list_conversations(opts \\ []) do
+  @doc """
+  One page of conversations, newest first, as a `%Ledgr.Pagination{}`.
+
+  Accepts the filter opts plus `:page` and `:page_size`. Preloads are applied
+  to the page only — this used to load every matching row and preload both
+  associations onto all of them.
+  """
+  def paginate_conversations(opts \\ []) do
     opts
     |> filtered_query()
     # `:id` tiebreaker makes ordering deterministic when last_message_at
     # ties, matching the (last_message_at, id) key `neighbors/2` walks.
     |> order_by(desc: :last_message_at, desc: :id)
-    |> Repo.all()
-    |> Repo.preload([:customer, :consultations])
+    |> Pagination.paginate(
+      page: opts[:page],
+      page_size: opts[:page_size],
+      preload: [:customer, :consultations]
+    )
   end
 
   @doc """

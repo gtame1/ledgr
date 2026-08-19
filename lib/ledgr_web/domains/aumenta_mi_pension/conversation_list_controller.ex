@@ -12,10 +12,12 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListController do
   def index(conn, params) do
     filter_opts = filter_opts(params)
 
-    conversations = Conversations.list_conversations(filter_opts)
+    page = Conversations.paginate_conversations(Keyword.put(filter_opts, :page, params["page"]))
 
     render(conn, :index,
-      conversations: conversations,
+      page: page,
+      conversations: page.entries,
+      filter_params: Map.new(filter_opts, fn {k, v} -> {to_string(k), v} end),
       current_status: params["status"],
       current_funnel_stage: params["funnel_stage"],
       current_search: params["search"],

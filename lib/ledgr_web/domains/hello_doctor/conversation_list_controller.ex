@@ -11,12 +11,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
   def index(conn, params) do
     filters = filter_opts(params)
 
-    conversations = Conversations.list_conversations(filters)
-    revenue = ConsultationRevenue.for_conversations(Enum.map(conversations, & &1.id))
+    page = Conversations.paginate_conversations(Keyword.put(filters, :page, params["page"]))
+
+    # Bounded by the page: this aggregate used to run over every conversation
+    # the filter matched.
+    revenue = ConsultationRevenue.for_conversations(Enum.map(page.entries, & &1.id))
 
     render(conn, :index,
-      conversations: conversations,
+      page: page,
+      conversations: page.entries,
       revenue: revenue,
+      filter_params: Map.new(filters, fn {k, v} -> {to_string(k), v} end),
       current_status: params["status"],
       current_funnel_stage: params["funnel_stage"],
       current_search: params["search"],
@@ -210,9 +215,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
         # whole SQL query which would blow the session cookie limit).
         require Logger
 
-        Logger.error(
-          "[HelloDoctor] Conversation funnel export failed: #{Exception.message(e)}"
-        )
+        Logger.error("[HelloDoctor] Conversation funnel export failed: #{Exception.message(e)}")
 
         short =
           case e.postgres do

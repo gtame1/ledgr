@@ -89,6 +89,21 @@
       </table>
     </div>
 
+    <.pagination
+      page={@page}
+      path={dp(@domain_path_prefix, "/conversaciones")}
+      params={@filters}
+      labels={
+        %{
+          showing: "Mostrando",
+          of: "de",
+          page_of: "Página %{page} de %{total}",
+          prev: "Anterior",
+          next: "Siguiente"
+        }
+      }
+    />
+
     <div class="ed-kpi-sub" style="margin-top: 0.9rem;">
       La ventana es el plazo de 24 h en el que se le puede escribir libre; se renueva solo
       cuando la persona escribe. Fuera de ella, el bot solo puede mandar plantillas.

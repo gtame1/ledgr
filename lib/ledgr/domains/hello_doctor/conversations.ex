@@ -1,17 +1,45 @@
 defmodule Ledgr.Domains.HelloDoctor.Conversations do
   import Ecto.Query, warn: false
+  alias Ledgr.Pagination
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Conversations.Conversation
 
-  def list_conversations(opts \\ []) do
+  @doc """
+  Unexecuted query for the conversations matching the `:status`,
+  `:funnel_stage`, `:search` and date-range opts — the list page's filter set,
+  without ordering or preloads.
+
+  Exposed so the count and the page share one definition of "matching", and so
+  exports can compose their own joins on the same filters rather than
+  reimplementing them.
+  """
+  def filtered_query(opts \\ []) do
     Conversation
     |> maybe_filter_status(opts[:status])
     |> maybe_filter_funnel(opts[:funnel_stage])
     |> maybe_search(opts[:search])
     |> maybe_filter_date_range(opts[:start_date], opts[:end_date])
-    |> order_by(desc: :last_message_at)
-    |> Repo.all()
-    |> Repo.preload([:patient, :consultations])
+  end
+
+  @doc """
+  One page of conversations, newest first, as a `%Ledgr.Pagination{}`.
+
+  Accepts the filter opts plus `:page` and `:page_size`. The `:patient` and
+  `:consultations` preloads are applied to the page only — this used to load
+  every matching row and preload both associations onto all of them, which
+  made peak memory a function of table size.
+  """
+  def paginate_conversations(opts \\ []) do
+    opts
+    |> filtered_query()
+    # `:id` tiebreaker keeps paging deterministic when last_message_at ties;
+    # without it a row can appear on two pages or on neither.
+    |> order_by(desc: :last_message_at, desc: :id)
+    |> Pagination.paginate(
+      page: opts[:page],
+      page_size: opts[:page_size],
+      preload: [:patient, :consultations]
+    )
   end
 
   def get_conversation!(id) do

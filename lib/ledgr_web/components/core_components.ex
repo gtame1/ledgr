@@ -998,4 +998,89 @@ defmodule LedgrWeb.CoreComponents do
     </section>
     """
   end
+
+  @doc """
+  Pager for an index page backed by `Ledgr.Pagination`.
+
+  `params` are the page's current filters; they are carried onto the prev/next
+  links so paging never silently drops the filter the operator applied. Any
+  existing `page` key is overridden.
+
+  The row count renders whenever there are rows — knowing a filter matched
+  1,229 conversations is useful even when they fit on one page — but the
+  prev/next controls only appear once there is somewhere to go.
+  """
+  attr :page, Ledgr.Pagination, required: true
+  attr :path, :string, required: true
+  attr :params, :map, default: %{}
+
+  attr :labels, :map,
+    default: %{},
+    doc:
+      "Overrides for :showing, :of, :page_of, :prev and :next. Escuela de Dinero renders in Spanish."
+
+  @default_pagination_labels %{
+    showing: "Showing",
+    of: "of",
+    page_of: "Page %{page} of %{total}",
+    prev: "Prev",
+    next: "Next"
+  }
+
+  def pagination(assigns) do
+    {first, last} = Ledgr.Pagination.range(assigns.page)
+    labels = Map.merge(@default_pagination_labels, assigns.labels)
+
+    page_of =
+      labels.page_of
+      |> String.replace("%{page}", to_string(assigns.page.page))
+      |> String.replace("%{total}", to_string(assigns.page.total_pages))
+
+    assigns = assign(assigns, first: first, last: last, labels: labels, page_of: page_of)
+
+    ~H"""
+    <div :if={@page.total > 0} class="flex items-center justify-between gap-4 mt-4 flex-wrap">
+      <p class="text-sm" style="color: var(--text-muted);">
+        {@labels.showing} {@first}–{@last} {@labels.of} {@page.total}
+      </p>
+
+      <nav :if={@page.total_pages > 1} class="flex items-center gap-2" aria-label="Pagination">
+        <.link
+          :if={@page.page > 1}
+          navigate={page_url(@path, @params, @page.page - 1)}
+          rel="prev"
+          class="hd-btn-secondary text-sm"
+          style="padding: 0.35rem 0.75rem;"
+        >
+          ← {@labels.prev}
+        </.link>
+
+        <span class="text-sm" style="color: var(--text-muted);">
+          {@page_of}
+        </span>
+
+        <.link
+          :if={@page.page < @page.total_pages}
+          navigate={page_url(@path, @params, @page.page + 1)}
+          rel="next"
+          class="hd-btn-secondary text-sm"
+          style="padding: 0.35rem 0.75rem;"
+        >
+          {@labels.next} →
+        </.link>
+      </nav>
+    </div>
+    """
+  end
+
+  defp page_url(path, params, page) do
+    query =
+      params
+      |> Map.new(fn {k, v} -> {to_string(k), v} end)
+      |> Map.put("page", page)
+      |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+      |> URI.encode_query()
+
+    path <> "?" <> query
+  end
 end
