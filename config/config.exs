@@ -10,7 +10,6 @@ import Config
 config :ledgr,
   ecto_repos: [
     Ledgr.Repos.MrMunchMe,
-    Ledgr.Repos.CasaTame,
     Ledgr.Repos.HelloDoctor,
     Ledgr.Repos.AumentaMiPension,
     Ledgr.Repos.EscuelaDeDinero
@@ -19,7 +18,6 @@ config :ledgr,
   domain: Ledgr.Domains.MrMunchMe,
   domains: [
     Ledgr.Domains.MrMunchMe,
-    Ledgr.Domains.CasaTame,
     Ledgr.Domains.HelloDoctor,
     Ledgr.Domains.AumentaMiPension,
     Ledgr.Domains.EscuelaDeDinero

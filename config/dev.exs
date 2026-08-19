@@ -11,16 +11,6 @@ config :ledgr, Ledgr.Repos.MrMunchMe,
   pool_size: 10,
   priv: "priv/repos/mr_munch_me"
 
-config :ledgr, Ledgr.Repos.CasaTame,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "ledgr_casa_tame_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10,
-  priv: "priv/repos/casa_tame"
-
 # HelloDoctor + AMP repo config live at the END of this file (after
 # dev.secret.exs loads), so a local `dev.secret.exs` can `System.put_env/2` the
 # Neon URL before the env-var check runs. See the blocks below

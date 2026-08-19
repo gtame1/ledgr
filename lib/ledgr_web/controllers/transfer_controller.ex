@@ -4,29 +4,7 @@ defmodule LedgrWeb.TransferController do
   alias Ledgr.Core.Accounting
 
   def index(conn, _params) do
-    transfers = Accounting.list_money_transfers()
-
-    # Casa Tame: also show FX transfers (journal entries with "FX Transfer" in description)
-    extra =
-      if Ledgr.Domain.current() == Ledgr.Domains.CasaTame do
-        import Ecto.Query
-
-        fx =
-          Ledgr.Repo.all(
-            from je in Ledgr.Core.Accounting.JournalEntry,
-              where:
-                je.entry_type == "internal_transfer" and like(je.description, "FX Transfer%"),
-              order_by: [desc: je.date, desc: je.inserted_at],
-              preload: [journal_lines: :account],
-              limit: 50
-          )
-
-        [fx_transfers: fx]
-      else
-        []
-      end
-
-    render(conn, :index, [transfers: transfers] ++ extra)
+    render(conn, :index, transfers: Accounting.list_money_transfers())
   end
 
   def new(conn, _params) do

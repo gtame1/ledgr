@@ -20,7 +20,6 @@ defmodule LedgrWeb.Plugs.DomainPlug do
 
   @domain_slugs %{
     "mr-munch-me" => Ledgr.Domains.MrMunchMe,
-    "casa-tame" => Ledgr.Domains.CasaTame,
     "hello-doctor" => Ledgr.Domains.HelloDoctor,
     "aumenta-mi-pension" => Ledgr.Domains.AumentaMiPension,
     "escuela-de-dinero" => Ledgr.Domains.EscuelaDeDinero

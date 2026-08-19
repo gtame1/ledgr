@@ -8,8 +8,6 @@
 /* Tom Select CSS */
 @import "../vendor/tom-select.min.css";
 
-/* Casa Tame Stitch design overrides */
-@import "./casa-tame-stitch.css";
 
 /* MrMunchMe Stitch design overrides */
 @import "./mr-munch-me-stitch.css";
@@ -558,43 +556,6 @@
     background: var(--btn-secondary-hover);
     border-color: var(--border-strong);
     color: var(--text-main);
-  }
-
-  /* ── Casa Tame — Quick Actions ─────────────────────────────────── */
-  .ct-quick-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-  }
-
-  .ct-primary-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
-  }
-
-  .ct-secondary-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .ct-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .ct-primary-actions .ct-action-btn {
-    min-height: 2.75rem;
-  }
-
-  .ct-secondary-actions .ct-action-btn {
-    width: 100%;
-    min-height: 2.25rem;
   }
 
   .card-header {
@@ -2486,19 +2447,6 @@
 
     .detail-label {
       font-size: 0.68rem;
-    }
-
-    /* Casa Tame — Quick Actions: 1 primary button per row on mobile */
-    .ct-quick-actions {
-      padding: 0.75rem 1rem;
-    }
-
-    .ct-primary-actions {
-      grid-template-columns: 1fr;
-    }
-
-    .ct-secondary-actions .ct-action-btn {
-      min-height: 2.5rem;
     }
 
     /* Period selector */

@@ -8,9 +8,8 @@ defmodule Ledgr.Domains.HelloDoctor.ExchangeRateWorker do
   this worker the rate stays at the hardcoded fallback of 17.5 forever,
   which is fine in stable markets but stale otherwise.
 
-  Mirrors `Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker`, but
-  writes to HelloDoctor's repo via the Settings key/value store rather than
-  CasaTame's `exchange_rates` table.
+  Writes to HelloDoctor's repo via the Settings key/value store rather than
+  a dedicated `exchange_rates` table.
   """
 
   use GenServer

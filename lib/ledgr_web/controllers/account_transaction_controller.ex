@@ -107,16 +107,7 @@ defmodule LedgrWeb.AccountTransactionController do
     else
       alias Ledgr.Core.Accounting.Account
 
-      # Casa Tame has its own expense schema (with currency/hierarchical
-      # categories). Every other domain uses the generic Core.Expenses.Expense
-      # schema; querying CasaTameExpense against another repo blows up on
-      # the missing `currency` column.
-      expense_schema =
-        if domain == Ledgr.Domains.CasaTame do
-          Ledgr.Domains.CasaTame.Expenses.CasaTameExpense
-        else
-          Ledgr.Core.Expenses.Expense
-        end
+      expense_schema = Ledgr.Core.Expenses.Expense
 
       expenses =
         Ledgr.Repo.all(

@@ -42,7 +42,6 @@ defmodule Ledgr.DataCase do
     owners =
       for repo <- [
             Ledgr.Repos.MrMunchMe,
-            Ledgr.Repos.CasaTame,
             Ledgr.Repos.HelloDoctor,
             Ledgr.Repos.AumentaMiPension,
             Ledgr.Repos.EscuelaDeDinero
