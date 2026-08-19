@@ -349,10 +349,11 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
     """
 
     query(sql, [])
-    |> Enum.map(&decorate_patient/1)
     # A patient with consults but no conversation row has no first_conv; skip
-    # from time-bucketed views rather than crash.
+    # from time-bucketed views rather than crash. This has to happen BEFORE
+    # decorate_patient/1, which reads first_conv.year for the cohort month.
     |> Enum.reject(&is_nil(&1.first_conv))
+    |> Enum.map(&decorate_patient/1)
   end
 
   defp decorate_patient(row) do
