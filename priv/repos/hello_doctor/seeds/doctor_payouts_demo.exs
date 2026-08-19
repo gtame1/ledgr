@@ -28,7 +28,7 @@ import Ecto.Query
 # ── Helpers ─────────────────────────────────────────────────────
 
 estimate_stripe_fee = fn amount_pesos ->
-  # Same formula as ConsultationAccounting.estimate_stripe_fee_cents/1.
+  # Same formula as StripeFees.estimate_stripe_fee_cents/1.
   cents = round(amount_pesos * 100)
   base = cents * 0.036 + 300
   Float.round(base * 1.16 / 100, 2)

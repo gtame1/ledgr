@@ -31,7 +31,7 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @return_cuts [30, 60, 90]
@@ -280,7 +280,7 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
   # dropped. Revenue mirrors ConsultationRevenue (net = charged − fee − doctor
   # share − refunds).
   defp load_patients do
-    share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+    share = DoctorRates.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
     mx = fn col -> "(#{col} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')" end
 
     sql = """
@@ -383,7 +383,7 @@ defmodule Ledgr.Domains.HelloDoctor.LifecycleMetrics do
   # whether it was actually charged. Powers the LTV projection AND the
   # free-consult subsidy that feeds blended CAC. Only ~hundreds of rows.
   defp load_completed_consults do
-    share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+    share = DoctorRates.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     sql = """
     SELECT (c.completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::date AS consult_date,

@@ -89,7 +89,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor.Campaigns
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
 
   # Spend attribution for the estimated per-campaign CAC: these campaigns are our
   # Google ads (🩺 LPC-01, 🙏 LPH-01); every other campaign is Meta. Google spend
@@ -408,7 +408,7 @@ defmodule Ledgr.Domains.HelloDoctor.AcquisitionMetrics do
     # absorbs on a comped completed consult — patient charged $0 but the doctor
     # is still paid). Bound to the conv_cons joins below.
     free_share_sql =
-      ConsultationAccounting.doctor_share_sql("conv2.tenant", "d.consultation_fee_mxn")
+      DoctorRates.doctor_share_sql("conv2.tenant", "d.consultation_fee_mxn")
 
     # Emit `('greeting', 1), ('symptoms', 2), ...` for the SQL VALUES list.
     stage_values_sql =

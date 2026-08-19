@@ -29,6 +29,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   alias Ledgr.Core.Accounting.JournalEntry
   alias Ledgr.Domains.HelloDoctor
   alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
+  alias Ledgr.Domains.HelloDoctor.StripeFees
 
   # Account codes from HelloDoctor domain config
   @stripe_receivable_code "1200"
@@ -36,57 +38,6 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   @consultation_revenue_code "4000"
   @payment_processing_code "6000"
   @doctor_payable_code "2000"
-
-  # Flat amount paid to the doctor for every paid consultation, in MXN.
-  # Single source of truth — used by accounting, refunds, sync, and reports.
-  @doctor_share_mxn 100.0
-
-  @doc "Flat doctor share per paid consultation, in MXN pesos."
-  def doctor_share_mxn, do: @doctor_share_mxn
-
-  @doc "Flat doctor share per paid consultation, in centavos."
-  def doctor_share_cents, do: round(@doctor_share_mxn * 100)
-
-  @doc """
-  Tenant-aware doctor share in centavos for a specific consultation (loads its
-  conversation tenant + doctor fee). Per-consultation counterpart of
-  `doctor_share_cents/0`; use it wherever you must back out the exact amount
-  `record_payment/2` posted to Doctor Payable — e.g. a refund reversal — so a
-  $200 direct consult reverses $200, not the flat $100.
-  """
-  def doctor_share_cents(consultation), do: tenant_aware_doctor_cents(consultation)
-
-  @doc """
-  Tenant-aware doctor share, in MXN pesos. A doctor's own DIRECT patients
-  (conversation tenant `"direct"`) pay that doctor's negotiated rate
-  (`consultation_fee_mxn`); HD-sourced MVP — and anything not `"direct"`,
-  or a direct consult with no configured fee — pays the flat share. Mirrors
-  the rule in `MonthlyReport`; single source of truth for "what the doctor
-  earns per consultation".
-  """
-  def doctor_share_mxn(tenant, fee) do
-    if tenant == "direct" and is_number(fee) and fee > 0, do: fee * 1.0, else: @doctor_share_mxn
-  end
-
-  # Doctor share in centavos for a specific consultation, tenant-aware. Loads
-  # the conversation tenant + doctor's negotiated fee and applies the same rule
-  # as `doctor_share_mxn/2`. Falls back to the flat share when either is absent.
-  defp tenant_aware_doctor_cents(consultation) do
-    consultation = Ledgr.Repo.preload(consultation, [:conversation, :doctor])
-    tenant = consultation.conversation && consultation.conversation.tenant
-    fee = consultation.doctor && consultation.doctor.consultation_fee_mxn
-    round(doctor_share_mxn(tenant, fee) * 100)
-  end
-
-  @doc """
-  SQL-expression form of `doctor_share_mxn/2` for raw-SQL contexts. Pass the
-  in-scope SQL expressions for the conversation tenant and the doctor's
-  `consultation_fee_mxn`; returns pesos as float8.
-  """
-  def doctor_share_sql(tenant_expr, fee_expr) do
-    "(CASE WHEN #{tenant_expr} = 'direct' AND COALESCE(#{fee_expr}, 0) > 0 " <>
-      "THEN (#{fee_expr})::float8 ELSE #{@doctor_share_mxn} END)"
-  end
 
   @doc """
   Records a consultation payment as journal entries.
@@ -105,7 +56,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
     # tenant "direct") pay that doctor's negotiated fee; everything else pays
     # the flat share. Mirrors the reports so the GL and the payout report agree
     # (a $200 direct consult reclassifies $200 to Doctor Payable, not $100).
-    doctor_payout_cents = tenant_aware_doctor_cents(consultation)
+    doctor_payout_cents = DoctorRates.doctor_share_cents(consultation)
 
     stripe_session_id = opts[:stripe_session_id]
 
@@ -113,8 +64,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
     # Stripe API; finally fall back to an estimate.
     fee_cents =
       opts[:stripe_fee_cents] ||
-        fetch_stripe_fee_cents(stripe_session_id) ||
-        estimate_stripe_fee_cents(amount_cents)
+        StripeFees.fetch_stripe_fee_cents(stripe_session_id) ||
+        StripeFees.estimate_stripe_fee_cents(amount_cents)
 
     patient_name =
       if consultation.patient do
@@ -245,7 +196,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
 
   defp do_record_corporate_payment(consultation, ref) do
     revenue_cents = corporate_revenue_cents(consultation)
-    doctor_cents = corporate_doctor_cents(consultation)
+    doctor_cents = DoctorRates.doctor_share_cents_for_consultation_id(consultation.id)
 
     if revenue_cents == 0 and doctor_cents == 0 do
       {:ok, :nothing_to_post}
@@ -398,30 +349,8 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
 
   # Tenant-aware doctor share (centavos) for a corporate consult, without
   # preloading the bot-owned Conversation schema. Reads just the conversation
-  # tenant + doctor fee, then applies the same rule as `doctor_share_mxn/2`
+  # tenant + doctor fee, then applies the same rule as `DoctorRates.doctor_share_mxn()/2`
   # (direct → the doctor's negotiated fee; else the flat share).
-  defp corporate_doctor_cents(consultation) do
-    sql = """
-    SELECT conv.tenant, d.consultation_fee_mxn
-    FROM consultations c
-    LEFT JOIN conversations conv ON conv.id = c.conversation_id
-    LEFT JOIN doctors d ON d.id = c.doctor_id
-    WHERE c.id = $1
-    """
-
-    {tenant, fee} =
-      case Ecto.Adapters.SQL.query!(Repo.active_repo(), sql, [consultation.id]) do
-        %{rows: [[tenant, fee]]} -> {tenant, to_number(fee)}
-        _ -> {nil, nil}
-      end
-
-    round(doctor_share_mxn(tenant, fee) * 100)
-  end
-
-  defp to_number(nil), do: nil
-  defp to_number(%Decimal{} = d), do: Decimal.to_float(d)
-  defp to_number(n) when is_number(n), do: n
-
   defp corporate_entry_date(consultation) do
     case consultation.completed_at do
       %NaiveDateTime{} = ndt -> HelloDoctor.to_mx_date(ndt)
@@ -437,73 +366,4 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationAccounting do
   defp corporate_doctor_name(%{doctor: %{} = doctor}), do: doctor.name || "Doctor"
   defp corporate_doctor_name(_), do: "Unassigned"
 
-  @doc """
-  Fetches the actual Stripe fee from the Balance Transaction API.
-  Uses the HelloDoctor-specific API key.
-  """
-  def fetch_stripe_fee_cents(nil), do: nil
-
-  def fetch_stripe_fee_cents(session_id) do
-    api_key = Application.get_env(:ledgr, :hello_doctor_stripe_api_key)
-
-    if is_nil(api_key) do
-      nil
-    else
-      try do
-        # Get the payment intent from the session
-        case Stripe.Checkout.Session.retrieve(session_id, %{}, api_key: api_key) do
-          {:ok, session} ->
-            payment_intent_id = session.payment_intent
-
-            if payment_intent_id do
-              case Stripe.PaymentIntent.retrieve(payment_intent_id, %{expand: ["latest_charge"]},
-                     api_key: api_key
-                   ) do
-                {:ok, pi} ->
-                  charge = pi.latest_charge
-
-                  if charge && charge.balance_transaction do
-                    bt_id =
-                      if is_binary(charge.balance_transaction),
-                        do: charge.balance_transaction,
-                        else: charge.balance_transaction.id
-
-                    case Stripe.BalanceTransaction.retrieve(bt_id, %{}, api_key: api_key) do
-                      {:ok, bt} -> bt.fee
-                      _ -> nil
-                    end
-                  else
-                    nil
-                  end
-
-                _ ->
-                  nil
-              end
-            else
-              nil
-            end
-
-          _ ->
-            nil
-        end
-      rescue
-        e ->
-          Logger.warning(
-            "[HelloDoctor] Failed to fetch Stripe fee for session #{session_id}: #{inspect(e)}"
-          )
-
-          nil
-      end
-    end
-  end
-
-  @doc """
-  Estimates Stripe fee using Mexico pricing: 3.6% + $3 MXN + 16% IVA.
-  Returns fee in centavos.
-  """
-  def estimate_stripe_fee_cents(amount_cents) do
-    base_fee = amount_cents * 0.036 + 300
-    fee_with_iva = base_fee * 1.16
-    round(fee_with_iva)
-  end
 end

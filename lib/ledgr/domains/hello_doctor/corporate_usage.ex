@@ -8,7 +8,7 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateUsage do
   creation month (`assigned_at`) in Mexico City time.
 
   Cost is measured as the **doctor fee** — a flat $100 MXN per consultation
-  (`ConsultationAccounting.doctor_share_mxn/0`), per product decision. The
+  (`DoctorRates.doctor_share_mxn/0`), per product decision. The
   rate the company is billed (`consultation_rate_mxn`) is a separate figure
   shown on the invoice; this dash is about what each delivered consult
   *costs* in doctor payouts.
@@ -20,10 +20,10 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateUsage do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
 
   @doc "Flat doctor-fee cost per completed consultation, in MXN."
-  def cost_per_consult, do: ConsultationAccounting.doctor_share_mxn()
+  def cost_per_consult, do: DoctorRates.doctor_share_mxn()
 
   @doc """
   Usage summary for one corporate account.

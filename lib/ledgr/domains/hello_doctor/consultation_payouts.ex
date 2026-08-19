@@ -3,7 +3,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
   Frozen-at-delivery snapshot of the doctor share earned per consultation.
 
   The share is **tenant-aware** (same rule as `MonthlyReport` /
-  `ConsultationAccounting.doctor_share_mxn/2`): a doctor's own DIRECT
+  `DoctorRates.doctor_share_mxn/2`): a doctor's own DIRECT
   patients pay that doctor's `consultation_fee_mxn`; MVP/other pay the flat
   share. We materialize it into the Ledgr-owned `consultation_payouts`
   table so it can be read per-consultation and so the amount is **pinned at
@@ -27,12 +27,12 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
   import Ecto.Query
 
   alias Ledgr.Repo
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.ConsultationPayouts.ConsultationPayout
   alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @doc "Flat doctor share per consultation, in centavos (the MVP default)."
-  def share_cents, do: ConsultationAccounting.doctor_share_cents()
+  def share_cents, do: DoctorRates.doctor_share_cents()
 
   @doc """
   Freezes the (tenant-aware) doctor share for every billed, non-test
@@ -104,7 +104,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationPayouts do
   # INSERT … SELECT that freezes the tenant-aware share for the billed,
   # non-test population. `extra_where` lets the lazy path scope to one id.
   defp freeze_sql(extra_where) do
-    share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+    share = DoctorRates.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     """
     INSERT INTO consultation_payouts
