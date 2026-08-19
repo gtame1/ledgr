@@ -1,6 +1,13 @@
 <div class="hd-page">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold" style="color: var(--text-main);">Conversaciones</h1>
+    <a
+      href={dp(@domain_path_prefix, "/conversations/download") <> @filter_qs}
+      class="hd-btn-secondary text-sm"
+      style="padding: 0.5rem 0.95rem;"
+    >
+      ⬇ Descargar CSV con buckets
+    </a>
   </div>
 
   <%!-- Filters --%>

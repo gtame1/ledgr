@@ -2,6 +2,7 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListController do
   use LedgrWeb, :controller
 
   alias Ledgr.Domains.AumentaMiPension.Conversations
+  alias Ledgr.Domains.AumentaMiPension.ConversationBucketExport
   alias Ledgr.Domains.AumentaMiPension.ConversationBuckets
   alias Ledgr.Domains.AumentaMiPension.ConversationBuckets.ConversationBucket
   alias Ledgr.Domains.AumentaMiPension.Phones
@@ -47,6 +48,41 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListController do
       next_id: next_id,
       filter_qs: encode_filter_qs(filter_opts)
     )
+  end
+
+  @doc """
+  Sends every conversation with its assigned buckets as a CSV download.
+  Takes the same filter params as `index/2`, so the file matches whatever
+  the operator has on screen.
+  """
+  def download(conn, params) do
+    csv = ConversationBucketExport.to_csv(filter_opts(params))
+    filename = "amp-conversaciones-buckets-#{Ledgr.Domains.AumentaMiPension.today()}.csv"
+
+    conn
+    |> put_resp_content_type("text/csv")
+    |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+    |> send_resp(200, csv)
+  rescue
+    e in Postgrex.Error ->
+      # `conversations` / `customers` / `messages` are bot-owned (see CLAUDE.md)
+      # and can drift ahead of our mirrors. Surface a short reason inline; the
+      # full message carries the SQL, which would blow the session cookie limit.
+      require Logger
+
+      Logger.error("[AumentaMiPension] Bucket export failed: #{Exception.message(e)}")
+
+      short =
+        case e.postgres do
+          %{message: msg} -> msg
+          _ -> "error de base de datos"
+        end
+        |> to_string()
+        |> String.slice(0, 200)
+
+      conn
+      |> put_flash(:error, "No se pudo generar el CSV: #{short}")
+      |> redirect(to: dp(conn, "/conversations"))
   end
 
   @doc """

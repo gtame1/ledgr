@@ -676,6 +676,12 @@ defmodule LedgrWeb.Router do
 
     core_routes_no_customers()
 
+    # Conversations + their operator buckets as CSV. Must come BEFORE the
+    # resources block so "download" isn't captured as `:id` by `:show`.
+    get "/conversations/download",
+        Domains.AumentaMiPension.ConversationListController,
+        :download
+
     resources "/conversations", Domains.AumentaMiPension.ConversationListController,
       only: [:index, :show]
 

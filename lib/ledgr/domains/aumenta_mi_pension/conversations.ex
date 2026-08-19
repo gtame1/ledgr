@@ -4,15 +4,29 @@ defmodule Ledgr.Domains.AumentaMiPension.Conversations do
   alias Ledgr.Domains.AumentaMiPension.Conversations.Conversation
 
   def list_conversations(opts \\ []) do
-    Conversation
-    |> maybe_filter_status(opts[:status])
-    |> maybe_filter_funnel(opts[:funnel_stage])
-    |> maybe_search(opts[:search])
+    opts
+    |> filtered_query()
     # `:id` tiebreaker makes ordering deterministic when last_message_at
     # ties, matching the (last_message_at, id) key `neighbors/2` walks.
     |> order_by(desc: :last_message_at, desc: :id)
     |> Repo.all()
     |> Repo.preload([:customer, :consultations])
+  end
+
+  @doc """
+  Unexecuted query for the conversations matching the `:status`,
+  `:funnel_stage` and `:search` opts — the list page's filter set, without
+  ordering or preloads.
+
+  Exposed so exports (`ConversationBucketExport`) can compose their own
+  joins on the same filters instead of reimplementing them, which is how
+  the CSV and the table on screen stay in agreement.
+  """
+  def filtered_query(opts \\ []) do
+    Conversation
+    |> maybe_filter_status(opts[:status])
+    |> maybe_filter_funnel(opts[:funnel_stage])
+    |> maybe_search(opts[:search])
   end
 
   def get_conversation!(id) do
