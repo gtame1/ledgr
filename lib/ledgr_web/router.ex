@@ -274,44 +274,6 @@ defmodule LedgrWeb.Router do
     post "/space-rentals/:id/payment", Domains.VolumeStudio.SpaceRentalController, :record_payment
   end
 
-  # ── Ledgr HQ: public auth routes ───────────────────────────────────
-  scope "/app/ledgr", LedgrWeb do
-    pipe_through :browser
-
-    get "/login", SessionController, :new
-    post "/login", SessionController, :create
-    delete "/logout", SessionController, :delete
-  end
-
-  # ── Ledgr HQ: protected routes ─────────────────────────────────────
-  scope "/app/ledgr", LedgrWeb do
-    pipe_through [:browser, :require_auth]
-
-    core_routes()
-
-    # Clients
-    resources "/clients", Domains.LedgrHQ.ClientController
-    post "/clients/:id/status", Domains.LedgrHQ.ClientController, :update_status
-
-    # Subscription plans (ledgr's own plans)
-    resources "/subscription-plans", Domains.LedgrHQ.SubscriptionPlanController,
-      only: [:index, :new, :create, :edit, :update, :delete]
-
-    # Client subscriptions
-    resources "/client-subscriptions", Domains.LedgrHQ.ClientSubscriptionController,
-      only: [:index, :show, :new, :create, :edit, :update]
-
-    post "/client-subscriptions/:id/status",
-         Domains.LedgrHQ.ClientSubscriptionController,
-         :update_status
-
-    # Costs
-    resources "/costs", Domains.LedgrHQ.CostController,
-      only: [:index, :new, :create, :edit, :update, :delete]
-
-    patch "/costs/:id/toggle_active", Domains.LedgrHQ.CostController, :toggle_active
-  end
-
   # ── Casa Tame: public auth routes ──────────────────────────────────
   scope "/app/casa-tame", LedgrWeb do
     pipe_through :browser

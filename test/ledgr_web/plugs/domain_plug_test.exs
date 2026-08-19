@@ -14,23 +14,24 @@ defmodule LedgrWeb.Plugs.DomainPlugTest do
     setup do
       # Unregistering the name is exactly what the application sees when the
       # repo was skipped at boot — without tearing down a live pool that other
-      # tests would need. LedgrHQ has no page tests of its own.
-      pid = Process.whereis(Ledgr.Repos.LedgrHQ)
-      Process.unregister(Ledgr.Repos.LedgrHQ)
-      on_exit(fn -> Process.register(pid, Ledgr.Repos.LedgrHQ) end)
+      # tests would need. This module is `async: false`, so it never overlaps
+      # with a test that would want the repo back.
+      pid = Process.whereis(Ledgr.Repos.EscuelaDeDinero)
+      Process.unregister(Ledgr.Repos.EscuelaDeDinero)
+      on_exit(fn -> Process.register(pid, Ledgr.Repos.EscuelaDeDinero) end)
       :ok
     end
 
     test "the request 503s instead of raising", %{conn: conn} do
-      conn = get(conn, "/app/ledgr/login")
+      conn = get(conn, "/app/escuela-de-dinero/login")
 
       assert conn.status == 503
       assert conn.halted
-      assert conn.resp_body =~ Ledgr.Domains.LedgrHQ.name()
+      assert conn.resp_body =~ Ledgr.Domains.EscuelaDeDinero.name()
     end
 
     test "the domain context is never set, so no query can reach a dead repo", %{conn: conn} do
-      conn = get(conn, "/app/ledgr/login")
+      conn = get(conn, "/app/escuela-de-dinero/login")
 
       refute conn.assigns[:current_domain]
     end

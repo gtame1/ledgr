@@ -45,7 +45,6 @@ defmodule LedgrWeb.ReportController do
     template =
       cond do
         domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
-        domain == Ledgr.Domains.LedgrHQ -> :ledgr_hq_dashboard
         domain == Ledgr.Domains.CasaTame -> :casa_tame_dashboard
         domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_dashboard
         domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_dashboard

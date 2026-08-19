@@ -43,7 +43,6 @@ defmodule Ledgr.DataCase do
       for repo <- [
             Ledgr.Repos.MrMunchMe,
             Ledgr.Repos.VolumeStudio,
-            Ledgr.Repos.LedgrHQ,
             Ledgr.Repos.CasaTame,
             Ledgr.Repos.HelloDoctor,
             Ledgr.Repos.AumentaMiPension,

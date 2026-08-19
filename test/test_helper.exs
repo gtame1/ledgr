@@ -4,7 +4,6 @@
 ExUnit.start(max_cases: 5)
 Ecto.Adapters.SQL.Sandbox.mode(Ledgr.Repos.MrMunchMe, :manual)
 Ecto.Adapters.SQL.Sandbox.mode(Ledgr.Repos.VolumeStudio, :manual)
-Ecto.Adapters.SQL.Sandbox.mode(Ledgr.Repos.LedgrHQ, :manual)
 Ecto.Adapters.SQL.Sandbox.mode(Ledgr.Repos.CasaTame, :manual)
 # The bot has added columns to HD's `conversations` that correctly have no
 # Ledgr migration (writing one would alter the bot's real table on deploy).
