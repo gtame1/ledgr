@@ -51,6 +51,12 @@ services:
       - key: POOL_SIZE
         value: "2"
 
+      # Hello Doctor defaults to 6 (config/runtime.exs). Each Postgrex
+      # connection is TLS, so it carries its own SSL session state — on a
+      # 512 MB box the pools are a meaningful slice of the budget.
+      - key: HELLO_DOCTOR_POOL_SIZE
+        value: "3"
+
       # Credentials for the admin user created by `bin/ledgr seed`
       # Set these in the Render dashboard (not here) to keep them secret.
       - key: ADMIN_EMAIL

@@ -1,0 +1,48 @@
+## Customize flags given to the VM: https://www.erlang.org/doc/man/erl.html
+## -mode/-name/-sname/-setcookie are configured via env vars — do not set them here.
+##
+## Tuned for a 512 MB / ~0.5 vCPU Render container. Before this file existed the
+## release ran with stock settings, which is what made the box OOM: see the
+## scheduler note below.
+
+## ---- Schedulers -------------------------------------------------------------
+## The BEAM sizes its scheduler count from the *host* core count, not the cgroup
+## CPU quota. On a shared Render host that means 8+ normal schedulers plus 8+
+## dirty ones, each carrying its own set of allocator arenas — 100+ MB of pure
+## overhead before a single request is served. Pin them to the CPU we actually
+## have.
++S 2:2
++SDcpu 2:2
++SDio 4
+
+## Busy-wait keeps schedulers spinning between jobs. That holds allocator
+## carriers hot and burns a CPU quota we do not have.
++sbwt none
++sbwtdcpu none
++sbwtdio none
+
+## ---- Allocators -------------------------------------------------------------
+## Address-order best-fit fragments far less than the default strategy for the
+## mixed allocation sizes a Phoenix request produces.
++MBas aobf
++MHas aobf
++MEas aobf
+
+## Cap the largest multiblock carrier (default 10 MB) so memory freed after a
+## traffic spike is returned to the OS instead of being held in the carrier.
+## Values are in KB.
++MBlmbcs 5120
++MHlmbcs 5120
++MElmbcs 5120
+
+## ---- Per-process heap ceiling ------------------------------------------------
+## 4M words ~= 32 MB per process on 64-bit. An unbounded Repo.all that would
+## otherwise OOM-kill the whole container instead kills ONE request process and
+## logs a stacktrace naming the query.
+##
+## Note this bounds the *process* heap, so it catches struct accumulation
+## (the unpaginated index pages) but NOT large binaries, which live on the
+## shared binary heap — that is what the chunked CSV exports are for.
++hmax 4000000
++hmaxel true
++hmaxk true
