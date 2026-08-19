@@ -6,9 +6,7 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
   the full receivable is settled.
   """
   use Ledgr.DataCase, async: true
-  import Ecto.Query
 
-  alias Ledgr.Core.Accounting
   alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
   alias Ledgr.Domains.HelloDoctor.CorporateSettlements
   alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
@@ -90,17 +88,6 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
     consult
   end
 
-  defp net_cents(code) do
-    from(jl in Accounting.JournalLine,
-      join: a in Accounting.Account,
-      on: a.id == jl.account_id,
-      where: a.code == ^code,
-      select: {coalesce(sum(jl.debit_cents), 0), coalesce(sum(jl.credit_cents), 0)}
-    )
-    |> Repo.one()
-    |> then(fn {d, c} -> d - c end)
-  end
-
   test "booked_ar_cents sums the month's eligible corporate consults" do
     account_id = uid("corp")
     corporate_consult_with_ar(account_id)
@@ -120,13 +107,13 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
     assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == 13_500
   end
 
-  test "recording a full settlement clears the receivable to zero" do
+  test "recording a full settlement stores what was received" do
     account_id = uid("corp")
     corporate_consult_with_ar(account_id)
 
-    assert net_cents("1100") == 13_500
+    assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == 13_500
 
-    assert {:ok, entry} =
+    assert {:ok, settlement} =
              CorporateSettlements.record_settlement("acme", "2026-07", %{
                amount_cents: 13_500,
                date: ~D[2026-08-01],
@@ -134,19 +121,21 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
                account_name: "Acme"
              })
 
-    assert entry.entry_type == "corporate_settlement"
-    assert entry.reference == "Corporate settlement — acme 2026-07"
-
-    # Receivable cleared; the cash landed in Bank-MXN.
-    assert net_cents("1100") == 0
-    assert net_cents("1010") == 13_500
+    assert settlement.account_slug == "acme"
+    assert settlement.month == "2026-07"
+    assert settlement.amount_cents == 13_500
+    assert settlement.deposit_code == "1010"
+    assert settlement.settled_on == ~D[2026-08-01]
+    assert settlement.account_name == "Acme"
+    # Nothing is posted to the ledger any more.
+    assert is_nil(settlement.journal_entry_id)
   end
 
-  test "a partial settlement leaves the residual receivable outstanding" do
+  test "a partial settlement records only what was received" do
     account_id = uid("corp")
     corporate_consult_with_ar(account_id)
 
-    assert {:ok, _} =
+    assert {:ok, settlement} =
              CorporateSettlements.record_settlement("acme", "2026-07", %{
                amount_cents: 10_000,
                date: ~D[2026-08-01],
@@ -154,9 +143,10 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
                account_name: "Acme"
              })
 
-    # $100 of the $135 receivable collected; $35 still outstanding in 1100.
-    assert net_cents("1100") == 3_500
-    assert net_cents("1010") == 10_000
+    # The shortfall stays visible as the gap between booked and settled: the
+    # operator can see $100 came in against a $135 invoice.
+    assert settlement.amount_cents == 10_000
+    assert CorporateSettlements.booked_ar_cents(account_id, "2026-07") == 13_500
   end
 
   test "is idempotent — one settlement per (slug, month)" do
@@ -191,10 +181,7 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
   end
 
   test "defaults an unknown deposit account to Bank-MXN (1010)" do
-    account_id = uid("corp")
-    corporate_consult_with_ar(account_id)
-
-    assert {:ok, _} =
+    assert {:ok, settlement} =
              CorporateSettlements.record_settlement("acme", "2026-07", %{
                amount_cents: 13_500,
                date: ~D[2026-08-01],
@@ -202,6 +189,6 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlementsTest do
                account_name: "Acme"
              })
 
-    assert net_cents("1010") == 13_500
+    assert settlement.deposit_code == "1010"
   end
 end

@@ -89,7 +89,5 @@ end
 defmodule LedgrWeb.Domains.AumentaMiPension.DashboardHTML do
   use LedgrWeb, :html
 
-  import LedgrWeb.CoreComponents
-
   embed_templates "dashboard_html/*"
 end

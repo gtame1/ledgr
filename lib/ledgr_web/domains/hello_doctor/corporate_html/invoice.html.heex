@@ -59,7 +59,7 @@
     </div>
   </div>
 
-  <%!-- ── Settlement (collection leg: Dr 1010 Bank / Cr 1100 AR) ── --%>
+  <%!-- ── Settlement: has the employer paid this month's invoice? ── --%>
   <div class="hd-card p-4 mb-6" style={"border-left: 3px solid #{if @settlement, do: "#16a34a", else: "var(--accent)"};"}>
     <%= if @settlement do %>
       <div class="flex items-start justify-between gap-4 flex-wrap">
@@ -68,8 +68,8 @@
             ✓ Payment recorded — {fmt_cents(@settlement_amount_cents)}
           </div>
           <div class="text-xs mt-1" style="color: var(--text-muted);">
-            Booked {Calendar.strftime(@settlement.date, "%Y-%m-%d")} ·
-            <code>{@settlement.reference}</code> · posted <code>Dr Bank / Cr 1100 A/R</code>
+            Booked {Calendar.strftime(@settlement.settled_on, "%Y-%m-%d")} ·
+            deposited to <code>{@settlement.deposit_code}</code>
           </div>
         </div>
       </div>
@@ -78,9 +78,9 @@
         Record employer payment
       </div>
       <p class="text-xs mb-3" style="color: var(--text-muted); max-width: 78ch;">
-        Posts <code>Dr Bank / Cr 1100 Accounts Receivable</code>, clearing the receivable
-        booked when these consults were delivered. Pre-filled with the
-        <strong>booked receivable</strong> in the GL ({fmt_cents(@booked_ar_cents)}) — which
+        Records what the employer actually paid against this month's invoice.
+        Pre-filled with the
+        <strong>booked amount</strong> for the month ({fmt_cents(@booked_ar_cents)}) — which
         can differ from the bot subtotal above, since that counts cancelled / refunded rows.
         Adjust the amount to match what was actually received.
       </p>
@@ -132,7 +132,7 @@
           class="hd-btn-primary text-sm"
           style="padding: 0.5rem 1.1rem;"
           disabled={@booked_ar_cents == 0}
-          onclick={"return confirm('Record this employer payment for #{@month}? This posts a journal entry.')"}
+          onclick={"return confirm('Record this employer payment for #{@month}?')"}
         >
           Record payment
         </button>
