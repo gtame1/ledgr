@@ -4,7 +4,7 @@ defmodule Ledgr.Domains.HelloDoctor.BillingSyncWorker do
   Evolution) every 15 days and posts the resulting `external_costs` rows to
   the GL.
 
-  Mirrors the `Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker` pattern:
+  Mirrors the `HelloDoctor.ExchangeRateWorker` pattern:
   in-process timer, no extra deps. Only starts when the HelloDoctor repo is
   available (see `Ledgr.Application`).
   """

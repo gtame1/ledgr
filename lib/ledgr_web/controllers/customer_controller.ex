@@ -3,7 +3,6 @@ defmodule LedgrWeb.CustomerController do
 
   alias Ledgr.Core.Customers
   alias Ledgr.Core.Customers.Customer
-  alias Ledgr.Domains.VolumeStudio.Subscriptions
 
   def index(conn, _params) do
     customers = Customers.list_customers()
@@ -11,9 +10,7 @@ defmodule LedgrWeb.CustomerController do
   end
 
   def show(conn, %{"id" => id}) do
-    customer = Customers.get_customer!(id)
-    subscriptions = Subscriptions.list_subscriptions(customer_id: id)
-    render(conn, :show, customer: customer, subscriptions: subscriptions)
+    render(conn, :show, customer: Customers.get_customer!(id))
   end
 
   def api_show(conn, %{"id" => id}) do

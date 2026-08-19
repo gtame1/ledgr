@@ -12,10 +12,12 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListController do
   def index(conn, params) do
     filter_opts = filter_opts(params)
 
-    conversations = Conversations.list_conversations(filter_opts)
+    page = Conversations.paginate_conversations(Keyword.put(filter_opts, :page, params["page"]))
 
     render(conn, :index,
-      conversations: conversations,
+      page: page,
+      conversations: page.entries,
+      filter_params: Map.new(filter_opts, fn {k, v} -> {to_string(k), v} end),
       current_status: params["status"],
       current_funnel_stage: params["funnel_stage"],
       current_search: params["search"],
@@ -56,13 +58,42 @@ defmodule LedgrWeb.Domains.AumentaMiPension.ConversationListController do
   the operator has on screen.
   """
   def download(conn, params) do
-    csv = ConversationBucketExport.to_csv(filter_opts(params))
+    opts = filter_opts(params)
     filename = "amp-conversaciones-buckets-#{Ledgr.Domains.AumentaMiPension.today()}.csv"
 
+    # Run the count BEFORE going chunked. It costs one cheap query and it is
+    # what keeps the rescue below meaningful: once the first chunk is out the
+    # 200 is already committed, so a bot-side schema drift discovered halfway
+    # through would truncate the file with no way to say why.
+    _ = ConversationBucketExport.count_rows(opts)
+
+    conn =
+      conn
+      |> put_resp_content_type("text/csv")
+      |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+      |> send_chunked(200)
+
+    {:ok, conn} = chunk(conn, IO.iodata_to_binary(ConversationBucketExport.header_chunk()))
+
+    {:ok, conn} =
+      Ledgr.Repo.transaction(
+        fn ->
+          opts
+          |> ConversationBucketExport.stream_rows()
+          |> Stream.map(&ConversationBucketExport.row_line/1)
+          |> Stream.chunk_every(500)
+          |> Enum.reduce_while(conn, fn lines, conn ->
+            case chunk(conn, IO.iodata_to_binary(lines)) do
+              {:ok, conn} -> {:cont, conn}
+              # Client hung up mid-download; stop rather than keep streaming.
+              {:error, :closed} -> {:halt, conn}
+            end
+          end)
+        end,
+        timeout: :infinity
+      )
+
     conn
-    |> put_resp_content_type("text/csv")
-    |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
-    |> send_resp(200, csv)
   rescue
     e in Postgrex.Error ->
       # `conversations` / `customers` / `messages` are bot-owned (see CLAUDE.md)

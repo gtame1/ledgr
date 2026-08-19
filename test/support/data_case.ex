@@ -36,38 +36,20 @@ defmodule Ledgr.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid1 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.MrMunchMe, shared: not tags[:async])
-    pid2 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.Viaxe, shared: not tags[:async])
+    # Every configured repo needs a sandbox owner; keep this list in step with
+    # `config :ledgr, :ecto_repos`. A list rather than eight numbered pids so
+    # adding or removing a domain is a one-line change.
+    owners =
+      for repo <- [
+            Ledgr.Repos.MrMunchMe,
+            Ledgr.Repos.HelloDoctor,
+            Ledgr.Repos.AumentaMiPension,
+            Ledgr.Repos.EscuelaDeDinero
+          ] do
+        Ecto.Adapters.SQL.Sandbox.start_owner!(repo, shared: not tags[:async])
+      end
 
-    pid3 =
-      Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.VolumeStudio, shared: not tags[:async])
-
-    pid4 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.LedgrHQ, shared: not tags[:async])
-    pid5 = Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.CasaTame, shared: not tags[:async])
-
-    pid6 =
-      Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.HelloDoctor, shared: not tags[:async])
-
-    pid7 =
-      Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.AumentaMiPension,
-        shared: not tags[:async]
-      )
-
-    pid8 =
-      Ecto.Adapters.SQL.Sandbox.start_owner!(Ledgr.Repos.EscuelaDeDinero,
-        shared: not tags[:async]
-      )
-
-    on_exit(fn ->
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid1)
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid2)
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid3)
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid4)
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid5)
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid6)
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid7)
-      Ecto.Adapters.SQL.Sandbox.stop_owner(pid8)
-    end)
+    on_exit(fn -> Enum.each(owners, &Ecto.Adapters.SQL.Sandbox.stop_owner/1) end)
 
     # Default to MrMunchMe; domain tests override this in their own setup
     Ledgr.Repo.put_active_repo(Ledgr.Repos.MrMunchMe)

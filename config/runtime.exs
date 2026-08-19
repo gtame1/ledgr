@@ -15,58 +15,6 @@ if mr_munch_me_url = System.get_env("MR_MUNCH_ME_DATABASE_URL") || System.get_en
     priv: "priv/repos/mr_munch_me"
 end
 
-if viaxe_url = System.get_env("VIAXE_DATABASE_URL") do
-  db_uri = URI.parse(viaxe_url)
-
-  config :ledgr, Ledgr.Repos.Viaxe,
-    url: viaxe_url,
-    ssl: [
-      verify: :verify_none,
-      server_name_indication: to_charlist(db_uri.host || "")
-    ],
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
-    priv: "priv/repos/viaxe"
-end
-
-if volume_studio_url = System.get_env("VOLUME_STUDIO_DATABASE_URL") do
-  db_uri = URI.parse(volume_studio_url)
-
-  config :ledgr, Ledgr.Repos.VolumeStudio,
-    url: volume_studio_url,
-    ssl: [
-      verify: :verify_none,
-      server_name_indication: to_charlist(db_uri.host || "")
-    ],
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
-    priv: "priv/repos/volume_studio"
-end
-
-if ledgr_hq_url = System.get_env("LEDGR_HQ_DATABASE_URL") do
-  db_uri = URI.parse(ledgr_hq_url)
-
-  config :ledgr, Ledgr.Repos.LedgrHQ,
-    url: ledgr_hq_url,
-    ssl: [
-      verify: :verify_none,
-      server_name_indication: to_charlist(db_uri.host || "")
-    ],
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
-    priv: "priv/repos/ledgr_hq"
-end
-
-if casa_tame_url = System.get_env("CASA_TAME_DATABASE_URL") do
-  db_uri = URI.parse(casa_tame_url)
-
-  config :ledgr, Ledgr.Repos.CasaTame,
-    url: casa_tame_url,
-    ssl: [
-      verify: :verify_none,
-      server_name_indication: to_charlist(db_uri.host || "")
-    ],
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "2"),
-    priv: "priv/repos/casa_tame"
-end
-
 if hello_doctor_url = System.get_env("HELLO_DOCTOR_DATABASE_URL") do
   db_uri = URI.parse(hello_doctor_url)
 
@@ -120,9 +68,9 @@ end
 
 # Domain hostname → slug mapping for production routing.
 # DomainPlug uses this to detect the active domain from the request Host header,
-# allowing each business to run on its own domain (e.g. volumestudio.com).
+# allowing each business to run on its own domain (e.g. hellodoctor.mx).
 # Set DOMAIN_HOSTS as a comma-separated list: "hostname:slug,hostname:slug"
-# Example: "mrmunchme.com:mr-munch-me,volumestudio.com:volume-studio,viaxe.com:viaxe"
+# Example: "mrmunchme.com:mr-munch-me,hellodoctor.mx:hello-doctor"
 if domain_hosts_env = System.get_env("DOMAIN_HOSTS") do
   hosts =
     domain_hosts_env

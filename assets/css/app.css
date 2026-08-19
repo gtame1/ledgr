@@ -8,8 +8,6 @@
 /* Tom Select CSS */
 @import "../vendor/tom-select.min.css";
 
-/* Casa Tame Stitch design overrides */
-@import "./casa-tame-stitch.css";
 
 /* MrMunchMe Stitch design overrides */
 @import "./mr-munch-me-stitch.css";
@@ -21,7 +19,6 @@
 @import "./aumenta-mi-pension-stitch.css";
 
 /* Volume Studio Stitch design overrides */
-@import "./volume-studio-stitch.css";
 
 /* Escuela de Dinero Stitch design overrides */
 @import "./escuela-de-dinero-stitch.css";
@@ -559,43 +556,6 @@
     background: var(--btn-secondary-hover);
     border-color: var(--border-strong);
     color: var(--text-main);
-  }
-
-  /* ── Casa Tame — Quick Actions ─────────────────────────────────── */
-  .ct-quick-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-  }
-
-  .ct-primary-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
-  }
-
-  .ct-secondary-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .ct-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .ct-primary-actions .ct-action-btn {
-    min-height: 2.75rem;
-  }
-
-  .ct-secondary-actions .ct-action-btn {
-    width: 100%;
-    min-height: 2.25rem;
   }
 
   .card-header {
@@ -2489,19 +2449,6 @@
       font-size: 0.68rem;
     }
 
-    /* Casa Tame — Quick Actions: 1 primary button per row on mobile */
-    .ct-quick-actions {
-      padding: 0.75rem 1rem;
-    }
-
-    .ct-primary-actions {
-      grid-template-columns: 1fr;
-    }
-
-    .ct-secondary-actions .ct-action-btn {
-      min-height: 2.5rem;
-    }
-
     /* Period selector */
     .period-selector__dates {
       flex-direction: column;
@@ -3227,7 +3174,7 @@
     margin: 0;
   }
 
-  /* Full image logo card (Viaxe style) */
+  /* Full image logo card */
   .landing-card--has-logo {
     flex-direction: column;
     align-items: stretch;
@@ -6067,96 +6014,4 @@
   background: #f1f5f9;
   color: #64748b;
   border: 1px solid #e2e8f0;
-}
-
-/* ── New Subscription form ─────────────────────────────── */
-
-.new-subscription-card {
-  max-width: 780px;
-}
-
-.sub-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.sub-section-header .section-title {
-  margin: 0;
-}
-
-/* Member mode toggle */
-.mode-toggle {
-  display: inline-flex;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
-}
-
-.mode-toggle-btn {
-  padding: 0.35rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-
-.mode-toggle-btn.active {
-  background: var(--primary);
-  color: #fff;
-}
-
-.mode-toggle-btn:not(.active):hover {
-  background: var(--primary-soft);
-  color: var(--primary);
-}
-
-/* Plan preview card */
-.plan-preview {
-  margin-top: 0.75rem;
-  padding: 0.9rem 1.1rem;
-  background: var(--primary-soft, #f0f4ff);
-  border: 1px solid var(--primary-border, #d0dcf8);
-  border-radius: var(--radius-md);
-}
-
-.plan-preview-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-
-.plan-preview-stats {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.plan-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.plan-stat-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-}
-
-.plan-stat-value {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text-main);
 }

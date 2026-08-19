@@ -192,5 +192,11 @@
         </tbody>
       </table>
     </div>
+
+    <.pagination
+      page={@page}
+      path={dp(@domain_path_prefix, "/conversations")}
+      params={@filter_params}
+    />
   </div>
 </div>

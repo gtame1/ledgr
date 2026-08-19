@@ -56,17 +56,45 @@ defmodule Ledgr.Domains.AumentaMiPension.ConversationBucketExport do
   end
 
   @doc """
+  The UTF-8 BOM plus the header row, as iodata — the first chunk of a streamed
+  download.
+  """
+  def header_chunk, do: [@bom, header_line()]
+
+  @doc "One CSV line as iodata, terminated with CRLF."
+  def header_line, do: line(headers())
+
+  @doc "Renders one fetched row as a CSV line (iodata), terminated with CRLF."
+  def row_line(r), do: line(row(r))
+
+  @doc """
+  Lazily streams the matching rows. Must run inside a `Repo.transaction/2` —
+  `Repo.stream/2` uses a database cursor, which is the point: the whole result
+  set never exists in memory at once.
+  """
+  def stream_rows(opts \\ [], stream_opts \\ [max_rows: 500]) do
+    opts |> base_query() |> Repo.stream(stream_opts)
+  end
+
+  @doc """
+  How many rows the export would contain.
+
+  Called before the response is put into chunked mode so that a bot-side schema
+  drift still surfaces as a readable error page. Once the first chunk is out
+  the status line is already sent and there is no way to report a failure.
+  """
+  def count_rows(opts \\ []) do
+    opts |> base_query() |> exclude(:order_by) |> exclude(:select) |> subquery() |> Repo.aggregate(:count)
+  end
+
+  @doc """
   Renders already-fetched rows (the maps `fetch_rows/1` selects) as a CSV
   string, header included. Split out from `to_csv/1` so the column layout
   and quoting are testable without a database — the bot-owned tables this
   reads don't exist in the test repo.
   """
   def render(rows) when is_list(rows) do
-    body =
-      [headers() | Enum.map(rows, &row/1)]
-      |> Enum.map_join("", fn fields -> Enum.map_join(fields, ",", &csv_field/1) <> "\r\n" end)
-
-    @bom <> body
+    IO.iodata_to_binary([header_chunk() | Enum.map(rows, &row_line/1)])
   end
 
   @doc """
@@ -119,6 +147,10 @@ defmodule Ledgr.Domains.AumentaMiPension.ConversationBucketExport do
   # conversation can exist before the bot has a customer row for it, and
   # those must not silently vanish from the export.
   defp fetch_rows(opts) do
+    opts |> base_query() |> Repo.all()
+  end
+
+  defp base_query(opts) do
     from(c in Conversations.filtered_query(opts),
       left_join: b in ConversationBucket,
       on: b.conversation_id == c.id,
@@ -138,8 +170,9 @@ defmodule Ledgr.Domains.AumentaMiPension.ConversationBucketExport do
         mensajes: fragment("(SELECT count(*) FROM messages m WHERE m.conversation_id = ?)", c.id)
       }
     )
-    |> Repo.all()
   end
+
+  defp line(fields), do: [Enum.map_intersperse(fields, ",", &csv_field/1), "\r\n"]
 
   # A left-join miss gives back either nil or a struct of nils, depending on
   # the Ecto version's struct-loading; treat both as "never tagged".

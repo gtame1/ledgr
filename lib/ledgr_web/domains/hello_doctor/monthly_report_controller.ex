@@ -43,9 +43,30 @@ defmodule LedgrWeb.Domains.HelloDoctor.MonthlyReportController do
     |> send_resp(200, csv)
   end
 
+  # Elixlsx builds the whole workbook in memory — the sheet data, the generated
+  # XML and the zip binary are all live at once — so unlike the CSV exports this
+  # one cannot stream. Bound the input instead. The report is a monthly payout
+  # run; a quarter is already well past the use case.
+  @max_xlsx_days 100
+
   def download_xlsx(conn, params) do
     {start_date, end_date} = resolve_period(params)
     opts = report_opts(params)
+
+    if Date.diff(end_date, start_date) > @max_xlsx_days do
+      conn
+      |> put_flash(
+        :error,
+        "That range is too long for Excel (max #{@max_xlsx_days} days). " <>
+          "Use the CSV download, which has no limit."
+      )
+      |> redirect(to: dp(conn, "/reports/monthly"))
+    else
+      do_download_xlsx(conn, start_date, end_date, opts)
+    end
+  end
+
+  defp do_download_xlsx(conn, start_date, end_date, opts) do
     xlsx = MonthlyReport.generate(start_date, end_date, opts) |> MonthlyReport.to_xlsx()
 
     conn

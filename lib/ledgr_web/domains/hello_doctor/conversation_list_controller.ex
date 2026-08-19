@@ -11,12 +11,17 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
   def index(conn, params) do
     filters = filter_opts(params)
 
-    conversations = Conversations.list_conversations(filters)
-    revenue = ConsultationRevenue.for_conversations(Enum.map(conversations, & &1.id))
+    page = Conversations.paginate_conversations(Keyword.put(filters, :page, params["page"]))
+
+    # Bounded by the page: this aggregate used to run over every conversation
+    # the filter matched.
+    revenue = ConsultationRevenue.for_conversations(Enum.map(page.entries, & &1.id))
 
     render(conn, :index,
-      conversations: conversations,
+      page: page,
+      conversations: page.entries,
       revenue: revenue,
+      filter_params: Map.new(filters, fn {k, v} -> {to_string(k), v} end),
       current_status: params["status"],
       current_funnel_stage: params["funnel_stage"],
       current_search: params["search"],
@@ -186,23 +191,61 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
   """
   def download(conn, params) do
     try do
-      csv =
-        ConversationFunnelExport.to_csv(
-          status: params["status"],
-          funnel_stage: params["funnel_stage"],
-          search: params["search"],
-          start_date: params["start_date"],
-          end_date: params["end_date"],
-          limit: params["limit"]
-        )
+      opts = [
+        status: params["status"],
+        funnel_stage: params["funnel_stage"],
+        search: params["search"],
+        start_date: params["start_date"],
+        end_date: params["end_date"],
+        limit: params["limit"]
+      ]
 
       today = Ledgr.Domains.HelloDoctor.today()
       filename = "hello-doctor-conversation-funnel-#{today}.csv"
 
+      {:ok, conn} =
+        Ledgr.Repo.transaction(
+          fn ->
+            opts
+            |> ConversationFunnelExport.stream_result()
+            |> Enum.reduce_while({conn, false}, fn result, {conn, started?} ->
+              # The header comes off the first chunk, which always arrives —
+              # even when the result set is empty.
+              payload =
+                if started? do
+                  Enum.map(result.rows, &ConversationFunnelExport.encode_line/1)
+                else
+                  [
+                    ConversationFunnelExport.encode_line(result.columns)
+                    | Enum.map(result.rows, &ConversationFunnelExport.encode_line/1)
+                  ]
+                end
+
+              conn =
+                if started? do
+                  conn
+                else
+                  conn
+                  |> put_resp_content_type("text/csv")
+                  |> put_resp_header(
+                    "content-disposition",
+                    ~s(attachment; filename="#{filename}")
+                  )
+                  |> send_chunked(200)
+                end
+
+              case chunk(conn, IO.iodata_to_binary(payload)) do
+                {:ok, conn} -> {:cont, {conn, true}}
+                # Client hung up mid-download.
+                {:error, :closed} -> {:halt, {conn, true}}
+              end
+            end)
+            |> elem(0)
+          end,
+          timeout: :infinity
+        )
+
       conn
-      |> put_resp_content_type("text/csv")
-      |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
-      |> send_resp(200, csv)
     rescue
       e in Postgrex.Error ->
         # Bot-owned tables / columns may drift faster than our schemas. Surface
@@ -210,9 +253,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.ConversationListController do
         # whole SQL query which would blow the session cookie limit).
         require Logger
 
-        Logger.error(
-          "[HelloDoctor] Conversation funnel export failed: #{Exception.message(e)}"
-        )
+        Logger.error("[HelloDoctor] Conversation funnel export failed: #{Exception.message(e)}")
 
         short =
           case e.postgres do

@@ -13,7 +13,6 @@
     "lib/ledgr/domain/dashboard_provider.ex",
     "lib/ledgr/domain/revenue_handler.ex",
 
-    "lib/ledgr/domains/ledgr_hq/",
 
     "lib/ledgr_web/",
 

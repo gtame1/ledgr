@@ -44,9 +44,6 @@ defmodule LedgrWeb.ReportController do
 
     template =
       cond do
-        domain == Ledgr.Domains.VolumeStudio -> :volume_studio_dashboard
-        domain == Ledgr.Domains.LedgrHQ -> :ledgr_hq_dashboard
-        domain == Ledgr.Domains.CasaTame -> :casa_tame_dashboard
         domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_dashboard
         domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_dashboard
         domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_dashboard
@@ -88,40 +85,20 @@ defmodule LedgrWeb.ReportController do
 
     template =
       cond do
-        domain == Ledgr.Domains.CasaTame -> :casa_tame_pnl
         domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_pnl
         domain == Ledgr.Domains.HelloDoctor -> :hello_doctor_pnl
         domain == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_pnl
         true -> :pnl
       end
 
-    # Casa Tame needs expense/income totals by currency for the split P&L
-    extra_assigns =
-      if domain == Ledgr.Domains.CasaTame do
-        [
-          expense_totals: Ledgr.Domains.CasaTame.Expenses.total_by_currency(start_date, end_date),
-          expense_by_account:
-            Ledgr.Domains.CasaTame.Expenses.totals_by_account_and_currency(start_date, end_date),
-          income_by_category:
-            Ledgr.Domains.CasaTame.Income.totals_by_category_and_currency(start_date, end_date),
-          income_totals: Ledgr.Domains.CasaTame.Income.total_by_currency(start_date, end_date)
-        ]
-      else
-        []
-      end
-
-    render(
-      conn,
-      template,
-      [
-        summary: summary,
-        monthly: monthly,
-        months_window: months_window,
-        start_date: start_date,
-        end_date: end_date,
-        earliest_date: earliest_date,
-        latest_date: latest_date
-      ] ++ extra_assigns
+    render(conn, template,
+      summary: summary,
+      monthly: monthly,
+      months_window: months_window,
+      start_date: start_date,
+      end_date: end_date,
+      earliest_date: earliest_date,
+      latest_date: latest_date
     )
   end
 
@@ -138,7 +115,6 @@ defmodule LedgrWeb.ReportController do
 
     template =
       cond do
-        Domain.current() == Ledgr.Domains.CasaTame -> :casa_tame_balance_sheet
         Domain.current() == Ledgr.Domains.MrMunchMe -> :mr_munch_me_balance_sheet
         Domain.current() == Ledgr.Domains.HelloDoctor -> :hello_doctor_balance_sheet
         Domain.current() == Ledgr.Domains.AumentaMiPension -> :aumenta_mi_pension_balance_sheet
@@ -245,7 +221,6 @@ defmodule LedgrWeb.ReportController do
 
     template =
       cond do
-        domain == Ledgr.Domains.CasaTame -> :casa_tame_cash_flow
         domain == Ledgr.Domains.MrMunchMe -> :mr_munch_me_cash_flow
         true -> :cash_flow
       end

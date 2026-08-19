@@ -51,6 +51,12 @@ services:
       - key: POOL_SIZE
         value: "2"
 
+      # Hello Doctor defaults to 6 (config/runtime.exs). Each Postgrex
+      # connection is TLS, so it carries its own SSL session state — on a
+      # 512 MB box the pools are a meaningful slice of the budget.
+      - key: HELLO_DOCTOR_POOL_SIZE
+        value: "3"
+
       # Credentials for the admin user created by `bin/ledgr seed`
       # Set these in the Render dashboard (not here) to keep them secret.
       - key: ADMIN_EMAIL
@@ -66,16 +72,6 @@ services:
       - key: MR_MUNCH_ME_DATABASE_URL
         fromDatabase:
           name: ledgr-mr-munch-me-db
-          property: connectionString
-
-      - key: VIAXE_DATABASE_URL
-        fromDatabase:
-          name: ledgr-viaxe-db
-          property: connectionString
-
-      - key: VOLUME_STUDIO_DATABASE_URL
-        fromDatabase:
-          name: ledgr-volume-studio-db
           property: connectionString
 
       # Externally-hosted databases (Neon) — the actual URLs live in the Render
@@ -95,12 +91,3 @@ databases:
     user: ledgr_mr_munch_me
     plan: starter        # 'free' gives 1 free DB per account; second one requires paid plan
 
-  - name: ledgr-viaxe-db
-    databaseName: ledgr_viaxe_prod
-    user: ledgr_viaxe
-    plan: starter
-
-  - name: ledgr-volume-studio-db
-    databaseName: ledgr_volume_studio_prod
-    user: ledgr_volume_studio
-    plan: starter

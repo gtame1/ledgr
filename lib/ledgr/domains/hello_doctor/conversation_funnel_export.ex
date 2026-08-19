@@ -51,6 +51,27 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
     |> IO.iodata_to_binary()
   end
 
+  @doc """
+  Lazily streams the same result set in database-cursor chunks. Must run inside
+  a `Repo.transaction/2`.
+
+  Each element is an `%Ecto.Adapters.SQL.Result{}`-shaped map carrying
+  `:columns` and `:rows`. The first chunk always arrives — even for an empty
+  result — so the CSV header can be taken from it.
+
+  This exists because `to_csv/1` materialises the Postgrex rows, the encoded
+  iodata and the final binary all at once. With no default `:limit`, a 50-column
+  CSV over the whole conversations table was several multiples of the file size
+  in peak memory.
+  """
+  def stream_result(opts \\ [], stream_opts \\ [max_rows: 500]) do
+    {sql, params} = build_query(opts)
+    Ecto.Adapters.SQL.stream(Repo.active_repo(), sql, params, stream_opts)
+  end
+
+  @doc "Encodes one row (a list of values) as a CSV line, terminated with CRLF."
+  def encode_line(values), do: encode_row(values)
+
   # ── Query assembly ──────────────────────────────────────────────
 
   defp build_query(opts) do

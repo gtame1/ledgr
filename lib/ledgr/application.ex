@@ -72,8 +72,6 @@ defmodule Ledgr.Application do
         |> Enum.map(fn {_env_var, repo} -> repo end)
       end
 
-    # Start exchange rate worker only when Casa Tame repo is available.
-    # Skip in :test to avoid spurious DB connections during the test run.
     # Pull HelloDoctor external billing (OpenAI, Whereby, AWS) every 15 days
     # and post the new costs to the GL. Skip in :test.
     children =
@@ -87,10 +85,6 @@ defmodule Ledgr.Application do
           {Phoenix.PubSub, name: Ledgr.PubSub},
           Ledgr.Domains.MrMunchMe.PendingCheckoutRecovery
         ] ++
-        if(@mix_env != :test and Ledgr.Repos.CasaTame in optional_repos,
-          do: [Ledgr.Domains.CasaTame.ExchangeRates.ExchangeRateWorker],
-          else: []
-        ) ++
         if(@mix_env != :test and Ledgr.Repos.HelloDoctor in optional_repos,
           do: [
             Ledgr.Domains.HelloDoctor.BillingSyncWorker,

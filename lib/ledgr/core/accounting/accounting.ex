@@ -584,7 +584,7 @@ defmodule Ledgr.Core.Accounting do
     end)
   end
 
-  # Infer currency from Casa Tame account code prefix:
+  # Infer currency from the account code prefix:
   #   10xx, 20xx → USD   |   11xx, 21xx (and others) → MXN
   defp infer_account_currency(code) do
     case String.slice(code, 0, 2) do

@@ -12,9 +12,23 @@ defmodule Ledgr.Domains.EscuelaDeDinero.Conversations do
   alias Ledgr.Domains.EscuelaDeDinero.Messages.Message
   alias Ledgr.Domains.EscuelaDeDinero.People.Person
   alias Ledgr.Domains.EscuelaDeDinero.PolicingEvents.PolicingEvent
+  alias Ledgr.Pagination
   alias Ledgr.Repo
 
-  def list(opts \\ %{}) do
+  @doc """
+  One page of conversations as a `%Ledgr.Pagination{}`, newest first.
+
+  Accepts the filter map plus `:page` / `:page_size`. The underlying query
+  groups by conversation to count messages, so the total is counted through a
+  subquery (see `Ledgr.Pagination`).
+  """
+  def paginate(opts \\ %{}) do
+    opts
+    |> filtered_query()
+    |> Pagination.paginate(page: opts[:page], page_size: opts[:page_size])
+  end
+
+  defp filtered_query(opts) do
     from(c in Conversation,
       join: p in Person,
       on: p.id == c.person_id,
@@ -39,7 +53,6 @@ defmodule Ledgr.Domains.EscuelaDeDinero.Conversations do
       }
     )
     |> apply_filters(opts)
-    |> Repo.all()
   end
 
   defp apply_filters(query, opts) do

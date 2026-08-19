@@ -528,12 +528,26 @@ defmodule Ledgr.Domains.MrMunchMe.Inventory.Verification do
       {:customer_deposits, &verify_customer_deposits/0}
     ]
 
+    # `Repo.active_repo/0` reads the process dictionary, which a spawned task
+    # does not inherit — these checks only ever resolved correctly because
+    # MrMunchMe is the configured default. Carry it across explicitly.
+    repo = Repo.active_repo()
+
+    # Capped at 2. Every check runs unbounded `Repo.all` with preloads, so
+    # twelve at once meant twelve full result sets alive simultaneously — and
+    # on a 0.5 vCPU box with a pool of 2 they were queueing on checkout anyway,
+    # so the parallelism was never buying throughput.
     checks
-    |> Enum.map(fn {name, fun} ->
-      task = Task.async(fn -> {name, fun.()} end)
-      {name, task}
-    end)
-    |> Enum.map(fn {_name, task} -> Task.await(task, 30_000) end)
+    |> Task.async_stream(
+      fn {name, fun} ->
+        Repo.put_active_repo(repo)
+        {name, fun.()}
+      end,
+      max_concurrency: 2,
+      timeout: 30_000,
+      ordered: false
+    )
+    |> Enum.map(fn {:ok, result} -> result end)
     |> Map.new()
   end
 
