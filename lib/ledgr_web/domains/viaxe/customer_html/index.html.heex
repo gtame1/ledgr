@@ -1,0 +1,63 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Customers</h2>
+    <p class="card-subtitle">Manage traveler profiles and documents</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/customers/new")} class="btn primary">
+      + New Customer
+    </.link>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@customers) do %>
+          <tr>
+            <td colspan="4">No customers yet.</td>
+          </tr>
+        <% else %>
+          <%= for customer <- @customers do %>
+            <tr>
+              <td>
+                <.link
+                  navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")}
+                  class="link-text"
+                >
+                  {full_name(customer)}
+                </.link>
+              </td>
+              <td>{customer.phone}</td>
+              <td>{customer.email || "—"}</td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/customers/#{customer.id}")}
+                    class="btn btn-sm"
+                  >
+                    View
+                  </.link>
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/customers/#{customer.id}/edit")}
+                    class="btn btn-sm"
+                  >
+                    Edit
+                  </.link>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

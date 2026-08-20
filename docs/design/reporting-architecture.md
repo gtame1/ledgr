@@ -3,7 +3,7 @@
 **Status:** proposed
 **Date:** 2026-08-01
 **Scope:** Hello Doctor **only**. Every other Ledgr domain (Aumenta Mi Pensión,
-Mr Munch Me) is out of scope for
+Mr Munch Me, Viaxe) is out of scope for
 this project, including their dashboards. The pattern should generalise later,
 but proving it on one domain comes first.
 

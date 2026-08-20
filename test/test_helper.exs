@@ -3,6 +3,7 @@
 # one connection per repo in DataCase, so max_cases * repos must fit.
 ExUnit.start(max_cases: 5)
 Ecto.Adapters.SQL.Sandbox.mode(Ledgr.Repos.MrMunchMe, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Ledgr.Repos.Viaxe, :manual)
 # The bot has added columns to HD's `conversations` that correctly have no
 # Ledgr migration (writing one would alter the bot's real table on deploy).
 # Add them here so the mirror in Conversations.Conversation is queryable.
