@@ -1,0 +1,115 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Edit Booking #{@booking.id}</h2>
+    <.link navigate={dp(@domain_path_prefix, "/bookings/#{@booking.id}")} class="btn">
+      ← Back
+    </.link>
+  </div>
+
+  <.form :let={f} for={@changeset} action={@action} as={:booking} method="put">
+    <div class="form-section">
+      <div class="form-section-title">Booking Details</div>
+      <div class="form-grid">
+        <div class="form-block">
+          <div class="field">
+            <label>Customer *</label>
+            <.input
+              type="select"
+              field={f[:customer_id]}
+              options={[{"Select customer...", ""} | @customers]}
+            />
+          </div>
+
+          <div class="field">
+            <label>Trip (optional)</label>
+            <.input
+              type="select"
+              field={f[:trip_id]}
+              options={[{"Standalone booking", ""} | @trips]}
+            />
+          </div>
+
+          <div class="field">
+            <label>Booking Type</label>
+            <.input
+              type="select"
+              field={f[:booking_type]}
+              options={[
+                {"Select type...", ""},
+                {"✈️ Flight", "flight"},
+                {"🏨 Hotel", "hotel"},
+                {"🗺 Tour", "tour"},
+                {"🚌 Transfer", "transfer"},
+                {"🚗 Car Rental", "car_rental"},
+                {"🚢 Cruise", "cruise"},
+                {"🛡 Insurance", "insurance"},
+                {"📋 Other", "other"}
+              ]}
+            />
+          </div>
+
+          <div class="field">
+            <label>Booking Date *</label>
+            <.input type="date" field={f[:booking_date]} />
+          </div>
+
+          <div class="field">
+            <label>Destination</label>
+            <.input type="text" field={f[:destination]} />
+          </div>
+
+          <div class="field">
+            <label>Travel Date</label>
+            <.input type="date" field={f[:travel_date]} />
+          </div>
+
+          <div class="field">
+            <label>Return Date</label>
+            <.input type="date" field={f[:return_date]} />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Commission</div>
+      <div class="form-grid">
+        <div class="form-block">
+          <div class="field">
+            <label>Commission Type</label>
+            <.input
+              type="select"
+              field={f[:commission_type]}
+              options={[
+                {"Select...", ""},
+                {"Fixed amount", "fixed"},
+                {"Percentage of total price", "percentage"}
+              ]}
+            />
+          </div>
+          <div class="field">
+            <label>Commission Value</label>
+            <.input type="number" field={f[:commission_value]} min="0" />
+            <span class="field-hint">
+              Fixed: enter amount in cents. Percentage: enter basis points (e.g. 1500 = 15.00%)
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Notes</div>
+      <div class="field">
+        <.input type="textarea" field={f[:notes]} />
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 1rem;">
+      <button type="submit" class="btn primary">Save Changes</button>
+      <.link navigate={dp(@domain_path_prefix, "/bookings/#{@booking.id}")} class="btn">
+        Cancel
+      </.link>
+    </div>
+  </.form>
+</section>

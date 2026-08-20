@@ -1,0 +1,78 @@
+<section class="card">
+  <div class="card-header">
+    <h2 class="card-title">Services</h2>
+    <p class="card-subtitle">Manage your travel service catalog</p>
+  </div>
+
+  <div class="actions" style="margin-bottom: 0.75rem;">
+    <.link navigate={dp(@domain_path_prefix, "/services/new")} class="btn primary">
+      + New Service
+    </.link>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Default Cost</th>
+          <th>Default Price</th>
+          <th>Margin</th>
+          <th>Active</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= if Enum.empty?(@services) do %>
+          <tr>
+            <td colspan="7">No services yet.</td>
+          </tr>
+        <% else %>
+          <%= for service <- @services do %>
+            <tr>
+              <td>{service.name}</td>
+              <td><span class="status-badge">{String.capitalize(service.category)}</span></td>
+              <td>{format_currency(service.default_cost_cents || 0)}</td>
+              <td>{format_currency(service.default_price_cents || 0)}</td>
+              <td>
+                <%= if service.default_cost_cents && service.default_price_cents && service.default_cost_cents > 0 do %>
+                  {format_currency(
+                    (service.default_price_cents || 0) - (service.default_cost_cents || 0)
+                  )}
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td>
+                <%= if service.active do %>
+                  <span class="status-badge status-paid">Active</span>
+                <% else %>
+                  <span class="status-badge status-unpaid">Inactive</span>
+                <% end %>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <.link
+                    navigate={dp(@domain_path_prefix, "/services/#{service.id}/edit")}
+                    class="btn btn-sm"
+                  >
+                    Edit
+                  </.link>
+                  <.link
+                    href={dp(@domain_path_prefix, "/services/#{service.id}")}
+                    method="delete"
+                    data-confirm="Are you sure?"
+                    class="btn btn-sm danger"
+                  >
+                    Delete
+                  </.link>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>
