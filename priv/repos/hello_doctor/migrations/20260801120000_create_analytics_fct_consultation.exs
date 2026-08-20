@@ -25,6 +25,8 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.CreateAnalyticsFctConsultation do
   bugs. Revisit only if it measurably hurts.
   """
 
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
+
   def up do
     execute("CREATE SCHEMA IF NOT EXISTS analytics")
 
@@ -132,7 +134,7 @@ defmodule Ledgr.Repos.HelloDoctor.Migrations.CreateAnalyticsFctConsultation do
        END)                                                        AS gross_mxn,
 
       -- The doctor's rate for this consultation. Mirrors the GL rule in
-      -- ConsultationAccounting.doctor_share_sql/2 so figures tie to account
+      -- DoctorRates.doctor_share_sql/2 so figures tie to account
       -- 2000. Keyed on conversations.tenant, NOT is_direct — see the comment
       -- on is_direct.
       (CASE

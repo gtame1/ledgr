@@ -10,7 +10,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
       pesos).
     * **doctor_share** — the frozen $100 from `consultation_payouts`
       (authoritative), falling back to the flat
-      `ConsultationAccounting.doctor_share_mxn/0` for any billed
+      `DoctorRates.doctor_share_mxn/0` for any billed
       consultation without a snapshot row yet. Cancelled / failed consults
       are $0 — the visit never happened, so nothing is earned.
     * **stripe_fee** / **refunded** — from `stripe_payments`.
@@ -25,7 +25,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
   """
 
   alias Ledgr.Repo
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @doc "Revenue keyed by consultation id, for the given consultation ids."
@@ -54,7 +54,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConsultationRevenue do
     # Fallback share (for any consult not yet frozen) is tenant-aware, same
     # rule as the frozen value: direct → the doctor's fee, else flat.
     share_fallback =
-      ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+      DoctorRates.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     sql = """
     SELECT

@@ -14,7 +14,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
   require Logger
 
   alias Ledgr.Repo
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
   alias Ledgr.Domains.HelloDoctor.Consultations
   alias Ledgr.Domains.HelloDoctor.StripeRefunds
@@ -533,7 +533,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeSync do
 
       lines =
         if doctor_payable_account do
-          doctor_payout_cents = ConsultationAccounting.doctor_share_cents()
+          doctor_payout_cents = DoctorRates.doctor_share_cents()
 
           lines ++
             [

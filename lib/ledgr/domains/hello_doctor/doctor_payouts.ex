@@ -21,7 +21,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
   alias Ledgr.Repo
   alias Ledgr.Core.Accounting
   alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
   alias Ledgr.Domains.HelloDoctor.ConsultationPayouts
   alias Ledgr.Domains.HelloDoctor.Conversations.Conversation
@@ -210,7 +210,7 @@ defmodule Ledgr.Domains.HelloDoctor.DoctorPayouts do
       refunded = to_float(row.amount_refunded)
       fee = to_float(row.stripe_fee)
       # Tenant-aware: direct patients pay the doctor's own fee, else flat.
-      share = ConsultationAccounting.doctor_share_mxn(row.tenant, to_float(row.doctor_fee_mxn))
+      share = DoctorRates.doctor_share_mxn(row.tenant, to_float(row.doctor_fee_mxn))
 
       # `pay_doctor?` is the source of truth for whether the doctor is owed.
       # Default: pay when there's no explicit decision AND the consult is a real

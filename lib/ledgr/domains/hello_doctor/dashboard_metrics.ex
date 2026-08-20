@@ -21,7 +21,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   alias Ledgr.Domains.HelloDoctor.ExternalCosts.ExternalCost
   alias Ledgr.Domains.HelloDoctor.Patients.Patient
   alias Ledgr.Domains.HelloDoctor.PatientSegments
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.Nps
   alias Ledgr.Domains.HelloDoctor.TestAccounts
 
@@ -366,7 +366,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
     end_exclusive = to_naive_end_exclusive(end_date)
 
     free_share_sql =
-      ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+      DoctorRates.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     sql = """
     SELECT
@@ -1344,7 +1344,7 @@ defmodule Ledgr.Domains.HelloDoctor.DashboardMetrics do
   """
   def doctor_payout_report(start_date, end_date) do
     doctor_share_pesos =
-      Ledgr.Domains.HelloDoctor.ConsultationAccounting.doctor_share_mxn()
+      Ledgr.Domains.HelloDoctor.DoctorRates.doctor_share_mxn()
 
     per_doctor =
       from d in Doctor,

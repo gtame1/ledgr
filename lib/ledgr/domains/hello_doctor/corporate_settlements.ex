@@ -1,37 +1,29 @@
 defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
   @moduledoc """
   Records employer payments against a monthly corporate invoice — the
-  collection leg that clears the receivable posted when a corporate consult is
-  delivered.
+  collection leg for consults an employer is billed for rather than the
+  patient.
 
-  A corporate consult recognizes revenue against Accounts Receivable
-  (`ConsultationAccounting.record_corporate_payment/1`:
-  `Dr 1100 / Cr 4000`). When the employer settles that month's invoice, this
-  posts the cash movement:
+  Scope: one settlement per (account, month), enforced by a unique index. The
+  amount defaults to the **booked** AR for the month (Σ `payment_amount` of
+  that account's eligible corporate consults), but the operator can override
+  it to match what was actually received.
 
-      DEBIT  1010 Bank - MXN            $amount   (money in)
-      CREDIT 1100 Accounts Receivable   $amount   (receivable cleared)
+  Attribution is by the consult's Mexico-City completion month.
 
-  Scope: one settlement per (account, month), reference-keyed and idempotent —
-  no denormalized table (same style as the comp-accrual entries). The amount
-  defaults to the **booked** AR for the month (Σ `payment_amount` of that
-  account's eligible corporate consults, which is exactly what
-  `record_corporate_payment/1` debited to 1100), but the operator can override
-  it to match what was actually received — a short-pay simply leaves the
-  residual sitting in 1100, which is correct.
-
-  Attribution is by the consult's Mexico-City completion month, matching the
-  date `record_corporate_payment/1` stamps on the AR entry, so the two line up.
+  Until 2026-08 a settlement had no table of its own — it *was* a journal
+  entry, looked up by a `"Corporate settlement — <slug> <month>"` reference,
+  with the amount summed from its lines. Hello Doctor no longer posts to the
+  general ledger, so the state lives in `corporate_settlements` now. Rows
+  migrated from the old entries keep a `journal_entry_id` pointer.
   """
 
   require Logger
   import Ecto.Query, warn: false
 
+  alias Ledgr.Domains.HelloDoctor.CorporateSettlements.CorporateSettlement
   alias Ledgr.Repo
-  alias Ledgr.Core.Accounting
-  alias Ledgr.Core.Accounting.JournalEntry
 
-  @accounts_receivable_code "1100"
   @default_deposit_code "1010"
 
   @doc """
@@ -79,16 +71,11 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
   def booked_ar_cents(_, _), do: 0
 
   @doc """
-  The settlement journal entry for (slug, month) with its lines preloaded, or
-  `nil` if the invoice hasn't been settled yet.
+  The settlement for (slug, month), or `nil` if the invoice hasn't been
+  settled yet.
   """
   def settlement_for(slug, month) when is_binary(slug) and is_binary(month) do
-    ref = reference(slug, month)
-
-    JournalEntry
-    |> where([je], je.reference == ^ref)
-    |> preload(:journal_lines)
-    |> Repo.one()
+    Repo.get_by(CorporateSettlement, account_slug: slug, month: month)
   end
 
   def settlement_for(_, _), do: nil
@@ -96,9 +83,9 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
   @doc "Whether (slug, month) already has a settlement recorded."
   def settled?(slug, month), do: not is_nil(settlement_for(slug, month))
 
-  @doc "Amount settled (debit side), in centavos, for a settlement entry."
-  def settlement_amount_cents(%JournalEntry{journal_lines: lines}) when is_list(lines),
-    do: Enum.reduce(lines, 0, fn l, acc -> acc + (l.debit_cents || 0) end)
+  @doc "Amount settled, in centavos."
+  def settlement_amount_cents(%CorporateSettlement{amount_cents: cents}) when is_integer(cents),
+    do: cents
 
   def settlement_amount_cents(_), do: 0
 
@@ -126,43 +113,28 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
   end
 
   defp do_record_settlement(slug, month, attrs, amount_cents) do
-    deposit_code = normalize_deposit(attrs[:deposit_code])
     name = attrs[:account_name] || slug
-    date = attrs[:date] || Ledgr.Domains.HelloDoctor.today()
 
-    accounts_receivable = Accounting.get_account_by_code!(@accounts_receivable_code)
-    deposit = Accounting.get_account_by_code!(deposit_code)
-
-    entry_attrs = %{
-      date: date,
-      entry_type: "corporate_settlement",
-      reference: reference(slug, month),
-      description: "Corporate settlement — #{name} — #{month}",
-      payee: name
+    attrs = %{
+      account_slug: slug,
+      month: month,
+      amount_cents: amount_cents,
+      deposit_code: normalize_deposit(attrs[:deposit_code]),
+      settled_on: attrs[:date] || Ledgr.Domains.HelloDoctor.today(),
+      account_name: name
     }
 
-    lines = [
-      %{
-        account_id: deposit.id,
-        debit_cents: amount_cents,
-        credit_cents: 0,
-        description: "Payment received from #{name} (#{month})"
-      },
-      %{
-        account_id: accounts_receivable.id,
-        debit_cents: 0,
-        credit_cents: amount_cents,
-        description: "Clearing corporate receivable — #{name} (#{month})"
-      }
-    ]
-
-    case Accounting.create_journal_entry_with_lines(entry_attrs, lines) do
-      {:ok, entry} ->
+    %CorporateSettlement{}
+    |> CorporateSettlement.changeset(attrs)
+    |> Repo.insert()
+    |> case do
+      {:ok, settlement} ->
         Logger.info(
-          "[HelloDoctor] Recorded corporate settlement ##{entry.id} for #{slug} #{month}: $#{amount_cents / 100} MXN → #{deposit_code}"
+          "[HelloDoctor] Recorded corporate settlement ##{settlement.id} for #{slug} #{month}: " <>
+            "$#{amount_cents / 100} MXN → #{settlement.deposit_code}"
         )
 
-        {:ok, entry}
+        {:ok, settlement}
 
       {:error, changeset} ->
         Logger.error(
@@ -173,7 +145,10 @@ defmodule Ledgr.Domains.HelloDoctor.CorporateSettlements do
     end
   end
 
-  @doc "Stable idempotency reference for a (slug, month) settlement."
+  @doc """
+  The reference the pre-2026-08 journal entries used. Kept so the backfill
+  migration and any historical lookup agree on the key.
+  """
   def reference(slug, month), do: "Corporate settlement — #{slug} #{month}"
 
   defp normalize_deposit(code) when is_binary(code) do

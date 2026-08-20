@@ -23,7 +23,7 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
   require Logger
 
   alias Ledgr.Repo
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.ConsultationPayoutDecisions
   alias Ledgr.Domains.HelloDoctor.Consultations.Consultation
   alias Ledgr.Domains.HelloDoctor.StripePayments.StripePayment
@@ -273,8 +273,8 @@ defmodule Ledgr.Domains.HelloDoctor.StripeRefunds do
   # found, so a stray payment still balances the reversal.
   defp doctor_share_cents_for_payment(payment) do
     case consultation_for_payment(payment) do
-      %Consultation{} = c -> ConsultationAccounting.doctor_share_cents(c)
-      _ -> ConsultationAccounting.doctor_share_cents()
+      %Consultation{} = c -> DoctorRates.doctor_share_cents(c)
+      _ -> DoctorRates.doctor_share_cents()
     end
   end
 

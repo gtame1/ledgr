@@ -22,6 +22,9 @@
 
 require Logger
 
+# Dev logs every query; at ~120 tables plus 54 pages that dominates the runtime.
+Logger.configure(level: :warning)
+
 out_dir = System.argv() |> List.first() || "tmp/baseline"
 File.mkdir_p!(Path.join(out_dir, "bodies"))
 

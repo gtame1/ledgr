@@ -209,7 +209,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
     case BotAdmin.get_corporate_invoice(slug, month) do
       {:ok, body} ->
         # The bot invoice's subtotal (count × rate) can include cancelled /
-        # refunded rows; the GL settlement clears the AR we actually booked
+        # refunded rows; the settlement records what was actually received
         # (`booked_ar_cents`), so surface both. `account["id"]` (the bot UUID)
         # is what corporate consults carry, needed to compute booked AR.
         account_id =
@@ -245,7 +245,7 @@ defmodule LedgrWeb.Domains.HelloDoctor.CorporateController do
 
   @doc """
   Records an employer payment against the (slug, month) invoice, posting the
-  collection JE (`Dr <deposit> / Cr 1100`). One settlement per month.
+  collection record. One settlement per (account, month).
   """
   def settle_invoice(conn, %{"slug" => slug} = params) do
     month = params["month"] || default_month()

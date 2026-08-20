@@ -26,7 +26,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
 
   alias Ledgr.Repo
   alias Ledgr.Domains.HelloDoctor
-  alias Ledgr.Domains.HelloDoctor.ConsultationAccounting
+  alias Ledgr.Domains.HelloDoctor.DoctorRates
   alias Ledgr.Domains.HelloDoctor.TestAccounts
 
   @doc """
@@ -75,7 +75,7 @@ defmodule Ledgr.Domains.HelloDoctor.ConversationFunnelExport do
   # ── Query assembly ──────────────────────────────────────────────
 
   defp build_query(opts) do
-    share = ConsultationAccounting.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
+    share = DoctorRates.doctor_share_sql("conv.tenant", "d.consultation_fee_mxn")
 
     # Doctor share for the revenue block: cancelled / failed consults never
     # happened → $0, regardless of any frozen payout row. Otherwise prefer the
