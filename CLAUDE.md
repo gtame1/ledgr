@@ -65,11 +65,18 @@ When adding a new business domain (e.g. "Acme Co"), follow this checklist:
 
 7. **Wire the slug** in `lib/ledgr_web/plugs/domain_plug.ex`'s `@domain_slugs` map.
 
-8. **Set the env var in the Render dashboard, then _deploy_** — and declare it
-   in `render.yaml` (`sync: false`). This is the step that gets skipped: the
+8. **Set the env var in the Render dashboard, then _deploy_** — then mirror it
+   into `render.yaml` (`sync: false`). This is the step that gets skipped: the
    domain's routes deploy, the repo never starts, and *every* page for that
    domain — login included — returns 503. The boot log names any repo it
    skipped, and `DomainPlug` logs the missing variable on each request.
+
+   The dashboard is the step that matters. **`render.yaml` is documentation
+   only** — the service is not connected to a Blueprint, so nothing in that file
+   reaches a deploy; adding a variable there and stopping does nothing at all.
+   Mirror it anyway so the file stays an accurate record, but set it in the
+   dashboard first. (See the header comment in `render.yaml`, and the
+   `HELLO_DOCTOR_POOL_SIZE` that silently never took effect on 2026-08-20.)
 
    Setting the variable is not enough on its own. Render bakes the environment
    into the deploy, so **restarting the service reuses the old environment** —
