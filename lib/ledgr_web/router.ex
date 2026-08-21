@@ -477,11 +477,10 @@ defmodule LedgrWeb.Router do
   scope "/app/aumenta-mi-pension", LedgrWeb do
     pipe_through [:browser, :require_auth]
 
-    # `/` is served by the domain's own controller — declared BEFORE the
-    # macro so it wins the match. See the Hello Doctor scope.
+    # No core_routes_* here: this domain posts nothing to the general ledger,
+    # so it routes none of the accounting surface. Same shape as Escuela de
+    # Dinero. `menu_items/0` is therefore the only way to reach a page.
     get "/", Domains.AumentaMiPension.DashboardController, :index
-
-    core_routes_no_customers()
 
     # Conversations + their operator buckets as CSV. Must come BEFORE the
     # resources block so "download" isn't captured as `:id` by `:show`.

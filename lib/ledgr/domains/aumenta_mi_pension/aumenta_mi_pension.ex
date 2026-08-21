@@ -97,39 +97,22 @@ defmodule Ledgr.Domains.AumentaMiPension do
     }
   end
 
+  # No accounting in this domain. Both callbacks are required by
+  # Ledgr.Domain.DomainConfig, so they stay declared and empty — same as
+  # Escuela de Dinero.
+  #
+  # The chart of accounts that used to live here (1000 Cash … 6020 Operating
+  # Expense) described a ledger AMP no longer posts to. `journal_entry_types/0`
+  # is flat-mapped across every registered domain to build the validation list
+  # in JournalEntry.types/0; of the five types declared here, four are still
+  # posted by Hello Doctor and remain valid through its own declaration.
+  # "agent_payout" was AMP's alone and drops out, which is correct — nothing
+  # writes it, and the historical rows are frozen against UPDATE.
   @impl Ledgr.Domain.DomainConfig
-  def account_codes do
-    %{
-      # Assets
-      cash: "1000",
-      ar: "1100",
-      stripe_receivable: "1200",
-      # Liabilities
-      agent_payable: "2000",
-      refunds_payable: "2100",
-      # Equity
-      owners_equity: "3000",
-      retained_earnings: "3050",
-      # Revenue
-      consultation_revenue: "4000",
-      commission_revenue: "4100",
-      # Expenses
-      payment_processing: "6000",
-      refunds_expense: "6010",
-      operating_expense: "6020"
-    }
-  end
+  def account_codes, do: %{}
 
   @impl Ledgr.Domain.DomainConfig
-  def journal_entry_types do
-    [
-      {"Consultation Payment", "consultation_payment"},
-      {"Agent Payout", "agent_payout"},
-      {"Refund", "refund"},
-      {"Commission", "commission"},
-      {"Operating Expense", "operating_expense"}
-    ]
-  end
+  def journal_entry_types, do: []
 
   @impl Ledgr.Domain.DomainConfig
   def menu_items do
@@ -155,9 +138,7 @@ defmodule Ledgr.Domains.AumentaMiPension do
       %{
         group: "Finance",
         items: [
-          %{label: "Payments", path: "#{prefix}/payments", icon: :expenses},
-          %{label: "Balance Sheet", path: "#{prefix}/reports/balance_sheet", icon: :reports},
-          %{label: "P&L", path: "#{prefix}/reports/pnl", icon: :reports}
+          %{label: "Payments", path: "#{prefix}/payments", icon: :expenses}
         ]
       }
     ]
@@ -177,9 +158,7 @@ defmodule Ledgr.Domains.AumentaMiPension do
       "Agent Chats" => "forum",
       "Agents" => "support_agent",
       "Customers" => "group",
-      "Payments" => "payments",
-      "Balance Sheet" => "account_balance",
-      "P&L" => "bar_chart"
+      "Payments" => "payments"
     }
   end
 
