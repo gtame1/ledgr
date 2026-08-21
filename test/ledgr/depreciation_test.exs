@@ -3,6 +3,7 @@ defmodule Ledgr.Core.DepreciationTest do
 
   alias Ledgr.Core.Accounting
   alias Ledgr.Repo
+  alias LedgrWeb.Helpers.DomainHelpers
 
   import Ledgr.Core.AccountingFixtures
 
@@ -97,7 +98,11 @@ defmodule Ledgr.Core.DepreciationTest do
     test "uses default date, reference, and description when not provided", %{} do
       {:ok, entry} = Accounting.record_depreciation(3_000)
 
-      assert entry.date == Date.utc_today()
+      # record_depreciation/2 defaults to today_mx(), not UTC. Asserting
+      # Date.utc_today() here made this test fail every night between Mexico
+      # City midnight and UTC midnight (18:00-24:00 local), when the two dates
+      # differ.
+      assert entry.date == DomainHelpers.today_mx()
       assert entry.reference == "Monthly depreciation"
       assert entry.description == "Monthly straight-line depreciation - Kitchen Equipment"
     end

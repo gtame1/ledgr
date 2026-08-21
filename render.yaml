@@ -1,30 +1,69 @@
-# Render deployment configuration
-# https://render.com/docs/render-yaml-reference
+# ⚠️  DOCUMENTATION ONLY — THIS FILE DOES NOT CONTROL ANY DEPLOY. ⚠️
 #
-# This app uses two separate PostgreSQL databases (one per domain).
-# On Render's free plan only one free database is available — upgrade to
-# paid plan or use DATABASE_URL for both repos temporarily during dev.
+# The running service is `ledgr_app` (srv-d4nmnov5r7bs73c29g90) and it is NOT
+# connected to a Render Blueprint. There is no Blueprint on the account at all
+# (`GET /v1/blueprints` returns an empty list). The Render dashboard is the sole
+# source of truth for the plan, the disk, the build/start commands and every
+# environment variable. **Editing this file changes nothing.** To change a
+# deploy you must edit it in the dashboard.
 #
-# First-time setup after deploy:
+# This was learned the expensive way on 2026-08-20: a `HELLO_DOCTOR_POOL_SIZE`
+# added here silently never took effect, and the pool size that was supposedly
+# being tuned had been at its code default the whole time.
+#
+# The file is kept because it is still useful as a written record of what prod
+# looks like, and as the starting point if we ever do adopt Blueprint sync. The
+# values below were verified against the Render REST API on 2026-08-21 and are
+# accurate as of that date. If you change something in the dashboard, change it
+# here too — otherwise this drifts back into fiction.
+#
+# Re-verify at any time (the Render CLI's token also works for the REST API):
+#
+#   TOKEN=$(grep -A1 "^api:" ~/.render/cli.yaml | grep "key:" | sed -E 's/.*: *//' | tr -d '"'"'" ')
+#   curl -s -H "Authorization: Bearer $TOKEN" \
+#     https://api.render.com/v1/services/srv-d4nmnov5r7bs73c29g90 | python3 -m json.tool
+#   curl -s -H "Authorization: Bearer $TOKEN" \
+#     "https://api.render.com/v1/services/srv-d4nmnov5r7bs73c29g90/env-vars?limit=100"
+#
+# Env-var *values* are secrets (database URLs, Stripe keys) — never paste them
+# here or into a terminal transcript. Names only.
+#
+# ── If you ever DO want this file to govern deploys ────────────────────────────
+# Read this first. Creating a Blueprint from this file is not a no-op:
+#   * `autoDeploy: false` below is deliberate. The box is 512 MB and deploys are
+#     measured one variable at a time; automatic deploys on every push to main
+#     would destroy that.
+#   * The Postgres block is intentionally `fromDatabase` on the *existing*
+#     `mr-munch-me-db`. Declaring a database Render doesn't already own makes it
+#     create a brand-new empty one and repoint the app at it.
+# Confirm with Guillermo before connecting the service to a Blueprint.
+#
+# ── First-time setup after a fresh deploy ─────────────────────────────────────
 #   1. Deploy succeeds (migrations run automatically via preDeployCommand)
 #   2. SSH into the service and run: bin/ledgr seed
-#      (or trigger it from the Render shell)
+#      (ADMIN_EMAIL / ADMIN_PASSWORD are read by that seed script only — they are
+#      not set on the live service, because seeding already happened.)
 
 services:
   - type: web
-    name: ledgr
+    name: ledgr_app          # dashboard name; the service slug is
+                             # `mr-munchme-accounting-app`, hence the
+                             # onrender.com URL
     runtime: elixir
-    plan: starter        # change to 'free' if testing, 'standard' for production
-    region: oregon       # choose region closest to your users
+    plan: starter            # 512 MB. The OOM ceiling that shapes POOL_SIZE.
+    region: oregon
+    branch: main
+    autoDeploy: false        # OFF on the live service — deploys are triggered by
+                             # hand so each one can be measured in isolation.
 
     disk:
-      name: uploads-disk
+      name: disk             # this really is the name on the live service
       mountPath: /var/data
       sizeGB: 1
 
+    # `mix release` compiles, so there is no separate `mix compile` step.
     buildCommand: >
       mix deps.get --only prod &&
-      MIX_ENV=prod mix compile &&
       MIX_ENV=prod mix assets.deploy &&
       MIX_ENV=prod mix release
 
@@ -32,64 +71,158 @@ services:
     preDeployCommand: >
       _build/prod/rel/ledgr/bin/ledgr eval "Ledgr.Release.migrate()"
 
-    startCommand: _build/prod/rel/ledgr/bin/ledgr start
+    startCommand: PHX_SERVER=true _build/prod/rel/ledgr/bin/ledgr start
 
+    # ── Environment ───────────────────────────────────────────────────────────
+    # Every key below is set on the live service unless its comment says
+    # otherwise. `sync: false` means "value lives in the dashboard".
+    #
+    # MIX_ENV is deliberately absent: it is not set on the service. The build
+    # sets it inline per command, and the release runs as :prod regardless.
     envVars:
-      - key: MIX_ENV
-        value: prod
-
       - key: PHX_SERVER
         value: "true"
 
-      # Your deployed hostname on Render — update after first deploy
       - key: PHX_HOST
-        value: ledgr.onrender.com   # ← update this
+        value: mrmunchme.com
 
       - key: SECRET_KEY_BASE
-        generateValue: true         # Render generates a secure random value
+        sync: false          # already generated and in use. Do NOT switch this
+                             # to `generateValue: true` — that rotates it and
+                             # invalidates every session and signed token.
 
       - key: POOL_SIZE
-        value: "2"
+        value: "5"           # shared default for MrMunchMe / Viaxe / AMP / EdD
+                             # (config/runtime.exs falls back to 2 if unset)
 
-      # Hello Doctor defaults to 6 (config/runtime.exs). Each Postgrex
-      # connection is TLS, so it carries its own SSL session state — on a
-      # 512 MB box the pools are a meaningful slice of the budget.
-      - key: HELLO_DOCTOR_POOL_SIZE
-        value: "3"
+      # NOT SET on the live service. Hello Doctor therefore runs at the code
+      # default of 6 (config/runtime.exs). Held back on purpose so an upcoming
+      # memory deploy can be measured as a single variable first — do not set
+      # it without asking Guillermo.
+      # - key: HELLO_DOCTOR_POOL_SIZE
+      #   value: "3"
 
-      # Credentials for the admin user created by `bin/ledgr seed`
-      # Set these in the Render dashboard (not here) to keep them secret.
-      - key: ADMIN_EMAIL
-        sync: false                 # set manually in Render dashboard
-      - key: ADMIN_PASSWORD
-        sync: false                 # set manually in Render dashboard
-
-      # Persistent disk — images survive redeploys
       - key: UPLOAD_VOLUME
-        value: /var/data
+        value: /var/data     # persistent disk — images survive redeploys
 
-      # Database URLs — automatically injected from the databases below.
-      - key: MR_MUNCH_ME_DATABASE_URL
+      - key: DOMAIN_HOSTS
+        sync: false          # "hostname:slug,…" — routes each business to its
+                             # own domain via DomainPlug
+
+      - key: LEDGR_PASSWORD
+        sync: false          # gates the shared ledgr.mx host (LedgrAccessPlug).
+                             # If unset the plug is a no-op and the app is open.
+
+      # ── Databases ─────────────────────────────────────────────────────────
+      # Exactly ONE Render-managed Postgres exists on the account:
+      # `mr-munch-me-db` (dpg-d4nmh01r0fns73de19b0-a, plan basic_256mb). It is
+      # injected as DATABASE_URL. Every other domain is on Neon with its URL
+      # pasted into the dashboard by hand.
+      #
+      # Do not re-add database declarations for domains that have no Render
+      # Postgres — this file used to invent `ledgr-viaxe-db`,
+      # `ledgr-volume-studio-db` and `ledgr-mr-munch-me-db`, none of which ever
+      # existed.
+      - key: DATABASE_URL
         fromDatabase:
-          name: ledgr-mr-munch-me-db
+          name: mr-munch-me-db
           property: connectionString
 
-      # Externally-hosted databases (Neon) — the actual URLs live in the Render
-      # dashboard, but they are declared here so a new domain's variable can't
-      # be silently forgotten. A repo whose URL is unset never starts, and
-      # every request for that domain returns 503 (see Ledgr.Application).
+      # MR_MUNCH_ME_DATABASE_URL is NOT set; runtime.exs falls back to
+      # DATABASE_URL for Ledgr.Repos.MrMunchMe.
+
+      # Externally-hosted (Neon). Declared so a new domain's variable can't be
+      # silently forgotten: a repo whose URL is unset never starts, and every
+      # request for that domain — login included — returns 503.
       - key: VIAXE_DATABASE_URL
-        sync: false                 # set manually in Render dashboard
+        sync: false
       - key: HELLO_DOCTOR_DATABASE_URL
-        sync: false                 # set manually in Render dashboard
+        sync: false
       - key: AUMENTA_MI_PENSION_DATABASE_URL
-        sync: false                 # set manually in Render dashboard
+        sync: false
       - key: ESCUELA_DE_DINERO_DATABASE_URL
-        sync: false                 # set manually in Render dashboard
+        sync: false
 
-databases:
-  - name: ledgr-mr-munch-me-db
-    databaseName: ledgr_mr_munch_me_prod
-    user: ledgr_mr_munch_me
-    plan: starter        # 'free' gives 1 free DB per account; second one requires paid plan
+      # ── Stripe: three separate accounts ───────────────────────────────────
+      - key: STRIPE_SECRET_KEY               # MrMunchMe
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: HELLO_DOCTOR_STRIPE_SECRET_KEY
+        sync: false
+      - key: HELLO_DOCTOR_STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: AUMENTA_MI_PENSION_STRIPE_SECRET_KEY
+        sync: false
+      - key: AUMENTA_MI_PENSION_STRIPE_WEBHOOK_SECRET
+        sync: false
 
+      # ── Hello Doctor integrations ─────────────────────────────────────────
+      - key: HELLO_DOCTOR_BOT_URL            # Triage page reads/marks quality
+        sync: false
+      - key: HELLO_DOCTOR_BOT_ADMIN_API_KEY
+        sync: false
+      - key: HELLO_DOCTOR_OPENAI_API_KEY     # cost sync
+        sync: false
+      - key: HELLO_DOCTOR_OPENAI_PROJECT_ID  # scopes the sync to one project
+        sync: false
+      - key: HELLO_DOCTOR_WHEREBY_API_KEY    # video consults
+        sync: false
+      - key: HELLO_DOCTOR_AWS_ACCESS_KEY_ID
+        sync: false
+      - key: HELLO_DOCTOR_AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # ── Aumenta Mi Pensión bot service (FastAPI) ──────────────────────────
+      - key: AUMENTA_MI_PENSION_BOT_URL
+        sync: false
+      - key: AUMENTA_MI_PENSION_BOT_ADMIN_API_KEY
+        sync: false
+
+      # ── Prescriptions: Prescrypto (legacy) → Medikit (current) ────────────
+      - key: PRESCRYPTO_TOKEN
+        sync: false
+      - key: PRESCRYPTO_BASE_URL
+        sync: false
+      - key: MEDIKIT_API_KEY                 # selects the Salesforce org; must
+        sync: false                          # match hello-doctor prod's key
+      - key: MEDIKIT_DOCTORS_HOST
+        sync: false
+      - key: MEDIKIT_PAYER_ID
+        sync: false
+      - key: MEDIKIT_PURCHASER_PLAN_ID
+        sync: false
+      - key: MEDIKIT_ORGANIZATION_ID
+        sync: false
+      - key: MEDIKIT_SOURCE_SYSTEM_ID
+        sync: false
+      - key: MEDIKIT_DEFAULT_COUNTRY
+        sync: false          # fallback only; per-doctor address wins
+      - key: MEDIKIT_SKIP_LICENSE_VALIDATION
+        sync: false          # escape hatch for SEP outages — leave "false"
+
+      # ── Alerts ────────────────────────────────────────────────────────────
+      - key: CALLMEBOT_API_KEY               # WhatsApp sender for order alerts
+        sync: false
+
+      # ── Set on the service but read by nothing in this repo ────────────────
+      # NEON_API_KEY — no `System.get_env("NEON_API_KEY")` anywhere in lib/,
+      # config/ or priv/. Presumably left over from manual Neon provisioning.
+      # Harmless, but a candidate for removal from the dashboard.
+      - key: NEON_API_KEY
+        sync: false
+
+      # ── Read by the code but NOT set on the service (all have defaults) ────
+      # MR_MUNCH_ME_DATABASE_URL              → falls back to DATABASE_URL
+      # HELLO_DOCTOR_POOL_SIZE                → 6
+      # LEDGR_HOST                            → "ledgr.mx"
+      # MR_MUNCH_ME_ALERT_PHONE               → 5215543417149
+      # HELLO_DOCTOR_WHATSAPP_BUSINESS_NUMBER → the bot's config default
+      # ADMIN_EMAIL / ADMIN_PASSWORD          → seed scripts only; note that
+      #   priv/repos/mr_munch_me/seeds_prod.exs *raises* without ADMIN_PASSWORD,
+      #   so set it in the shell session when re-running a prod seed.
+      # PORT                                  → injected by Render at runtime
+
+# No `databases:` block. The one Render Postgres (`mr-munch-me-db`) was created
+# by hand and is referenced above via `fromDatabase`; declaring it here would
+# make a Blueprint sync try to create a second, empty one.
