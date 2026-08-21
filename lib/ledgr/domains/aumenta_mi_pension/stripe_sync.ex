@@ -19,7 +19,6 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
   alias Ledgr.Repo
   alias Ledgr.Domains.AumentaMiPension.StripePayments.StripePayment
   alias Ledgr.Domains.AumentaMiPension.Consultations.Consultation
-  alias Ledgr.Core.Accounting
 
   @doc """
   Fetches recent completed checkout sessions from AMP's Stripe account and
@@ -170,8 +169,6 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
               )
             end
 
-            create_payment_journal_entry(payment)
-
             {:ok, payment}
 
           {:error, changeset} ->
@@ -207,76 +204,6 @@ defmodule Ledgr.Domains.AumentaMiPension.StripeSync do
           stripe_payment_intent_id: payment_intent_id
         })
         |> Repo.update()
-    end
-  end
-
-  defp create_payment_journal_entry(%StripePayment{} = payment) do
-    try do
-      stripe_receivable = Accounting.get_account_by_code!("1200")
-      consultation_revenue = Accounting.get_account_by_code!("4000")
-
-      amount_cents = round(payment.amount * 100)
-
-      entry_attrs = %{
-        date: payment.paid_at |> NaiveDateTime.to_date(),
-        entry_type: "consultation_payment",
-        reference: "Stripe #{payment.stripe_session_id}",
-        description:
-          "Payment from #{payment.customer_name || payment.customer_email || "customer"}",
-        payee: payment.customer_name || payment.customer_email
-      }
-
-      lines = [
-        %{
-          account_id: stripe_receivable.id,
-          debit_cents: amount_cents,
-          credit_cents: 0,
-          description: "Stripe payment received"
-        },
-        %{
-          account_id: consultation_revenue.id,
-          debit_cents: 0,
-          credit_cents: amount_cents,
-          description: "Consultation revenue"
-        }
-      ]
-
-      lines =
-        if payment.stripe_fee && payment.stripe_fee > 0 do
-          fee_cents = round(payment.stripe_fee * 100)
-          processing = Accounting.get_account_by_code!("6000")
-
-          lines ++
-            [
-              %{
-                account_id: processing.id,
-                debit_cents: fee_cents,
-                credit_cents: 0,
-                description: "Stripe processing fee"
-              },
-              %{
-                account_id: stripe_receivable.id,
-                debit_cents: 0,
-                credit_cents: fee_cents,
-                description: "Stripe fee deducted from receivable"
-              }
-            ]
-        else
-          lines
-        end
-
-      # Agent payout split deferred — we don't yet know the AMP agent commission
-      # rate. Revenue is recognized in full; when the commission model is
-      # finalized, add a reclass entry like HelloDoctor's doctor_payable split.
-
-      Accounting.create_journal_entry_with_lines(entry_attrs, lines)
-    rescue
-      e ->
-        Logger.warning(
-          "[AumentaMiPension StripeSync] Failed to create journal entry for payment #{payment.id}: #{inspect(e)}"
-        )
-
-        :ok
     end
   end
 
